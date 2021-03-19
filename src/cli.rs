@@ -63,7 +63,7 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
 
         fn try_from(matches: clap::ArgMatches<'static>) -> error::OuchResult<Command> {
             // Possibilities:
-            //   * Case 1: output not supplied, therefore try to infer output by checking if all input files are decompressable
+            //   * Case 1: output not supplied, therefore try to infer output by checking if all input files are decompressible
             //   * Case 2: output supplied
             
             let output_was_supplied = matches.is_present("output");
@@ -98,14 +98,14 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
 
                 } 
                 else {
-                    // Checking if input files are decompressable
+                    // Checking if input files are decompressible
                     let input_files = input_files
                         .map(|filename| (filename, CompressionExtension::try_from(filename)));                        
                     
                     for file in input_files.clone() {
                         if let (file, Err(_)) = file {
-                            eprintln!("{}: file '{}' is not decompressable.", "error".red(), file);
-                            return Err(error::Error::InputsMustHaveBeenDecompressable(file.into()));
+                            // eprintln!("{}: file '{}' is not decompressible.", "error".red(), file);
+                            return Err(error::Error::InputsMustHaveBeenDecompressible(file.into()));
                         }
                     }
 

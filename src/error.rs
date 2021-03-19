@@ -8,7 +8,7 @@ pub enum Error {
     MissingExtensionError(String),
     InvalidUnicode,
     InvalidInput,
-    InputsMustHaveBeenDecompressable(String)
+    InputsMustHaveBeenDecompressible(String)
 }
 
 // This should be placed somewhere else
@@ -26,8 +26,8 @@ impl fmt::Display for Error {
             Error::MissingExtensionError(filename) => {
                 write!(f, "cannot compress to \'{}\', likely because it has an unsupported (or missing) extension.", filename)
             }
-            Error::InputsMustHaveBeenDecompressable(file) => {
-                write!(f, "file '{}' is not decompressable", file.red())
+            Error::InputsMustHaveBeenDecompressible(file) => {
+                write!(f, "file '{}' is not decompressible", file.red())
             }
             _ => {
                 // TODO

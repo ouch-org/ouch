@@ -32,7 +32,7 @@ info: attempting to decompress input files into single_folder
 info: done!
 ```
 
-When no output file is supplied, `ouch` infers that it must decompress all of its input files. This will error if any of the input files are not decompressable.
+When no output file is supplied, `ouch` infers that it must decompress all of its input files. This will error if any of the input files are not decompressible.
 
 #### Decompressing a bunch of files into a folder
 
@@ -42,7 +42,7 @@ info: attempting to decompress input files into single_folder
 info: done!
 ```
 
-When the output file is not a compressed file, `ouch` will check if all input files are decompressable and infer that it must decompress them into the output file.
+When the output file is not a compressed file, `ouch` will check if all input files are decompressible and infer that it must decompress them into the output file.
 
 #### Compressing files 
 
@@ -58,7 +58,7 @@ info: done!
 
 ```bash
 $ ouch -i some-file -o some-folder
-error: file 'some-file' is not decompressable.
+error: file 'some-file' is not decompressible.
 ```
 
 `ouch` might (TODO!) be able to sniff a file's compression format if it isn't supplied in the future, but that is not currently implemented.
