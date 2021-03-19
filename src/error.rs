@@ -2,7 +2,7 @@ use std::{fmt, path::PathBuf};
 
 use colored::Colorize;
 
-#[derive(Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum Error {
     UnknownExtensionError(String),
     MissingExtensionError(String),
