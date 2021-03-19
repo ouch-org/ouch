@@ -81,8 +81,8 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
                 
 
                 let output_file_extension = CompressionExtension::try_from(output_file);
-                let output_is_compressable = output_file_extension.is_ok();
-                if output_is_compressable {
+                let output_is_compressible = output_file_extension.is_ok();
+                if output_is_compressible {
                     println!("{}: trying to compress input files into '{}'", "info".yellow(), output_file);
 
                     let input_files = input_files.map(PathBuf::from).collect();
