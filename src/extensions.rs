@@ -43,6 +43,9 @@ impl TryFrom<&PathBuf> for CompressionExtension {
         match ext {
             "zip" => Ok(Zip),
             "tar" => Ok(Tar),
+            "gz" => Ok(Gzip),
+            "bz" => Ok(Bzip),
+            "lzma" => Ok(Lzma),
             other => Err(error::Error::UnknownExtensionError(other.into())),
         }
     }

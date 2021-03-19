@@ -1,4 +1,4 @@
-use std::{fmt, path::PathBuf};
+use std::fmt;
 
 use colored::Colorize;
 
@@ -6,9 +6,10 @@ use colored::Colorize;
 pub enum Error {
     UnknownExtensionError(String),
     MissingExtensionError(String),
+    // TODO: get rid of this error variant
     InvalidUnicode,
     InvalidInput,
-    InputsMustHaveBeenDecompressible(String)
+    InputsMustHaveBeenDecompressible(String),
 }
 
 // This should be placed somewhere else

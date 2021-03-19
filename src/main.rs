@@ -1,15 +1,13 @@
-use std::{convert::TryFrom, fs::File};
-
-use cli::get_matches;
+use std::convert::TryFrom;
 
 mod cli;
-mod file;
-mod extensions;
 mod error;
+mod extensions;
+mod file;
 mod test;
+mod evaluator;
 
 fn main() {
-
     // Just testing
 
     // let args: Vec<String> = std::env::args().collect();
@@ -20,7 +18,7 @@ fn main() {
     //     Ok((reader, compression)) => {},
     //     Err(err) => {}
     // }
-    
+
     // let (mut reader, compression) = niffler::sniff(Box::new(&file[..])).unwrap();
 
     // match compression {
@@ -35,12 +33,13 @@ fn main() {
 
     // dbg!(compression);
 
-    let matches = get_matches();
+    let matches = cli::get_matches();
     match cli::Command::try_from(matches) {
-        Ok(vals) => { dbg!(vals); },
+        Ok(vals) => {
+            dbg!(vals);
+        }
         Err(err) => {
             print!("{}\n", err);
         }
     }
-    
 }

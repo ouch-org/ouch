@@ -1,4 +1,4 @@
-use std::{convert::TryFrom, ffi::OsStr, path::PathBuf, vec::Vec};
+use std::{convert::TryFrom, path::PathBuf, vec::Vec};
 
 use clap::{Arg, Values};
 use colored::Colorize;
@@ -61,88 +61,78 @@ pub fn get_matches() -> clap::ArgMatches<'static> {
 
 // holy spaghetti code
 impl TryFrom<clap::ArgMatches<'static>> for Command {
-
     type Error = error::Error;
 
-        fn try_from(matches: clap::ArgMatches<'static>) -> error::OuchResult<Command> {
+    fn try_from(matches: clap::ArgMatches<'static>) -> error::OuchResult<Command> {
+        let process_decompressible_input = |input_files: Values| {
+            let input_files =
+                input_files.map(|filename| (filename, CompressionExtension::try_from(filename)));
 
-            let process_decompressible_input = |input_files: Values| {
-                let input_files = input_files
-                        .map(|filename| (filename, CompressionExtension::try_from(filename)));                        
-
-                    for file in input_files.clone() {
-                        if let (file, Err(_)) = file {
-                            // eprintln!("{}: file '{}' is not decompressible.", "error".red(), file);
-                            return Err(error::Error::InputsMustHaveBeenDecompressible(file.into()));
-                        }
-                    }
-
-                    
-                Ok(input_files
-                        .map(|(filename, extension)| 
-                            (PathBuf::from(filename), extension.unwrap())
-                        )
-                        .collect::<Vec<_>>())
-            };
-
-            // Possibilities:
-            //   * Case 1: output not supplied, therefore try to infer output by checking if all input files are decompressible
-            //   * Case 2: output supplied
-            
-            let output_was_supplied = matches.is_present("output");
-
-
-            let input_files = matches
-                    .values_of("input")
-                    .unwrap(); // Safe to unwrap since input is an obligatory argument
-
-            if output_was_supplied {
-                let output_file = matches
-                    .value_of("output")
-                    .unwrap(); // Safe unwrap since we've established that output was supplied
-
-                let output_file_extension = CompressionExtension::try_from(output_file);
-                let output_is_compressible = output_file_extension.is_ok();
-                if output_is_compressible {
-                    println!("{}: trying to compress input files into '{}'", "info".yellow(), output_file);
-
-                    let input_files = input_files.map(PathBuf::from).collect();
-
-                    return Ok(
-                        Command {
-                            command_type: CommandType::Compression(input_files),
-                            output: Some(File::WithExtension(
-                              (output_file.into(), output_file_extension.unwrap())  
-                            ))
-                        }
-                    );
-
-                } 
-                else {
-                    // Checking if input files are decompressible
-                    
-                    let input_files = process_decompressible_input(input_files)?;
-
-                    println!("{}: attempting to decompress input files into {}", "info".yellow(), output_file);
-                    return Ok(
-                        Command {
-                            command_type: CommandType::Decompression(input_files),
-                            output: Some(File::WithoutExtension(output_file.into()))
-                        }
-                    );
+            for file in input_files.clone() {
+                if let (file, Err(_)) = file {
+                    // eprintln!("{}: file '{}' is not decompressible.", "error".red(), file);
+                    return Err(error::Error::InputsMustHaveBeenDecompressible(file.into()));
                 }
-            } else {
-                // else: output file not supplied
-                // Case 1: all input files are decompressible
-                // Case 2: error
-                let input_files = process_decompressible_input(input_files)?;
-                return Ok(
-                    Command {
-                        command_type: CommandType::Decompression(input_files),
-                        output: None
-                    }
-                );
-                
             }
+
+            Ok(input_files
+                .map(|(filename, extension)| (PathBuf::from(filename), extension.unwrap()))
+                .collect::<Vec<_>>())
+        };
+
+        // Possibilities:
+        //   * Case 1: output not supplied, therefore try to infer output by checking if all input files are decompressible
+        //   * Case 2: output supplied
+
+        let output_was_supplied = matches.is_present("output");
+
+        let input_files = matches.values_of("input").unwrap(); // Safe to unwrap since input is an obligatory argument
+
+        if output_was_supplied {
+            let output_file = matches.value_of("output").unwrap(); // Safe unwrap since we've established that output was supplied
+
+            let output_file_extension = CompressionExtension::try_from(output_file);
+            let output_is_compressible = output_file_extension.is_ok();
+            if output_is_compressible {
+                println!(
+                    "{}: trying to compress input files into '{}'",
+                    "info".yellow(),
+                    output_file
+                );
+
+                let input_files = input_files.map(PathBuf::from).collect();
+
+                return Ok(Command {
+                    command_type: CommandType::Compression(input_files),
+                    output: Some(File::WithExtension((
+                        output_file.into(),
+                        output_file_extension.unwrap(),
+                    ))),
+                });
+            } else {
+                // Checking if input files are decompressible
+
+                let input_files = process_decompressible_input(input_files)?;
+
+                println!(
+                    "{}: attempting to decompress input files into {}",
+                    "info".yellow(),
+                    output_file
+                );
+                return Ok(Command {
+                    command_type: CommandType::Decompression(input_files),
+                    output: Some(File::WithoutExtension(output_file.into())),
+                });
+            }
+        } else {
+            // else: output file not supplied
+            // Case 1: all input files are decompressible
+            // Case 2: error
+            let input_files = process_decompressible_input(input_files)?;
+            return Ok(Command {
+                command_type: CommandType::Decompression(input_files),
+                output: None,
+            });
         }
+    }
 }
