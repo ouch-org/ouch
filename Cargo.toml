@@ -1,0 +1,12 @@
+[package]
+name = "ouch"
+version = "0.1.0"
+authors = ["Vinícius Rodrigues Miguel <lemao.vrm07@hotmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+colored = "2.0.0"
+niffler = "2.3.1"
+clap    = "2.33.3"
