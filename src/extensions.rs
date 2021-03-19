@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::error;
-#[derive(Debug)]
+#[derive(PartialEq, Eq, Debug)]
 /// Accepted extensions for input and output
 pub enum CompressionExtension {
     // .gz

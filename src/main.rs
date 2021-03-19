@@ -6,6 +6,7 @@ mod cli;
 mod file;
 mod extensions;
 mod error;
+mod test;
 
 fn main() {
 

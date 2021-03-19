@@ -12,7 +12,7 @@ use crate::extensions::CompressionExtension;
 //     pub filename: PathBuf,
 // }
 
-#[derive(Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum File {
     WithExtension((PathBuf, CompressionExtension)),
     WithoutExtension(PathBuf)
