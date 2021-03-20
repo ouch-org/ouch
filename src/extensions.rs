@@ -1,12 +1,84 @@
-use std::{
-    convert::TryFrom,
-    path::{Path, PathBuf},
-};
+use std::{convert::TryFrom, ffi::OsStr, path::{Path, PathBuf}};
 
 use crate::error;
+use CompressionFormat::*;
+
+/// Represents the extension of a file, but only really caring about
+/// compression formats (and .tar).
+/// Ex.: Extension::new("file.tar.gz") == Extension { first_ext: Some(Tar), second_ext: Gzip }
+struct Extension {
+    first_ext: Option<CompressionFormat>,
+    second_ext: CompressionFormat
+}
+
+impl Extension {
+    pub fn new(filename: &str) -> error::OuchResult<Self> {
+        let ext_from_str = |ext| {
+            match ext {
+                "zip" => Ok(Zip),
+                "tar" => Ok(Tar),
+                "gz" => Ok(Gzip),
+                "bz" => Ok(Bzip),
+                "lzma" => Ok(Lzma),
+                other => Err(error::Error::UnknownExtensionError(other.into())),
+            }
+        };
+
+        let (first_ext, second_ext) = match get_extension_from_filename(filename) {
+            Some(extension_tuple) => {
+                match extension_tuple {
+                    ("", snd) => (None, snd),
+                    (fst, snd)=> (Some(fst), snd)
+                }
+            },
+            None => {
+                return Err(error::Error::MissingExtensionError(filename.into()))
+            }
+        };
+
+        let (first_ext, second_ext) = match (first_ext, second_ext) {
+            (None, snd) => {
+                let ext = ext_from_str(snd)?;
+                (None, ext)
+            }
+            (Some(fst), snd) => {
+                let snd = ext_from_str(snd)?;
+                let fst = ext_from_str(fst).ok();
+                (fst, snd)
+            }
+        };
+
+        Ok(
+            Self {
+                first_ext,
+                second_ext
+            }
+        )
+    }
+}
+
+pub fn get_extension_from_filename(filename: &str) -> Option<(&str, &str)> {
+    let path = Path::new(filename); 
+    
+    let ext = path
+        .extension()
+        .and_then(OsStr::to_str)?;
+        
+    let previous_extension = path
+        .file_stem()
+        .and_then(OsStr::to_str)
+        .and_then(get_extension_from_filename);
+
+    if let Some((_, prev)) = previous_extension {
+        Some((prev, ext))
+    } else {
+        Some(("", ext))
+    }
+}
+
 #[derive(PartialEq, Eq, Debug)]
 /// Accepted extensions for input and output
-pub enum CompressionExtension {
+pub enum CompressionFormat {
     // .gz
     Gzip,
     // .bz
@@ -22,11 +94,27 @@ pub enum CompressionExtension {
     // NotCompressed
 }
 
-impl TryFrom<&PathBuf> for CompressionExtension {
+fn extension_from_os_str(ext: &OsStr) -> Result<CompressionFormat, error::Error> {
+    
+    let ext = match ext.to_str() {
+        Some(str) => str,
+        None => return Err(error::Error::InvalidUnicode),
+    };
+    
+    match ext {
+        "zip" => Ok(Zip),
+        "tar" => Ok(Tar),
+        "gz" => Ok(Gzip),
+        "bz" => Ok(Bzip),
+        "lzma" => Ok(Lzma),
+        other => Err(error::Error::UnknownExtensionError(other.into())),
+    }
+}
+
+impl TryFrom<&PathBuf> for CompressionFormat {
     type Error = error::Error;
 
     fn try_from(ext: &PathBuf) -> Result<Self, Self::Error> {
-        use CompressionExtension::*;
 
         let ext = match ext.extension() {
             Some(ext) => ext,
@@ -35,43 +123,20 @@ impl TryFrom<&PathBuf> for CompressionExtension {
             }
         };
 
-        let ext = match ext.to_str() {
-            Some(str) => str,
-            None => return Err(error::Error::InvalidUnicode),
-        };
-
-        match ext {
-            "zip" => Ok(Zip),
-            "tar" => Ok(Tar),
-            "gz" => Ok(Gzip),
-            "bz" => Ok(Bzip),
-            "lzma" => Ok(Lzma),
-            other => Err(error::Error::UnknownExtensionError(other.into())),
-        }
+        extension_from_os_str(ext)
     }
 }
 
-impl TryFrom<&str> for CompressionExtension {
+impl TryFrom<&str> for CompressionFormat {
     type Error = error::Error;
 
     fn try_from(filename: &str) -> Result<Self, Self::Error> {
-        use CompressionExtension::*;
-
         let filename = Path::new(filename);
         let ext = match filename.extension() {
             Some(ext) => ext,
             None => return Err(error::Error::MissingExtensionError(String::new())),
         };
 
-        let ext = match ext.to_str() {
-            Some(str) => str,
-            None => return Err(error::Error::InvalidUnicode),
-        };
-
-        match ext {
-            "zip" => Ok(Zip),
-            "tar" => Ok(Tar),
-            other => Err(error::Error::UnknownExtensionError(other.into())),
-        }
+        extension_from_os_str(ext)
     }
 }

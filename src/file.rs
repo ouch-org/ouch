@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
-use crate::extensions::CompressionExtension;
+use crate::extensions::CompressionFormat;
 
 #[derive(PartialEq, Eq, Debug)]
 pub enum File {
-    WithExtension((PathBuf, CompressionExtension)),
+    WithExtension((PathBuf, CompressionFormat)),
     WithoutExtension(PathBuf),
 }

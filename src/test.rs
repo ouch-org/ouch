@@ -3,9 +3,9 @@ mod cli {
 
     use crate::cli::clap_app;
     use crate::cli::Command;
-    use crate::cli::CommandType::*;
+    use crate::cli::CommandKind::*;
     use crate::error::OuchResult;
-    use crate::extensions::CompressionExtension::*;
+    use crate::extensions::CompressionFormat::*;
     use crate::file::File;
     use std::convert::TryFrom;
 
@@ -17,7 +17,7 @@ mod cli {
         assert_eq!(
             command_from_matches,
             Command {
-                command_type: Decompression(vec![("file.zip".into(), Zip,),],),
+                kind: Decompression(vec![("file.zip".into(), Zip,),],),
                 output: Some(File::WithoutExtension("folder".into())),
             }
         );
@@ -33,7 +33,7 @@ mod cli {
         assert_eq!(
             command_from_matches,
             Command {
-                command_type: Decompression(vec![
+                kind: Decompression(vec![
                     ("file.zip".into(), Zip,),
                     ("file.tar".into(), Tar,),
                 ],),
@@ -60,7 +60,7 @@ mod cli {
         assert_eq!(
             command_from_matches,
             Command {
-                command_type: Compression(vec![
+                kind: Compression(vec![
                     "file".into(),
                     "file2.jpeg".into(),
                     "file3.ok".into()
@@ -101,15 +101,15 @@ mod cli_errors {
 #[cfg(test)]
 mod extension_extraction {
     use crate::error::OuchResult;
-    use crate::extensions::CompressionExtension;
+    use crate::extensions::CompressionFormat;
     use std::{convert::TryFrom, path::PathBuf, str::FromStr};
 
     #[test]
     fn zip() -> OuchResult<()> {
         let path = PathBuf::from_str("filename.tar.zip").unwrap();
         assert_eq!(
-            CompressionExtension::try_from(&path)?,
-            CompressionExtension::Zip
+            CompressionFormat::try_from(&path)?,
+            CompressionFormat::Zip
         );
 
         Ok(())
@@ -119,8 +119,8 @@ mod extension_extraction {
     fn tar() -> OuchResult<()> {
         let path = PathBuf::from_str("pictures.tar").unwrap();
         assert_eq!(
-            CompressionExtension::try_from(&path)?,
-            CompressionExtension::Tar
+            CompressionFormat::try_from(&path)?,
+            CompressionFormat::Tar
         );
 
         Ok(())
@@ -130,8 +130,8 @@ mod extension_extraction {
     fn gz() -> OuchResult<()> {
         let path = PathBuf::from_str("passwords.tar.gz").unwrap();
         assert_eq!(
-            CompressionExtension::try_from(&path)?,
-            CompressionExtension::Gzip
+            CompressionFormat::try_from(&path)?,
+            CompressionFormat::Gzip
         );
 
         Ok(())
@@ -141,8 +141,8 @@ mod extension_extraction {
     fn lzma() -> OuchResult<()> {
         let path = PathBuf::from_str("mygame.tar.lzma").unwrap();
         assert_eq!(
-            CompressionExtension::try_from(&path)?,
-            CompressionExtension::Lzma
+            CompressionFormat::try_from(&path)?,
+            CompressionFormat::Lzma
         );
 
         Ok(())
@@ -152,8 +152,8 @@ mod extension_extraction {
     fn bz() -> OuchResult<()> {
         let path = PathBuf::from_str("songs.tar.bz").unwrap();
         assert_eq!(
-            CompressionExtension::try_from(&path)?,
-            CompressionExtension::Bzip
+            CompressionFormat::try_from(&path)?,
+            CompressionFormat::Bzip
         );
 
         Ok(())
