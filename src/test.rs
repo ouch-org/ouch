@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod cli {
 
-    use crate::{cli::clap_app, extension};
+    use crate::cli::clap_app;
     use crate::cli::Command;
     use crate::cli::CommandKind::*;
     use crate::error::OuchResult;

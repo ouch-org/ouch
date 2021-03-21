@@ -6,7 +6,7 @@ use std::{
 use colored::Colorize;
 use tar;
 
-use crate::error::OuchResult;
+use crate::{error::OuchResult, utils};
 use crate::file::File;
 
 use super::decompressor::Decompressor;
@@ -14,23 +14,6 @@ use super::decompressor::Decompressor;
 pub struct TarDecompressor {}
 
 impl TarDecompressor {
-
-    fn create_path_if_non_existent(path: &Path) -> OuchResult<()> {
-        if !path.exists() {
-            println!(
-                "{}: attempting to create folder {:?}.",
-                "info".yellow(),
-                &path
-            );
-            std::fs::create_dir_all(path)?;
-            println!(
-                "{}: directory {:#?} created.",
-                "info".yellow(),
-                fs::canonicalize(&path)?
-            );
-        }
-        Ok(())
-    }
 
     fn unpack_files(from: &Path, into: &Path) -> OuchResult<Vec<PathBuf>> {
 
@@ -55,17 +38,9 @@ impl TarDecompressor {
 
 impl Decompressor for TarDecompressor {
     fn decompress(&self, from: &File, into: &Option<File>) -> OuchResult<Vec<PathBuf>> {
-        let destination_path = match into {
-            Some(output) => {
-                // Must be None according to the way command-line arg. parsing in Ouch works
-                assert_eq!(output.extension, None);
+        let destination_path = utils::get_destination_path(into);
 
-                Path::new(&output.path)
-            }
-            None => Path::new("."),
-        };
-
-        Self::create_path_if_non_existent(destination_path)?;
+        utils::create_path_if_non_existent(destination_path)?;
 
         let files_unpacked = Self::unpack_files(&from.path, destination_path)?;
 

@@ -2,8 +2,9 @@
 use colored::Colorize;
 
 use crate::{cli::{Command, CommandKind}, error, extension::CompressionFormat, file::File};
-use crate::decompressors::TarDecompressor;
 use crate::decompressors::Decompressor;
+use crate::decompressors::TarDecompressor;
+use crate::decompressors::ZipDecompressor;
 
 pub struct Evaluator {   
     command: Command,
@@ -29,6 +30,9 @@ impl Evaluator {
             CompressionFormat::Tar => { 
                 Box::new(TarDecompressor{})
             },
+            // CompressionFormat::Zip => { 
+            //     Box::new(ZipDecompressor{})
+            // }
             _ => { 
                 todo!()
             }

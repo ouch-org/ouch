@@ -1,8 +1,6 @@
-use std::{convert::TryFrom, fs::File, path::{Path, PathBuf}};
+use std::convert::TryFrom;
 
 use colored::Colorize;
-use error::{Error, OuchResult};
-use tar::Archive;
 
 mod cli;
 mod error;
@@ -10,8 +8,10 @@ mod extension;
 mod file;
 mod test;
 mod evaluator;
-
+mod utils;
 mod decompressors;
+
+use error::OuchResult;
 
 fn main() -> OuchResult<()>{
     let matches = cli::get_matches();

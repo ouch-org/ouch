@@ -12,6 +12,26 @@ pub struct Extension {
     pub second_ext: CompressionFormat
 }
 
+pub fn get_extension_from_filename(filename: &str) -> Option<(&str, &str)> {
+    let path = Path::new(filename); 
+    
+    let ext = path
+        .extension()
+        .and_then(OsStr::to_str)?;
+        
+    let previous_extension = path
+        .file_stem()
+        .and_then(OsStr::to_str)
+        .and_then(get_extension_from_filename);
+
+    if let Some((_, prev)) = previous_extension {
+        Some((prev, ext))
+    } else {
+        Some(("", ext))
+    }
+}
+
+
 impl From<CompressionFormat> for Extension {
     fn from(second_ext: CompressionFormat) -> Self {
         Self {
@@ -64,25 +84,6 @@ impl Extension {
                 second_ext
             }
         )
-    }
-}
-
-pub fn get_extension_from_filename(filename: &str) -> Option<(&str, &str)> {
-    let path = Path::new(filename); 
-    
-    let ext = path
-        .extension()
-        .and_then(OsStr::to_str)?;
-        
-    let previous_extension = path
-        .file_stem()
-        .and_then(OsStr::to_str)
-        .and_then(get_extension_from_filename);
-
-    if let Some((_, prev)) = previous_extension {
-        Some((prev, ext))
-    } else {
-        Some(("", ext))
     }
 }
 
