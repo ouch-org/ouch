@@ -9,9 +9,11 @@ use tar;
 use crate::error::OuchResult;
 use crate::file::File;
 
-pub struct Decompressor {}
+use super::decompressor::Decompressor;
 
-impl Decompressor {
+pub struct TarDecompressor {}
+
+impl TarDecompressor {
 
     fn create_path_if_non_existent(path: &Path) -> OuchResult<()> {
         if !path.exists() {
@@ -49,8 +51,10 @@ impl Decompressor {
 
         Ok(files_unpacked)
     }
+}
 
-    pub fn decompress(from: &File, into: &Option<File>) -> OuchResult<Vec<PathBuf>> {
+impl Decompressor for TarDecompressor {
+    fn decompress(&self, from: &File, into: &Option<File>) -> OuchResult<Vec<PathBuf>> {
         let destination_path = match into {
             Some(output) => {
                 // Must be None according to the way command-line arg. parsing in Ouch works
