@@ -40,23 +40,25 @@ impl ZipDecompressor {
 
             Self::check_for_comments(&file);
 
-            if (&*file.name()).ends_with('/') {
+            let is_dir = (&*file.name()).ends_with('/');
+
+            if is_dir {
                 println!("File {} extracted to \"{}\"", idx, file_path.display());
                 fs::create_dir_all(&file_path)?;
             } else {
+                if let Some(p) = file_path.parent() {
+                    if !p.exists() {
+                        fs::create_dir_all(&p)?;
+                    }
+                }
                 println!(
                     "{}: \"{}\" extracted. ({} bytes)",
                     "info".yellow(),
                     file_path.display(),
                     file.size()
                 );
-                if let Some(p) = file_path.parent() {
-                    if !p.exists() {
-                        fs::create_dir_all(&p).unwrap();
-                    }
-                }
-                let mut outfile = fs::File::create(&file_path).unwrap();
-                io::copy(&mut file, &mut outfile).unwrap();
+                let mut outfile = fs::File::create(&file_path)?;
+                io::copy(&mut file, &mut outfile)?;
             }
 
             let file_path = fs::canonicalize(file_path.clone())?;
@@ -76,7 +78,6 @@ impl Decompressor for ZipDecompressor {
 
         let files_unpacked = Self::unpack_files(&from.path, destination_path)?;
 
-        // placeholder return
         Ok(files_unpacked)
     }
 }
