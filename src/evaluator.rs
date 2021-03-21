@@ -28,7 +28,9 @@ impl Evaluator {
         let output_file = &self.command.output;
 
         match extension.second_ext {
-            CompressionFormat::Tar => tar::Decompressor::decompress(file, output_file)?,
+            CompressionFormat::Tar => { 
+                let _ = tar::Decompressor::decompress(file, output_file)?;
+            },
             _ => { 
                 todo!()
             }

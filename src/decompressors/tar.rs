@@ -12,7 +12,45 @@ use crate::file::File;
 pub struct Decompressor {}
 
 impl Decompressor {
-    pub fn decompress(from: &File, into: &Option<File>) -> OuchResult<()> {
+
+    fn create_path_if_non_existent(path: &Path) -> OuchResult<()> {
+        if !path.exists() {
+            println!(
+                "{}: attempting to create folder {:?}.",
+                "info".yellow(),
+                &path
+            );
+            std::fs::create_dir_all(path)?;
+            println!(
+                "{}: directory {:#?} created.",
+                "info".yellow(),
+                fs::canonicalize(&path)?
+            );
+        }
+        Ok(())
+    }
+
+    fn unpack_files(from: &Path, into: &Path) -> OuchResult<Vec<PathBuf>> {
+
+        let mut files_unpacked = vec![];
+
+        let file = fs::File::open(from)?;
+        let mut archive = tar::Archive::new(file);
+
+        for file in archive.entries()? {
+            let mut file = file?;
+
+            // TODO: check if file/folder already exists and ask user's permission for overwriting
+            file.unpack_in(into)?;
+            
+            let file_path = fs::canonicalize(into.join(file.path()?))?;
+            files_unpacked.push(file_path);
+        }
+
+        Ok(files_unpacked)
+    }
+
+    pub fn decompress(from: &File, into: &Option<File>) -> OuchResult<Vec<PathBuf>> {
         let destination_path = match into {
             Some(output) => {
                 // Must be None according to the way command-line arg. parsing in Ouch works
@@ -23,31 +61,10 @@ impl Decompressor {
             None => Path::new("."),
         };
 
-        if !destination_path.exists() {
-            println!(
-                "{}: attempting to create folder {:?}.",
-                "info".yellow(),
-                &destination_path
-            );
-            std::fs::create_dir_all(destination_path)?;
-            println!(
-                "{}: directory {:#?} created.",
-                "info".yellow(),
-                fs::canonicalize(&destination_path)?
-            );
-        }
+        Self::create_path_if_non_existent(destination_path)?;
 
-        let file = fs::File::open(&from.path)?;
-        let mut archive = tar::Archive::new(file);
+        let files_unpacked = Self::unpack_files(&from.path, destination_path)?;
 
-        for file in archive.entries().unwrap() {
-            let mut file = file?;
-
-            file.unpack_in(destination_path)?;
-
-            // TODO: save all unpacked files into a 'transaction' metadata
-        }
-
-        Ok(())
+        Ok(files_unpacked)
     }
 }
