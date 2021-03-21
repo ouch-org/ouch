@@ -4,7 +4,7 @@ use clap::{Arg, Values};
 use colored::Colorize;
 
 use crate::error;
-use crate::extensions::CompressionFormat;
+use crate::extension::{Extension, CompressionFormat};
 use crate::file::File;
 
 #[derive(PartialEq, Eq, Debug)]
@@ -15,7 +15,7 @@ pub enum CommandKind {
     ),
     Decompression(
         // Files to be decompressed and their extensions
-        Vec<(PathBuf, CompressionFormat)>,
+        Vec<File>,
     ),
 }
 
@@ -70,7 +70,6 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
 
             for file in input_files.clone() {
                 if let (file, Err(_)) = file {
-                    // eprintln!("{}: file '{}' is not decompressible.", "error".red(), file);
                     return Err(error::Error::InputsMustHaveBeenDecompressible(file.into()));
                 }
             }
@@ -91,9 +90,11 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
         if output_was_supplied {
             let output_file = matches.value_of("output").unwrap(); // Safe unwrap since we've established that output was supplied
 
-            let output_file_extension = CompressionFormat::try_from(output_file);
+            let output_file_extension = Extension::new(output_file);
             let output_is_compressible = output_file_extension.is_ok();
             if output_is_compressible {
+                // The supplied output is compressible, so we'll compress our inputs to it
+
                 println!(
                     "{}: trying to compress input files into '{}'",
                     "info".yellow(),
@@ -102,13 +103,22 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
 
                 let input_files = input_files.map(PathBuf::from).collect();
 
+                // return Ok(Command {
+                //     kind: CommandKind::Compression(input_files),
+                //     output: Some(File::WithExtension((
+                //         output_file.into(),
+                //         output_file_extension.unwrap(),
+                //     ))),
+                // });
+
                 return Ok(Command {
                     kind: CommandKind::Compression(input_files),
-                    output: Some(File::WithExtension((
-                        output_file.into(),
-                        output_file_extension.unwrap(),
-                    ))),
+                    output: Some(File {
+                        path: output_file.into(),
+                        extension: Some(output_file_extension.unwrap())
+                    }),
                 });
+
             } else {
                 // Checking if input files are decompressible
 
@@ -119,9 +129,15 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
                     "info".yellow(),
                     output_file
                 );
+
+                let input_files = input_files.into_iter().map(File::from).collect();
+
                 return Ok(Command {
                     kind: CommandKind::Decompression(input_files),
-                    output: Some(File::WithoutExtension(output_file.into())),
+                    output: Some(File {
+                        path: output_file.into(),
+                        extension: None
+                    })
                 });
             }
         } else {
@@ -129,6 +145,7 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
             // Case 1: all input files are decompressible
             // Case 2: error
             let input_files = process_decompressible_input(input_files)?;
+            let input_files = input_files.into_iter().map(File::from).collect();
             return Ok(Command {
                 kind: CommandKind::Decompression(input_files),
                 output: None,

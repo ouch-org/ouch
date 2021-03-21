@@ -1,11 +1,12 @@
 #[cfg(test)]
 mod cli {
 
-    use crate::cli::clap_app;
+    use crate::{cli::clap_app, extension};
     use crate::cli::Command;
     use crate::cli::CommandKind::*;
     use crate::error::OuchResult;
-    use crate::extensions::CompressionFormat::*;
+    use crate::extension::CompressionFormat::*;
+    use crate::extension::Extension;
     use crate::file::File;
     use std::convert::TryFrom;
 
@@ -17,8 +18,16 @@ mod cli {
         assert_eq!(
             command_from_matches,
             Command {
-                kind: Decompression(vec![("file.zip".into(), Zip,),],),
-                output: Some(File::WithoutExtension("folder".into())),
+                kind: Decompression(vec![
+                    File { 
+                        path: "file.zip".into(),
+                        extension: Some(Extension::from(Zip))
+                    }
+                ]),
+                output: Some(File {
+                    path: "folder".into(),
+                    extension: None
+                }),
             }
         );
 
@@ -34,8 +43,14 @@ mod cli {
             command_from_matches,
             Command {
                 kind: Decompression(vec![
-                    ("file.zip".into(), Zip,),
-                    ("file.tar".into(), Tar,),
+                    File { 
+                        path: "file.zip".into(),
+                        extension: Some(Extension::from(Zip))
+                    },
+                    File { 
+                        path: "file.tar".into(),
+                        extension: Some(Extension::from(Tar))
+                    }
                 ],),
                 output: None,
             }
@@ -65,7 +80,13 @@ mod cli {
                     "file2.jpeg".into(),
                     "file3.ok".into()
                 ]),
-                output: Some(File::WithExtension(("file.tar".into(), Tar)))
+                // output: Some(File::WithExtension(("file.tar".into(), Extension::from(Tar))))
+                output: Some(
+                    File {
+                        path: "file.tar".into(),
+                        extension: Some(Extension::from(Tar))
+                    }
+                ),
             }
         );
 
@@ -101,7 +122,7 @@ mod cli_errors {
 #[cfg(test)]
 mod extension_extraction {
     use crate::error::OuchResult;
-    use crate::extensions::CompressionFormat;
+    use crate::extension::CompressionFormat;
     use std::{convert::TryFrom, path::PathBuf, str::FromStr};
 
     #[test]

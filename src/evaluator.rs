@@ -2,7 +2,7 @@ use std::{convert::TryFrom, path::{PathBuf}};
 
 use colored::Colorize;
 
-use crate::{cli::{Command, CommandKind}, error, extensions::CompressionFormat, file::File};
+use crate::{cli::{Command, CommandKind}, error, extension::CompressionFormat, file::File};
 
 pub struct Evaluator {   
     command: Command,
@@ -26,27 +26,27 @@ impl Evaluator {
         }
     }
 
-    fn handle_decompression(files_to_decompress: &[(PathBuf, CompressionFormat)], output_file: &Option<File>) {
-        for (filename, extension) in files_to_decompress {
-            // println!("file: {:?}, extension: {:?}", filename, extension);
+    fn handle_decompression(files_to_decompress: &[File], output_file: &Option<File>) {
+        // for (filename, extension) in files_to_decompress {
+        //     // println!("file: {:?}, extension: {:?}", filename, extension);
 
-            // TODO: actually decompress anything ;-;
+        //     // TODO: actually decompress anything ;-;
 
-            // Once decompressed, check if the file can be decompressed further
-            // e.g.: "foobar.tar.gz" -> "foobar.tar"
+        //     // Once decompressed, check if the file can be decompressed further
+        //     // e.g.: "foobar.tar.gz" -> "foobar.tar"
 
             
 
-            let filename: &PathBuf = &filename.as_path().file_stem().unwrap().into();
-            match CompressionFormat::try_from(filename) {
-                Ok(extension) => {
-                    println!("{}: attempting to decompress {:?}, ext: {:?}", "info".yellow(), filename, extension);
-                },
-                Err(err) => {
-                    continue;
-                }
-            }
-        }
+        //     let filename: &PathBuf = &filename.as_path().file_stem().unwrap().into();
+        //     match CompressionFormat::try_from(filename) {
+        //         Ok(extension) => {
+        //             println!("{}: attempting to decompress {:?}, ext: {:?}", "info".yellow(), filename, extension);
+        //         },
+        //         Err(err) => {
+        //             continue;
+        //         }
+        //     }
+        // }
     }
 
     pub fn evaluate(&mut self) {

@@ -6,9 +6,19 @@ use CompressionFormat::*;
 /// Represents the extension of a file, but only really caring about
 /// compression formats (and .tar).
 /// Ex.: Extension::new("file.tar.gz") == Extension { first_ext: Some(Tar), second_ext: Gzip }
-struct Extension {
+#[derive(Debug, PartialEq, Eq)]
+pub struct Extension {
     first_ext: Option<CompressionFormat>,
     second_ext: CompressionFormat
+}
+
+impl From<CompressionFormat> for Extension {
+    fn from(second_ext: CompressionFormat) -> Self {
+        Self {
+            first_ext: None,
+            second_ext
+        }
+    }
 }
 
 impl Extension {
