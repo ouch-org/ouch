@@ -1,0 +1,1 @@
+/// This file should/could store a Decompressor trait

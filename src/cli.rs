@@ -124,12 +124,6 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
 
                 let input_files = process_decompressible_input(input_files)?;
 
-                println!(
-                    "{}: attempting to decompress input files into {}",
-                    "info".yellow(),
-                    output_file
-                );
-
                 let input_files = input_files.into_iter().map(File::from).collect();
 
                 return Ok(Command {

@@ -9,6 +9,7 @@ pub enum Error {
     // TODO: get rid of this error variant
     InvalidUnicode,
     InvalidInput,
+    IOError,
     InputsMustHaveBeenDecompressible(String),
 }
 
@@ -32,8 +33,20 @@ impl fmt::Display for Error {
             }
             _ => {
                 // TODO
-                write!(f, "")
+                write!(f, "todo: missing description for error")
             }
         }
+    }
+}
+
+
+impl From<std::io::Error> for Error {
+    fn from(err: std::io::Error) -> Self {
+        // Ideally I'd store `err` as a variant of ouch's Error
+        // but I need Error to have Eq, which std::io::Error does not
+        // implement.
+        println!("{}: {:#?}", "error".red(), err);
+
+        Self::IOError
     }
 }

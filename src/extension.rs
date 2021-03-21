@@ -6,10 +6,10 @@ use CompressionFormat::*;
 /// Represents the extension of a file, but only really caring about
 /// compression formats (and .tar).
 /// Ex.: Extension::new("file.tar.gz") == Extension { first_ext: Some(Tar), second_ext: Gzip }
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Extension {
-    first_ext: Option<CompressionFormat>,
-    second_ext: CompressionFormat
+    pub first_ext: Option<CompressionFormat>,
+    pub second_ext: CompressionFormat
 }
 
 impl From<CompressionFormat> for Extension {
@@ -86,7 +86,7 @@ pub fn get_extension_from_filename(filename: &str) -> Option<(&str, &str)> {
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 /// Accepted extensions for input and output
 pub enum CompressionFormat {
     // .gz
