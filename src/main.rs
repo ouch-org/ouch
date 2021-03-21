@@ -14,14 +14,20 @@ mod decompressors;
 use error::OuchResult;
 
 fn main() -> OuchResult<()>{
+    let print_error = |err| {
+        println!("{}: {}", "error".red(), err);
+    };
     let matches = cli::get_matches();
     match cli::Command::try_from(matches) {
         Ok(command) => {
             let mut eval = evaluator::Evaluator::new(command);
-            eval.evaluate()?;
+            match eval.evaluate() {
+                Ok(_) => {},
+                Err(err) => print_error(err)
+            }
         }
         Err(err) => {
-            print!("{}: {}\n", "error".red(), err);
+            print_error(err)
         }
     }
     Ok(())

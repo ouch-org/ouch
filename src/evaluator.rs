@@ -26,13 +26,13 @@ impl Evaluator {
             return Err(error::Error::InvalidInput);
         }
         let extension = file.extension.clone().unwrap();
-        let decompressor = match extension.second_ext {
+        let decompressor: Box<dyn Decompressor> = match extension.second_ext {
             CompressionFormat::Tar => { 
                 Box::new(TarDecompressor{})
             },
-            // CompressionFormat::Zip => { 
-            //     Box::new(ZipDecompressor{})
-            // }
+            CompressionFormat::Zip => { 
+                Box::new(ZipDecompressor{})
+            }
             _ => { 
                 todo!()
             }
@@ -43,7 +43,6 @@ impl Evaluator {
     }
 
     fn decompress_file(&self, file: &File) -> error::OuchResult<()> {
-        println!("{}: attempting to decompress {:?}", "ouch".bright_blue(), file.path);
         let output_file = &self.command.output;
         let decompressor = self.get_decompressor(file)?;
         let files_unpacked = decompressor.decompress(file, output_file)?;

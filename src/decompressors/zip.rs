@@ -1,10 +1,7 @@
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{fs, io, path::{Path, PathBuf}};
 
 use colored::Colorize;
-use zip;
+use zip::{self, read::ZipFile};
 
 use crate::{error::{self, OuchResult}, utils};
 use crate::file::File;
@@ -14,9 +11,59 @@ use super::decompressor::Decompressor;
 pub struct ZipDecompressor {}
 
 impl ZipDecompressor {
+
+    fn check_for_comments(file: &ZipFile) {
+        let comment = file.comment();
+        if !comment.is_empty() {
+            println!("{}: Comment in {}: {}", "info".yellow(), file.name(), comment);
+        }
+    }
+
     fn unpack_files(from: &Path, into: &Path) -> OuchResult<Vec<PathBuf>> {
+
+        let mut unpacked_files = vec![];
+
         // placeholder return
-        Err(error::Error::IOError)
+        println!("{}: attempting to decompress {:?}", "ouch".bright_blue(), from);
+
+        let file = fs::File::open(from)?;
+        let mut archive = zip::ZipArchive::new(file)?;
+
+        for idx in 0..archive.len() {
+            let mut file = archive.by_index(idx)?;
+            let file_path = match file.enclosed_name() {
+                Some(path) => path.to_owned(),
+                None => continue,
+            };
+
+            let file_path = into.join(file_path);
+
+            Self::check_for_comments(&file);
+
+            if (&*file.name()).ends_with('/') {
+                println!("File {} extracted to \"{}\"", idx, file_path.display());
+                fs::create_dir_all(&file_path)?;
+            } else {
+                println!(
+                    "{}: \"{}\" extracted. ({} bytes)",
+                    "info".yellow(),
+                    file_path.display(),
+                    file.size()
+                );
+                if let Some(p) = file_path.parent() {
+                    if !p.exists() {
+                        fs::create_dir_all(&p).unwrap();
+                    }
+                }
+                let mut outfile = fs::File::create(&file_path).unwrap();
+                io::copy(&mut file, &mut outfile).unwrap();
+            }
+
+            let file_path = fs::canonicalize(file_path.clone())?;
+            unpacked_files.push(file_path);
+        }
+
+        Ok(unpacked_files)
     }
 }
 
@@ -30,6 +77,6 @@ impl Decompressor for ZipDecompressor {
         let files_unpacked = Self::unpack_files(&from.path, destination_path)?;
 
         // placeholder return
-        Err(error::Error::IOError)
+        Ok(files_unpacked)
     }
 }
