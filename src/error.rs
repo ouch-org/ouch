@@ -15,6 +15,7 @@ pub enum Error {
     InvalidZipArchive(&'static str),
     PermissionDenied,
     UnsupportedZipArchive(&'static str),
+    FileTooShort,
     InputsMustHaveBeenDecompressible(String),
 }
 
@@ -68,6 +69,21 @@ impl From<zip::result::ZipError> for Error {
             InvalidArchive(filename) => Self::InvalidZipArchive(filename),
             FileNotFound => Self::FileNotFound,
             UnsupportedArchive(filename) => Self::UnsupportedZipArchive(filename)
+        }
+    }
+}
+
+impl From<niffler::error::Error> for Error {
+    fn from(err: niffler::error::Error) -> Self {
+        use niffler::error::Error as NifErr;
+        match err {
+            NifErr::FeatureDisabled => {
+                // Ouch is using Niffler with all its features so
+                // this should be unreachable.
+                unreachable!();
+            },
+            NifErr::FileTooShort => Self::FileTooShort,
+            NifErr::IOError(io_err) => Self::from(io_err)
         }
     }
 }

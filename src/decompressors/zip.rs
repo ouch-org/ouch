@@ -6,7 +6,7 @@ use zip::{self, read::ZipFile};
 use crate::{error::{self, OuchResult}, utils};
 use crate::file::File;
 
-use super::decompressor::Decompressor;
+use super::decompressor::{DecompressionResult, Decompressor};
 
 pub struct ZipDecompressor {}
 
@@ -61,6 +61,8 @@ impl ZipDecompressor {
                 io::copy(&mut file, &mut outfile)?;
             }
 
+            // TODO: check if permissions are correct when on Unix
+
             let file_path = fs::canonicalize(file_path.clone())?;
             unpacked_files.push(file_path);
         }
@@ -71,13 +73,13 @@ impl ZipDecompressor {
 
 
 impl Decompressor for ZipDecompressor {
-    fn decompress(&self, from: &File, into: &Option<File>) -> OuchResult<Vec<PathBuf>> {
+    fn decompress(&self, from: &File, into: &Option<File>) -> OuchResult<DecompressionResult> {
         let destination_path = utils::get_destination_path(into);
 
         utils::create_path_if_non_existent(destination_path)?;
 
         let files_unpacked = Self::unpack_files(&from.path, destination_path)?;
 
-        Ok(files_unpacked)
+        Ok(DecompressionResult::FilesUnpacked(files_unpacked))
     }
 }

@@ -9,7 +9,7 @@ use tar;
 use crate::{error::OuchResult, utils};
 use crate::file::File;
 
-use super::decompressor::Decompressor;
+use super::decompressor::{DecompressionResult, Decompressor};
 
 pub struct TarDecompressor {}
 
@@ -45,13 +45,13 @@ impl TarDecompressor {
 }
 
 impl Decompressor for TarDecompressor {
-    fn decompress(&self, from: &File, into: &Option<File>) -> OuchResult<Vec<PathBuf>> {
+    fn decompress(&self, from: &File, into: &Option<File>) -> OuchResult<DecompressionResult> {
         let destination_path = utils::get_destination_path(into);
 
         utils::create_path_if_non_existent(destination_path)?;
 
         let files_unpacked = Self::unpack_files(&from.path, destination_path)?;
 
-        Ok(files_unpacked)
+        Ok(DecompressionResult::FilesUnpacked(files_unpacked))
     }
 }

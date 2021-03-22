@@ -49,7 +49,7 @@ impl Extension {
                 "tar" => Ok(Tar),
                 "gz" => Ok(Gzip),
                 "bz" => Ok(Bzip),
-                "lzma" => Ok(Lzma),
+                "lz" | "lzma" => Ok(Lzma),
                 other => Err(error::Error::UnknownExtensionError(other.into())),
             }
         };
