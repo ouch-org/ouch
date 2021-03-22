@@ -1,3 +1,5 @@
+// TODO: remove tests of CompressionFormat::try_from since that's no longer used anywhere
+
 #[cfg(test)]
 mod cli {
 
@@ -125,7 +127,7 @@ mod cli_errors {
 
 #[cfg(test)]
 mod extension_extraction {
-    use crate::{error::OuchResult, extension::Extension};
+    use crate::{error::OuchResult, extension::Extension}    ;
     use crate::extension::CompressionFormat;
     use std::{convert::TryFrom, path::PathBuf, str::FromStr};
 

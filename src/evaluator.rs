@@ -2,7 +2,7 @@ use std::{ffi::OsStr, fs, io::Write, path::PathBuf};
 
 use colored::Colorize;
 
-use crate::{decompressors::Decompressor, extension::Extension};
+use crate::{decompressors::Decompressor, extension::{self, Extension}};
 use crate::decompressors::TarDecompressor;
 use crate::decompressors::ZipDecompressor;
 use crate::{
@@ -31,23 +31,25 @@ impl Evaluator {
             return Err(error::Error::InvalidInput);
         }
         let extension = Extension::new(&file.path.to_str().unwrap())?;
+        
+        let second_decompressor: Box<dyn Decompressor> = match extension.second_ext {
+            CompressionFormat::Tar => Box::new(TarDecompressor {}),
 
-        let decompressor_from_format = |ext| -> Box<dyn Decompressor> {
-            match ext {
-                CompressionFormat::Tar => Box::new(TarDecompressor {}),
+            CompressionFormat::Zip => Box::new(ZipDecompressor {}),
 
-                CompressionFormat::Zip => Box::new(ZipDecompressor {}),
-
-                CompressionFormat::Gzip | CompressionFormat::Lzma | CompressionFormat::Bzip => {
-                    Box::new(NifflerDecompressor {})
-                }
+            CompressionFormat::Gzip | CompressionFormat::Lzma | CompressionFormat::Bzip => {
+                Box::new(NifflerDecompressor {})
             }
         };
 
-        let second_decompressor = decompressor_from_format(extension.second_ext);
+        let first_decompressor: Option<Box<dyn Decompressor>> = match extension.first_ext {
+            Some(ext) => match ext {
+                CompressionFormat::Tar => Some(Box::new(TarDecompressor {})),
 
-        let first_decompressor = match extension.first_ext {
-            Some(ext) => Some(decompressor_from_format(ext)),
+                CompressionFormat::Zip => Some(Box::new(ZipDecompressor {})),
+
+                _other => None,
+            },
             None => None,
         };
 
@@ -97,6 +99,10 @@ impl Evaluator {
 
 
         let decompression_result = decompressor.decompress(file, output_file)?;
+        if let DecompressionResult::FileInMemory(_) = decompression_result {
+            // Should not be reachable.
+            unreachable!();
+        }
 
         Ok(())
     }

@@ -100,9 +100,6 @@ pub enum CompressionFormat {
     Tar,
     // .zip
     Zip,
-    // Not a supported compressed file extension (any other file)
-    // TODO: it makes no sense for this variant to exist here
-    // NotCompressed
 }
 
 fn extension_from_os_str(ext: &OsStr) -> Result<CompressionFormat, error::Error> {

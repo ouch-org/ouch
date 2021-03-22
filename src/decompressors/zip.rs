@@ -77,7 +77,7 @@ impl ZipDecompressor {
         println!(
             "{}: attempting to decompress {:?}",
             "ouch".bright_blue(),
-            from
+            &from.path
         );
   
         match from.contents {
