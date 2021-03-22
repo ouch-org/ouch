@@ -20,13 +20,7 @@ pub struct Evaluator {
 }
 
 impl Evaluator {
-    // todo: remove this?
-    pub fn new(command: Command) -> Self {
-        Self { command }
-    }
-
     fn get_decompressor(
-        &self,
         file: &File,
     ) -> error::OuchResult<(Option<Box<dyn Decompressor>>, Box<dyn Decompressor>)> {
         if file.extension.is_none() {
@@ -95,17 +89,17 @@ impl Evaluator {
         Ok(())
     }
 
-    fn decompress_file(&self, file: &File) -> error::OuchResult<()> {
-        let output_file = &self.command.output;
-        let (first_decompressor, second_decompressor) = self.get_decompressor(file)?;
+    fn decompress_file(file: File, output: &Option<File>) -> error::OuchResult<()> {
+        // let output_file = &command.output;
+        let (first_decompressor, second_decompressor) = Self::get_decompressor(&file)?;
 
-        let decompression_result = second_decompressor.decompress(file, output_file)?;
+        let decompression_result = second_decompressor.decompress(&file, output)?;
 
         match decompression_result {
             DecompressionResult::FileInMemory(bytes) => {
                 // We'll now decompress a file currently in memory.
                 // This will currently happen in the case of .bz, .xz and .lzma
-                Self::decompress_file_in_memory(bytes, file, first_decompressor, output_file)?;
+                Self::decompress_file_in_memory(bytes, &file, first_decompressor, output)?;
             }
             DecompressionResult::FilesUnpacked(files) => {
                 // If the file's last extension was an archival method,
@@ -121,8 +115,10 @@ impl Evaluator {
         Ok(())
     }
 
-    pub fn evaluate(&mut self) -> error::OuchResult<()> {
-        match &self.command.kind {
+    pub fn evaluate(command: Command) -> error::OuchResult<()> {
+        let output = command.output.clone();
+        
+        match command.kind {
             CommandKind::Compression(files_to_compress) => {
                 for _file in files_to_compress {
                     todo!();
@@ -130,7 +126,7 @@ impl Evaluator {
             }
             CommandKind::Decompression(files_to_decompress) => {
                 for file in files_to_decompress {
-                    self.decompress_file(file)?;
+                    Self::decompress_file(file, &output)?;
                 }
             }
         }

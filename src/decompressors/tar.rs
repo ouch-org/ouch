@@ -1,10 +1,7 @@
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{fs, io::{Cursor, Read}, path::{Path, PathBuf}};
 
 use colored::Colorize;
-use tar;
+use tar::{self, Archive};
 
 use crate::{error::OuchResult, utils};
 use crate::file::File;
@@ -15,12 +12,12 @@ pub struct TarDecompressor {}
 
 impl TarDecompressor {
 
-    fn unpack_files(from: &Path, into: &Path) -> OuchResult<Vec<PathBuf>> {
+    fn unpack_files(from: &File, into: &Path) -> OuchResult<Vec<PathBuf>> {
 
         println!("{}: attempting to decompress {:?}", "ouch".bright_blue(), from);
         let mut files_unpacked = vec![];
 
-        let file = fs::File::open(from)?;
+        let file = fs::File::open(&from.path)?;
         let mut archive = tar::Archive::new(file);
 
         for file in archive.entries()? {
@@ -50,7 +47,7 @@ impl Decompressor for TarDecompressor {
 
         utils::create_path_if_non_existent(destination_path)?;
 
-        let files_unpacked = Self::unpack_files(&from.path, destination_path)?;
+        let files_unpacked = Self::unpack_files(&from, destination_path)?;
 
         Ok(DecompressionResult::FilesUnpacked(files_unpacked))
     }

@@ -23,7 +23,6 @@ impl ZipDecompressor {
 
         let mut unpacked_files = vec![];
 
-        // placeholder return
         println!("{}: attempting to decompress {:?}", "ouch".bright_blue(), from);
 
         let file = fs::File::open(from)?;

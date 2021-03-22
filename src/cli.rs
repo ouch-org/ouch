@@ -115,6 +115,7 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
                     kind: CommandKind::Compression(input_files),
                     output: Some(File {
                         path: output_file.into(),
+                        contents: None,
                         extension: Some(output_file_extension.unwrap())
                     }),
                 });
@@ -130,6 +131,7 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
                     kind: CommandKind::Decompression(input_files),
                     output: Some(File {
                         path: output_file.into(),
+                        contents: None,
                         extension: None
                     })
                 });

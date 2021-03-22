@@ -21,11 +21,13 @@ mod cli {
                 kind: Decompression(vec![
                     File { 
                         path: "file.zip".into(),
+                        contents: None,
                         extension: Some(Extension::from(Zip))
                     }
                 ]),
                 output: Some(File {
                     path: "folder".into(),
+                    contents: None,
                     extension: None
                 }),
             }
@@ -45,10 +47,12 @@ mod cli {
                 kind: Decompression(vec![
                     File { 
                         path: "file.zip".into(),
+                        contents: None,
                         extension: Some(Extension::from(Zip))
                     },
                     File { 
                         path: "file.tar".into(),
+                        contents: None,
                         extension: Some(Extension::from(Tar))
                     }
                 ],),
@@ -84,6 +88,7 @@ mod cli {
                 output: Some(
                     File {
                         path: "file.tar".into(),
+                        contents: None,
                         extension: Some(Extension::from(Tar))
                     }
                 ),

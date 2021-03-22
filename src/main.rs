@@ -20,8 +20,8 @@ fn main() -> OuchResult<()>{
     let matches = cli::get_matches();
     match cli::Command::try_from(matches) {
         Ok(command) => {
-            let mut eval = evaluator::Evaluator::new(command);
-            match eval.evaluate() {
+            // let mut eval = evaluator::Evaluator::new();
+            match evaluator::Evaluator::evaluate(command) {
                 Ok(_) => {},
                 Err(err) => print_error(err)
             }
