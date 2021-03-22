@@ -17,6 +17,7 @@ impl TarDecompressor {
 
     fn unpack_files(from: &Path, into: &Path) -> OuchResult<Vec<PathBuf>> {
 
+        println!("{}: attempting to decompress {:?}", "ouch".bright_blue(), from);
         let mut files_unpacked = vec![];
 
         let file = fs::File::open(from)?;
@@ -27,7 +28,14 @@ impl TarDecompressor {
 
             // TODO: check if file/folder already exists and ask user's permission for overwriting
             file.unpack_in(into)?;
-            
+
+            println!(
+                "{}: {:?} extracted. ({} bytes)",
+                "info".yellow(),
+                into.join(file.path()?),
+                file.size()
+            );
+
             let file_path = fs::canonicalize(into.join(file.path()?))?;
             files_unpacked.push(file_path);
         }
