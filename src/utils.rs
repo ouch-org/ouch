@@ -1,4 +1,4 @@
-use std::{fs, path::{Component, Path, PathBuf}};
+use std::{fs, path::Path};
 
 use colored::Colorize;
 use crate::{error::OuchResult, file::File};

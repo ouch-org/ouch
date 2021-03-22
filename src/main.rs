@@ -30,5 +30,8 @@ fn main() -> OuchResult<()>{
             print_error(err)
         }
     }
+
+    // let extension = dbg!(Extension::new("file.tar.gz"));
+
     Ok(())
 }

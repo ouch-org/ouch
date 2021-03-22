@@ -1,8 +1,8 @@
-use std::{ffi::OsStr, fs, io::Write};
+use std::{ffi::OsStr, fs, io::Write, path::PathBuf};
 
 use colored::Colorize;
 
-use crate::decompressors::Decompressor;
+use crate::{decompressors::Decompressor, extension::Extension};
 use crate::decompressors::TarDecompressor;
 use crate::decompressors::ZipDecompressor;
 use crate::{
@@ -15,7 +15,6 @@ use crate::{
 };
 
 pub struct Evaluator {
-    command: Command,
     // verbosity: Verbosity
 }
 
@@ -31,7 +30,7 @@ impl Evaluator {
             );
             return Err(error::Error::InvalidInput);
         }
-        let extension = file.extension.clone().unwrap();
+        let extension = Extension::new(&file.path.to_str().unwrap())?;
 
         let decompressor_from_format = |ext| -> Box<dyn Decompressor> {
             match ext {
@@ -58,19 +57,22 @@ impl Evaluator {
     // todo: move this folder into decompressors/ later on
     fn decompress_file_in_memory(
         bytes: Vec<u8>,
-        file: &File,
+        file_path: PathBuf,
         decompressor: Option<Box<dyn Decompressor>>,
         output_file: &Option<File>,
+        extension: Option<Extension>,
     ) -> OuchResult<()> {
 
-        let output_file = utils::get_destination_path(output_file);
+        let output_file_path = utils::get_destination_path(output_file);
 
-        let mut filename = file.path.file_stem().unwrap_or(output_file.as_os_str());
+        let mut filename = file_path.file_stem().unwrap_or(output_file_path.as_os_str());
         if filename == "." {
             // I believe this is only possible when the supplied inout has a name
             // of the sort `.tar` or `.zip' and no output has been supplied.
             filename = OsStr::new("ouch-output");
         }
+
+        let filename = PathBuf::from(filename);
 
         if decompressor.is_none() {
             // There is no more processing to be done on the input file (or there is but currently unsupported)
@@ -78,13 +80,23 @@ impl Evaluator {
 
             println!("{}: saving to {:?}.", "info".yellow(), filename);
 
-            let mut f = fs::File::create(output_file.join(filename))?;
+            let mut f = fs::File::create(output_file_path.join(filename))?;
             f.write_all(&bytes)?;
             return Ok(());
         }
 
-        // If there is a decompressor to use, we'll create a file in-memory (to-do) and decompress it
-        // TODO: change decompressor logic to use BufReader or something like that
+        let file = File {
+            path: filename,
+            contents: Some(bytes),
+            extension,
+        };
+
+        let decompressor = decompressor.unwrap();
+
+        // If there is a decompressor to use, we'll create a file in-memory and decompress it
+
+
+        let decompression_result = decompressor.decompress(file, output_file)?;
 
         Ok(())
     }
@@ -93,15 +105,18 @@ impl Evaluator {
         // let output_file = &command.output;
         let (first_decompressor, second_decompressor) = Self::get_decompressor(&file)?;
 
-        let decompression_result = second_decompressor.decompress(&file, output)?;
+        let file_path = file.path.clone();
+        let extension = file.extension.clone();
+
+        let decompression_result = second_decompressor.decompress(file, output)?;
 
         match decompression_result {
             DecompressionResult::FileInMemory(bytes) => {
                 // We'll now decompress a file currently in memory.
                 // This will currently happen in the case of .bz, .xz and .lzma
-                Self::decompress_file_in_memory(bytes, &file, first_decompressor, output)?;
+                Self::decompress_file_in_memory(bytes, file_path, first_decompressor, output, extension)?;
             }
-            DecompressionResult::FilesUnpacked(files) => {
+            DecompressionResult::FilesUnpacked(_files) => {
                 // If the file's last extension was an archival method,
                 // such as .tar, .zip or (to-do) .rar, then we won't look for
                 // further processing.

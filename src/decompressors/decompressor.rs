@@ -8,5 +8,5 @@ pub enum DecompressionResult {
 }
 
 pub trait Decompressor {
-    fn decompress(&self, from: &File, into: &Option<File>) -> OuchResult<DecompressionResult>;
+    fn decompress(&self, from: File, into: &Option<File>) -> OuchResult<DecompressionResult>;
 }

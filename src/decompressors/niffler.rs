@@ -42,7 +42,7 @@ impl NifflerDecompressor {
 }
 
 impl Decompressor for NifflerDecompressor {
-    fn decompress(&self, from: &File, into: &Option<File>) -> OuchResult<DecompressionResult> {
+    fn decompress(&self, from: File, into: &Option<File>) -> OuchResult<DecompressionResult> {
         let destination_path = utils::get_destination_path(into);
 
         utils::create_path_if_non_existent(destination_path)?;

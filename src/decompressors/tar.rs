@@ -12,13 +12,20 @@ pub struct TarDecompressor {}
 
 impl TarDecompressor {
 
-    fn unpack_files(from: &File, into: &Path) -> OuchResult<Vec<PathBuf>> {
+    fn unpack_files(from: File, into: &Path) -> OuchResult<Vec<PathBuf>> {
 
-        println!("{}: attempting to decompress {:?}", "ouch".bright_blue(), from);
+        println!("{}: attempting to decompress {:?}", "ouch".bright_blue(), &from.path);
         let mut files_unpacked = vec![];
 
-        let file = fs::File::open(&from.path)?;
-        let mut archive = tar::Archive::new(file);
+        let mut archive: Archive<Box<dyn Read>> = match from.contents {
+            Some(bytes) => {
+                tar::Archive::new(Box::new(Cursor::new(bytes)))
+            }
+            None => {
+                let file = fs::File::open(&from.path)?;
+                tar::Archive::new(Box::new(file))
+            }
+        };
 
         for file in archive.entries()? {
             let mut file = file?;
@@ -42,12 +49,12 @@ impl TarDecompressor {
 }
 
 impl Decompressor for TarDecompressor {
-    fn decompress(&self, from: &File, into: &Option<File>) -> OuchResult<DecompressionResult> {
+    fn decompress(&self, from: File, into: &Option<File>) -> OuchResult<DecompressionResult> {
         let destination_path = utils::get_destination_path(into);
 
         utils::create_path_if_non_existent(destination_path)?;
 
-        let files_unpacked = Self::unpack_files(&from, destination_path)?;
+        let files_unpacked = Self::unpack_files(from, destination_path)?;
 
         Ok(DecompressionResult::FilesUnpacked(files_unpacked))
     }

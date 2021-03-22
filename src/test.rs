@@ -84,7 +84,6 @@ mod cli {
                     "file2.jpeg".into(),
                     "file3.ok".into()
                 ]),
-                // output: Some(File::WithExtension(("file.tar".into(), Extension::from(Tar))))
                 output: Some(
                     File {
                         path: "file.tar".into(),
@@ -126,7 +125,7 @@ mod cli_errors {
 
 #[cfg(test)]
 mod extension_extraction {
-    use crate::error::OuchResult;
+    use crate::{error::OuchResult, extension::Extension};
     use crate::extension::CompressionFormat;
     use std::{convert::TryFrom, path::PathBuf, str::FromStr};
 
@@ -136,6 +135,21 @@ mod extension_extraction {
         assert_eq!(
             CompressionFormat::try_from(&path)?,
             CompressionFormat::Zip
+        );
+
+        Ok(())
+    }
+    
+    #[test]
+    fn tar_gz() -> OuchResult<()> {
+        let extension = Extension::new("folder.tar.gz")?;
+
+        assert_eq!(
+            extension,
+            Extension {
+                first_ext: Some(CompressionFormat::Tar),
+                second_ext: CompressionFormat::Gzip
+            }
         );
 
         Ok(())

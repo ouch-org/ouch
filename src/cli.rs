@@ -91,6 +91,7 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
             let output_file = matches.value_of("output").unwrap(); // Safe unwrap since we've established that output was supplied
 
             let output_file_extension = Extension::new(output_file);
+            
             let output_is_compressible = output_file_extension.is_ok();
             if output_is_compressible {
                 // The supplied output is compressible, so we'll compress our inputs to it
@@ -102,14 +103,6 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
                 );
 
                 let input_files = input_files.map(PathBuf::from).collect();
-
-                // return Ok(Command {
-                //     kind: CommandKind::Compression(input_files),
-                //     output: Some(File::WithExtension((
-                //         output_file.into(),
-                //         output_file_extension.unwrap(),
-                //     ))),
-                // });
 
                 return Ok(Command {
                     kind: CommandKind::Compression(input_files),
