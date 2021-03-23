@@ -30,7 +30,7 @@ impl Evaluator {
             );
             return Err(error::Error::InvalidInput);
         }
-        let extension = Extension::new(&file.path.to_str().unwrap())?;
+        let extension = file.extension.clone().unwrap();
         
         let second_decompressor: Box<dyn Decompressor> = match extension.second_ext {
             CompressionFormat::Tar => Box::new(TarDecompressor {}),

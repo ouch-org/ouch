@@ -9,6 +9,8 @@ mod file;
 mod test;
 mod evaluator;
 mod utils;
+
+mod compressors;
 mod decompressors;
 
 use error::OuchResult;
@@ -20,7 +22,6 @@ fn main() -> OuchResult<()>{
     let matches = cli::get_matches();
     match cli::Command::try_from(matches) {
         Ok(command) => {
-            // let mut eval = evaluator::Evaluator::new();
             match evaluator::Evaluator::evaluate(command) {
                 Ok(_) => {},
                 Err(err) => print_error(err)
@@ -30,8 +31,6 @@ fn main() -> OuchResult<()>{
             print_error(err)
         }
     }
-
-    // let extension = dbg!(Extension::new("file.tar.gz"));
 
     Ok(())
 }

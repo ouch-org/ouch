@@ -18,12 +18,12 @@ pub struct File {
     pub extension: Option<Extension>
 }
 
-impl From<(PathBuf, CompressionFormat)> for File {
-    fn from((path, format): (PathBuf, CompressionFormat)) -> Self {
+impl From<(PathBuf, Extension)> for File {
+    fn from((path, format): (PathBuf, Extension)) -> Self {
         Self {
             path,
             contents: None,
-            extension: Some(Extension::from(format)),
+            extension: Some(format),
         }
     }
 }

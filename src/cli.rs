@@ -66,7 +66,7 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
     fn try_from(matches: clap::ArgMatches<'static>) -> error::OuchResult<Command> {
         let process_decompressible_input = |input_files: Values| {
             let input_files =
-                input_files.map(|filename| (filename, CompressionFormat::try_from(filename)));
+                input_files.map(|filename| (filename, Extension::new(filename)));
 
             for file in input_files.clone() {
                 if let (file, Err(_)) = file {
@@ -76,6 +76,7 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
 
             Ok(input_files
                 .map(|(filename, extension)| (PathBuf::from(filename), extension.unwrap()))
+                .map(File::from)
                 .collect::<Vec<_>>())
         };
 
@@ -114,11 +115,10 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
                 });
 
             } else {
+                // Output not supplied
                 // Checking if input files are decompressible
 
                 let input_files = process_decompressible_input(input_files)?;
-
-                let input_files = input_files.into_iter().map(File::from).collect();
 
                 return Ok(Command {
                     kind: CommandKind::Decompression(input_files),
@@ -134,7 +134,7 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
             // Case 1: all input files are decompressible
             // Case 2: error
             let input_files = process_decompressible_input(input_files)?;
-            let input_files = input_files.into_iter().map(File::from).collect();
+
             return Ok(Command {
                 kind: CommandKind::Decompression(input_files),
                 output: None,

@@ -31,7 +31,6 @@ pub fn get_extension_from_filename(filename: &str) -> Option<(&str, &str)> {
     }
 }
 
-
 impl From<CompressionFormat> for Extension {
     fn from(second_ext: CompressionFormat) -> Self {
         Self {
@@ -48,7 +47,7 @@ impl Extension {
                 "zip" => Ok(Zip),
                 "tar" => Ok(Tar),
                 "gz" => Ok(Gzip),
-                "bz" => Ok(Bzip),
+                "bz" | "bz2" => Ok(Bzip),
                 "lz" | "lzma" => Ok(Lzma),
                 other => Err(error::Error::UnknownExtensionError(other.into())),
             }
@@ -103,7 +102,8 @@ pub enum CompressionFormat {
 }
 
 fn extension_from_os_str(ext: &OsStr) -> Result<CompressionFormat, error::Error> {
-    
+    // let ext = Path::new(ext);
+
     let ext = match ext.to_str() {
         Some(str) => str,
         None => return Err(error::Error::InvalidUnicode),
@@ -113,8 +113,8 @@ fn extension_from_os_str(ext: &OsStr) -> Result<CompressionFormat, error::Error>
         "zip" => Ok(Zip),
         "tar" => Ok(Tar),
         "gz" => Ok(Gzip),
-        "bz" => Ok(Bzip),
-        "lzma" => Ok(Lzma),
+        "bz" | "bz2" => Ok(Bzip),
+        "lzma" | "lz" => Ok(Lzma),
         other => Err(error::Error::UnknownExtensionError(other.into())),
     }
 }
@@ -130,7 +130,6 @@ impl TryFrom<&PathBuf> for CompressionFormat {
                 return Err(error::Error::MissingExtensionError(String::new()));
             }
         };
-
         extension_from_os_str(ext)
     }
 }
