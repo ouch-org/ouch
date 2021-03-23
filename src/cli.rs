@@ -4,7 +4,7 @@ use clap::{Arg, Values};
 use colored::Colorize;
 
 use crate::error;
-use crate::extension::{Extension, CompressionFormat};
+use crate::extension::Extension;
 use crate::file::File;
 
 #[derive(PartialEq, Eq, Debug)]

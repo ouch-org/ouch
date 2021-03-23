@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::extension::{CompressionFormat, Extension};
+use crate::extension::Extension;
 
 
 #[derive(Debug, Clone, PartialEq, Eq)]

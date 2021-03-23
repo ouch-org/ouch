@@ -2,23 +2,71 @@ use std::{ffi::OsStr, fs, io::Write, path::PathBuf};
 
 use colored::Colorize;
 
-use crate::{decompressors::Decompressor, extension::{self, Extension}};
-use crate::decompressors::TarDecompressor;
+use crate::{compressors::TarCompressor, decompressors::TarDecompressor};
 use crate::decompressors::ZipDecompressor;
 use crate::{
     cli::{Command, CommandKind},
-    decompressors::{DecompressionResult, NifflerDecompressor},
+    decompressors::{
+        Decompressor,
+        DecompressionResult, 
+        NifflerDecompressor
+    },
+    compressors::Compressor,
     error::{self, OuchResult},
-    extension::CompressionFormat,
+    extension::{
+        Extension,
+        CompressionFormat,
+    },
     file::File,
     utils,
 };
+
 
 pub struct Evaluator {
     // verbosity: Verbosity
 }
 
 impl Evaluator {
+    fn get_compressor(
+        file: &File,
+    ) -> error::OuchResult<(Option<Box<dyn Compressor>>, Box<dyn Compressor>)> {
+        if file.extension.is_none() {
+            // This block *should* be unreachable
+            eprintln!(
+                "{}: reached Evaluator::get_decompressor without known extension.",
+                "internal error".red()
+            );
+            return Err(error::Error::InvalidInput);
+        }
+        let extension = file.extension.clone().unwrap();
+        
+        // Supported first compressors:
+        // .tar and .zip
+        let first_compressor: Option<Box<dyn Compressor>>  = match extension.first_ext {
+            Some(ext) => match ext {
+                CompressionFormat::Tar => Some(Box::new(TarCompressor {})),
+
+                // CompressionFormat::Zip => Some(Box::new(ZipCompressor {})),
+
+                // _other => Some(Box::new(NifflerCompressor {})),
+                _other => {
+                    todo!();
+                }
+            },
+            None => None,
+        };
+
+        // Supported second compressors:
+        // any
+        let second_compressor: Box<dyn Compressor> = match extension.second_ext {
+            CompressionFormat::Tar => Box::new(TarCompressor {}),
+            _other => todo!()
+            //   
+        };
+
+        Ok((first_compressor, second_compressor))
+    }
+
     fn get_decompressor(
         file: &File,
     ) -> error::OuchResult<(Option<Box<dyn Decompressor>>, Box<dyn Decompressor>)> {
@@ -31,7 +79,7 @@ impl Evaluator {
             return Err(error::Error::InvalidInput);
         }
         let extension = file.extension.clone().unwrap();
-        
+
         let second_decompressor: Box<dyn Decompressor> = match extension.second_ext {
             CompressionFormat::Tar => Box::new(TarDecompressor {}),
 
@@ -64,10 +112,11 @@ impl Evaluator {
         output_file: &Option<File>,
         extension: Option<Extension>,
     ) -> OuchResult<()> {
-
         let output_file_path = utils::get_destination_path(output_file);
 
-        let mut filename = file_path.file_stem().unwrap_or(output_file_path.as_os_str());
+        let mut filename = file_path
+            .file_stem()
+            .unwrap_or(output_file_path.as_os_str());
         if filename == "." {
             // I believe this is only possible when the supplied inout has a name
             // of the sort `.tar` or `.zip' and no output has been supplied.
@@ -97,13 +146,17 @@ impl Evaluator {
 
         // If there is a decompressor to use, we'll create a file in-memory and decompress it
 
-
         let decompression_result = decompressor.decompress(file, output_file)?;
         if let DecompressionResult::FileInMemory(_) = decompression_result {
             // Should not be reachable.
             unreachable!();
         }
 
+        Ok(())
+    }
+
+    fn compress_files(files: Vec<PathBuf>, output: File) -> error::OuchResult<()> {
+        let (first_decompressor, second_decompressor) = Self::get_compressor(&output)?;
         Ok(())
     }
 
@@ -120,7 +173,13 @@ impl Evaluator {
             DecompressionResult::FileInMemory(bytes) => {
                 // We'll now decompress a file currently in memory.
                 // This will currently happen in the case of .bz, .xz and .lzma
-                Self::decompress_file_in_memory(bytes, file_path, first_decompressor, output, extension)?;
+                Self::decompress_file_in_memory(
+                    bytes,
+                    file_path,
+                    first_decompressor,
+                    output,
+                    extension,
+                )?;
             }
             DecompressionResult::FilesUnpacked(_files) => {
                 // If the file's last extension was an archival method,
@@ -138,12 +197,12 @@ impl Evaluator {
 
     pub fn evaluate(command: Command) -> error::OuchResult<()> {
         let output = command.output.clone();
-        
+
         match command.kind {
             CommandKind::Compression(files_to_compress) => {
-                for _file in files_to_compress {
-                    todo!();
-                }
+                // Safe to unwrap since output is mandatory for compression
+                let output = output.unwrap();
+                Self::compress_files(files_to_compress, output)?;
             }
             CommandKind::Decompression(files_to_decompress) => {
                 for file in files_to_decompress {
