@@ -4,7 +4,9 @@ use colored::Colorize;
 use tar::{Builder, Header};
 use walkdir::WalkDir;
 
-use crate::{compressors::Compressor, error::{Error, OuchResult}, file::{self, File}};
+use crate::{compressors::Compressor, error::{Error, OuchResult}, file::File};
+
+use super::compressor::Entry;
 
 pub struct TarCompressor {}
 
@@ -33,19 +35,19 @@ impl TarCompressor {
         Ok(b.into_inner()?)
     }
 
-    fn make_archive_from_files(input_files: Vec<PathBuf>) -> OuchResult<Vec<u8>> {
+    fn make_archive_from_files(input_filenames: Vec<PathBuf>) -> OuchResult<Vec<u8>> {
     
         let buf = Vec::new();
         let mut b = Builder::new(buf);
     
-        for file in input_files {
-            for entry in WalkDir::new(&file) {
-                let entry = entry.unwrap();
+        for filename in input_filenames {
+            for entry in WalkDir::new(&filename) {
+                let entry = entry?;
                 let path = entry.path();
                 if path.is_dir() {
                     continue;
                 }
-                b.append_file(path, &mut fs::File::open(path).unwrap()).unwrap();
+                b.append_file(path, &mut fs::File::open(path)?)?;
             }
         }
         
@@ -54,9 +56,19 @@ impl TarCompressor {
 }
 
 impl Compressor for TarCompressor {
-    fn compress(&self, from: Vec<PathBuf>) -> OuchResult<Vec<u8>> {
-        Ok(
-            TarCompressor::make_archive_from_files(from)?
-        )
+    fn compress(&self, from: Entry) -> OuchResult<Vec<u8>> {
+
+        match from {
+            Entry::Files(filenames) => {
+                Ok(
+                    Self::make_archive_from_files(filenames)?
+                )
+            },
+            Entry::InMemory(file) => {
+                Ok(
+                    Self::make_archive_from_memory(file)?
+                )
+            }
+        }        
     }
 }

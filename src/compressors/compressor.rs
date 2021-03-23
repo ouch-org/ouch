@@ -14,5 +14,5 @@ pub enum Entry {
 }
 
 pub trait Compressor {
-    fn compress(&self, from: Vec<PathBuf>) -> OuchResult<Vec<u8>>;
+    fn compress(&self, from: Entry) -> OuchResult<Vec<u8>>;
 }

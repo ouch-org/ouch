@@ -2,7 +2,7 @@ use std::{ffi::OsStr, fs, io::Write, path::PathBuf};
 
 use colored::Colorize;
 
-use crate::{compressors::TarCompressor, decompressors::TarDecompressor};
+use crate::{compressors::{Entry, TarCompressor}, decompressors::TarDecompressor};
 use crate::decompressors::ZipDecompressor;
 use crate::{
     cli::{Command, CommandKind},
@@ -155,8 +155,34 @@ impl Evaluator {
         Ok(())
     }
 
-    fn compress_files(files: Vec<PathBuf>, output: File) -> error::OuchResult<()> {
-        let (first_decompressor, second_decompressor) = Self::get_compressor(&output)?;
+    fn compress_files(files: Vec<PathBuf>, mut output: File) -> error::OuchResult<()> {
+        let (first_compressor, second_compressor) = Self::get_compressor(&output)?;
+
+
+        let output_path = output.path.clone();
+
+        let bytes = match first_compressor {
+            Some(first_compressor) => {
+                let mut entry = Entry::Files(files);
+                let bytes = first_compressor.compress(entry)?;
+
+                output.contents = Some(bytes);
+
+                entry = Entry::InMemory(output);
+
+                second_compressor.compress(entry)?
+            },
+            None => {
+                let entry = Entry::Files(files);
+                second_compressor.compress(entry)?
+            }
+        };
+
+        println!("{}: writing to {:?}. ({} bytes)", "info".yellow(), &output_path, bytes.len());
+        fs::write(
+            output_path,
+            bytes)?;
+
         Ok(())
     }
 

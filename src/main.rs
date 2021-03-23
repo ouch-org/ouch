@@ -29,23 +29,6 @@ fn main() -> error::OuchResult<()>{
             print_error(err)
         }
     }
-
-    // let compressor = TarCompressor {};
-
-    // let file = File {
-    //     path: PathBuf::from("target"),
-    //     contents: None,
-    //     extension: None,
-    // };
-
-    // let ok = compressor.compress(vec![file])?;
-
-    // let ok = match ok {
-    //     CompressionResult::TarArchive(bytes) => bytes,
-    //     _ => unreachable!()
-    // };
-
-    // fs::write(Path::new("great.tar"), ok)?;
-
+    
     Ok(())
 }

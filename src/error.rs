@@ -87,3 +87,11 @@ impl From<niffler::error::Error> for Error {
         }
     }
 }
+
+impl From<walkdir::Error> for Error {
+    fn from(err: walkdir::Error) -> Self {
+        eprintln!("{}: {}", "error".red(), err);
+
+        Self::InvalidInput
+    }
+}
