@@ -1,4 +1,4 @@
-# ouch
+# ouch (_work in progress_)
 
 `ouch` is the Obvious Unified Compression (and decompression) Helper. 
 
@@ -6,7 +6,7 @@
 | Supported formats | .tar | .zip | .tar.{.lz, .lzma, .gz, .bz}  | .zip.{.lz, .lzma, .gz, .bz}  | .bz | .gz | .lz, .lzma |
 |-------------------|------|------|------------------------------|------------------------------|-----|-----|------------|
 | Decompression     |   ✓  |   ✓  |               ✓              |               ✓              |  ✓  |  ✓  |      ✓     |
-| Compression       |   ✗  |   ✗  |               ✗              |               ✗              |  ✗  |  ✗  |      ✗     |
+| Compression       |   ✓  |   ✗  |               ✗              |               ✗              |  ✗  |  ✗  |      ✗     |
 
 ## How does it work?
 
