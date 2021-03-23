@@ -3,12 +3,13 @@ use std::path::PathBuf;
 use crate::{error::OuchResult, file::File};
 
 pub enum CompressionResult {
-    FilesUnpacked(Vec<PathBuf>),
+    ZipArchive(Vec<u8>),
+    TarArchive(Vec<u8>),
     FileInMemory(Vec<u8>)
 }
 
 pub trait Compressor {
-    fn compress(&self, from: Vec<File>, into: &Option<File>) -> OuchResult<DecompressionResult>;
+    fn compress(&self, from: Vec<File>) -> OuchResult<CompressionResult>;
 }
 
 // 

@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 colored = "2.0.0"
 niffler = "2.3.1"
+walkdir = "2.3.2"
 clap    = "2.33.3"
 zip     = "0.5.11"
 tar     = "0.4.33"
