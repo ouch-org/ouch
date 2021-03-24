@@ -189,7 +189,7 @@ dependencies = [
 
 [[package]]
 name = "ouch"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "bzip2 0.4.2",
  "clap",

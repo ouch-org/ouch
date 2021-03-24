@@ -13,7 +13,7 @@
 `ouch` infers commands from the extensions of its command-line options.
 
 ```
-ouch 0.1.0
+ouch 0.1.1
 Vinícius R. Miguel
 ouch is a unified compression & decompression utility
 
@@ -92,7 +92,19 @@ The last dependency is a recent [Rust](https://www.rust-lang.org/) toolchain. If
 
 Once the dependency requirements are met:
 
+* Installing from [Crates.io](https://crates.io)
+
 ```bash
-git clone https://github.com/vrmiguel/jacarex   # Clone the repo.
-cargo install --path ouch # .. and install it 
+cargo install ouch
 ```
+
+* Cloning and building
+
+```bash
+git clone https://github.com/vrmiguel/ouch
+cargo install --path ouch
+# or
+cd ouch && cargo run --release
+```
+
+I also recommend stripping the release binary. `ouch`'s release binary (at the time of writing) only takes up a megabyte in space when stripped.
