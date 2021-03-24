@@ -80,7 +80,7 @@ impl ZipDecompressor {
             &from.path
         );
   
-        match from.contents {
+        match from.contents_in_memory {
             Some(bytes) => {
                 let mut archive = zip::ZipArchive::new(Cursor::new(bytes))?;
                 Ok(Self::zip_decompress(&mut archive, into)?)

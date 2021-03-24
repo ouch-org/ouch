@@ -2,25 +2,33 @@ use std::{ffi::OsStr, fs, io::Write, path::PathBuf};
 
 use colored::Colorize;
 
-use crate::{compressors::{Entry, TarCompressor}, decompressors::TarDecompressor};
-use crate::decompressors::ZipDecompressor;
-use crate::{
-    cli::{Command, CommandKind},
-    decompressors::{
-        Decompressor,
-        DecompressionResult, 
-        NifflerDecompressor
-    },
-    compressors::Compressor,
-    error::{self, OuchResult},
-    extension::{
-        Extension,
-        CompressionFormat,
-    },
-    file::File,
-    utils,
+use crate::compressors::{
+    Entry,
+    Compressor,
+    TarCompressor,
+    ZipCompressor
 };
 
+use crate::decompressors::{
+    Decompressor,
+    TarDecompressor,
+    ZipDecompressor,
+    NifflerDecompressor,
+    DecompressionResult
+};
+
+use crate::extension::{
+    Extension,
+    CompressionFormat  
+};
+
+use crate::cli::{Command, CommandKind};
+
+use crate::error::{self, OuchResult};
+
+use crate::file::File;
+
+use crate::utils;
 
 pub struct Evaluator {
     // verbosity: Verbosity
@@ -46,7 +54,7 @@ impl Evaluator {
             Some(ext) => match ext {
                 CompressionFormat::Tar => Some(Box::new(TarCompressor {})),
 
-                // CompressionFormat::Zip => Some(Box::new(ZipCompressor {})),
+                CompressionFormat::Zip => Some(Box::new(ZipCompressor {})),
 
                 // _other => Some(Box::new(NifflerCompressor {})),
                 _other => {
@@ -60,6 +68,7 @@ impl Evaluator {
         // any
         let second_compressor: Box<dyn Compressor> = match extension.second_ext {
             CompressionFormat::Tar => Box::new(TarCompressor {}),
+            CompressionFormat::Zip => Box::new(ZipCompressor {}),
             _other => todo!()
             //   
         };
@@ -138,7 +147,7 @@ impl Evaluator {
 
         let file = File {
             path: filename,
-            contents: Some(bytes),
+            contents_in_memory: Some(bytes),
             extension,
         };
 
@@ -166,7 +175,7 @@ impl Evaluator {
                 let mut entry = Entry::Files(files);
                 let bytes = first_compressor.compress(entry)?;
 
-                output.contents = Some(bytes);
+                output.contents_in_memory = Some(bytes);
 
                 entry = Entry::InMemory(output);
 

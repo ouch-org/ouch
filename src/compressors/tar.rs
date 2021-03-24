@@ -12,9 +12,10 @@ pub struct TarCompressor {}
 
 impl TarCompressor {
 
+    // TODO: this function does not seem to be working correctly ;/
     fn make_archive_from_memory(input: File) -> OuchResult<Vec<u8>> {
         
-        let contents = match input.contents {
+        let contents = match input.contents_in_memory {
             Some(bytes) => bytes,
             None => {
                 eprintln!("{}: reached TarCompressor::make_archive_from_memory without known content.", "internal error".red());
@@ -24,13 +25,19 @@ impl TarCompressor {
 
         let mut header = Header::new_gnu();
         
-        header.set_path(&input.path).unwrap();
+        // header.set_path(&input.path.file_stem().unwrap())?;
+        header.set_path(".")?;
         header.set_size(contents.len() as u64);
         header.set_cksum();
+        header.set_mode(644);
 
 
         let mut b = Builder::new(Vec::new());
-        b.append_data(&mut header, &input.path, &*contents)?;
+        b.append_data(
+            &mut header, 
+            &input.path.file_stem().unwrap(), 
+            &*contents
+        )?;
 
         Ok(b.into_inner()?)
     }
@@ -41,6 +48,8 @@ impl TarCompressor {
         let mut b = Builder::new(buf);
     
         for filename in input_filenames {
+            // TODO: check if filename is a file or a directory
+
             for entry in WalkDir::new(&filename) {
                 let entry = entry?;
                 let path = entry.path();

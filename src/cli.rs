@@ -1,7 +1,7 @@
 use std::{convert::TryFrom, path::PathBuf, vec::Vec};
 
 use clap::{Arg, Values};
-use colored::Colorize;
+// use colored::Colorize;
 
 use crate::error;
 use crate::extension::Extension;
@@ -97,11 +97,11 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
             if output_is_compressible {
                 // The supplied output is compressible, so we'll compress our inputs to it
 
-                println!(
-                    "{}: trying to compress input files into '{}'",
-                    "info".yellow(),
-                    output_file
-                );
+                // println!(
+                //     "{}: trying to compress input files into '{}'",
+                //     "info".yellow(),
+                //     output_file
+                // );
 
                 let input_files = input_files.map(PathBuf::from).collect();
 
@@ -109,7 +109,7 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
                     kind: CommandKind::Compression(input_files),
                     output: Some(File {
                         path: output_file.into(),
-                        contents: None,
+                        contents_in_memory: None,
                         extension: Some(output_file_extension.unwrap())
                     }),
                 });
@@ -124,7 +124,7 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
                     kind: CommandKind::Decompression(input_files),
                     output: Some(File {
                         path: output_file.into(),
-                        contents: None,
+                        contents_in_memory: None,
                         extension: None
                     })
                 });

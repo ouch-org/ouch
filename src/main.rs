@@ -1,6 +1,7 @@
-use std::{convert::TryFrom};
+use std::{convert::TryFrom, io::Write};
 
 use colored::Colorize;
+use walkdir::WalkDir;
 
 mod cli;
 mod error;
@@ -29,6 +30,31 @@ fn main() -> error::OuchResult<()>{
             print_error(err)
         }
     }
-    
+
     Ok(())
 }
+
+// fn main() {
+//     use zip::ZipWriter;
+
+//     let buf = vec![];
+//     let mut writer = zip::ZipWriter::new(std::io::Cursor::new(buf));
+
+//     let options = zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+
+
+//     for entry in WalkDir::new("src/compressors/compressor.rs") {
+//         let entry = entry.unwrap();
+//         let entry_path = entry.path().clone();
+//         if entry_path.is_dir() {
+//             continue;
+//         }
+//         writer.start_file(entry_path.to_string_lossy(), options).unwrap();
+//         let file_bytes = std::fs::read(entry.path()).unwrap();
+//         writer.write(&*file_bytes).unwrap();
+//     }
+
+//     let bytes = writer.finish().unwrap();
+
+//     std::fs::write("mainmain.rar", bytes.into_inner()).unwrap();
+// }

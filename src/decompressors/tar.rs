@@ -17,7 +17,7 @@ impl TarDecompressor {
         println!("{}: attempting to decompress {:?}", "ouch".bright_blue(), &from.path);
         let mut files_unpacked = vec![];
 
-        let mut archive: Archive<Box<dyn Read>> = match from.contents {
+        let mut archive: Archive<Box<dyn Read>> = match from.contents_in_memory {
             Some(bytes) => {
                 tar::Archive::new(Box::new(Cursor::new(bytes)))
             }

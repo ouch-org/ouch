@@ -17,7 +17,7 @@ pub struct NifflerDecompressor {}
 impl NifflerDecompressor {
     fn unpack_file(from: &Path) -> OuchResult<Vec<u8>> {
         
-        println!("{}: trying to decompress {:?}", "info".yellow(), from);
+        // println!("{}: trying to decompress {:?}", "info".yellow(), from);
 
         let file = std::fs::read(from)?;
 
