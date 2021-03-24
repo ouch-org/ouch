@@ -23,25 +23,8 @@ impl TarCompressor {
             }
         };
 
-        // let ok = EntryType::
+        println!("todo");
 
-
-        // let mut b = Builder::new(Vec::new());
-        // let mut header = Header::new_gnu();
-        //     let name = b"././@LongLink";
-        //     header.as_gnu_mut().unwrap().name[..name.len()].clone_from_slice(&name[..]);
-        //     header.set_mode(0o644);
-        //     header.set_uid(0);
-        //     header.set_gid(0);
-        //     header.set_mtime(0);
-        //     // + 1 to be compliant with GNU tar
-        //     header.set_size(size + 1);
-        //     header.set_entry_type(EntryType::new(entry_type));
-        //     header.set_cksum();
-
-
-
-        // Ok(b.into_inner()?)
         Ok(vec![])
     }
 

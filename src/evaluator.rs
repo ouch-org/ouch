@@ -7,6 +7,7 @@ use crate::compressors::{
     Compressor,
     TarCompressor,
     ZipCompressor,
+    GzipCompressor,
     BzipCompressor,
 };
 
@@ -71,6 +72,7 @@ impl Evaluator {
             CompressionFormat::Tar  => Box::new(TarCompressor {}),
             CompressionFormat::Zip  => Box::new(ZipCompressor {}),
             CompressionFormat::Bzip => Box::new(BzipCompressor {}),
+            CompressionFormat::Gzip => Box::new(GzipCompressor {}),
             _other => todo!()
         };
 
