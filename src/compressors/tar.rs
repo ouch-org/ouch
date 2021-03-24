@@ -1,7 +1,7 @@
 use std::{fs, path::PathBuf};
 
 use colored::Colorize;
-use tar::{Builder, Header};
+use tar::{Builder, EntryType, Header};
 use walkdir::WalkDir;
 
 use crate::{compressors::Compressor, error::{Error, OuchResult}, file::File};
@@ -23,23 +23,26 @@ impl TarCompressor {
             }
         };
 
-        let mut header = Header::new_gnu();
-        
-        // header.set_path(&input.path.file_stem().unwrap())?;
-        header.set_path(".")?;
-        header.set_size(contents.len() as u64);
-        header.set_cksum();
-        header.set_mode(644);
+        // let ok = EntryType::
 
 
-        let mut b = Builder::new(Vec::new());
-        b.append_data(
-            &mut header, 
-            &input.path.file_stem().unwrap(), 
-            &*contents
-        )?;
+        // let mut b = Builder::new(Vec::new());
+        // let mut header = Header::new_gnu();
+        //     let name = b"././@LongLink";
+        //     header.as_gnu_mut().unwrap().name[..name.len()].clone_from_slice(&name[..]);
+        //     header.set_mode(0o644);
+        //     header.set_uid(0);
+        //     header.set_gid(0);
+        //     header.set_mtime(0);
+        //     // + 1 to be compliant with GNU tar
+        //     header.set_size(size + 1);
+        //     header.set_entry_type(EntryType::new(entry_type));
+        //     header.set_cksum();
 
-        Ok(b.into_inner()?)
+
+
+        // Ok(b.into_inner()?)
+        Ok(vec![])
     }
 
     fn make_archive_from_files(input_filenames: Vec<PathBuf>) -> OuchResult<Vec<u8>> {
@@ -48,7 +51,7 @@ impl TarCompressor {
         let mut b = Builder::new(buf);
     
         for filename in input_filenames {
-            // TODO: check if filename is a file or a directory
+            // TODO: check if file exists
 
             for entry in WalkDir::new(&filename) {
                 let entry = entry?;

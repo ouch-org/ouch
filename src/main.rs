@@ -34,16 +34,24 @@ fn main() -> error::OuchResult<()>{
 }
 
 // fn main() -> error::OuchResult<()> {
-//     let bytes = fs::read("extension.tar.lzma")?;
 
-//     let mut ret = vec![];
+//     use tar::{Builder};
+//     use walkdir::WalkDir;
 
-//     xz2::read::XzDecoder::new_multi_decoder(&*bytes)
-//         .read_to_end(&mut ret)
-//         .unwrap();
+//     let mut b = Builder::new(Vec::new());
     
+//     for entry in WalkDir::new("src") {
+//         let entry = entry?;
+//         let mut file = std::fs::File::open(entry.path())?;
+//         b.append_file(entry.path(), &mut file)?;
+//     }
 
-//     fs::write("extension.tar", &*bytes).unwrap();
+//     // let mut file = std::fs::File::open("Cargo.toml")?;
+//     // b.append_file("Cargo.toml", &mut file)?;
+
+//     let bytes = b.into_inner()?;
+
+//     std::fs::write("daaaaamn.tar", bytes)?;
 
 //     Ok(())
 // }

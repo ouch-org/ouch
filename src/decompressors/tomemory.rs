@@ -18,12 +18,14 @@ use super::decompressor::Decompressor;
 
 pub struct UnifiedDecompressor {}
 pub struct GzipDecompressor {}
+pub struct LzmaDecompressor {}
 pub struct BzipDecompressor {}
 
 fn get_decoder<'a>(format: CompressionFormat, buffer: Box<dyn io::Read + Send + 'a>) -> Box<dyn io::Read + Send + 'a> {
     match format {
         CompressionFormat::Bzip => Box::new(bzip2::read::BzDecoder::new(buffer)),
         CompressionFormat::Gzip => Box::new(flate2::read::MultiGzDecoder::new(buffer)),
+        CompressionFormat::Lzma => Box::new(xz2::read::XzDecoder::new_multi_decoder(buffer)),
         _other => unreachable!()
     }
 }
@@ -67,5 +69,11 @@ impl Decompressor for GzipDecompressor {
 impl Decompressor for BzipDecompressor {
     fn decompress(&self, from: File, into: &Option<File>) -> OuchResult<DecompressionResult> {
         UnifiedDecompressor::decompress(from, CompressionFormat::Bzip, into)
+    }
+}
+
+impl Decompressor for LzmaDecompressor {
+    fn decompress(&self, from: File, into: &Option<File>) -> OuchResult<DecompressionResult> {
+        UnifiedDecompressor::decompress(from, CompressionFormat::Lzma, into)
     }
 }

@@ -93,13 +93,12 @@ impl Evaluator {
 
             CompressionFormat::Zip => Box::new(ZipDecompressor {}),
 
-            CompressionFormat::Gzip => Box::new(GzipDecompressor{}),
+            CompressionFormat::Gzip => Box::new(GzipDecompressor {}),
 
-            CompressionFormat::Lzma => Box::new(LzmaDecompressor{}),
+            CompressionFormat::Lzma => Box::new(LzmaDecompressor {}),
 
-            CompressionFormat::Bzip => {
-                Box::new(BzipDecompressor {})
-            }
+            CompressionFormat::Bzip => Box::new(BzipDecompressor {})
+            
         };
 
         let first_decompressor: Option<Box<dyn Decompressor>> = match extension.first_ext {
