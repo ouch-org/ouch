@@ -1,7 +1,7 @@
 use std::{fs, path::PathBuf};
 
 use colored::Colorize;
-use tar::{Builder, EntryType, Header};
+use tar::Builder;
 use walkdir::WalkDir;
 
 use crate::{compressors::Compressor, error::{Error, OuchResult}, file::File};
@@ -15,7 +15,7 @@ impl TarCompressor {
     // TODO: this function does not seem to be working correctly ;/
     fn make_archive_from_memory(input: File) -> OuchResult<Vec<u8>> {
         
-        let contents = match input.contents_in_memory {
+        let _contents = match input.contents_in_memory {
             Some(bytes) => bytes,
             None => {
                 eprintln!("{}: reached TarCompressor::make_archive_from_memory without known content.", "internal error".red());
