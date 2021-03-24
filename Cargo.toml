@@ -5,9 +5,11 @@ authors = ["Vinícius Rodrigues Miguel <vrmiguel99@gmail.com>"]
 edition = "2018"
 readme = "README.md"
 homepage = "https://github.com/vrmiguel/ouch"
+repository = "https://github.com/vrmiguel/ouch"
 license = "MIT"
 keywords = ["decompression", "compression", "zip", "tar", "gzip"]
 categories = ["command-line-utilities", "compression", "encoding"]
+description = "A command-line utility for easily compressing and decompressing files and directories."
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
