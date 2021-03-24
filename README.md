@@ -14,6 +14,7 @@
 
 ```
 ouch 0.1.0
+Vinícius R. Miguel
 ouch is a unified compression & decompression utility
 
 USAGE:
@@ -24,8 +25,8 @@ FLAGS:
     -V, --version    Prints version information
 
 OPTIONS:
-    -i, --input <input>...    Input files (TODO description)
-    -o, --output <output>     Output file (TODO description)
+    -i, --input <input>...    The input files or directories.
+    -o, --output <output>     The output directory or compressed file.
 ```
 
 ### Examples
@@ -42,8 +43,8 @@ When no output file is supplied, `ouch` infers that it must decompress all of it
 
 ```bash
 $ ouch -i file{1..5}.tar.gz -o some-folder
-info: attempting to decompress input files into single_folder
-info: done!
+# Decompresses file1.tar.gz, file2.tar.gz, file3.tar.gz, file4.tar.gz and file5.tar.gz to some-folder
+# The folder `ouch` saves to will be created if it doesn't already exist
 ```
 
 When the output file is not a compressed file, `ouch` will check if all input files are decompressible and infer that it must decompress them into the output file.
@@ -52,8 +53,6 @@ When the output file is not a compressed file, `ouch` will check if all input fi
 
 ```bash
 $ ouch -i file{1..20} -o archive.tar
-info: trying to compress input files into 'archive.tar'
-info: done!
 ```
 
 ### Error scenarios
@@ -65,7 +64,7 @@ $ ouch -i some-file -o some-folder
 error: file 'some-file' is not decompressible.
 ```
 
-`ouch` might (TODO!) be able to sniff a file's compression format if it isn't supplied in the future, but that is not currently implemented.
+`ouch` cannot infer `some-file`'s compression format since it lacks an extension. Likewise, `ouch` cannot infer that the output file given is a compressed file, so it shows the user an error.
 
 ## Installation
 

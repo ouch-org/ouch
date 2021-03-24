@@ -21,9 +21,11 @@ clap    = "2.33.3"
 tar     = "0.4.33"
 xz2     = "0.1.6"
 bzip2   = "0.4.2"
-flate2  = "1.0.20"
+flate2  = "1.0.14"
+zip     = "0.5.11"
 
-# Keeping zip locally since upstream zip is staying on an older flate2 version
-# in order to not increase MSRV, which is not something I particularly care about
-# for ouch
-zip = { version = "0.5.10", path = "./third-party/zip" }
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
