@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, path::PathBuf};
 
 use colored::Colorize;
 
@@ -13,6 +13,7 @@ pub enum Error {
     FileNotFound,
     AlreadyExists,
     InvalidZipArchive(&'static str),
+    UnsupportedArchive(PathBuf),
     PermissionDenied,
     UnsupportedZipArchive(&'static str),
     FileTooShort,
@@ -38,6 +39,9 @@ impl fmt::Display for Error {
             // TODO: find out a way to attach the missing file in question here
             Error::FileNotFound => {
                 write!(f, "file not found!")
+            }
+            Error::UnsupportedArchive(path) => {
+                write!(f, "ouch is currently uncapable of decompressing {:?}", path)
             }
             err => {
                 // TODO
@@ -73,20 +77,20 @@ impl From<zip::result::ZipError> for Error {
     }
 }
 
-impl From<niffler::error::Error> for Error {
-    fn from(err: niffler::error::Error) -> Self {
-        use niffler::error::Error as NifErr;
-        match err {
-            NifErr::FeatureDisabled => {
-                // Ouch is using Niffler with all its features so
-                // this should be unreachable.
-                unreachable!();
-            },
-            NifErr::FileTooShort => Self::FileTooShort,
-            NifErr::IOError(io_err) => Self::from(io_err)
-        }
-    }
-}
+// impl From<niffler::error::Error> for Error {
+//     fn from(err: niffler::error::Error) -> Self {
+//         use niffler::error::Error as NifErr;
+//         match err {
+//             NifErr::FeatureDisabled => {
+//                 // Ouch is using Niffler with all its features so
+//                 // this should be unreachable.
+//                 unreachable!();
+//             },
+//             NifErr::FileTooShort => Self::FileTooShort,
+//             NifErr::IOError(io_err) => Self::from(io_err)
+//         }
+//     }
+// }
 
 impl From<walkdir::Error> for Error {
     fn from(err: walkdir::Error) -> Self {

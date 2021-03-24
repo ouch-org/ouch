@@ -3,10 +3,10 @@
 `ouch` is the Obvious Unified Compression (and decompression) Helper. 
 
 
-| Supported formats | .tar | .zip | .tar.{.lz, .lzma, .gz, .bz}  | .zip.{.lz, .lzma, .gz, .bz}  | .bz | .gz | .lz, .lzma |
+| Supported formats | .tar | .zip | .tar.{.gz, .bz}              | .zip.{.gz, .bz, .bz2}        | .bz | .gz | .lz, .lzma |
 |-------------------|------|------|------------------------------|------------------------------|-----|-----|------------|
-| Decompression     |   ✓  |   ✓  |               ✓              |               ✓              |  ✓  |  ✓  |      ✓     |
-| Compression       |   ✓  |   ✗  |               ✗              |               ✗              |  ✗  |  ✗  |      ✗     |
+| Decompression     |   ✓  |   ✓  |               ✓              |               ✓              |  ✓  |  ✓  |      ✗     |
+| Compression       |   ✓  |   ✓  |               ✗              |               ✗              |  ✗  |  ✗  |      ✗     |
 
 ## How does it work?
 

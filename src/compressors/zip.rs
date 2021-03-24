@@ -31,7 +31,6 @@ impl ZipCompressor {
         let options =
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
-        // let ok = Box::from(inner_file_path.to_string_lossy());
         writer.start_file(inner_file_path, options)?;
 
         let input_bytes = match input.contents_in_memory {

@@ -1,5 +1,6 @@
 mod tar;
 mod zip;
+mod unified;
 mod compressor;
 
 pub use compressor::Compressor;

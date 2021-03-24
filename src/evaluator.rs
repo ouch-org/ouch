@@ -13,7 +13,8 @@ use crate::decompressors::{
     Decompressor,
     TarDecompressor,
     ZipDecompressor,
-    NifflerDecompressor,
+    GzipDecompressor,
+    BzipDecompressor,
     DecompressionResult
 };
 
@@ -94,8 +95,14 @@ impl Evaluator {
 
             CompressionFormat::Zip => Box::new(ZipDecompressor {}),
 
-            CompressionFormat::Gzip | CompressionFormat::Lzma | CompressionFormat::Bzip => {
-                Box::new(NifflerDecompressor {})
+            CompressionFormat::Gzip => Box::new(GzipDecompressor {}),
+
+            CompressionFormat::Lzma => {
+                todo!()
+            }
+
+            CompressionFormat::Bzip => {
+                Box::new(BzipDecompressor {})
             }
         };
 
