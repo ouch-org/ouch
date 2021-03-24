@@ -3,17 +3,17 @@
 `ouch` is the Obvious Unified Compression (and decompression) Helper. 
 
 
-| Supported formats | .tar | .zip | .tar.{.lz,.gz, .bz}          | .zip.{.lz, .gz, .bz, .bz2}   | .bz | .gz | .lz, .lzma |
+| Supported formats | .tar | .zip | .tar.{.lz*,.gz, .bz}         | .zip.{.lz*, .gz, .bz*}       | .bz | .gz | .lz, .lzma |
 |-------------------|------|------|------------------------------|------------------------------|-----|-----|------------|
 | Decompression     |   ✓  |   ✓  |               ✓              |               ✓              |  ✓  |  ✓  |      ✓     |
-| Compression       |   ✓  |   ✓  |               ✗              |               ✗              |  ✗  |  ✗  |      ✗     |
+| Compression       |   ✓  |   ✓  |               ✓              |               ✓              |  ✓  |  ✓  |      ✓     |
 
 ## How does it work?
 
 `ouch` infers commands from the extensions of its command-line options.
 
 ```
-ouch 0.1.1
+ouch 0.1.2
 Vinícius R. Miguel
 ouch is a unified compression & decompression utility
 

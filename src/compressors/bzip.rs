@@ -3,7 +3,7 @@ use std::{fs, io::Write, path::PathBuf};
 use colored::Colorize;
 
 use crate::{error::{Error, OuchResult}, extension::CompressionFormat, file::File};
-use crate::utils::ensure_exists;
+use crate::utils::{ensure_exists, check_for_multiple_files};
 
 use super::{Compressor, Entry};
 
@@ -11,10 +11,7 @@ pub struct BzipCompressor {}
 
 impl BzipCompressor {
     fn compress_files(files: Vec<PathBuf>, format: CompressionFormat) -> OuchResult<Vec<u8>> {
-        if files.len() != 1 {
-            eprintln!("{}: cannot compress multiple files directly to {:#?}.\n     Try using an intermediate archival method such as Tar.\n     Example: filename.tar{}", "error".red(), format, format);
-            return Err(Error::InvalidInput);
-        }
+        check_for_multiple_files(&files, &format)?;
         let path = &files[0];
         ensure_exists(path)?;
         let contents = {

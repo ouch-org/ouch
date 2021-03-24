@@ -1,7 +1,7 @@
-use std::{fs, path::Path};
+use std::{fs, path::{Path, PathBuf}};
 
 use colored::Colorize;
-use crate::{error::OuchResult, file::File};
+use crate::{error::{Error, OuchResult}, extension::CompressionFormat, file::File};
 
 pub (crate) fn ensure_exists<'a, P>(path: P) -> OuchResult<()>
 where
@@ -12,6 +12,16 @@ where
         }
         Ok(())
     }
+
+pub (crate) fn check_for_multiple_files(files: &Vec<PathBuf>, format: &CompressionFormat) -> OuchResult<()> {
+
+    if files.len() != 1 {
+        eprintln!("{}: cannot compress multiple files directly to {:#?}.\n       Try using an intermediate archival method such as Tar.\n       Example: filename.tar{}", "error".red(), format, format);
+        return Err(Error::InvalidInput);
+    }
+
+    Ok(())
+}
 
 pub (crate) fn create_path_if_non_existent(path: &Path) -> OuchResult<()> {
     if !path.exists() {

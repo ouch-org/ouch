@@ -24,10 +24,6 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 
         match self {
-            Error::InvalidInput => write!(
-                f,
-                "When `-o/--output` is omitted, all input files should be compressed files."
-            ),
             Error::MissingExtensionError(filename) => {
                 write!(f, "cannot compress to \'{}\', likely because it has an unsupported (or missing) extension.", filename)
             },
@@ -38,9 +34,9 @@ impl fmt::Display for Error {
             Error::FileNotFound => {
                 write!(f, "file not found!")
             }
-            err => {
+            _err => {
                 // TODO
-                write!(f, "todo: missing description for error {:?}", err)
+                write!(f, "")
             }
         }
     }
