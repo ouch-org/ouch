@@ -10,3 +10,4 @@ pub use self::tar::TarCompressor;
 pub use self::zip::ZipCompressor;
 pub use self::bzip::BzipCompressor;
 pub use self::tomemory::GzipCompressor;
+pub use self::tomemory::LzmaCompressor;

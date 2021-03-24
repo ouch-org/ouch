@@ -8,6 +8,7 @@ use crate::utils::ensure_exists;
 use super::{Compressor, Entry};
 
 pub struct GzipCompressor {}
+pub struct LzmaCompressor {}
 
 struct CompressorToMemory {}
 
@@ -78,6 +79,7 @@ fn get_encoder<'a>(
             buffer,
             flate2::Compression::default(),
         )),
+        CompressionFormat::Lzma => Box::new(xz2::write::XzEncoder::new(buffer, 6)),
         _other => unreachable!(),
     }
 }
@@ -85,6 +87,21 @@ fn get_encoder<'a>(
 impl Compressor for GzipCompressor {
     fn compress(&self, from: Entry) -> OuchResult<Vec<u8>> {
         let format = CompressionFormat::Gzip;
+        match from {
+            Entry::Files(files) => Ok(
+                CompressorToMemory::compress_files(files, format)?
+            ),
+            Entry::InMemory(file) => Ok(
+                CompressorToMemory::compress_file_in_memory(file, format)?
+            ),
+        }
+    }
+}
+
+
+impl Compressor for LzmaCompressor {
+    fn compress(&self, from: Entry) -> OuchResult<Vec<u8>> {
+        let format = CompressionFormat::Lzma;
         match from {
             Entry::Files(files) => Ok(
                 CompressorToMemory::compress_files(files, format)?

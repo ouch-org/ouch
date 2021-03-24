@@ -9,6 +9,7 @@ use crate::compressors::{
     ZipCompressor,
     GzipCompressor,
     BzipCompressor,
+    LzmaCompressor
 };
 
 use crate::decompressors::{
@@ -73,7 +74,7 @@ impl Evaluator {
             CompressionFormat::Zip  => Box::new(ZipCompressor {}),
             CompressionFormat::Bzip => Box::new(BzipCompressor {}),
             CompressionFormat::Gzip => Box::new(GzipCompressor {}),
-            _other => todo!()
+            CompressionFormat::Lzma => Box::new(LzmaCompressor {}),
         };
 
         Ok((first_compressor, second_compressor))
