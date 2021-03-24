@@ -6,7 +6,8 @@ use crate::compressors::{
     Entry,
     Compressor,
     TarCompressor,
-    ZipCompressor
+    ZipCompressor,
+    BzipCompressor,
 };
 
 use crate::decompressors::{
@@ -67,8 +68,9 @@ impl Evaluator {
         // Supported second compressors:
         // any
         let second_compressor: Box<dyn Compressor> = match extension.second_ext {
-            CompressionFormat::Tar => Box::new(TarCompressor {}),
-            CompressionFormat::Zip => Box::new(ZipCompressor {}),
+            CompressionFormat::Tar  => Box::new(TarCompressor {}),
+            CompressionFormat::Zip  => Box::new(ZipCompressor {}),
+            CompressionFormat::Bzip => Box::new(BzipCompressor {}),
             _other => todo!()
         };
 

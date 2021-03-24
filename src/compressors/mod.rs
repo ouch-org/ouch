@@ -1,10 +1,10 @@
 mod tar;
 mod zip;
-mod unified;
+mod bzip;
 mod compressor;
 
 pub use compressor::Compressor;
 pub use self::compressor::Entry;
 pub use self::tar::TarCompressor;
 pub use self::zip::ZipCompressor;
-
+pub use self::bzip::BzipCompressor;

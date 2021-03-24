@@ -16,7 +16,7 @@ use crate::{
 use super::decompressor::DecompressionResult;
 use super::decompressor::Decompressor;
 
-pub struct UnifiedDecompressor {}
+struct DecompressorToMemory {}
 pub struct GzipDecompressor {}
 pub struct LzmaDecompressor {}
 pub struct BzipDecompressor {}
@@ -30,7 +30,7 @@ fn get_decoder<'a>(format: CompressionFormat, buffer: Box<dyn io::Read + Send + 
     }
 }
 
-impl UnifiedDecompressor {
+impl DecompressorToMemory {
     fn unpack_file(from: &Path, format: CompressionFormat) -> OuchResult<Vec<u8>> {
         let file = std::fs::read(from)?;
 
@@ -62,18 +62,18 @@ impl UnifiedDecompressor {
 
 impl Decompressor for GzipDecompressor {
     fn decompress(&self, from: File, into: &Option<File>) -> OuchResult<DecompressionResult> {
-        UnifiedDecompressor::decompress(from, CompressionFormat::Gzip, into)
+        DecompressorToMemory::decompress(from, CompressionFormat::Gzip, into)
     }
 }
 
 impl Decompressor for BzipDecompressor {
     fn decompress(&self, from: File, into: &Option<File>) -> OuchResult<DecompressionResult> {
-        UnifiedDecompressor::decompress(from, CompressionFormat::Bzip, into)
+        DecompressorToMemory::decompress(from, CompressionFormat::Bzip, into)
     }
 }
 
 impl Decompressor for LzmaDecompressor {
     fn decompress(&self, from: File, into: &Option<File>) -> OuchResult<DecompressionResult> {
-        UnifiedDecompressor::decompress(from, CompressionFormat::Lzma, into)
+        DecompressorToMemory::decompress(from, CompressionFormat::Lzma, into)
     }
 }
