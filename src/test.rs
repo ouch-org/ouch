@@ -201,3 +201,34 @@ mod extension_extraction {
         Ok(())
     }
 }
+
+// #[cfg(test)]
+// mod evaluator {
+//     use crate::extension::Extension;
+//     use crate::error::OuchResult;
+//     use crate::file::File;
+//     use crate::evaluator::Evaluator;
+//     use crate::decompressors::{Decompressor, TarDecompressor, GzipDecompressor};
+
+//     #[test]
+//     fn test() -> OuchResult<()> {
+//         let extension = Extension::new("folder.tar.gz")?;
+
+//         let file = File {
+//             path: "folder.tar.gz".into(),
+//             contents_in_memory: None,
+//             extension: Some(extension),
+//         };
+
+//         let (fst, snd) = Evaluator::get_decompressor(&file)?;
+
+//         let fst = fst.unwrap();
+
+//         assert_eq!(
+//             fst,
+//             Some(Box::new(TarDecompressor::{})
+//         );
+
+//         Ok(())
+//     }
+// }

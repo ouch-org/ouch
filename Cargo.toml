@@ -19,11 +19,11 @@ colored = "2.0.0"
 walkdir = "2.3.2"
 clap    = "2.33.3"
 tar     = "0.4.33"
-xz2     = "0.1"
+xz2     = "0.1.6"
 bzip2   = "0.4.2"
 flate2  = "1.0.20"
 
 # Keeping zip locally since upstream zip is staying on an older flate2 version
 # in order to not increase MSRV, which is not something I particularly care about
 # for ouch
-zip = { path = "./third-party/zip" }
+zip = { version = "0.5.10", path = "./third-party/zip" }

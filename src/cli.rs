@@ -29,6 +29,13 @@ pub fn clap_app<'a, 'b>() -> clap::App<'a, 'b> {
     clap::App::new("ouch")
         .version("0.1.0")
         .about("ouch is a unified compression & decompression utility")
+        .after_help(
+"ouch infers what to based on the extensions of the input files and output file received.
+Examples: `ouch -i movies.tar.gz classes.zip -o Videos/` in order to decompress files into a folder.
+          `ouch -i headers/ sources/ Makefile -o my-project.tar.gz` 
+          `ouch -i image{1..50}.jpeg -o images.zip`
+Please relate any issues or contribute at https://github.com/vrmiguel/ouch")
+        .author("Vinícius R. Miguel")
         .help_message("Displays this message and exits")
         .settings(&[
             clap::AppSettings::ColoredHelp,
@@ -40,7 +47,7 @@ pub fn clap_app<'a, 'b>() -> clap::App<'a, 'b> {
                 .multiple(true)
                 .long("input")
                 .short("i")
-                .help("Input files (TODO description)")
+                .help("The input files or directories.")
                 .takes_value(true),
         )
         .arg(
@@ -50,7 +57,7 @@ pub fn clap_app<'a, 'b>() -> clap::App<'a, 'b> {
                 .multiple(false)
                 .long("output")
                 .short("o")
-                .help("Output file (TODO description)")
+                .help("The output directory or compressed file.")
                 .takes_value(true),
         )
 }

@@ -15,6 +15,7 @@ use crate::decompressors::{
     ZipDecompressor,
     GzipDecompressor,
     BzipDecompressor,
+    LzmaDecompressor,
     DecompressionResult
 };
 
@@ -31,12 +32,10 @@ use crate::file::File;
 
 use crate::utils;
 
-pub struct Evaluator {
-    // verbosity: Verbosity
-}
+pub struct Evaluator {}
 
 impl Evaluator {
-    fn get_compressor(
+    pub fn get_compressor(
         file: &File,
     ) -> error::OuchResult<(Option<Box<dyn Compressor>>, Box<dyn Compressor>)> {
         if file.extension.is_none() {
@@ -71,13 +70,12 @@ impl Evaluator {
             CompressionFormat::Tar => Box::new(TarCompressor {}),
             CompressionFormat::Zip => Box::new(ZipCompressor {}),
             _other => todo!()
-            //   
         };
 
         Ok((first_compressor, second_compressor))
     }
 
-    fn get_decompressor(
+    pub fn get_decompressor(
         file: &File,
     ) -> error::OuchResult<(Option<Box<dyn Decompressor>>, Box<dyn Decompressor>)> {
         if file.extension.is_none() {
@@ -95,11 +93,9 @@ impl Evaluator {
 
             CompressionFormat::Zip => Box::new(ZipDecompressor {}),
 
-            CompressionFormat::Gzip => Box::new(GzipDecompressor {}),
+            CompressionFormat::Gzip => Box::new(GzipDecompressor{}),
 
-            CompressionFormat::Lzma => {
-                todo!()
-            }
+            CompressionFormat::Lzma => Box::new(LzmaDecompressor{}),
 
             CompressionFormat::Bzip => {
                 Box::new(BzipDecompressor {})

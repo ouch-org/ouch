@@ -1,4 +1,4 @@
-use std::{fmt, path::PathBuf};
+use std::fmt;
 
 use colored::Colorize;
 
@@ -13,10 +13,8 @@ pub enum Error {
     FileNotFound,
     AlreadyExists,
     InvalidZipArchive(&'static str),
-    UnsupportedArchive(PathBuf),
     PermissionDenied,
     UnsupportedZipArchive(&'static str),
-    FileTooShort,
     InputsMustHaveBeenDecompressible(String),
 }
 
@@ -39,9 +37,6 @@ impl fmt::Display for Error {
             // TODO: find out a way to attach the missing file in question here
             Error::FileNotFound => {
                 write!(f, "file not found!")
-            }
-            Error::UnsupportedArchive(path) => {
-                write!(f, "ouch is currently uncapable of decompressing {:?}", path)
             }
             err => {
                 // TODO

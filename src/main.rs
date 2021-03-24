@@ -1,7 +1,6 @@
-use std::{convert::TryFrom, io::Write};
+use std::convert::TryFrom;
 
 use colored::Colorize;
-use walkdir::WalkDir;
 
 mod cli;
 mod error;
@@ -34,27 +33,17 @@ fn main() -> error::OuchResult<()>{
     Ok(())
 }
 
-// fn main() {
-//     use zip::ZipWriter;
+// fn main() -> error::OuchResult<()> {
+//     let bytes = fs::read("extension.tar.lzma")?;
 
-//     let buf = vec![];
-//     let mut writer = zip::ZipWriter::new(std::io::Cursor::new(buf));
+//     let mut ret = vec![];
 
-//     let options = zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+//     xz2::read::XzDecoder::new_multi_decoder(&*bytes)
+//         .read_to_end(&mut ret)
+//         .unwrap();
+    
 
+//     fs::write("extension.tar", &*bytes).unwrap();
 
-//     for entry in WalkDir::new("src/compressors/compressor.rs") {
-//         let entry = entry.unwrap();
-//         let entry_path = entry.path().clone();
-//         if entry_path.is_dir() {
-//             continue;
-//         }
-//         writer.start_file(entry_path.to_string_lossy(), options).unwrap();
-//         let file_bytes = std::fs::read(entry.path()).unwrap();
-//         writer.write(&*file_bytes).unwrap();
-//     }
-
-//     let bytes = writer.finish().unwrap();
-
-//     std::fs::write("mainmain.rar", bytes.into_inner()).unwrap();
+//     Ok(())
 // }

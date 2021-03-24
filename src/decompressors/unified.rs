@@ -1,15 +1,15 @@
 use std::{
     io::{self, Read},
-    path::{Path, PathBuf},
+    path::Path,
 };
 
-use bzip2::Compress;
+
 use colored::Colorize;
 // use niffler;
 
 use crate::{extension::CompressionFormat, file::File};
 use crate::{
-    error::{self, OuchResult},
+    error::OuchResult,
     utils,
 };
 
@@ -17,23 +17,19 @@ use super::decompressor::DecompressionResult;
 use super::decompressor::Decompressor;
 
 pub struct UnifiedDecompressor {}
-pub struct LzmaDecompressor {}
 pub struct GzipDecompressor {}
 pub struct BzipDecompressor {}
 
 fn get_decoder<'a>(format: CompressionFormat, buffer: Box<dyn io::Read + Send + 'a>) -> Box<dyn io::Read + Send + 'a> {
     match format {
-        CompressionFormat::Lzma => Box::new(xz2::read::XzDecoder::new(buffer)),
         CompressionFormat::Bzip => Box::new(bzip2::read::BzDecoder::new(buffer)),
         CompressionFormat::Gzip => Box::new(flate2::read::MultiGzDecoder::new(buffer)),
-        other => unreachable!()
+        _other => unreachable!()
     }
 }
 
 impl UnifiedDecompressor {
     fn unpack_file(from: &Path, format: CompressionFormat) -> OuchResult<Vec<u8>> {
-        // println!("{}: trying to decompress {:?}", "info".yellow(), from);
-
         let file = std::fs::read(from)?;
 
         let mut reader = get_decoder(format, Box::new(&file[..]));
@@ -59,12 +55,6 @@ impl UnifiedDecompressor {
         let bytes = Self::unpack_file(&from.path, format)?;
 
         Ok(DecompressionResult::FileInMemory(bytes))
-    }
-}
-
-impl Decompressor for LzmaDecompressor {
-    fn decompress(&self, from: File, into: &Option<File>) -> OuchResult<DecompressionResult> {
-        UnifiedDecompressor::decompress(from, CompressionFormat::Lzma, into)
     }
 }
 

@@ -8,6 +8,7 @@ use crate::file::File;
 
 use super::decompressor::{DecompressionResult, Decompressor};
 
+#[derive(Debug)]
 pub struct TarDecompressor {}
 
 impl TarDecompressor {
