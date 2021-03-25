@@ -42,9 +42,9 @@ impl LzmaCompressor {
             }
         };
 
-        Ok(Self::compress_bytes(file_contents)?)
+        Self::compress_bytes(file_contents)
     }
-    
+
     pub fn compress_bytes(bytes_to_compress: Vec<u8>) -> OuchResult<Vec<u8>> {
         let buffer = vec![];
         let mut encoder = xz2::write::XzEncoder::new(buffer, 6);
@@ -58,12 +58,8 @@ impl Compressor for LzmaCompressor {
     fn compress(&self, from: Entry) -> OuchResult<Vec<u8>> {
         let format = CompressionFormat::Lzma;
         match from {
-            Entry::Files(files) => Ok(
-                Self::compress_files(files, format)?
-            ),
-            Entry::InMemory(file) => Ok(
-                Self::compress_file_in_memory(file)?
-            ),
+            Entry::Files(files) => Self::compress_files(files, format),
+            Entry::InMemory(file) => Self::compress_file_in_memory(file),
         }
     }
 }

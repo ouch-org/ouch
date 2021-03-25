@@ -20,7 +20,7 @@ impl BzipCompressor {
         };
 
         println!("{}: compressed {:?} into memory ({} bytes)", "info".yellow(), &path, contents.len());
-        
+
         Ok(contents)
     }
 
@@ -34,7 +34,7 @@ impl BzipCompressor {
             }
         };
 
-        Ok(Self::compress_bytes(&*bytes)?)
+        Self::compress_bytes(&*bytes)
     }
 
     fn compress_bytes(bytes: &[u8]) -> OuchResult<Vec<u8>> {

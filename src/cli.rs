@@ -33,7 +33,7 @@ pub fn clap_app<'a, 'b>() -> clap::App<'a, 'b> {
         .after_help(
 "ouch infers what to based on the extensions of the input files and output file received.
 Examples: `ouch -i movies.tar.gz classes.zip -o Videos/` in order to decompress files into a folder.
-          `ouch -i headers/ sources/ Makefile -o my-project.tar.gz` 
+          `ouch -i headers/ sources/ Makefile -o my-project.tar.gz`
           `ouch -i image{1..50}.jpeg -o images.zip`
 Please relate any issues or contribute at https://github.com/vrmiguel/ouch")
         .author("Vinícius R. Miguel")
@@ -107,7 +107,7 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
             let output_file = matches.value_of("output").unwrap(); // Safe unwrap since we've established that output was supplied
 
             let output_file_extension = Extension::new(output_file);
-            
+
             let output_is_compressible = output_file_extension.is_ok();
             if output_is_compressible {
                 // The supplied output is compressible, so we'll compress our inputs to it
@@ -127,14 +127,15 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
 
                 let input_files = canonical_paths.map(Result::unwrap).collect();
 
-                return Ok(Command {
+                Ok(Command {
                     kind: CommandKind::Compression(input_files),
                     output: Some(File {
                         path: output_file.into(),
                         contents_in_memory: None,
+                        // extension: output_file_extension.ok(),
                         extension: Some(output_file_extension.unwrap())
                     }),
-                });
+                })
 
             } else {
                 // Output not supplied
@@ -142,14 +143,14 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
 
                 let input_files = process_decompressible_input(input_files)?;
 
-                return Ok(Command {
+                Ok(Command {
                     kind: CommandKind::Decompression(input_files),
                     output: Some(File {
                         path: output_file.into(),
                         contents_in_memory: None,
                         extension: None
                     })
-                });
+                })
             }
         } else {
             // else: output file not supplied
@@ -157,10 +158,10 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
             // Case 2: error
             let input_files = process_decompressible_input(input_files)?;
 
-            return Ok(Command {
+            Ok(Command {
                 kind: CommandKind::Decompression(input_files),
                 output: None,
-            });
+            })
         }
     }
 }

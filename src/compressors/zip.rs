@@ -42,10 +42,10 @@ impl ZipCompressor {
             }
         };
 
-        writer.write(&*input_bytes)?;
+        writer.write_all(&*input_bytes)?;
 
 
-        
+
         let bytes = writer.finish().unwrap();
 
         Ok(bytes.into_inner())
@@ -67,14 +67,14 @@ impl ZipCompressor {
                 }
                 writer
                     .start_file(
-                        entry_path.to_string_lossy(), 
+                        entry_path.to_string_lossy(),
                         options
                     )?;
                 let file_bytes = std::fs::read(entry.path())?;
-                writer.write(&*file_bytes)?;
+                writer.write_all(&*file_bytes)?;
             }
         }
-        
+
 
         let bytes = writer.finish().unwrap();
 

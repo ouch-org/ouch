@@ -42,7 +42,7 @@ impl GzipCompressor {
             }
         };
 
-        Ok(Self::compress_bytes(file_contents)?)
+        Self::compress_bytes(file_contents)
     }
 
     pub fn compress_bytes(bytes_to_compress: Vec<u8>) -> OuchResult<Vec<u8>> {

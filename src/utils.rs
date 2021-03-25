@@ -14,8 +14,7 @@ where
         Ok(())
     }
 
-pub (crate) fn check_for_multiple_files(files: &Vec<PathBuf>, format: &CompressionFormat) -> OuchResult<()> {
-
+pub (crate) fn check_for_multiple_files(files: &[PathBuf], format: &CompressionFormat) -> OuchResult<()> {
     if files.len() != 1 {
         eprintln!("{}: cannot compress multiple files directly to {:#?}.\n       Try using an intermediate archival method such as Tar.\n       Example: filename.tar{}", "[ERROR]".red(), format, format);
         return Err(Error::InvalidInput);

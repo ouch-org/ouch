@@ -3,29 +3,15 @@ use std::{ffi::OsStr, fs, io::Write, path::PathBuf};
 use colored::Colorize;
 
 use crate::compressors::{
-    Entry,
-    Compressor,
-    TarCompressor,
-    ZipCompressor,
-    GzipCompressor,
-    BzipCompressor,
-    LzmaCompressor
+    BzipCompressor, Compressor, Entry, GzipCompressor, LzmaCompressor, TarCompressor, ZipCompressor,
 };
 
 use crate::decompressors::{
-    Decompressor,
-    TarDecompressor,
-    ZipDecompressor,
-    GzipDecompressor,
-    BzipDecompressor,
-    LzmaDecompressor,
-    DecompressionResult
+    BzipDecompressor, DecompressionResult, Decompressor, GzipDecompressor, LzmaDecompressor,
+    TarDecompressor, ZipDecompressor,
 };
 
-use crate::extension::{
-    Extension,
-    CompressionFormat  
-};
+use crate::extension::{CompressionFormat, Extension};
 
 use crate::cli::{Command, CommandKind};
 
@@ -41,19 +27,21 @@ impl Evaluator {
     pub fn get_compressor(
         file: &File,
     ) -> error::OuchResult<(Option<Box<dyn Compressor>>, Box<dyn Compressor>)> {
-        if file.extension.is_none() {
-            // This block *should* be unreachable
-            eprintln!(
-                "{}: reached Evaluator::get_decompressor without known extension.",
-                "internal error".red()
-            );
-            return Err(error::Error::InvalidInput);
-        }
-        let extension = file.extension.clone().unwrap();
-        
+        let extension = match &file.extension {
+            Some(extension) => extension.clone(),
+            None => {
+                // This block *should* be unreachable
+                eprintln!(
+                    "{}: reached Evaluator::get_decompressor without known extension.",
+                    "internal error".red()
+                );
+                return Err(error::Error::InvalidInput);
+            }
+        };
+
         // Supported first compressors:
         // .tar and .zip
-        let first_compressor: Option<Box<dyn Compressor>>  = match extension.first_ext {
+        let first_compressor: Option<Box<dyn Compressor>> = match extension.first_ext {
             Some(ext) => match ext {
                 CompressionFormat::Tar => Some(Box::new(TarCompressor {})),
 
@@ -70,8 +58,8 @@ impl Evaluator {
         // Supported second compressors:
         // any
         let second_compressor: Box<dyn Compressor> = match extension.second_ext {
-            CompressionFormat::Tar  => Box::new(TarCompressor {}),
-            CompressionFormat::Zip  => Box::new(ZipCompressor {}),
+            CompressionFormat::Tar => Box::new(TarCompressor {}),
+            CompressionFormat::Zip => Box::new(ZipCompressor {}),
             CompressionFormat::Bzip => Box::new(BzipCompressor {}),
             CompressionFormat::Gzip => Box::new(GzipCompressor {}),
             CompressionFormat::Lzma => Box::new(LzmaCompressor {}),
@@ -83,15 +71,17 @@ impl Evaluator {
     pub fn get_decompressor(
         file: &File,
     ) -> error::OuchResult<(Option<Box<dyn Decompressor>>, Box<dyn Decompressor>)> {
-        if file.extension.is_none() {
-            // This block *should* be unreachable
-            eprintln!(
-                "{}: reached Evaluator::get_decompressor without known extension.",
-                "internal error".red()
-            );
-            return Err(error::Error::InvalidInput);
-        }
-        let extension = file.extension.clone().unwrap();
+        let extension = match &file.extension {
+            Some(extension) => extension.clone(),
+            None => {
+                // This block *should* be unreachable
+                eprintln!(
+                    "{}: reached Evaluator::get_decompressor without known extension.",
+                    "internal error".red()
+                );
+                return Err(error::Error::InvalidInput);
+            }
+        };
 
         let second_decompressor: Box<dyn Decompressor> = match extension.second_ext {
             CompressionFormat::Tar => Box::new(TarDecompressor {}),
@@ -102,8 +92,7 @@ impl Evaluator {
 
             CompressionFormat::Lzma => Box::new(LzmaDecompressor {}),
 
-            CompressionFormat::Bzip => Box::new(BzipDecompressor {})
-            
+            CompressionFormat::Bzip => Box::new(BzipDecompressor {}),
         };
 
         let first_decompressor: Option<Box<dyn Decompressor>> = match extension.first_ext {
@@ -132,7 +121,7 @@ impl Evaluator {
 
         let mut filename = file_path
             .file_stem()
-            .unwrap_or(output_file_path.as_os_str());
+            .unwrap_or_else(|| output_file_path.as_os_str());
         if filename == "." {
             // I believe this is only possible when the supplied inout has a name
             // of the sort `.tar` or `.zip' and no output has been supplied.
@@ -141,26 +130,26 @@ impl Evaluator {
 
         let filename = PathBuf::from(filename);
 
-        if decompressor.is_none() {
-            // There is no more processing to be done on the input file (or there is but currently unsupported)
-            // Therefore, we'll save what we have in memory into a file.
+        // If there is a decompressor to use, we'll create a file in-memory and decompress it
+        let decompressor = match decompressor {
+            Some(decompressor) => decompressor,
+            None => {
+                // There is no more processing to be done on the input file (or there is but currently unsupported)
+                // Therefore, we'll save what we have in memory into a file.
 
-            println!("{}: saving to {:?}.", "info".yellow(), filename);
+                println!("{}: saving to {:?}.", "info".yellow(), filename);
 
-            let mut f = fs::File::create(output_file_path.join(filename))?;
-            f.write_all(&bytes)?;
-            return Ok(());
-        }
+                let mut f = fs::File::create(output_file_path.join(filename))?;
+                f.write_all(&bytes)?;
+                return Ok(());
+            }
+        };
 
         let file = File {
             path: filename,
             contents_in_memory: Some(bytes),
             extension,
         };
-
-        let decompressor = decompressor.unwrap();
-
-        // If there is a decompressor to use, we'll create a file in-memory and decompress it
 
         let decompression_result = decompressor.decompress(file, output_file)?;
         if let DecompressionResult::FileInMemory(_) = decompression_result {
@@ -174,7 +163,6 @@ impl Evaluator {
     fn compress_files(files: Vec<PathBuf>, mut output: File) -> error::OuchResult<()> {
         let (first_compressor, second_compressor) = Self::get_compressor(&output)?;
 
-
         let output_path = output.path.clone();
 
         let bytes = match first_compressor {
@@ -187,17 +175,20 @@ impl Evaluator {
                 entry = Entry::InMemory(output);
 
                 second_compressor.compress(entry)?
-            },
+            }
             None => {
                 let entry = Entry::Files(files);
                 second_compressor.compress(entry)?
             }
         };
 
-        println!("{}: writing to {:?}. ({} bytes)", "info".yellow(), &output_path, bytes.len());
-        fs::write(
-            output_path,
-            bytes)?;
+        println!(
+            "{}: writing to {:?}. ({} bytes)",
+            "info".yellow(),
+            &output_path,
+            bytes.len()
+        );
+        fs::write(output_path, bytes)?;
 
         Ok(())
     }
