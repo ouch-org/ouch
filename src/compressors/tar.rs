@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::{env, fs, path::PathBuf};
 
 use colored::Colorize;
 use tar::Builder;
@@ -19,13 +19,21 @@ impl TarCompressor {
     }
 
     fn make_archive_from_files(input_filenames: Vec<PathBuf>) -> OuchResult<Vec<u8>> {
-    
+        
+        let change_dir_and_return_parent = |filename: &PathBuf| -> OuchResult<PathBuf>  {
+            let previous_location = env::current_dir()?;
+            let parent = filename.parent().unwrap();
+            env::set_current_dir(parent)?;
+            Ok(previous_location)
+        };
+        
         let buf = Vec::new();
         let mut b = Builder::new(buf);
     
         for filename in input_filenames {
-            // TODO: check if file exists
-
+            let previous_location = change_dir_and_return_parent(&filename)?;
+            // Safe unwrap since this filename came from `fs::canonicalize`.
+            let filename = filename.file_name().unwrap();
             for entry in WalkDir::new(&filename) {
                 let entry = entry?;
                 let path = entry.path();
@@ -34,6 +42,7 @@ impl TarCompressor {
                 }
                 b.append_file(path, &mut fs::File::open(path)?)?;
             }
+            env::set_current_dir(previous_location)?;
         }
         
         Ok(b.into_inner()?)

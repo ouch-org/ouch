@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, path::PathBuf};
 
 use colored::Colorize;
 
@@ -10,29 +10,29 @@ pub enum Error {
     InvalidUnicode,
     InvalidInput,
     IOError,
-    FileNotFound,
+    FileNotFound(PathBuf),
     AlreadyExists,
     InvalidZipArchive(&'static str),
     PermissionDenied,
     UnsupportedZipArchive(&'static str),
-    InputsMustHaveBeenDecompressible(String),
+    InputsMustHaveBeenDecompressible(PathBuf),
 }
 
 pub type OuchResult<T> = Result<T, Error>;
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-
+        write!(f, "{} ", "[ERROR]".red())?;
         match self {
             Error::MissingExtensionError(filename) => {
                 write!(f, "cannot compress to \'{}\', likely because it has an unsupported (or missing) extension.", filename)
             },
             Error::InputsMustHaveBeenDecompressible(file) => {
-                write!(f, "file '{}' is not decompressible", file.red())
+                write!(f, "file '{:?}' is not decompressible", file)
             },
-            // TODO: find out a way to attach the missing file in question here
-            Error::FileNotFound => {
-                write!(f, "file not found!")
+            Error::FileNotFound(file) => {
+                // TODO: check if file == ""
+                write!(f, "file {:?} not found!", file)
             }
             _err => {
                 // TODO
@@ -45,11 +45,11 @@ impl fmt::Display for Error {
 impl From<std::io::Error> for Error {
     fn from(err: std::io::Error) -> Self {
         match err.kind() {
-            std::io::ErrorKind::NotFound => Self::FileNotFound,
+            std::io::ErrorKind::NotFound => Self::FileNotFound("".into()),
             std::io::ErrorKind::PermissionDenied => Self::PermissionDenied,
             std::io::ErrorKind::AlreadyExists => Self::AlreadyExists,
             _other => {
-                println!("{}: {:#?}", "IO error".red(), err);
+                println!("{}: {}", "IO error".red(), err);
                 Self::IOError
             }
         }
@@ -62,26 +62,11 @@ impl From<zip::result::ZipError> for Error {
         match err {
             Io(io_err) => Self::from(io_err),
             InvalidArchive(filename) => Self::InvalidZipArchive(filename),
-            FileNotFound => Self::FileNotFound,
+            FileNotFound => Self::FileNotFound("".into()),
             UnsupportedArchive(filename) => Self::UnsupportedZipArchive(filename)
         }
     }
 }
-
-// impl From<niffler::error::Error> for Error {
-//     fn from(err: niffler::error::Error) -> Self {
-//         use niffler::error::Error as NifErr;
-//         match err {
-//             NifErr::FeatureDisabled => {
-//                 // Ouch is using Niffler with all its features so
-//                 // this should be unreachable.
-//                 unreachable!();
-//             },
-//             NifErr::FileTooShort => Self::FileTooShort,
-//             NifErr::IOError(io_err) => Self::from(io_err)
-//         }
-//     }
-// }
 
 impl From<walkdir::Error> for Error {
     fn from(err: walkdir::Error) -> Self {

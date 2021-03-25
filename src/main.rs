@@ -15,7 +15,7 @@ mod decompressors;
 
 fn main() -> error::OuchResult<()>{
     let print_error = |err| {
-        println!("{}: {}", "error".red(), err);
+        println!("{}", err);
     };
     let matches = cli::get_matches();
     match cli::Command::try_from(matches) {

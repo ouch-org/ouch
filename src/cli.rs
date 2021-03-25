@@ -1,7 +1,8 @@
-use std::{convert::TryFrom, path::PathBuf, vec::Vec};
+use std::{convert::TryFrom, fs, path::{Path, PathBuf}, vec::Vec};
 
 use clap::{Arg, Values};
-// use colored::Colorize;
+use colored::Colorize;
+use error::Error;
 
 use crate::error;
 use crate::extension::Extension;
@@ -10,11 +11,11 @@ use crate::file::File;
 #[derive(PartialEq, Eq, Debug)]
 pub enum CommandKind {
     Compression(
-        // Files to be compressed
+        /// Files to be compressed
         Vec<PathBuf>,
     ),
     Decompression(
-        // Files to be decompressed and their extensions
+        /// Files to be decompressed and their extensions
         Vec<File>,
     ),
 }
@@ -66,23 +67,30 @@ pub fn get_matches() -> clap::ArgMatches<'static> {
     clap_app().get_matches()
 }
 
-// holy spaghetti code
 impl TryFrom<clap::ArgMatches<'static>> for Command {
     type Error = error::Error;
 
     fn try_from(matches: clap::ArgMatches<'static>) -> error::OuchResult<Command> {
         let process_decompressible_input = |input_files: Values| {
             let input_files =
-                input_files.map(|filename| (filename, Extension::new(filename)));
+                input_files.map(|filename| (Path::new(filename), Extension::new(filename)));
 
             for file in input_files.clone() {
-                if let (file, Err(_)) = file {
-                    return Err(error::Error::InputsMustHaveBeenDecompressible(file.into()));
+                match file {
+                    (filename, Ok(_)) => {
+                        let path = Path::new(filename);
+                        if !path.exists() {
+                            return Err(error::Error::FileNotFound(filename.into()))
+                        }
+                    },
+                    (filename, Err(_)) => {
+                        return Err(error::Error::InputsMustHaveBeenDecompressible(filename.into()));
+                    }
                 }
             }
 
             Ok(input_files
-                .map(|(filename, extension)| (PathBuf::from(filename), extension.unwrap()))
+                .map(|(filename, extension)| (fs::canonicalize(filename).unwrap(), extension.unwrap()))
                 .map(File::from)
                 .collect::<Vec<_>>())
         };
@@ -104,13 +112,20 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
             if output_is_compressible {
                 // The supplied output is compressible, so we'll compress our inputs to it
 
-                // println!(
-                //     "{}: trying to compress input files into '{}'",
-                //     "info".yellow(),
-                //     output_file
-                // );
+                let canonical_paths = input_files.clone().map(Path::new).map(fs::canonicalize);
+                for (filename, canonical_path) in input_files.zip(canonical_paths.clone()) {
+                    if let Err(err) = canonical_path {
+                        let path = PathBuf::from(filename);
+                        if !path.exists() {
+                            return Err(Error::FileNotFound(path))
+                        }
 
-                let input_files = input_files.map(PathBuf::from).collect();
+                        eprintln!("{} {}", "[ERROR]".red(), err);
+                        return Err(Error::IOError);
+                    }
+                }
+
+                let input_files = canonical_paths.map(Result::unwrap).collect();
 
                 return Ok(Command {
                     kind: CommandKind::Compression(input_files),
