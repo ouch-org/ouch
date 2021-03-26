@@ -1,6 +1,6 @@
 mod decompressor;
 mod tar;
-mod tomemory;
+mod to_memory;
 mod zip;
 
 pub use decompressor::{DecompressionResult, Decompressor};
@@ -10,6 +10,6 @@ pub use decompressor::{DecompressionResult, Decompressor};
 // decompressing directly to storage
 pub use self::{
     tar::TarDecompressor,
-    tomemory::{BzipDecompressor, GzipDecompressor, LzmaDecompressor},
+    to_memory::{BzipDecompressor, GzipDecompressor, LzmaDecompressor},
     zip::ZipDecompressor,
 };
