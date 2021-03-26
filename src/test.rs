@@ -129,7 +129,6 @@ mod cli_errors {
 
     use crate::{
         cli::{clap_app, Command},
-        error::crate::{Error, Result},
     };
 
     #[test]
@@ -154,7 +153,6 @@ mod extension_extraction {
     use std::{convert::TryFrom, path::PathBuf, str::FromStr};
 
     use crate::{
-        error::crate::Result,
         extension::{CompressionFormat, Extension},
     };
 
