@@ -10,10 +10,20 @@ mod cli {
     use crate::extension::CompressionFormat::*;
     use crate::extension::Extension;
     use crate::file::File;
-    use std::convert::TryFrom;
+    use std::{convert::TryFrom, fs, path::Path};
+
+    // ouch's command-line logic uses fs::canonicalize on its inputs so we cannot
+    // use made-up files for testing.
+    // make_dummy_file therefores creates a small temporary file to bypass fs::canonicalize errors
+    fn make_dummy_file<'a, P>(path: P) -> OuchResult<()>
+    where P: AsRef<Path> + 'a {
+        fs::write(path.as_ref(), &[2, 3, 4, 5, 6, 7, 8, 9, 10])?;
+        Ok(())
+    }
 
     #[test]
     fn decompress_files_into_folder() -> OuchResult<()> {
+        make_dummy_file("file.zip")?;
         let matches = clap_app().get_matches_from(vec!["ouch", "-i", "file.zip", "-o", "folder/"]);
         let command_from_matches = Command::try_from(matches)?;
 
@@ -22,7 +32,7 @@ mod cli {
             Command {
                 kind: Decompression(vec![
                     File { 
-                        path: "file.zip".into(),
+                        path: fs::canonicalize("file.zip")?,
                         contents_in_memory: None,
                         extension: Some(Extension::from(Zip))
                     }
@@ -35,12 +45,16 @@ mod cli {
             }
         );
 
+        fs::remove_file("file.zip")?;
+
         Ok(())
     }
 
     #[test]
     fn decompress_files() -> OuchResult<()> {
-        let matches = clap_app().get_matches_from(vec!["ouch", "-i", "file.zip", "file.tar"]);
+        make_dummy_file("my-cool-file.zip")?;
+        make_dummy_file("file.tar")?;
+        let matches = clap_app().get_matches_from(vec!["ouch", "-i", "my-cool-file.zip", "file.tar"]);
         let command_from_matches = Command::try_from(matches)?;
 
         assert_eq!(
@@ -48,12 +62,12 @@ mod cli {
             Command {
                 kind: Decompression(vec![
                     File { 
-                        path: "file.zip".into(),
+                        path: fs::canonicalize("my-cool-file.zip")?,
                         contents_in_memory: None,
                         extension: Some(Extension::from(Zip))
                     },
                     File { 
-                        path: "file.tar".into(),
+                        path: fs::canonicalize("file.tar")?,
                         contents_in_memory: None,
                         extension: Some(Extension::from(Tar))
                     }
@@ -62,11 +76,19 @@ mod cli {
             }
         );
 
+        fs::remove_file("my-cool-file.zip")?;
+        fs::remove_file("file.tar")?;
+
         Ok(())
     }
 
     #[test]
     fn compress_files() -> OuchResult<()> {
+
+        make_dummy_file("file")?;
+        make_dummy_file("file2.jpeg")?;
+        make_dummy_file("file3.ok")?;
+
         let matches = clap_app().get_matches_from(vec![
             "ouch",
             "-i",
@@ -82,9 +104,9 @@ mod cli {
             command_from_matches,
             Command {
                 kind: Compression(vec![
-                    "file".into(),
-                    "file2.jpeg".into(),
-                    "file3.ok".into()
+                    fs::canonicalize("file")?,
+                    fs::canonicalize("file2.jpeg")?,
+                    fs::canonicalize("file3.ok")?
                 ]),
                 output: Some(
                     File {
@@ -95,6 +117,10 @@ mod cli {
                 ),
             }
         );
+
+        fs::remove_file("file")?;
+        fs::remove_file("file2.jpeg")?;
+        fs::remove_file("file3.ok")?;
 
         Ok(())
     }
@@ -201,34 +227,3 @@ mod extension_extraction {
         Ok(())
     }
 }
-
-// #[cfg(test)]
-// mod evaluator {
-//     use crate::extension::Extension;
-//     use crate::error::OuchResult;
-//     use crate::file::File;
-//     use crate::evaluator::Evaluator;
-//     use crate::decompressors::{Decompressor, TarDecompressor, GzipDecompressor};
-
-//     #[test]
-//     fn test() -> OuchResult<()> {
-//         let extension = Extension::new("folder.tar.gz")?;
-
-//         let file = File {
-//             path: "folder.tar.gz".into(),
-//             contents_in_memory: None,
-//             extension: Some(extension),
-//         };
-
-//         let (fst, snd) = Evaluator::get_decompressor(&file)?;
-
-//         let fst = fst.unwrap();
-
-//         assert_eq!(
-//             fst,
-//             Some(Box::new(TarDecompressor::{})
-//         );
-
-//         Ok(())
-//     }
-// }
