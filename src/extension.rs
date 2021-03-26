@@ -50,7 +50,7 @@ impl Extension {
             "tar" => Ok(Tar),
             "gz" => Ok(Gzip),
             "bz" | "bz2" => Ok(Bzip),
-            "lz" | "lzma" => Ok(Lzma),
+            "xz" | "lz" | "lzma" => Ok(Lzma),
             other => Err(error::Error::UnknownExtensionError(other.into())),
         };
 
@@ -109,7 +109,7 @@ fn extension_from_os_str(ext: &OsStr) -> Result<CompressionFormat, error::Error>
         "tar" => Ok(Tar),
         "gz" => Ok(Gzip),
         "bz" | "bz2" => Ok(Bzip),
-        "lzma" | "lz" => Ok(Lzma),
+        "xz" | "lzma" | "lz" => Ok(Lzma),
         other => Err(error::Error::UnknownExtensionError(other.into())),
     }
 }
