@@ -126,4 +126,4 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: 'ouch-windows'
-          path: target/release/ouch
+          path: target\release\ouch.exe
