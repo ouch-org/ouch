@@ -3,7 +3,7 @@ use std::{ffi::OsStr, fs, io::Write, path::PathBuf};
 use colored::Colorize;
 
 use crate::{
-    cli::{Command, CommandKind},
+    cli::Command,
     compressors::{
         BzipCompressor, Compressor, Entry, GzipCompressor, LzmaCompressor, TarCompressor,
         ZipCompressor,
@@ -214,15 +214,18 @@ impl Evaluator {
     }
 
     pub fn evaluate(command: Command) -> crate::Result<()> {
-        let output = command.output.clone();
+        // let output = command.output.clone();
 
-        match command.kind {
-            CommandKind::Compression(files_to_compress) => {
+        match command {
+            Command::Compress {
+                files,
+                output_folder,
+            } => {
                 // Safe to unwrap since output is mandatory for compression
                 let output = output.unwrap();
-                Self::compress_files(files_to_compress, output)?;
+                Self::compress_files(files, output)?;
             }
-            CommandKind::Decompression(files_to_decompress) => {
+            Command::Decompress(files_to_decompress) => {
                 for file in files_to_decompress {
                     Self::decompress_file(file, &output)?;
                 }
