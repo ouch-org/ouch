@@ -1,0 +1,129 @@
+on: [push, pull_request]
+
+name: build-and-test
+
+jobs:
+  ubuntu:
+    name: Ubuntu 18.04
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        rust:
+          - stable
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          override: true
+
+      - name: Run cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+
+      - name: Run cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+
+      - name: Install dependencies for Python test script
+        run: |
+          sudo apt-get update
+          sudo apt-get install libmagic1 
+          python3 -m pip install python-magic
+
+      - name: Run test script
+        run: python3 makeshift_testing.py
+
+      - name: Strip binary
+        run: strip target/release/ouch
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: 'ouch-ubuntu-18.04-glibc'
+          path: target/release/ouch
+
+  macos:
+    name: macOS
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        rust:
+          - stable
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          override: true
+
+      - name: Run cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+
+      - name: Run cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+
+      - name: Install dependencies for Python test script
+        run: |
+          brew install libmagic
+          python3 -m pip install python-magic
+
+      - name: Strip binary
+        run: strip target/release/ouch
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: 'ouch-macOS'
+          path: target/release/ouch
+
+      - name: Run test script
+        run: python3 makeshift_testing.py
+
+  windows:
+    name: Windows Server
+    runs-on: windows-2019
+    strategy:
+      matrix:
+        rust:
+          - stable
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          override: true
+
+      - name: Run cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+
+      - name: Run cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: 'ouch-windows'
+          path: target/release/ouch
