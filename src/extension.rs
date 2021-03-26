@@ -5,7 +5,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::error;
 use CompressionFormat::*;
 
 /// Represents the extension of a file, but only really caring about
@@ -44,14 +43,14 @@ impl From<CompressionFormat> for Extension {
 }
 
 impl Extension {
-    pub fn new(filename: &str) -> error::OuchResult<Self> {
+    pub fn new(filename: &str) -> crate::Result<Self> {
         let ext_from_str = |ext| match ext {
             "zip" => Ok(Zip),
             "tar" => Ok(Tar),
             "gz" => Ok(Gzip),
             "bz" | "bz2" => Ok(Bzip),
             "xz" | "lz" | "lzma" => Ok(Lzma),
-            other => Err(error::Error::UnknownExtensionError(other.into())),
+            other => Err(crate::Error::UnknownExtensionError(other.into())),
         };
 
         let (first_ext, second_ext) = match get_extension_from_filename(filename) {
@@ -59,7 +58,7 @@ impl Extension {
                 ("", snd) => (None, snd),
                 (fst, snd) => (Some(fst), snd),
             },
-            None => return Err(error::Error::MissingExtensionError(filename.into())),
+            None => return Err(crate::Error::MissingExtensionError(filename.into())),
         };
 
         let (first_ext, second_ext) = match (first_ext, second_ext) {
@@ -96,12 +95,12 @@ pub enum CompressionFormat {
     Zip,
 }
 
-fn extension_from_os_str(ext: &OsStr) -> Result<CompressionFormat, error::Error> {
+fn extension_from_os_str(ext: &OsStr) -> Result<CompressionFormat, crate::Error> {
     // let ext = Path::new(ext);
 
     let ext = match ext.to_str() {
         Some(str) => str,
-        None => return Err(error::Error::InvalidUnicode),
+        None => return Err(crate::Error::InvalidUnicode),
     };
 
     match ext {
@@ -110,18 +109,18 @@ fn extension_from_os_str(ext: &OsStr) -> Result<CompressionFormat, error::Error>
         "gz" => Ok(Gzip),
         "bz" | "bz2" => Ok(Bzip),
         "xz" | "lzma" | "lz" => Ok(Lzma),
-        other => Err(error::Error::UnknownExtensionError(other.into())),
+        other => Err(crate::Error::UnknownExtensionError(other.into())),
     }
 }
 
 impl TryFrom<&PathBuf> for CompressionFormat {
-    type Error = error::Error;
+    type Error = crate::Error;
 
     fn try_from(ext: &PathBuf) -> Result<Self, Self::Error> {
         let ext = match ext.extension() {
             Some(ext) => ext,
             None => {
-                return Err(error::Error::MissingExtensionError(String::new()));
+                return Err(crate::Error::MissingExtensionError(String::new()));
             }
         };
         extension_from_os_str(ext)
@@ -129,13 +128,13 @@ impl TryFrom<&PathBuf> for CompressionFormat {
 }
 
 impl TryFrom<&str> for CompressionFormat {
-    type Error = error::Error;
+    type Error = crate::Error;
 
     fn try_from(filename: &str) -> Result<Self, Self::Error> {
         let filename = Path::new(filename);
         let ext = match filename.extension() {
             Some(ext) => ext,
-            None => return Err(error::Error::MissingExtensionError(String::new())),
+            None => return Err(crate::Error::MissingExtensionError(String::new())),
         };
 
         extension_from_os_str(ext)

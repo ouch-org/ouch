@@ -2,31 +2,27 @@ use std::{ffi::OsStr, fs, io::Write, path::PathBuf};
 
 use colored::Colorize;
 
-use crate::compressors::{
-    BzipCompressor, Compressor, Entry, GzipCompressor, LzmaCompressor, TarCompressor, ZipCompressor,
+use crate::{
+    cli::{Command, CommandKind},
+    compressors::{
+        BzipCompressor, Compressor, Entry, GzipCompressor, LzmaCompressor, TarCompressor,
+        ZipCompressor,
+    },
+    decompressors::{
+        BzipDecompressor, DecompressionResult, Decompressor, GzipDecompressor, LzmaDecompressor,
+        TarDecompressor, ZipDecompressor,
+    },
+    extension::{CompressionFormat, Extension},
+    file::File,
+    utils,
 };
-
-use crate::decompressors::{
-    BzipDecompressor, DecompressionResult, Decompressor, GzipDecompressor, LzmaDecompressor,
-    TarDecompressor, ZipDecompressor,
-};
-
-use crate::extension::{CompressionFormat, Extension};
-
-use crate::cli::{Command, CommandKind};
-
-use crate::error::{self, OuchResult};
-
-use crate::file::File;
-
-use crate::utils;
 
 pub struct Evaluator {}
 
 impl Evaluator {
     pub fn get_compressor(
         file: &File,
-    ) -> error::OuchResult<(Option<Box<dyn Compressor>>, Box<dyn Compressor>)> {
+    ) -> crate::Result<(Option<Box<dyn Compressor>>, Box<dyn Compressor>)> {
         let extension = match &file.extension {
             Some(extension) => extension.clone(),
             None => {
@@ -35,7 +31,7 @@ impl Evaluator {
                     "{}: reached Evaluator::get_decompressor without known extension.",
                     "internal error".red()
                 );
-                return Err(error::Error::InvalidInput);
+                return Err(crate::Error::InvalidInput);
             }
         };
 
@@ -44,9 +40,7 @@ impl Evaluator {
         let first_compressor: Option<Box<dyn Compressor>> = match extension.first_ext {
             Some(ext) => match ext {
                 CompressionFormat::Tar => Some(Box::new(TarCompressor {})),
-
                 CompressionFormat::Zip => Some(Box::new(ZipCompressor {})),
-
                 // _other => Some(Box::new(NifflerCompressor {})),
                 _other => {
                     todo!();
@@ -70,7 +64,7 @@ impl Evaluator {
 
     pub fn get_decompressor(
         file: &File,
-    ) -> error::OuchResult<(Option<Box<dyn Decompressor>>, Box<dyn Decompressor>)> {
+    ) -> crate::Result<(Option<Box<dyn Decompressor>>, Box<dyn Decompressor>)> {
         let extension = match &file.extension {
             Some(extension) => extension.clone(),
             None => {
@@ -79,28 +73,22 @@ impl Evaluator {
                     "{}: reached Evaluator::get_decompressor without known extension.",
                     "internal error".red()
                 );
-                return Err(error::Error::InvalidInput);
+                return Err(crate::Error::InvalidInput);
             }
         };
 
         let second_decompressor: Box<dyn Decompressor> = match extension.second_ext {
             CompressionFormat::Tar => Box::new(TarDecompressor {}),
-
             CompressionFormat::Zip => Box::new(ZipDecompressor {}),
-
             CompressionFormat::Gzip => Box::new(GzipDecompressor {}),
-
             CompressionFormat::Lzma => Box::new(LzmaDecompressor {}),
-
             CompressionFormat::Bzip => Box::new(BzipDecompressor {}),
         };
 
         let first_decompressor: Option<Box<dyn Decompressor>> = match extension.first_ext {
             Some(ext) => match ext {
                 CompressionFormat::Tar => Some(Box::new(TarDecompressor {})),
-
                 CompressionFormat::Zip => Some(Box::new(ZipDecompressor {})),
-
                 _other => None,
             },
             None => None,
@@ -116,18 +104,18 @@ impl Evaluator {
         decompressor: Option<Box<dyn Decompressor>>,
         output_file: &Option<File>,
         extension: Option<Extension>,
-    ) -> OuchResult<()> {
+    ) -> crate::Result<()> {
         let output_file_path = utils::get_destination_path(output_file);
 
         let mut filename = file_path
             .file_stem()
             .unwrap_or_else(|| output_file_path.as_os_str());
+
         if filename == "." {
             // I believe this is only possible when the supplied inout has a name
             // of the sort `.tar` or `.zip' and no output has been supplied.
             filename = OsStr::new("ouch-output");
         }
-
         let filename = PathBuf::from(filename);
 
         // If there is a decompressor to use, we'll create a file in-memory and decompress it
@@ -136,7 +124,6 @@ impl Evaluator {
             None => {
                 // There is no more processing to be done on the input file (or there is but currently unsupported)
                 // Therefore, we'll save what we have in memory into a file.
-
                 println!("{}: saving to {:?}.", "info".yellow(), filename);
 
                 let mut f = fs::File::create(output_file_path.join(filename))?;
@@ -160,7 +147,7 @@ impl Evaluator {
         Ok(())
     }
 
-    fn compress_files(files: Vec<PathBuf>, mut output: File) -> error::OuchResult<()> {
+    fn compress_files(files: Vec<PathBuf>, mut output: File) -> crate::Result<()> {
         let (first_compressor, second_compressor) = Self::get_compressor(&output)?;
 
         let output_path = output.path.clone();
@@ -171,9 +158,7 @@ impl Evaluator {
                 let bytes = first_compressor.compress(entry)?;
 
                 output.contents_in_memory = Some(bytes);
-
                 entry = Entry::InMemory(output);
-
                 second_compressor.compress(entry)?
             }
             None => {
@@ -193,7 +178,7 @@ impl Evaluator {
         Ok(())
     }
 
-    fn decompress_file(file: File, output: &Option<File>) -> error::OuchResult<()> {
+    fn decompress_file(file: File, output: &Option<File>) -> crate::Result<()> {
         // let output_file = &command.output;
         let (first_decompressor, second_decompressor) = Self::get_decompressor(&file)?;
 
@@ -228,7 +213,7 @@ impl Evaluator {
         Ok(())
     }
 
-    pub fn evaluate(command: Command) -> error::OuchResult<()> {
+    pub fn evaluate(command: Command) -> crate::Result<()> {
         let output = command.output.clone();
 
         match command.kind {

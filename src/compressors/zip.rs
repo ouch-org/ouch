@@ -1,20 +1,18 @@
-use std::{io::{Cursor, Write}, path::PathBuf};
+use std::{
+    io::{Cursor, Write},
+    path::PathBuf,
+};
 
 use walkdir::WalkDir;
 
-use crate::{
-    compressors::Compressor,
-    error::{Error, OuchResult},
-    file::File,
-};
-
 use super::compressor::Entry;
+use crate::{compressors::Compressor, file::File};
 
 pub struct ZipCompressor {}
 
 impl ZipCompressor {
     // TODO: this function does not seem to be working correctly ;/
-    fn make_archive_from_memory(input: File) -> OuchResult<Vec<u8>> {
+    fn make_archive_from_memory(input: File) -> crate::Result<Vec<u8>> {
         let buffer = vec![];
         let mut writer = zip::ZipWriter::new(std::io::Cursor::new(buffer));
 
@@ -23,7 +21,7 @@ impl ZipCompressor {
             .file_stem()
             .ok_or(
                 // TODO: Is this reachable?
-                Error::InvalidInput
+                crate::Error::InvalidInput,
             )?
             .to_string_lossy()
             .into();
@@ -38,20 +36,18 @@ impl ZipCompressor {
             None => {
                 // TODO: error description, although this block should not be
                 // reachable
-                return Err(Error::InvalidInput);
+                return Err(crate::Error::InvalidInput);
             }
         };
 
         writer.write_all(&*input_bytes)?;
-
-
 
         let bytes = writer.finish().unwrap();
 
         Ok(bytes.into_inner())
     }
 
-    fn make_archive_from_files(input_filenames: Vec<PathBuf>) -> OuchResult<Vec<u8>> {
+    fn make_archive_from_files(input_filenames: Vec<PathBuf>) -> crate::Result<Vec<u8>> {
         let buffer = vec![];
         let mut writer = zip::ZipWriter::new(Cursor::new(buffer));
 
@@ -65,16 +61,11 @@ impl ZipCompressor {
                 if entry_path.is_dir() {
                     continue;
                 }
-                writer
-                    .start_file(
-                        entry_path.to_string_lossy(),
-                        options
-                    )?;
+                writer.start_file(entry_path.to_string_lossy(), options)?;
                 let file_bytes = std::fs::read(entry.path())?;
                 writer.write_all(&*file_bytes)?;
             }
         }
-
 
         let bytes = writer.finish().unwrap();
 
@@ -83,7 +74,7 @@ impl ZipCompressor {
 }
 
 impl Compressor for ZipCompressor {
-    fn compress(&self, from: Entry) -> OuchResult<Vec<u8>> {
+    fn compress(&self, from: Entry) -> crate::Result<Vec<u8>> {
         match from {
             Entry::Files(filenames) => Ok(Self::make_archive_from_files(filenames)?),
             Entry::InMemory(file) => Ok(Self::make_archive_from_memory(file)?),

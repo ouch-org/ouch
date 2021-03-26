@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::{error::OuchResult, file::File};
+use crate::file::File;
 
 // pub enum CompressionResult {
 //     ZipArchive(Vec<u8>),
@@ -10,9 +10,9 @@ use crate::{error::OuchResult, file::File};
 
 pub enum Entry {
     Files(Vec<PathBuf>),
-    InMemory(File)
+    InMemory(File),
 }
 
 pub trait Compressor {
-    fn compress(&self, from: Entry) -> OuchResult<Vec<u8>>;
+    fn compress(&self, from: Entry) -> crate::Result<Vec<u8>>;
 }

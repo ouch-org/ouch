@@ -4,28 +4,23 @@ use colored::Colorize;
 use tar::Builder;
 use walkdir::WalkDir;
 
-use crate::{
-    compressors::Compressor,
-    error::{Error, OuchResult},
-    file::File,
-};
-
 use super::compressor::Entry;
+use crate::{compressors::Compressor, file::File};
 
 pub struct TarCompressor {}
 
 impl TarCompressor {
     // TODO: implement this
-    fn make_archive_from_memory(_input: File) -> OuchResult<Vec<u8>> {
+    fn make_archive_from_memory(_input: File) -> crate::Result<Vec<u8>> {
         println!(
             "{}: .tar.tar and .zip.tar is currently unimplemented.",
             "error".red()
         );
-        Err(Error::InvalidZipArchive(""))
+        Err(crate::Error::InvalidZipArchive(""))
     }
 
-    fn make_archive_from_files(input_filenames: Vec<PathBuf>) -> OuchResult<Vec<u8>> {
-        let change_dir_and_return_parent = |filename: &PathBuf| -> OuchResult<PathBuf> {
+    fn make_archive_from_files(input_filenames: Vec<PathBuf>) -> crate::Result<Vec<u8>> {
+        let change_dir_and_return_parent = |filename: &PathBuf| -> crate::Result<PathBuf> {
             let previous_location = env::current_dir()?;
             let parent = filename.parent().unwrap();
             env::set_current_dir(parent)?;
@@ -55,7 +50,7 @@ impl TarCompressor {
 }
 
 impl Compressor for TarCompressor {
-    fn compress(&self, from: Entry) -> OuchResult<Vec<u8>> {
+    fn compress(&self, from: Entry) -> crate::Result<Vec<u8>> {
         match from {
             Entry::Files(filenames) => Self::make_archive_from_files(filenames),
             Entry::InMemory(file) => Self::make_archive_from_memory(file),

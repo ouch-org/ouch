@@ -1,27 +1,29 @@
-use std::{fs, io::{Cursor, Read}, path::{Path, PathBuf}};
+use std::{
+    fs,
+    io::{Cursor, Read},
+    path::{Path, PathBuf},
+};
 
 use colored::Colorize;
 use tar::{self, Archive};
 
-use crate::{error::OuchResult, utils};
-use crate::file::File;
-
 use super::decompressor::{DecompressionResult, Decompressor};
+use crate::{file::File, utils};
 
 #[derive(Debug)]
 pub struct TarDecompressor {}
 
 impl TarDecompressor {
-
-    fn unpack_files(from: File, into: &Path) -> OuchResult<Vec<PathBuf>> {
-
-        println!("{}: attempting to decompress {:?}", "ouch".bright_blue(), &from.path);
+    fn unpack_files(from: File, into: &Path) -> crate::Result<Vec<PathBuf>> {
+        println!(
+            "{}: attempting to decompress {:?}",
+            "ouch".bright_blue(),
+            &from.path
+        );
         let mut files_unpacked = vec![];
 
         let mut archive: Archive<Box<dyn Read>> = match from.contents_in_memory {
-            Some(bytes) => {
-                tar::Archive::new(Box::new(Cursor::new(bytes)))
-            }
+            Some(bytes) => tar::Archive::new(Box::new(Cursor::new(bytes))),
             None => {
                 let file = fs::File::open(&from.path)?;
                 tar::Archive::new(Box::new(file))
@@ -50,7 +52,7 @@ impl TarDecompressor {
 }
 
 impl Decompressor for TarDecompressor {
-    fn decompress(&self, from: File, into: &Option<File>) -> OuchResult<DecompressionResult> {
+    fn decompress(&self, from: File, into: &Option<File>) -> crate::Result<DecompressionResult> {
         let destination_path = utils::get_destination_path(into);
 
         utils::create_path_if_non_existent(destination_path)?;

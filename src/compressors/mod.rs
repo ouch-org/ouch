@@ -1,14 +1,13 @@
-mod tar;
-mod zip;
 mod bzip;
+mod compressor;
 mod gzip;
 mod lzma;
-mod compressor;
+mod tar;
+mod zip;
 
 pub use compressor::Compressor;
-pub use self::compressor::Entry;
-pub use self::tar::TarCompressor;
-pub use self::zip::ZipCompressor;
-pub use self::bzip::BzipCompressor;
-pub use self::gzip::GzipCompressor;
-pub use self::lzma::LzmaCompressor;
+
+pub use self::{
+    bzip::BzipCompressor, compressor::Entry, gzip::GzipCompressor, lzma::LzmaCompressor,
+    tar::TarCompressor, zip::ZipCompressor,
+};

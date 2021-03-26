@@ -3,35 +3,32 @@ use std::{
     path::Path,
 };
 
-
 use colored::Colorize;
+
+use super::decompressor::{DecompressionResult, Decompressor};
+use crate::utils;
 // use niffler;
-
 use crate::{extension::CompressionFormat, file::File};
-use crate::{
-    error::OuchResult,
-    utils,
-};
-
-use super::decompressor::DecompressionResult;
-use super::decompressor::Decompressor;
 
 struct DecompressorToMemory {}
 pub struct GzipDecompressor {}
 pub struct LzmaDecompressor {}
 pub struct BzipDecompressor {}
 
-fn get_decoder<'a>(format: CompressionFormat, buffer: Box<dyn io::Read + Send + 'a>) -> Box<dyn io::Read + Send + 'a> {
+fn get_decoder<'a>(
+    format: CompressionFormat,
+    buffer: Box<dyn io::Read + Send + 'a>,
+) -> Box<dyn io::Read + Send + 'a> {
     match format {
         CompressionFormat::Bzip => Box::new(bzip2::read::BzDecoder::new(buffer)),
         CompressionFormat::Gzip => Box::new(flate2::read::MultiGzDecoder::new(buffer)),
         CompressionFormat::Lzma => Box::new(xz2::read::XzDecoder::new_multi_decoder(buffer)),
-        _other => unreachable!()
+        _other => unreachable!(),
     }
 }
 
 impl DecompressorToMemory {
-    fn unpack_file(from: &Path, format: CompressionFormat) -> OuchResult<Vec<u8>> {
+    fn unpack_file(from: &Path, format: CompressionFormat) -> crate::Result<Vec<u8>> {
         let file = std::fs::read(from)?;
 
         let mut reader = get_decoder(format, Box::new(&file[..]));
@@ -49,7 +46,11 @@ impl DecompressorToMemory {
         Ok(buffer)
     }
 
-    fn decompress(from: File, format: CompressionFormat, into: &Option<File>) -> OuchResult<DecompressionResult> {
+    fn decompress(
+        from: File,
+        format: CompressionFormat,
+        into: &Option<File>,
+    ) -> crate::Result<DecompressionResult> {
         let destination_path = utils::get_destination_path(into);
 
         utils::create_path_if_non_existent(destination_path)?;
@@ -61,19 +62,19 @@ impl DecompressorToMemory {
 }
 
 impl Decompressor for GzipDecompressor {
-    fn decompress(&self, from: File, into: &Option<File>) -> OuchResult<DecompressionResult> {
+    fn decompress(&self, from: File, into: &Option<File>) -> crate::Result<DecompressionResult> {
         DecompressorToMemory::decompress(from, CompressionFormat::Gzip, into)
     }
 }
 
 impl Decompressor for BzipDecompressor {
-    fn decompress(&self, from: File, into: &Option<File>) -> OuchResult<DecompressionResult> {
+    fn decompress(&self, from: File, into: &Option<File>) -> crate::Result<DecompressionResult> {
         DecompressorToMemory::decompress(from, CompressionFormat::Bzip, into)
     }
 }
 
 impl Decompressor for LzmaDecompressor {
-    fn decompress(&self, from: File, into: &Option<File>) -> OuchResult<DecompressionResult> {
+    fn decompress(&self, from: File, into: &Option<File>) -> crate::Result<DecompressionResult> {
         DecompressorToMemory::decompress(from, CompressionFormat::Lzma, into)
     }
 }

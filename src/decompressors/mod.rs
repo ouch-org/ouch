@@ -1,18 +1,15 @@
 mod decompressor;
-mod tomemory;
 mod tar;
+mod tomemory;
 mod zip;
 
-
-pub use decompressor::Decompressor;
-pub use decompressor::DecompressionResult;
-
-pub use self::tar::TarDecompressor;
-pub use self::zip::ZipDecompressor;
+pub use decompressor::{DecompressionResult, Decompressor};
 
 // These decompressors only decompress to memory,
 // unlike {Tar, Zip}Decompressor which are capable of
 // decompressing directly to storage
-pub use self::tomemory::GzipDecompressor;
-pub use self::tomemory::BzipDecompressor;
-pub use self::tomemory::LzmaDecompressor;
+pub use self::{
+    tar::TarDecompressor,
+    tomemory::{BzipDecompressor, GzipDecompressor, LzmaDecompressor},
+    zip::ZipDecompressor,
+};

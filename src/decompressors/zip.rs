@@ -1,12 +1,14 @@
-use std::{fs, io::{self, Cursor, Read, Seek}, path::{Path, PathBuf}};
+use std::{
+    fs,
+    io::{self, Cursor, Read, Seek},
+    path::{Path, PathBuf},
+};
 
 use colored::Colorize;
-use zip::{self, ZipArchive, read::ZipFile};
-
-use crate::{error, file::File};
-use crate::{error::OuchResult, utils};
+use zip::{self, read::ZipFile, ZipArchive};
 
 use super::decompressor::{DecompressionResult, Decompressor};
+use crate::{file::File, utils};
 
 pub struct ZipDecompressor {}
 
@@ -26,7 +28,7 @@ impl ZipDecompressor {
     pub fn zip_decompress<T>(
         archive: &mut ZipArchive<T>,
         into: &Path,
-    ) -> error::OuchResult<Vec<PathBuf>>
+    ) -> crate::Result<Vec<PathBuf>>
     where
         T: Read + Seek,
     {
@@ -72,33 +74,29 @@ impl ZipDecompressor {
         Ok(unpacked_files)
     }
 
-    fn unpack_files(from: File, into: &Path) -> OuchResult<Vec<PathBuf>> {
-
+    fn unpack_files(from: File, into: &Path) -> crate::Result<Vec<PathBuf>> {
         println!(
             "{}: attempting to decompress {:?}",
             "ouch".bright_blue(),
             &from.path
         );
-  
+
         match from.contents_in_memory {
             Some(bytes) => {
                 let mut archive = zip::ZipArchive::new(Cursor::new(bytes))?;
                 Ok(Self::zip_decompress(&mut archive, into)?)
-            },
+            }
             None => {
                 let file = fs::File::open(&from.path)?;
                 let mut archive = zip::ZipArchive::new(file)?;
                 Ok(Self::zip_decompress(&mut archive, into)?)
             }
         }
-
-
-        
     }
 }
 
 impl Decompressor for ZipDecompressor {
-    fn decompress(&self, from: File, into: &Option<File>) -> OuchResult<DecompressionResult> {
+    fn decompress(&self, from: File, into: &Option<File>) -> crate::Result<DecompressionResult> {
         let destination_path = utils::get_destination_path(into);
 
         utils::create_path_if_non_existent(destination_path)?;

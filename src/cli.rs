@@ -1,12 +1,14 @@
-use std::{convert::TryFrom, fs, path::{Path, PathBuf}, vec::Vec};
+use std::{
+    convert::TryFrom,
+    fs,
+    path::{Path, PathBuf},
+    vec::Vec,
+};
 
 use clap::{Arg, Values};
 use colored::Colorize;
-use error::Error;
 
-use crate::error;
-use crate::extension::Extension;
-use crate::file::File;
+use crate::{extension::Extension, file::File};
 
 #[derive(PartialEq, Eq, Debug)]
 pub enum CommandKind {
@@ -68,9 +70,9 @@ pub fn get_matches() -> clap::ArgMatches<'static> {
 }
 
 impl TryFrom<clap::ArgMatches<'static>> for Command {
-    type Error = error::Error;
+    type Error = crate::Error;
 
-    fn try_from(matches: clap::ArgMatches<'static>) -> error::OuchResult<Command> {
+    fn try_from(matches: clap::ArgMatches<'static>) -> crate::Result<Command> {
         let process_decompressible_input = |input_files: Values| {
             let input_files =
                 input_files.map(|filename| (Path::new(filename), Extension::new(filename)));
@@ -80,17 +82,21 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
                     (filename, Ok(_)) => {
                         let path = Path::new(filename);
                         if !path.exists() {
-                            return Err(error::Error::FileNotFound(filename.into()))
+                            return Err(crate::Error::FileNotFound(filename.into()));
                         }
-                    },
+                    }
                     (filename, Err(_)) => {
-                        return Err(error::Error::InputsMustHaveBeenDecompressible(filename.into()));
+                        return Err(crate::Error::InputsMustHaveBeenDecompressible(
+                            filename.into(),
+                        ));
                     }
                 }
             }
 
             Ok(input_files
-                .map(|(filename, extension)| (fs::canonicalize(filename).unwrap(), extension.unwrap()))
+                .map(|(filename, extension)| {
+                    (fs::canonicalize(filename).unwrap(), extension.unwrap())
+                })
                 .map(File::from)
                 .collect::<Vec<_>>())
         };
@@ -117,11 +123,11 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
                     if let Err(err) = canonical_path {
                         let path = PathBuf::from(filename);
                         if !path.exists() {
-                            return Err(Error::FileNotFound(path))
+                            return Err(crate::Error::FileNotFound(path));
                         }
 
                         eprintln!("{} {}", "[ERROR]".red(), err);
-                        return Err(Error::IOError);
+                        return Err(crate::Error::IOError);
                     }
                 }
 
@@ -133,10 +139,9 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
                         path: output_file.into(),
                         contents_in_memory: None,
                         // extension: output_file_extension.ok(),
-                        extension: Some(output_file_extension.unwrap())
+                        extension: Some(output_file_extension.unwrap()),
                     }),
                 })
-
             } else {
                 // Output not supplied
                 // Checking if input files are decompressible
@@ -148,8 +153,8 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
                     output: Some(File {
                         path: output_file.into(),
                         contents_in_memory: None,
-                        extension: None
-                    })
+                        extension: None,
+                    }),
                 })
             }
         } else {

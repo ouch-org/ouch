@@ -18,7 +18,7 @@ pub enum Error {
     InputsMustHaveBeenDecompressible(PathBuf),
 }
 
-pub type OuchResult<T> = Result<T, Error>;
+pub type Result<T> = std::result::Result<T, Error>;
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -26,10 +26,10 @@ impl fmt::Display for Error {
         match self {
             Error::MissingExtensionError(filename) => {
                 write!(f, "cannot compress to \'{}\', likely because it has an unsupported (or missing) extension.", filename)
-            },
+            }
             Error::InputsMustHaveBeenDecompressible(file) => {
                 write!(f, "file '{:?}' is not decompressible", file)
-            },
+            }
             Error::FileNotFound(file) => {
                 // TODO: check if file == ""
                 write!(f, "file {:?} not found!", file)
@@ -63,7 +63,7 @@ impl From<zip::result::ZipError> for Error {
             Io(io_err) => Self::from(io_err),
             InvalidArchive(filename) => Self::InvalidZipArchive(filename),
             FileNotFound => Self::FileNotFound("".into()),
-            UnsupportedArchive(filename) => Self::UnsupportedZipArchive(filename)
+            UnsupportedArchive(filename) => Self::UnsupportedZipArchive(filename),
         }
     }
 }
@@ -71,7 +71,6 @@ impl From<zip::result::ZipError> for Error {
 impl From<walkdir::Error> for Error {
     fn from(err: walkdir::Error) -> Self {
         eprintln!("{}: {}", "error".red(), err);
-
         Self::InvalidInput
     }
 }

@@ -2,7 +2,6 @@ use std::path::PathBuf;
 
 use crate::extension::Extension;
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct File {
     /// File's (relative) path
@@ -15,7 +14,7 @@ pub struct File {
     ///
     /// So, for example, if a file has pathname "image.jpeg", it does have a JPEG extension but will
     /// be represented as a None over here since that's not an extension we're particularly interested in
-    pub extension: Option<Extension>
+    pub extension: Option<Extension>,
 }
 
 impl From<(PathBuf, Extension)> for File {
