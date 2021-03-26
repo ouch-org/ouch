@@ -127,9 +127,7 @@ mod cli_errors {
 
     use std::convert::TryFrom;
 
-    use crate::{
-        cli::{clap_app, Command},
-    };
+    use crate::cli::{clap_app, Command};
 
     #[test]
     fn compress_files() -> crate::Result<()> {
@@ -150,24 +148,22 @@ mod cli_errors {
 
 #[cfg(test)]
 mod extension_extraction {
-    use std::{convert::TryFrom, path::PathBuf, str::FromStr};
+    use std::convert::TryFrom;
 
-    use crate::{
-        extension::{CompressionFormat, Extension},
-    };
+    use crate::extension::{CompressionFormat, Extension};
 
     #[test]
-    fn zip() -> crate::Result<()> {
-        let path = PathBuf::from_str("filename.tar.zip").unwrap();
-        assert_eq!(CompressionFormat::try_from(&path)?, CompressionFormat::Zip);
-
-        Ok(())
+    fn test_extension_zip() {
+        let path = "filename.tar.zip";
+        assert_eq!(
+            CompressionFormat::try_from(path),
+            Ok(CompressionFormat::Zip)
+        );
     }
 
     #[test]
-    fn tar_gz() -> crate::Result<()> {
-        let extension = Extension::new("folder.tar.gz")?;
-
+    fn test_extension_tar_gz() {
+        let extension = Extension::new("folder.tar.gz").unwrap();
         assert_eq!(
             extension,
             Extension {
@@ -175,39 +171,41 @@ mod extension_extraction {
                 second_ext: CompressionFormat::Gzip
             }
         );
-
-        Ok(())
     }
 
     #[test]
-    fn tar() -> crate::Result<()> {
-        let path = PathBuf::from_str("pictures.tar").unwrap();
-        assert_eq!(CompressionFormat::try_from(&path)?, CompressionFormat::Tar);
-
-        Ok(())
+    fn test_extension_tar() {
+        let path = "pictures.tar";
+        assert_eq!(
+            CompressionFormat::try_from(path),
+            Ok(CompressionFormat::Tar)
+        );
     }
 
     #[test]
-    fn gz() -> crate::Result<()> {
-        let path = PathBuf::from_str("passwords.tar.gz").unwrap();
-        assert_eq!(CompressionFormat::try_from(&path)?, CompressionFormat::Gzip);
-
-        Ok(())
+    fn test_extension_gz() {
+        let path = "passwords.tar.gz";
+        assert_eq!(
+            CompressionFormat::try_from(path),
+            Ok(CompressionFormat::Gzip)
+        );
     }
 
     #[test]
-    fn lzma() -> crate::Result<()> {
-        let path = PathBuf::from_str("mygame.tar.lzma").unwrap();
-        assert_eq!(CompressionFormat::try_from(&path)?, CompressionFormat::Lzma);
-
-        Ok(())
+    fn test_extension_lzma() {
+        let path = "mygame.tar.lzma";
+        assert_eq!(
+            CompressionFormat::try_from(path),
+            Ok(CompressionFormat::Lzma)
+        );
     }
 
     #[test]
-    fn bz() -> crate::Result<()> {
-        let path = PathBuf::from_str("songs.tar.bz").unwrap();
-        assert_eq!(CompressionFormat::try_from(&path)?, CompressionFormat::Bzip);
-
-        Ok(())
+    fn test_extension_bz() {
+        let path = "songs.tar.bz";
+        assert_eq!(
+            CompressionFormat::try_from(path),
+            Ok(CompressionFormat::Bzip)
+        );
     }
 }

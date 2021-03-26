@@ -10,7 +10,7 @@ mod utils;
 
 use std::convert::TryFrom;
 
-pub use error::{Error, Result};
+use error::{Error, Result};
 use evaluator::Evaluator;
 
 fn main() -> crate::Result<()> {
