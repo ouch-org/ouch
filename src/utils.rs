@@ -1,7 +1,4 @@
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{env, fs, path::{Path, PathBuf}};
 
 use colored::Colorize;
 
@@ -62,4 +59,11 @@ pub(crate) fn get_destination_path(dest: &Option<File>) -> &Path {
         }
         None => Path::new("."),
     }
+}
+
+pub (crate) fn change_dir_and_return_parent(filename: &PathBuf) -> crate::Result<PathBuf> {
+    let previous_location = env::current_dir()?;
+    let parent = filename.parent().unwrap();
+    env::set_current_dir(parent)?;
+    Ok(previous_location)
 }

@@ -6,6 +6,7 @@ use walkdir::WalkDir;
 
 use super::compressor::Entry;
 use crate::{compressors::Compressor, file::File};
+use crate::utils;
 
 pub struct TarCompressor {}
 
@@ -20,19 +21,12 @@ impl TarCompressor {
     }
 
     fn make_archive_from_files(input_filenames: Vec<PathBuf>) -> crate::Result<Vec<u8>> {
-        let change_dir_and_return_parent = |filename: &PathBuf| -> crate::Result<PathBuf> {
-            let previous_location = env::current_dir()?;
-            let parent = filename.parent().unwrap();
-            env::set_current_dir(parent)?;
-            Ok(previous_location)
-        };
-
+    
         let buf = Vec::new();
         let mut b = Builder::new(buf);
 
         for filename in input_filenames {
-            let previous_location = change_dir_and_return_parent(&filename)?;
-            // Safe unwrap since this filename came from `fs::canonicalize`.
+            let previous_location = utils::change_dir_and_return_parent(&filename)?;
             let filename = filename.file_name().unwrap();
             for entry in WalkDir::new(&filename) {
                 let entry = entry?;
