@@ -9,7 +9,7 @@ pub enum Error {
     // TODO: get rid of this error variant
     InvalidUnicode,
     InvalidInput,
-    IOError,
+    IoError,
     FileNotFound(PathBuf),
     AlreadyExists,
     InvalidZipArchive(&'static str),
@@ -50,7 +50,7 @@ impl From<std::io::Error> for Error {
             std::io::ErrorKind::AlreadyExists => Self::AlreadyExists,
             _other => {
                 println!("{}: {}", "IO error".red(), err);
-                Self::IOError
+                Self::IoError
             }
         }
     }

@@ -127,7 +127,7 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
                         }
 
                         eprintln!("{} {}", "[ERROR]".red(), err);
-                        return Err(crate::Error::IOError);
+                        return Err(crate::Error::IoError);
                     }
                 }
 

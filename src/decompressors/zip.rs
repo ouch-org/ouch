@@ -10,6 +10,15 @@ use zip::{self, read::ZipFile, ZipArchive};
 use super::decompressor::{DecompressionResult, Decompressor};
 use crate::{file::File, utils};
 
+#[cfg(unix)]
+fn __unix_set_permissions(file_path: &PathBuf, file: &ZipFile) {
+    use std::os::unix::fs::PermissionsExt;
+
+    if let Some(mode) = file.unix_mode() {
+        fs::set_permissions(&file_path, fs::Permissions::from_mode(mode)).unwrap();
+    }
+}
+
 pub struct ZipDecompressor {}
 
 impl ZipDecompressor {
@@ -65,7 +74,8 @@ impl ZipDecompressor {
                 io::copy(&mut file, &mut outfile)?;
             }
 
-            // TODO: check if permissions are correct when on Unix
+            #[cfg(unix)]
+            __unix_set_permissions(&file_path, &file);
 
             let file_path = fs::canonicalize(file_path.clone())?;
             unpacked_files.push(file_path);
@@ -89,6 +99,7 @@ impl ZipDecompressor {
             None => {
                 let file = fs::File::open(&from.path)?;
                 let mut archive = zip::ZipArchive::new(file)?;
+
                 Ok(Self::zip_decompress(&mut archive, into)?)
             }
         }
