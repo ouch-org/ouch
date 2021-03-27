@@ -57,7 +57,7 @@ impl ZipCompressor {
         for filename in input_filenames {
 
             let previous_location = utils::change_dir_and_return_parent(&filename)?;
-            let filename = filename.file_name().unwrap();
+            let filename = filename.file_name()?;
 
             for entry in WalkDir::new(filename) {
                 let entry = entry?;
@@ -73,7 +73,7 @@ impl ZipCompressor {
             std::env::set_current_dir(previous_location)?;
         }
 
-        let bytes = writer.finish().unwrap();
+        let bytes = writer.finish()?;
 
         Ok(bytes.into_inner())
     }
