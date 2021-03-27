@@ -19,6 +19,7 @@ def sanity_check_format(format: str):
 		print("Something went wrong with tar (de)compression.")
 		os._exit(2)
 	os.remove('test-file')
+	os.remove(f'test-file.{format}')
 
 
 if __name__ == "__main__":
