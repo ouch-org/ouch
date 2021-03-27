@@ -30,7 +30,7 @@ pub struct Command {
 
 pub fn clap_app<'a, 'b>() -> clap::App<'a, 'b> {
     clap::App::new("ouch")
-        .version("0.1.2")
+        .version("0.1.3")
         .about("ouch is a unified compression & decompression utility")
         .after_help(
 "ouch infers what to based on the extensions of the input files and output file received.
