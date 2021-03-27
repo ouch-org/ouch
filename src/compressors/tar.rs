@@ -5,8 +5,8 @@ use tar::Builder;
 use walkdir::WalkDir;
 
 use super::compressor::Entry;
-use crate::{compressors::Compressor, file::File};
 use crate::utils;
+use crate::{compressors::Compressor, file::File};
 
 pub struct TarCompressor {}
 
@@ -21,7 +21,6 @@ impl TarCompressor {
     }
 
     fn make_archive_from_files(input_filenames: Vec<PathBuf>) -> crate::Result<Vec<u8>> {
-    
         let buf = Vec::new();
         let mut b = Builder::new(buf);
 

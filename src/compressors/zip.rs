@@ -1,4 +1,7 @@
-use std::{io::{Cursor, Write}, path::PathBuf};
+use std::{
+    io::{Cursor, Write},
+    path::PathBuf,
+};
 
 use walkdir::WalkDir;
 
@@ -52,11 +55,10 @@ impl ZipCompressor {
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
         for filename in input_filenames {
-
             let previous_location = utils::change_dir_and_return_parent(&filename)?;
             let filename = filename
                 .file_name()
-                // Safe unwrap since the function call above would fail in scenarios 
+                // Safe unwrap since the function call above would fail in scenarios
                 // where this unwrap would panic
                 .unwrap();
 

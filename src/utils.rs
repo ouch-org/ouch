@@ -1,4 +1,7 @@
-use std::{env, fs, path::{Path, PathBuf}};
+use std::{
+    env, fs,
+    path::{Path, PathBuf},
+};
 
 use colored::Colorize;
 
@@ -61,16 +64,26 @@ pub(crate) fn get_destination_path(dest: &Option<File>) -> &Path {
     }
 }
 
-pub (crate) fn change_dir_and_return_parent(filename: &PathBuf) -> crate::Result<PathBuf> {
+pub(crate) fn change_dir_and_return_parent(filename: &PathBuf) -> crate::Result<PathBuf> {
     let previous_location = env::current_dir()?;
-    
+
     let parent = if let Some(parent) = filename.parent() {
         parent
     } else {
         let spacing = "          ";
-        println!("{} It seems you're trying to compress the root folder.", "[WARNING]".red());
-        println!("{}This is unadvisable since ouch does compressions in-memory.", spacing);
-        println!("{}Use a more appropriate tool for this, such as {}.", spacing, "rsync".green());
+        println!(
+            "{} It seems you're trying to compress the root folder.",
+            "[WARNING]".red()
+        );
+        println!(
+            "{}This is unadvisable since ouch does compressions in-memory.",
+            spacing
+        );
+        println!(
+            "{}Use a more appropriate tool for this, such as {}.",
+            spacing,
+            "rsync".green()
+        );
         return Err(crate::Error::InvalidInput);
     };
 
