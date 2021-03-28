@@ -8,7 +8,7 @@ use colored::Colorize;
 use tar::{self, Archive};
 
 use super::decompressor::{DecompressionResult, Decompressor};
-use crate::{file::File, utils};
+use crate::{file::File, utils, dialogs::Confirmation};
 
 #[derive(Debug)]
 pub struct TarDecompressor {}
@@ -21,6 +21,7 @@ impl TarDecompressor {
             &from.path
         );
         let mut files_unpacked = vec![];
+        let confirm = Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE"));
 
         let mut archive: Archive<Box<dyn Read>> = match from.contents_in_memory {
             Some(bytes) => tar::Archive::new(Box::new(Cursor::new(bytes))),
@@ -32,8 +33,15 @@ impl TarDecompressor {
 
         for file in archive.entries()? {
             let mut file = file?;
-
-            // TODO: check if file/folder already exists and ask user's permission for overwriting
+            
+            let file_path = PathBuf::from(into).join(file.path()?);
+            if file_path.exists() {
+                let file_path_str = &*file_path.to_string_lossy();
+                if confirm.ask(Some(file_path_str))? {
+                    continue;
+                }
+            }
+            
             file.unpack_in(into)?;
 
             println!(
