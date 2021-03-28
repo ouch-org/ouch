@@ -8,7 +8,7 @@ use colored::Colorize;
 use zip::{self, read::ZipFile, ZipArchive};
 
 use super::decompressor::{DecompressionResult, Decompressor};
-use crate::{file::File, utils};
+use crate::{dialogs::Confirmation, file::File, utils};
 
 #[cfg(unix)]
 fn __unix_set_permissions(file_path: &PathBuf, file: &ZipFile) {
@@ -41,6 +41,7 @@ impl ZipDecompressor {
     where
         T: Read + Seek,
     {
+        let confirm = Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE"));
         let mut unpacked_files = vec![];
         for idx in 0..archive.len() {
             let mut file = archive.by_index(idx)?;
@@ -50,28 +51,36 @@ impl ZipDecompressor {
             };
 
             let file_path = into.join(file_path);
+            if file_path.exists() {
+                let file_path_str = &*file_path.as_path().to_string_lossy();
+                if confirm.ask(Some(file_path_str))? {
+                    continue;
+                }
+            }
 
             Self::check_for_comments(&file);
 
-            let is_dir = (&*file.name()).ends_with('/');
-
-            if is_dir {
-                println!("File {} extracted to \"{}\"", idx, file_path.display());
-                fs::create_dir_all(&file_path)?;
-            } else {
-                if let Some(p) = file_path.parent() {
-                    if !p.exists() {
-                        fs::create_dir_all(&p)?;
-                    }
+            match (&*file.name()).ends_with('/') {
+                _is_dir @ true => {
+                    println!("File {} extracted to \"{}\"", idx, file_path.display());
+                    fs::create_dir_all(&file_path)?;
                 }
-                println!(
-                    "{}: \"{}\" extracted. ({} bytes)",
-                    "info".yellow(),
-                    file_path.display(),
-                    file.size()
-                );
-                let mut outfile = fs::File::create(&file_path)?;
-                io::copy(&mut file, &mut outfile)?;
+                _is_file @ false => {
+                    if let Some(path) = file_path.parent() {
+                        if !path.exists() {
+                            fs::create_dir_all(&path)?;
+                        }
+                    }
+                    println!(
+                        "{}: \"{}\" extracted. ({} bytes)",
+                        "info".yellow(),
+                        file_path.display(),
+                        file.size()
+                    );
+
+                    let mut output_file = fs::File::create(&file_path)?;
+                    io::copy(&mut file, &mut output_file)?;
+                }
             }
 
             #[cfg(unix)]

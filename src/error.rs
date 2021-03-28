@@ -16,6 +16,7 @@ pub enum Error {
     PermissionDenied,
     UnsupportedZipArchive(&'static str),
     InputsMustHaveBeenDecompressible(PathBuf),
+    InternalError,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
