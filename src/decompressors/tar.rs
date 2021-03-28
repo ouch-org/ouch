@@ -37,7 +37,8 @@ impl TarDecompressor {
             let file_path = PathBuf::from(into).join(file.path()?);
             if file_path.exists() {
                 let file_path_str = &*file_path.to_string_lossy();
-                if confirm.ask(Some(file_path_str))? {
+                if !confirm.ask(Some(file_path_str))? {
+                    // The user does not want to overwrite the file
                     continue;
                 }
             }
@@ -51,7 +52,7 @@ impl TarDecompressor {
                 file.size()
             );
 
-            let file_path = fs::canonicalize(into.join(file.path()?))?;
+            let file_path = fs::canonicalize(file_path)?;
             files_unpacked.push(file_path);
         }
 

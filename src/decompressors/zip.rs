@@ -53,7 +53,8 @@ impl ZipDecompressor {
             let file_path = into.join(file_path);
             if file_path.exists() {
                 let file_path_str = &*file_path.as_path().to_string_lossy();
-                if confirm.ask(Some(file_path_str))? {
+                if !confirm.ask(Some(file_path_str))? {
+                    // The user does not want to overwrite the file
                     continue;
                 }
             }

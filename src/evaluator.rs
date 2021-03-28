@@ -13,6 +13,7 @@ use crate::{
         TarDecompressor, ZipDecompressor,
     },
     extension::{CompressionFormat, Extension},
+    dialogs::Confirmation,
     file::File,
     utils,
 };
@@ -148,9 +149,18 @@ impl Evaluator {
     }
 
     fn compress_files(files: Vec<PathBuf>, mut output: File) -> crate::Result<()> {
+        let confirm = Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE"));
         let (first_compressor, second_compressor) = Self::get_compressor(&output)?;
 
         let output_path = output.path.clone();
+        if output_path.exists() {
+            let output_path_str = &*output_path.to_string_lossy();
+            if !confirm.ask(Some(output_path_str))? {
+                // The user does not want to overwrite the file
+                return Ok(());
+            }
+        }
+
 
         let bytes = match first_compressor {
             Some(first_compressor) => {
