@@ -1,6 +1,7 @@
 mod cli;
 mod compressors;
 mod decompressors;
+mod dialogs;
 mod error;
 mod evaluator;
 mod extension;
@@ -18,3 +19,14 @@ fn main() -> crate::Result<()> {
     let command = cli::Command::try_from(matches)?;
     Evaluator::evaluate(command)
 }
+
+// fn main() -> crate::Result<()> {
+//     let dialog = dialogs::Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE"));
+
+//     match dialog.ask(Some("file.tar.gz"))? {
+//         true => println!("deleting"),
+//         false => println!("keeping")
+//     };
+
+//     Ok(())
+// }
