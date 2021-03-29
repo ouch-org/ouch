@@ -9,24 +9,11 @@ mod file;
 mod test;
 mod utils;
 
-use std::convert::TryFrom;
-
 use error::{Error, Result};
 use evaluator::Evaluator;
 
 fn main() -> crate::Result<()> {
     let matches = cli::get_matches();
-    let command = cli::Command::try_from(matches)?;
-    Evaluator::evaluate(command)
+    let (command, flags) = cli::parse_matches(matches)?;
+    Evaluator::evaluate(command, flags)
 }
-
-// fn main() -> crate::Result<()> {
-//     let dialog = dialogs::Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE"));
-
-//     match dialog.ask(Some("file.tar.gz"))? {
-//         true => println!("deleting"),
-//         false => println!("keeping")
-//     };
-
-//     Ok(())
-// }

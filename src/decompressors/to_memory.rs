@@ -6,7 +6,7 @@ use std::{
 use colored::Colorize;
 
 use super::decompressor::{DecompressionResult, Decompressor};
-use crate::utils;
+use crate::{cli::Flags, utils};
 // use niffler;
 use crate::{extension::CompressionFormat, file::File};
 
@@ -62,19 +62,19 @@ impl DecompressorToMemory {
 }
 
 impl Decompressor for GzipDecompressor {
-    fn decompress(&self, from: File, into: &Option<File>) -> crate::Result<DecompressionResult> {
+    fn decompress(&self, from: File, into: &Option<File>, _: Flags) -> crate::Result<DecompressionResult> {
         DecompressorToMemory::decompress(from, CompressionFormat::Gzip, into)
     }
 }
 
 impl Decompressor for BzipDecompressor {
-    fn decompress(&self, from: File, into: &Option<File>) -> crate::Result<DecompressionResult> {
+    fn decompress(&self, from: File, into: &Option<File>, _: Flags) -> crate::Result<DecompressionResult> {
         DecompressorToMemory::decompress(from, CompressionFormat::Bzip, into)
     }
 }
 
 impl Decompressor for LzmaDecompressor {
-    fn decompress(&self, from: File, into: &Option<File>) -> crate::Result<DecompressionResult> {
+    fn decompress(&self, from: File, into: &Option<File>, _: Flags) -> crate::Result<DecompressionResult> {
         DecompressorToMemory::decompress(from, CompressionFormat::Lzma, into)
     }
 }

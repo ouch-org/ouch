@@ -8,13 +8,13 @@ use colored::Colorize;
 use tar::{self, Archive};
 
 use super::decompressor::{DecompressionResult, Decompressor};
-use crate::{file::File, utils, dialogs::Confirmation};
+use crate::{cli::Flags, dialogs::Confirmation, file::File, utils};
 
 #[derive(Debug)]
 pub struct TarDecompressor {}
 
 impl TarDecompressor {
-    fn unpack_files(from: File, into: &Path) -> crate::Result<Vec<PathBuf>> {
+    fn unpack_files(from: File, into: &Path, flags: Flags) -> crate::Result<Vec<PathBuf>> {
         println!(
             "{}: attempting to decompress {:?}",
             "ouch".bright_blue(),
@@ -24,7 +24,9 @@ impl TarDecompressor {
         let confirm = Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE"));
 
         let mut archive: Archive<Box<dyn Read>> = match from.contents_in_memory {
-            Some(bytes) => tar::Archive::new(Box::new(Cursor::new(bytes))),
+            Some(bytes) => {
+                tar::Archive::new(Box::new(Cursor::new(bytes)))
+            },
             None => {
                 let file = fs::File::open(&from.path)?;
                 tar::Archive::new(Box::new(file))
@@ -36,8 +38,7 @@ impl TarDecompressor {
             
             let file_path = PathBuf::from(into).join(file.path()?);
             if file_path.exists() {
-                let file_path_str = &*file_path.to_string_lossy();
-                if !confirm.ask(Some(file_path_str))? {
+                if !utils::permission_for_overwriting(&file_path, flags, &confirm)? {
                     // The user does not want to overwrite the file
                     continue;
                 }
@@ -61,12 +62,12 @@ impl TarDecompressor {
 }
 
 impl Decompressor for TarDecompressor {
-    fn decompress(&self, from: File, into: &Option<File>) -> crate::Result<DecompressionResult> {
+    fn decompress(&self, from: File, into: &Option<File>, flags: Flags) -> crate::Result<DecompressionResult> {
         let destination_path = utils::get_destination_path(into);
 
         utils::create_path_if_non_existent(destination_path)?;
 
-        let files_unpacked = Self::unpack_files(from, destination_path)?;
+        let files_unpacked = Self::unpack_files(from, destination_path, flags)?;
 
         Ok(DecompressionResult::FilesUnpacked(files_unpacked))
     }

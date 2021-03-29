@@ -8,7 +8,7 @@ use colored::Colorize;
 use zip::{self, read::ZipFile, ZipArchive};
 
 use super::decompressor::{DecompressionResult, Decompressor};
-use crate::{dialogs::Confirmation, file::File, utils};
+use crate::{cli::Flags, dialogs::Confirmation, file::File, utils};
 
 #[cfg(unix)]
 fn __unix_set_permissions(file_path: &PathBuf, file: &ZipFile) {
@@ -37,6 +37,7 @@ impl ZipDecompressor {
     pub fn zip_decompress<T>(
         archive: &mut ZipArchive<T>,
         into: &Path,
+        flags: Flags,
     ) -> crate::Result<Vec<PathBuf>>
     where
         T: Read + Seek,
@@ -52,8 +53,7 @@ impl ZipDecompressor {
 
             let file_path = into.join(file_path);
             if file_path.exists() {
-                let file_path_str = &*file_path.as_path().to_string_lossy();
-                if !confirm.ask(Some(file_path_str))? {
+                if !utils::permission_for_overwriting(&file_path, flags, &confirm)? {
                     // The user does not want to overwrite the file
                     continue;
                 }
@@ -94,35 +94,42 @@ impl ZipDecompressor {
         Ok(unpacked_files)
     }
 
-    fn unpack_files(from: File, into: &Path) -> crate::Result<Vec<PathBuf>> {
+    fn unpack_files(from: File, into: &Path, flags: Flags) -> crate::Result<Vec<PathBuf>> {
         println!(
-            "{}: attempting to decompress {:?}",
-            "ouch".bright_blue(),
+            "{} decompressing {:?}",
+            "[OUCH]".bright_blue(),
             &from.path
         );
 
         match from.contents_in_memory {
             Some(bytes) => {
+                // Decompressing a .zip archive loaded up in memory
                 let mut archive = zip::ZipArchive::new(Cursor::new(bytes))?;
-                Ok(Self::zip_decompress(&mut archive, into)?)
+                Ok(Self::zip_decompress(&mut archive, into, flags)?)
             }
             None => {
+                // Decompressing a .zip archive from the file system
                 let file = fs::File::open(&from.path)?;
                 let mut archive = zip::ZipArchive::new(file)?;
 
-                Ok(Self::zip_decompress(&mut archive, into)?)
+                Ok(Self::zip_decompress(&mut archive, into, flags)?)
             }
         }
     }
 }
 
 impl Decompressor for ZipDecompressor {
-    fn decompress(&self, from: File, into: &Option<File>) -> crate::Result<DecompressionResult> {
+    fn decompress(
+        &self,
+        from: File,
+        into: &Option<File>,
+        flags: Flags,
+    ) -> crate::Result<DecompressionResult> {
         let destination_path = utils::get_destination_path(into);
 
         utils::create_path_if_non_existent(destination_path)?;
 
-        let files_unpacked = Self::unpack_files(from, destination_path)?;
+        let files_unpacked = Self::unpack_files(from, destination_path, flags)?;
 
         Ok(DecompressionResult::FilesUnpacked(files_unpacked))
     }

@@ -5,7 +5,7 @@ use std::{
 
 use colored::Colorize;
 
-use crate::{extension::CompressionFormat, file::File};
+use crate::{cli::Flags, dialogs::Confirmation, extension::CompressionFormat, file::File};
 
 pub(crate) fn ensure_exists<'a, P>(path: P) -> crate::Result<()>
 where
@@ -89,4 +89,15 @@ pub(crate) fn change_dir_and_return_parent(filename: &PathBuf) -> crate::Result<
 
     env::set_current_dir(parent)?;
     Ok(previous_location)
+}
+
+pub fn permission_for_overwriting(path: &PathBuf, flags: Flags, confirm: &Confirmation) -> crate::Result<bool> {
+    match flags {
+        Flags::AlwaysYes => return Ok(true),
+        Flags::AlwaysNo => return Ok(false),
+        Flags::None => {}
+    }
+    
+    let file_path_str = &*path.as_path().to_string_lossy();
+    Ok(confirm.ask(Some(file_path_str))?)
 }
