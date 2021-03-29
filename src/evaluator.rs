@@ -113,11 +113,12 @@ impl Evaluator {
             .unwrap_or_else(|| output_file_path.as_os_str());
 
         if filename == "." {
-            // I believe this is only possible when the supplied inout has a name
+            // I believe this is only possible when the supplied input has a name
             // of the sort `.tar` or `.zip' and no output has been supplied.
             filename = OsStr::new("ouch-output");
         }
         let filename = PathBuf::from(filename);
+
 
         // If there is a decompressor to use, we'll create a file in-memory and decompress it
         let decompressor = match decompressor {
@@ -126,7 +127,7 @@ impl Evaluator {
                 // There is no more processing to be done on the input file (or there is but currently unsupported)
                 // Therefore, we'll save what we have in memory into a file.
                 println!("{}: saving to {:?}.", "info".yellow(), filename);
-
+                // TODO: use -y and -n flags
                 let mut f = fs::File::create(output_file_path.join(filename))?;
                 f.write_all(&bytes)?;
                 return Ok(());
@@ -148,15 +149,14 @@ impl Evaluator {
         Ok(())
     }
 
-    fn compress_files(files: Vec<PathBuf>, mut output: File) -> crate::Result<()> {
+    fn compress_files(files: Vec<PathBuf>, mut output: File, flags: Flags) -> crate::Result<()> {
         let confirm = Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE"));
         let (first_compressor, second_compressor) = Self::get_compressor(&output)?;
 
         // TODO: use -y and -n here
         let output_path = output.path.clone();
         if output_path.exists() {
-            let output_path_str = &*output_path.to_string_lossy();
-            if !confirm.ask(Some(output_path_str))? {
+            if !utils::permission_for_overwriting(&output_path, flags, &confirm)? {
                 // The user does not want to overwrite the file
                 return Ok(());
             }
@@ -231,7 +231,7 @@ impl Evaluator {
             CommandKind::Compression(files_to_compress) => {
                 // Safe to unwrap since output is mandatory for compression
                 let output = output.unwrap();
-                Self::compress_files(files_to_compress, output)?;
+                Self::compress_files(files_to_compress, output, flags)?;
             }
             CommandKind::Decompression(files_to_decompress) => {
                 for file in files_to_decompress {
