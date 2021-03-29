@@ -3,7 +3,7 @@ use std::{ffi::OsStr, fs, io::Write, path::PathBuf};
 use colored::Colorize;
 
 use crate::{
-    cli::{Flags, Command, CommandKind},
+    cli::{Command, CommandKind, Flags},
     compressors::{
         BzipCompressor, Compressor, Entry, GzipCompressor, LzmaCompressor, TarCompressor,
         ZipCompressor,
@@ -12,8 +12,8 @@ use crate::{
         BzipDecompressor, DecompressionResult, Decompressor, GzipDecompressor, LzmaDecompressor,
         TarDecompressor, ZipDecompressor,
     },
-    extension::{CompressionFormat, Extension},
     dialogs::Confirmation,
+    extension::{CompressionFormat, Extension},
     file::File,
     utils,
 };
@@ -104,7 +104,7 @@ impl Evaluator {
         decompressor: Option<Box<dyn Decompressor>>,
         output_file: &Option<File>,
         extension: Option<Extension>,
-        flags: Flags
+        flags: Flags,
     ) -> crate::Result<()> {
         let output_file_path = utils::get_destination_path(output_file);
 
@@ -119,7 +119,6 @@ impl Evaluator {
         }
         let filename = PathBuf::from(filename);
 
-
         // If there is a decompressor to use, we'll create a file in-memory and decompress it
         let decompressor = match decompressor {
             Some(decompressor) => decompressor,
@@ -127,7 +126,15 @@ impl Evaluator {
                 // There is no more processing to be done on the input file (or there is but currently unsupported)
                 // Therefore, we'll save what we have in memory into a file.
                 println!("{}: saving to {:?}.", "info".yellow(), filename);
-                // TODO: use -y and -n flags
+
+                if filename.exists() {
+                    let confirm =
+                        Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE"));
+                    if !utils::permission_for_overwriting(&filename, flags, &confirm)? {
+                        return Ok(());
+                    }
+                }
+
                 let mut f = fs::File::create(output_file_path.join(filename))?;
                 f.write_all(&bytes)?;
                 return Ok(());
@@ -161,7 +168,6 @@ impl Evaluator {
                 return Ok(());
             }
         }
-
 
         let bytes = match first_compressor {
             Some(first_compressor) => {
@@ -207,7 +213,7 @@ impl Evaluator {
                     first_decompressor,
                     output,
                     extension,
-                    flags
+                    flags,
                 )?;
             }
             DecompressionResult::FilesUnpacked(_files) => {
