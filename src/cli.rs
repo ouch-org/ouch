@@ -23,6 +23,16 @@ pub enum CommandKind {
 }
 
 #[derive(PartialEq, Eq, Debug)]
+pub enum Flags {
+    // No flags supplied
+    None,
+    // Flag -y, --yes supplied
+    AlwaysYes,
+    // Flag -n, --no supplied
+    AlwaysNo
+}
+
+#[derive(PartialEq, Eq, Debug)]
 pub struct Command {
     pub kind: CommandKind,
     pub output: Option<File>,
@@ -63,10 +73,41 @@ Please relate any issues or contribute at https://github.com/vrmiguel/ouch")
                 .help("The output directory or compressed file.")
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("yes")
+                .required(false)
+                .multiple(false)
+                .long("yes")
+                .short("y")
+                .help("Says yes to all confirmation dialogs.")
+                .conflicts_with("no")
+                .takes_value(false),
+        )
+        .arg(
+            Arg::with_name("no")
+                .required(false)
+                .multiple(false)
+                .long("no")
+                .short("n")
+                .help("Says no to all confirmation dialogs.")
+                .conflicts_with("yes")
+                .takes_value(false),
+        )
 }
 
 pub fn get_matches() -> clap::ArgMatches<'static> {
     clap_app().get_matches()
+}
+
+pub fn parse_matches(matches: clap::ArgMatches<'static>) -> crate::Result<(Command, Flags)> {
+    let flag = match (matches.is_present("yes"), matches.is_present("no")) {
+        (true, true) => unreachable!(),
+        (true, _) => Flags::AlwaysYes,
+        (_, true) => Flags::AlwaysNo,
+        (_, _) => Flags::None
+    };
+
+    Ok((Command::try_from(matches)?, flag))
 }
 
 impl TryFrom<clap::ArgMatches<'static>> for Command {
