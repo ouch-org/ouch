@@ -13,7 +13,7 @@
 `ouch` infers commands from the extensions of its command-line options.
 
 ```
-ouch 0.1.3
+ouch 0.1.4
 Vinícius R. Miguel
 ouch is a unified compression & decompression utility
 
