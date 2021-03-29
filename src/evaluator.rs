@@ -3,7 +3,7 @@ use std::{ffi::OsStr, fs, io::Write, path::PathBuf};
 use colored::Colorize;
 
 use crate::{
-    cli::{Command, CommandKind},
+    cli::{Flags, Command, CommandKind},
     compressors::{
         BzipCompressor, Compressor, Entry, GzipCompressor, LzmaCompressor, TarCompressor,
         ZipCompressor,
@@ -98,13 +98,13 @@ impl Evaluator {
         Ok((first_decompressor, second_decompressor))
     }
 
-    // todo: move this folder into decompressors/ later on
     fn decompress_file_in_memory(
         bytes: Vec<u8>,
         file_path: PathBuf,
         decompressor: Option<Box<dyn Decompressor>>,
         output_file: &Option<File>,
         extension: Option<Extension>,
+        flags: Flags
     ) -> crate::Result<()> {
         let output_file_path = utils::get_destination_path(output_file);
 
@@ -139,7 +139,7 @@ impl Evaluator {
             extension,
         };
 
-        let decompression_result = decompressor.decompress(file, output_file)?;
+        let decompression_result = decompressor.decompress(file, output_file, flags)?;
         if let DecompressionResult::FileInMemory(_) = decompression_result {
             // Should not be reachable.
             unreachable!();
@@ -152,6 +152,7 @@ impl Evaluator {
         let confirm = Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE"));
         let (first_compressor, second_compressor) = Self::get_compressor(&output)?;
 
+        // TODO: use -y and -n here
         let output_path = output.path.clone();
         if output_path.exists() {
             let output_path_str = &*output_path.to_string_lossy();
@@ -188,14 +189,13 @@ impl Evaluator {
         Ok(())
     }
 
-    fn decompress_file(file: File, output: &Option<File>) -> crate::Result<()> {
-        // let output_file = &command.output;
+    fn decompress_file(file: File, output: &Option<File>, flags: Flags) -> crate::Result<()> {
         let (first_decompressor, second_decompressor) = Self::get_decompressor(&file)?;
 
         let file_path = file.path.clone();
         let extension = file.extension.clone();
 
-        let decompression_result = second_decompressor.decompress(file, output)?;
+        let decompression_result = second_decompressor.decompress(file, output, flags)?;
 
         match decompression_result {
             DecompressionResult::FileInMemory(bytes) => {
@@ -207,6 +207,7 @@ impl Evaluator {
                     first_decompressor,
                     output,
                     extension,
+                    flags
                 )?;
             }
             DecompressionResult::FilesUnpacked(_files) => {
@@ -223,7 +224,7 @@ impl Evaluator {
         Ok(())
     }
 
-    pub fn evaluate(command: Command) -> crate::Result<()> {
+    pub fn evaluate(command: Command, flags: Flags) -> crate::Result<()> {
         let output = command.output.clone();
 
         match command.kind {
@@ -234,7 +235,7 @@ impl Evaluator {
             }
             CommandKind::Decompression(files_to_decompress) => {
                 for file in files_to_decompress {
-                    Self::decompress_file(file, &output)?;
+                    Self::decompress_file(file, &output, flags)?;
                 }
             }
         }

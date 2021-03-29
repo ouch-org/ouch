@@ -14,7 +14,6 @@ use evaluator::Evaluator;
 
 fn main() -> crate::Result<()> {
     let matches = cli::get_matches();
-    // let command = cli::Command::try_from(matches)?;
-    let (command, _flags) = cli::parse_matches(matches)?;
-    Evaluator::evaluate(command)
+    let (command, flags) = cli::parse_matches(matches)?;
+    Evaluator::evaluate(command, flags)
 }

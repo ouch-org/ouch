@@ -22,7 +22,7 @@ pub enum CommandKind {
     ),
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum Flags {
     // No flags supplied
     None,
