@@ -31,7 +31,7 @@ impl<'a> Confirmation<'a> {
 
             let mut answer = String::new();
             io::stdin().read_line(&mut answer)?;
-            let trimmed_answer = answer.trim().to_ascii_lowercase();
+            let trimmed_answer = answer.trim();
 
             if trimmed_answer.is_empty() {
                 return Ok(true);
