@@ -14,8 +14,8 @@ impl TarCompressor {
     // TODO: implement this
     fn make_archive_from_memory(_input: File) -> crate::Result<Vec<u8>> {
         println!(
-            "{}: .tar.tar and .zip.tar is currently unimplemented.",
-            "error".red()
+            "{} .tar.tar and .zip.tar is currently unimplemented.",
+            "[ERROR]".red()
         );
         Err(crate::Error::InvalidZipArchive(""))
     }

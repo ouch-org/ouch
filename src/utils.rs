@@ -13,11 +13,6 @@ where
 {
     let exists = path.as_ref().exists();
     if !exists {
-        eprintln!(
-            "{}: could not find file {:?}",
-            "[ERROR]".red(),
-            path.as_ref()
-        );
         return Err(crate::Error::FileNotFound(PathBuf::from(path.as_ref())));
     }
     Ok(())

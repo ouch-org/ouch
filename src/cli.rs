@@ -179,7 +179,6 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
                     output: Some(File {
                         path: output_file.into(),
                         contents_in_memory: None,
-                        // extension: output_file_extension.ok(),
                         extension: Some(output_file_extension.unwrap()),
                     }),
                 })

@@ -36,8 +36,7 @@ impl BzipCompressor {
         let bytes = match file.contents_in_memory {
             Some(bytes) => bytes,
             None => {
-                // TODO: error message,
-                return Err(crate::Error::InvalidInput);
+                return Err(crate::Error::InternalError);
             }
         };
 
