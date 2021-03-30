@@ -216,21 +216,22 @@ impl Evaluator {
     pub fn evaluate(command: Command) -> crate::Result<()> {
         // let output = command.output.clone();
 
-        match command {
-            Command::Compress {
-                files,
-                output_folder,
-            } => {
-                // Safe to unwrap since output is mandatory for compression
-                let output = output.unwrap();
-                Self::compress_files(files, output)?;
-            }
-            Command::Decompress(files_to_decompress) => {
-                for file in files_to_decompress {
-                    Self::decompress_file(file, &output)?;
-                }
-            }
-        }
-        Ok(())
+        todo!("fix this error");
+        // match command {
+        //     Command::Compress {
+        //         files,
+        //         output_folder,
+        //     } => {
+        //         // Safe to unwrap since output is mandatory for compression
+        //         let output = output.unwrap();
+        //         Self::compress_files(files, output)?;
+        //     }
+        //     Command::Decompress { files } => {
+        //         for file in files {
+        //             Self::decompress_file(file, &output)?;
+        //         }
+        //     }
+        // }
+        // Ok(())
     }
 }

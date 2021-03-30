@@ -1,25 +1,26 @@
+#[allow(dead_code, unused_variables)]
 mod cli;
 mod compressors;
 mod decompressors;
 mod error;
-#[allow(dead_code)]
+#[allow(dead_code, unused_variables)]
 mod evaluator;
 mod extension;
 mod file;
 mod test;
 mod utils;
 
-#[allow(unreachable_code, unused_variables)]
-use std::env;
+use std::{env, result::Result as StdResult};
 
 use error::{Error, Result};
-use evaluator::Evaluator;
+// use evaluator::Evaluator;
 
-fn main() {
-    let command = cli::Command::from(env::args_os());
+fn main() -> StdResult<(), cli::ArgParsingError> {
+    let _command = cli::try_arg_parsing(env::args_os())?;
     // match command {
     //     Command::ShowHelp => {}
     // }
 
     // Evaluator::evaluate(command)
+    Ok(())
 }
