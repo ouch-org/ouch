@@ -95,11 +95,7 @@ impl ZipDecompressor {
     }
 
     fn unpack_files(from: File, into: &Path, flags: Flags) -> crate::Result<Vec<PathBuf>> {
-        println!(
-            "{} decompressing {:?}",
-            "[OUCH]".bright_blue(),
-            &from.path
-        );
+        println!("{} decompressing {:?}", "[OUCH]".bright_blue(), &from.path);
 
         match from.contents_in_memory {
             Some(bytes) => {

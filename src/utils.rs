@@ -13,11 +13,6 @@ where
 {
     let exists = path.as_ref().exists();
     if !exists {
-        eprintln!(
-            "{}: could not find file {:?}",
-            "[ERROR]".red(),
-            path.as_ref()
-        );
         return Err(crate::Error::FileNotFound(PathBuf::from(path.as_ref())));
     }
     Ok(())
@@ -70,34 +65,24 @@ pub(crate) fn change_dir_and_return_parent(filename: &PathBuf) -> crate::Result<
     let parent = if let Some(parent) = filename.parent() {
         parent
     } else {
-        let spacing = "          ";
-        println!(
-            "{} It seems you're trying to compress the root folder.",
-            "[WARNING]".red()
-        );
-        println!(
-            "{}This is unadvisable since ouch does compressions in-memory.",
-            spacing
-        );
-        println!(
-            "{}Use a more appropriate tool for this, such as {}.",
-            spacing,
-            "rsync".green()
-        );
-        return Err(crate::Error::InvalidInput);
+        return Err(crate::Error::CompressingRootFolder);
     };
 
     env::set_current_dir(parent)?;
     Ok(previous_location)
 }
 
-pub fn permission_for_overwriting(path: &PathBuf, flags: Flags, confirm: &Confirmation) -> crate::Result<bool> {
+pub fn permission_for_overwriting(
+    path: &PathBuf,
+    flags: Flags,
+    confirm: &Confirmation,
+) -> crate::Result<bool> {
     match flags {
         Flags::AlwaysYes => return Ok(true),
         Flags::AlwaysNo => return Ok(false),
         Flags::None => {}
     }
-    
+
     let file_path_str = &*path.as_path().to_string_lossy();
     Ok(confirm.ask(Some(file_path_str))?)
 }

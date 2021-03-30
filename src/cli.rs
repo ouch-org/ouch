@@ -29,7 +29,7 @@ pub enum Flags {
     // Flag -y, --yes supplied
     AlwaysYes,
     // Flag -n, --no supplied
-    AlwaysNo
+    AlwaysNo,
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -104,7 +104,7 @@ pub fn parse_matches(matches: clap::ArgMatches<'static>) -> crate::Result<(Comma
         (true, true) => unreachable!(),
         (true, _) => Flags::AlwaysYes,
         (_, true) => Flags::AlwaysNo,
-        (_, _) => Flags::None
+        (_, _) => Flags::None,
     };
 
     Ok((Command::try_from(matches)?, flag))
@@ -179,7 +179,6 @@ impl TryFrom<clap::ArgMatches<'static>> for Command {
                     output: Some(File {
                         path: output_file.into(),
                         contents_in_memory: None,
-                        // extension: output_file_extension.ok(),
                         extension: Some(output_file_extension.unwrap()),
                     }),
                 })

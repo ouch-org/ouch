@@ -29,10 +29,10 @@ impl Evaluator {
             None => {
                 // This block *should* be unreachable
                 eprintln!(
-                    "{}: reached Evaluator::get_decompressor without known extension.",
-                    "internal error".red()
+                    "{} reached Evaluator::get_decompressor without known extension.",
+                    "[internal error]".red()
                 );
-                return Err(crate::Error::InvalidInput);
+                return Err(crate::Error::InternalError);
             }
         };
 
@@ -71,8 +71,8 @@ impl Evaluator {
             None => {
                 // This block *should* be unreachable
                 eprintln!(
-                    "{}: reached Evaluator::get_decompressor without known extension.",
-                    "internal error".red()
+                    "{} reached Evaluator::get_decompressor without known extension.",
+                    "[internal error]".red()
                 );
                 return Err(crate::Error::InvalidInput);
             }
