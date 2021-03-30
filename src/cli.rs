@@ -96,7 +96,7 @@ pub mod argparsing {
         {
             use std::os::windows::ffi::OsStrExt;
 
-            let iter = text.encode_wide();
+            let mut iter = text.encode_wide();
 
             // Note that hyphen_in_utf16 == 45_u16
             if let Some(45_u16) = iter.next() {
