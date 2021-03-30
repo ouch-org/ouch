@@ -24,9 +24,7 @@ impl TarDecompressor {
         let confirm = Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE"));
 
         let mut archive: Archive<Box<dyn Read>> = match from.contents_in_memory {
-            Some(bytes) => {
-                tar::Archive::new(Box::new(Cursor::new(bytes)))
-            },
+            Some(bytes) => tar::Archive::new(Box::new(Cursor::new(bytes))),
             None => {
                 let file = fs::File::open(&from.path)?;
                 tar::Archive::new(Box::new(file))
@@ -35,7 +33,7 @@ impl TarDecompressor {
 
         for file in archive.entries()? {
             let mut file = file?;
-            
+
             let file_path = PathBuf::from(into).join(file.path()?);
             if file_path.exists() {
                 if !utils::permission_for_overwriting(&file_path, flags, &confirm)? {
@@ -43,7 +41,7 @@ impl TarDecompressor {
                     continue;
                 }
             }
-            
+
             file.unpack_in(into)?;
 
             println!(
@@ -62,7 +60,12 @@ impl TarDecompressor {
 }
 
 impl Decompressor for TarDecompressor {
-    fn decompress(&self, from: File, into: &Option<File>, flags: Flags) -> crate::Result<DecompressionResult> {
+    fn decompress(
+        &self,
+        from: File,
+        into: &Option<File>,
+        flags: Flags,
+    ) -> crate::Result<DecompressionResult> {
         let destination_path = utils::get_destination_path(into);
 
         utils::create_path_if_non_existent(destination_path)?;

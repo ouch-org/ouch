@@ -1,9 +1,6 @@
 use std::path::PathBuf;
 
-use crate::{
-    cli::Flags,
-    file::File
-};
+use crate::{cli::Flags, file::File};
 
 pub enum DecompressionResult {
     FilesUnpacked(Vec<PathBuf>),
@@ -11,5 +8,10 @@ pub enum DecompressionResult {
 }
 
 pub trait Decompressor {
-    fn decompress(&self, from: File, into: &Option<File>, flags: Flags) -> crate::Result<DecompressionResult>;
+    fn decompress(
+        &self,
+        from: File,
+        into: &Option<File>,
+        flags: Flags,
+    ) -> crate::Result<DecompressionResult>;
 }
