@@ -5,9 +5,9 @@
 `ouch` loosely stands for Obvious Unified Compression (ᵃⁿᵈ ᵈᵉᶜᵒᵐᵖʳᵉˢˢᶦᵒⁿ) Helper and aims to be an easy and intuitive way of compressing and decompressing files on the command-line.
 
 - [Usage](#Usage)
-    - [Decompress](#Decompress)
-    - [Compress](#Compress)
-    - [Convert](#Convert)
+    - [Decompressing files](#Decompressing-files)
+    - [Compressing files/directories](#Compressing-files-and-directories)
+    - [Listing files](#Listing-the-elements-of-an-archive)
 - [Supported Formats](#Supported-formats)
 - [Installation](#Installation)
 - [Supported operating systems](#Supported-operating-systems)
@@ -54,13 +54,6 @@ ouch compress a.mp4 b.jpg c.png files.tar.bz2
 ouch compress Videos/ funny_meme.mp4 videos.tar.xz
 ```
 
-### Converting between compressed archives
-
-```
-# Will decompress a.tar.gz b.tar.bz and compress it into new-archive.tar.xz2
-ouch convert a.tar.gz b.tar.bz new-archive.tar.xz2
-```
-
 ### Listing the elements of an archive
 
 (TODO -- not implemented at all)
@@ -104,10 +97,17 @@ cargo install ouch
 # or 
 git clone https://github.com/vrmiguel/ouch
 cargo install --path ouch
+# or
+git clone https://github.com/vrmiguel/ouch
+cd ouch && cargo run --release
 ```
 
 ## Supported operating systems
 
+`ouch` runs on Linux, macOS and Windows 10. Binaries are available on our [Releases](https://github.com/vrmiguel/ouch/releases) page.
+Binaries are also available at the end of each (successful) [GitHub Actions](https://github.com/vrmiguel/ouch/actions) run. 
+
+**Note on Windows**: colors are currently messed up on PowerShell but work fine on [ConEmu](https://conemu.github.io/). A feature for disabling colors is planned.
 
 
 ## Limitations
