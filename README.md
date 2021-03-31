@@ -18,15 +18,11 @@
 
 ## Usage
 
-`ouch` uses the file extensions to infer the file formats.
-
-For example, `ouch compress a b c.zip` tells to compress `a` and `b` into the same `c.zip` compressed file.
-
 ### Decompressing files
 
-To decompress, just call `ouch` passing the input files.
+To decompress any number of files, just supply them to `ouch`.
 
-Use the `-o, --output` flag to redirect the output to a folder.
+Use the `-o, --output` flag to redirect the output of decompressions to a folder.
 
 ```bash
 # Decompress `a.zip`
@@ -35,19 +31,21 @@ ouch a.zip
 # Decompress multiple files
 ouch a.zip b.tar.gz
 
-# Decompress multiple files, but inside new_folder
-ouch a.zip b.tar.gz -o new_folder
+# Decompress multiple files but inside new_folder
+ouch a.zip  b.tar.gz  c.tar.bz2 -o new_folder
 ```
 
 ### Compressing files and directories
 
-The `compress` subcommand accepts files and folders where the **last** one is the desired **output file**.
+The `compress` subcommand is able to compress files and folders. The **last** argument will be the **output file**. 
+
+The compression format employed will be defined according to the output file's extension.
 
 ```bash
 # Compress four files into `archive.zip`
 ouch compress a b c d archive.zip
 
-# Compress three files into `.tar.bz2` archive
+# Compress three files into a `.tar.bz2` archive
 ouch compress a.mp4 b.jpg c.png files.tar.bz2
 
 # Compress a folder and a file into `videos.tar.xz`
@@ -59,9 +57,8 @@ ouch compress Videos/ funny_meme.mp4 videos.tar.xz
 (TODO -- not implemented at all)
 
 ```
-# Shows the files contained in videos.tar.xz
+# Shows the files and folders contained in videos.tar.xz
 ouch list videos.tar.xz
-1. .....
 ```
 
 ## Supported formats
