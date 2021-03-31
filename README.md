@@ -85,7 +85,7 @@ curl -s https://raw.githubusercontent.com/vrmiguel/ouch/master/install.sh | bash
 
 ### Building
 
-A recent [Rust] toolchain is needed to build `ouch`. Go to [rustup.rs](https://rustup.rs/) to get it.
+A recent [Rust](rust-lang.org) toolchain is needed to build `ouch`. You can install it following the instructions at [rustup.rs](https://rustup.rs/).
 
 Once [Cargo](https://doc.rust-lang.org/cargo/) is installed, run:
 
