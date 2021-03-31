@@ -1,7 +1,5 @@
 # Ouch!
 
-### This readme is a WIP draft, and does not represent the reality
-See the old README at https://github.com/vrmiguel/ouch/tree/0f453e9dfc70066056b9cc40e8032dcc6ee703bc
 <!-- ![ouch_image](https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR5ilNDTFZZ-Vy_ctm2YyAe8Yk0UT7lB2hIhg&usqp=CAU)  -->
 
 `ouch` loosely stands for Obvious Unified Compression (ᵃⁿᵈ ᵈᵉᶜᵒᵐᵖʳᵉˢˢᶦᵒⁿ) Helper and aims to be an easy and intuitive way of compressing and decompressing files on the command-line.
@@ -14,6 +12,9 @@ See the old README at https://github.com/vrmiguel/ouch/tree/0f453e9dfc70066056b9
 - [Installation](#Installation)
 - [Supported operating systems](#Supported-operating-systems)
 
+**Note** 
+   * This README represents the new, but not yet implemented, interface that `ouch` will use.
+   * For current usage instructions, check [the old README](https://github.com/vrmiguel/ouch/blob/0f453e9dfc70066056b9cc40e8032dcc6ee703bc/README.md).
 
 ## Usage
 
@@ -22,7 +23,6 @@ See the old README at https://github.com/vrmiguel/ouch/tree/0f453e9dfc70066056b9
 For example, `ouch compress a b c.zip` tells to compress `a` and `b` into the same `c.zip` compressed file.
 
 ### Decompressing files
-<!-- botei caps e mais um #, acho que ficou bom para os comandos -->
 
 To decompress, just call `ouch` passing the input files.
 
