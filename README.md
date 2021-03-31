@@ -1,133 +1,112 @@
-# ouch (_work in progress_)
+# Ouch!
 
-`ouch` is the Obvious Unified Compression (_and decompression_) Helper. 
+<!-- ![ouch_image](https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR5ilNDTFZZ-Vy_ctm2YyAe8Yk0UT7lB2hIhg&usqp=CAU)  -->
 
+`ouch` loosely stands for Obvious Unified Compression (ᵃⁿᵈ ᵈᵉᶜᵒᵐᵖʳᵉˢˢᶦᵒⁿ) Helper and aims to be an easy and intuitive way of compressing and decompressing files on the command-line.
 
-| Supported formats | .tar | .zip | .tar.{.lz*,.gz, .bz}         | .zip.{.lz*, .gz, .bz*}       | .bz | .gz | .lz, .lzma |
-|-------------------|------|------|------------------------------|------------------------------|-----|-----|------------|
-| Decompression     |   ✓  |   ✓  |               ✓              |               ✓              |  ✓  |  ✓  |      ✓     |
-| Compression       |   ✓  |   ✓  |               ✓              |               ✓              |  ✓  |  ✓  |      ✓     |
+- [Usage](#Usage)
+    - [Decompressing files](#Decompressing-files)
+    - [Compressing files/directories](#Compressing-files-and-directories)
+    - [Listing files](#Listing-the-elements-of-an-archive)
+- [Supported Formats](#Supported-formats)
+- [Installation](#Installation)
+- [Supported operating systems](#Supported-operating-systems)
 
-## How does it work?
+**Note** 
+   * This README represents the new, but not yet implemented, interface that `ouch` will use.
+   * For current usage instructions, check [the old README](https://github.com/vrmiguel/ouch/blob/0f453e9dfc70066056b9cc40e8032dcc6ee703bc/README.md).
 
-`ouch` infers commands from the extensions of its command-line options.
+## Usage
 
-```
-ouch 0.1.4
-Vinícius R. Miguel
-ouch is a unified compression & decompression utility
+### Decompressing files
 
-USAGE:
-    ouch [OPTIONS] --input <input>...
+To decompress any number of files, just supply them to `ouch`.
 
-FLAGS:
-    -h, --help       Displays this message and exits
-    -V, --version    Prints version information
-
-OPTIONS:
-    -i, --input <input>...    The input files or directories.
-    -o, --output <output>     The output directory or compressed file.
-```
-
-### Examples
-
-#### Decompressing a bunch of files
+Use the `-o, --output` flag to redirect the output of decompressions to a folder.
 
 ```bash
-$ ouch -i file{1..5}.zip another_file.tar.gz yet_another_file.tar.bz
+# Decompress `a.zip`
+ouch a.zip
+
+# Decompress multiple files
+ouch a.zip b.tar.gz
+
+# Decompress multiple files but inside new_folder
+ouch a.zip  b.tar.gz  c.tar.bz2 -o new_folder
 ```
 
-When no output file is supplied, `ouch` infers that it must decompress all of its input files into the current folder. This will error if any of the input files are not decompressible.
+### Compressing files and directories
 
-#### Decompressing a bunch of files into a folder
+The `compress` subcommand is able to compress files and folders. The **last** argument will be the **output file**. 
+
+The compression format employed will be defined according to the output file's extension.
 
 ```bash
-$ ouch -i file{1..3}.tar.gz videos.tar.bz2 -o some-folder
-# Decompresses file1.tar.gz, file2.tar.gz, file3.tar.gz and videos.tar.bz2 to some-folder
-# The folder `ouch` saves to will be created if it doesn't already exist
+# Compress four files into `archive.zip`
+ouch compress a b c d archive.zip
+
+# Compress three files into a `.tar.bz2` archive
+ouch compress a.mp4 b.jpg c.png files.tar.bz2
+
+# Compress a folder and a file into `videos.tar.xz`
+ouch compress Videos/ funny_meme.mp4 videos.tar.xz
 ```
 
-When the output file is not a compressed file, `ouch` will check if all input files are decompressible and infer that it must decompress them into the output folder.
+### Listing the elements of an archive
 
-#### Compressing files 
+(TODO -- not implemented at all)
 
-```bash
-$ ouch -i file{1..20} -o archive.tar
-$ ouch -i Videos/ Movies/ -o media.tar.lzma
-$ ouch -i src/ Cargo.toml Cargo.lock -o my_project.tar.gz
+```
+# Shows the files and folders contained in videos.tar.xz
+ouch list videos.tar.xz
 ```
 
-### Error scenarios
+## Supported formats
 
-#### No clear decompression algorithm
 
-```bash
-$ ouch -i some-file -o some-folder
-error: file 'some-file' is not decompressible.
+|               | .tar | .zip | .tar.\*¹ | .zip.\*² | .bz, .bz2 | .gz | .xz, .lz, .lzma | .7z |
+|:-------------:|:----:|:----:|:--------:|:--------:|:---------:| --- |:---------------:| --- |
+| Decompression |  ✓   |  ✓   |    ✓     |    ✓     |     ✓     | ✓   |        ✓        | ✗   |
+|  Compression  |  ✓   |  ✓   |    ✓     |    ✓     |     ✓     | ✓   |        ✓        | ✗   |
+
+```
+Note: .tar.*¹: .tar.gz, .tar.bz, .tar.bz2, .tar.xz, .tar.lz, .tar.lzma, .tar.zip
+      .zip.*²: .zip.gz, .zip.bz, .zip.bz2, .zip.xz, .zip.lz, .zip.lzma, .zip.zip
 ```
 
-`ouch` cannot infer `some-file`'s compression format since it lacks an extension. Likewise, `ouch` cannot infer that the output file given is a compressed file, so it shows the user an error.
-
-```bash
-$ ouch -i file other-file -o files.gz
-error: cannot compress multiple files directly to Gzip.
-       Try using an intermediate archival method such as Tar.
-       Example: filename.tar.gz
-```
-
-Similar errors are shown if the same scenario is applied to `.lz/.lzma` and `.bz/.bz2`.
 
 ## Installation
 
-### Runtime dependencies
+### Getting a pre-compiled binary
 
-`ouch` depends on a few widespread libraries:
-* libbz2
-* liblzma
+```bash
+curl -s https://raw.githubusercontent.com/vrmiguel/ouch/master/install.sh | bash
+```
 
-Both should be already installed in any mainstream Linux distribution.
+### Building
 
-If they're not, then:
+A recent [Rust](rust-lang.org) toolchain is needed to build `ouch`. You can install it following the instructions at [rustup.rs](https://rustup.rs/).
 
-* On Debian-based distros
-
-`sudo apt install liblzma-dev libbz2-dev`
-
-* On Arch-based distros
-
-`sudo pacman -S xz bzip2`
-
-The last dependency is a recent [Rust](https://www.rust-lang.org/) toolchain. If you don't have one installed, follow the instructions at [rustup.rs](https://rustup.rs/).
-
-### Build process
-
-Once the dependency requirements are met:
-
-* Installing from [Crates.io](https://crates.io)
+Once [Cargo](https://doc.rust-lang.org/cargo/) is installed, run:
 
 ```bash
 cargo install ouch
-```
-
-* Cloning and building
-
-```bash
+# or 
 git clone https://github.com/vrmiguel/ouch
 cargo install --path ouch
 # or
+git clone https://github.com/vrmiguel/ouch
 cd ouch && cargo run --release
 ```
 
-I also recommend stripping the release binary. `ouch`'s release binary (at the time of writing) only takes up a megabyte in space when stripped.
-
 ## Supported operating systems
 
-`ouch` _should_ be cross-platform but is currently only tested (and developed) on Linux, on both x64-64 and ARM.
+`ouch` runs on Linux, macOS and Windows 10. Binaries are available on our [Releases](https://github.com/vrmiguel/ouch/releases) page.
+Binaries are also available at the end of each (successful) [GitHub Actions](https://github.com/vrmiguel/ouch/actions) run. 
+
+**Note on Windows**: colors are currently messed up on PowerShell but work fine on [ConEmu](https://conemu.github.io/). A feature for disabling colors is planned.
+
 
 ## Limitations
 
-`ouch` does encoding and decoding in-memory, so decompressing very large files with `ouch` is not advisable.
-
-## Contributions
-
-Any contributions and suggestions are welcome!
+`ouch` does encoding and decoding in-memory, so decompressing very large files with it is not advisable.
