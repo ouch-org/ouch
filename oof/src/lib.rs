@@ -8,13 +8,12 @@ mod flags;
 pub mod util;
 
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::BTreeMap,
     ffi::{OsStr, OsString},
-    str,
 };
 
 pub use error::OofError;
-pub use flags::FlagType;
+pub use flags::{ArgFlag, Flag, FlagType, Flags};
 use util::trim_double_hyphen;
 
 /// Pop leading application `subcommand`, if valid.
@@ -40,73 +39,6 @@ where
     }
 
     None
-}
-
-/// Shallow type, created to indicate a `Flag` that accepts a argument.
-///
-/// ArgFlag::long(), is actually a Flag::long(), but sets a internal attribute.
-///
-/// Examples in here pls
-pub struct ArgFlag;
-
-#[allow(clippy::new_ret_no_self)]
-impl ArgFlag {
-    pub fn long(name: &'static str) -> Flag {
-        Flag {
-            long: name,
-            short: None,
-            takes_value: true,
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct Flag {
-    // Also the name
-    pub long: &'static str,
-    pub short: Option<char>,
-    pub takes_value: bool,
-}
-
-impl Flag {
-    pub fn long(name: &'static str) -> Self {
-        Self {
-            long: name,
-            short: None,
-            takes_value: false,
-        }
-    }
-
-    pub fn short(mut self, short_flag_char: char) -> Self {
-        self.short = Some(short_flag_char);
-        self
-    }
-}
-
-#[derive(Default, Debug)]
-pub struct Flags {
-    pub boolean_flags: BTreeSet<&'static str>,
-    pub argument_flags: BTreeMap<&'static str, OsString>,
-}
-
-impl Flags {
-    pub fn new() -> Self {
-        Self::default()
-    }
-}
-
-impl Flags {
-    pub fn is_present(&self, flag_name: &str) -> bool {
-        self.boolean_flags.contains(flag_name) || self.argument_flags.contains_key(flag_name)
-    }
-
-    pub fn arg(&self, flag_name: &str) -> Option<&OsString> {
-        self.argument_flags.get(flag_name)
-    }
-
-    pub fn take_arg(&mut self, flag_name: &str) -> Option<OsString> {
-        self.argument_flags.remove(flag_name)
-    }
 }
 
 /// Detect flags from args and filter from args.
