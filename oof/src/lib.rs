@@ -212,6 +212,17 @@ pub fn filter_flags(
     Ok((new_args, result_flags))
 }
 
+/// Says if any text matches any arg
+pub fn matches_any_arg<T, U>(args: &[T], texts: &[U]) -> bool
+where
+    T: AsRef<OsStr>,
+    U: AsRef<str>,
+{
+    texts
+        .iter()
+        .any(|text| args.iter().any(|arg| arg.as_ref() == text.as_ref()))
+}
+
 #[cfg(test)]
 mod tests {
     use crate::*;
@@ -310,6 +321,28 @@ mod tests {
 
         // Should panic here
         filter_flags(vec![], &flags_info).unwrap_err();
+    }
+
+    #[test]
+    fn test_matches_any_arg_function() {
+        let args = gen_args("program a -h b");
+        assert!(matches_any_arg(&args, &["--help", "-h"]));
+
+        let args = gen_args("program a b --help");
+        assert!(matches_any_arg(&args, &["--help", "-h"]));
+
+        let args = gen_args("--version program a b");
+        assert!(matches_any_arg(&args, &["--version", "-v"]));
+
+        let args = gen_args("program -v a --version b");
+        assert!(matches_any_arg(&args, &["--version", "-v"]));
+
+        // Cases without it
+        let args = gen_args("program a b c");
+        assert!(!matches_any_arg(&args, &["--help", "-h"]));
+
+        let args = gen_args("program a --version -v b c");
+        assert!(!matches_any_arg(&args, &["--help", "-h"]));
     }
 }
 
