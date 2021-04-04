@@ -35,11 +35,11 @@ impl TarDecompressor {
             let mut file = file?;
 
             let file_path = PathBuf::from(into).join(file.path()?);
-            if file_path.exists() {
-                if !utils::permission_for_overwriting(&file_path, flags, &confirm)? {
-                    // The user does not want to overwrite the file
-                    continue;
-                }
+            if file_path.exists()
+                && !utils::permission_for_overwriting(&file_path, flags, &confirm)?
+            {
+                // The user does not want to overwrite the file
+                continue;
             }
 
             file.unpack_in(into)?;

@@ -59,7 +59,7 @@ pub(crate) fn get_destination_path(dest: &Option<File>) -> &Path {
     }
 }
 
-pub(crate) fn change_dir_and_return_parent(filename: &PathBuf) -> crate::Result<PathBuf> {
+pub(crate) fn change_dir_and_return_parent(filename: &Path) -> crate::Result<PathBuf> {
     let previous_location = env::current_dir()?;
 
     let parent = if let Some(parent) = filename.parent() {
@@ -73,7 +73,7 @@ pub(crate) fn change_dir_and_return_parent(filename: &PathBuf) -> crate::Result<
 }
 
 pub fn permission_for_overwriting(
-    path: &PathBuf,
+    path: &Path,
     flags: Flags,
     confirm: &Confirmation,
 ) -> crate::Result<bool> {
@@ -83,6 +83,6 @@ pub fn permission_for_overwriting(
         Flags::None => {}
     }
 
-    let file_path_str = &*path.as_path().to_string_lossy();
-    Ok(confirm.ask(Some(file_path_str))?)
+    let file_path_str = path.to_string_lossy();
+    confirm.ask(Some(&file_path_str))
 }

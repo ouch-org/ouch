@@ -162,11 +162,11 @@ impl Evaluator {
 
         // TODO: use -y and -n here
         let output_path = output.path.clone();
-        if output_path.exists() {
-            if !utils::permission_for_overwriting(&output_path, flags, &confirm)? {
-                // The user does not want to overwrite the file
-                return Ok(());
-            }
+        if output_path.exists()
+            && !utils::permission_for_overwriting(&output_path, flags, &confirm)?
+        {
+            // The user does not want to overwrite the file
+            return Ok(());
         }
 
         let bytes = match first_compressor {

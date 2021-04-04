@@ -11,7 +11,7 @@ use super::decompressor::{DecompressionResult, Decompressor};
 use crate::{cli::Flags, dialogs::Confirmation, file::File, utils};
 
 #[cfg(unix)]
-fn __unix_set_permissions(file_path: &PathBuf, file: &ZipFile) {
+fn __unix_set_permissions(file_path: &Path, file: &ZipFile) {
     use std::os::unix::fs::PermissionsExt;
 
     if let Some(mode) = file.unix_mode() {
@@ -52,11 +52,11 @@ impl ZipDecompressor {
             };
 
             let file_path = into.join(file_path);
-            if file_path.exists() {
-                if !utils::permission_for_overwriting(&file_path, flags, &confirm)? {
-                    // The user does not want to overwrite the file
-                    continue;
-                }
+            if file_path.exists()
+                && !utils::permission_for_overwriting(&file_path, flags, &confirm)?
+            {
+                // The user does not want to overwrite the file
+                continue;
             }
 
             Self::check_for_comments(&file);
