@@ -22,6 +22,9 @@ bzip2   = "0.4.2"
 flate2  = "1.0.14"
 zip     = "0.5.11"
 
+# Dependency from workspace
+oof = { path = "./oof" }
+
 [profile.release]
 lto = true
 codegen-units = 1

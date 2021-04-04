@@ -8,9 +8,9 @@ use std::{
 /// ArgFlag::long(), is actually a Flag::long(), but sets a internal attribute.
 ///
 /// Examples in here pls
+#[derive(Debug)]
 pub struct ArgFlag;
 
-#[allow(clippy::new_ret_no_self)]
 impl ArgFlag {
     pub fn long(name: &'static str) -> Flag {
         Flag {
@@ -44,7 +44,7 @@ impl Flag {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, PartialEq, Eq, Debug)]
 pub struct Flags {
     pub boolean_flags: BTreeSet<&'static str>,
     pub argument_flags: BTreeMap<&'static str, OsString>,
@@ -70,6 +70,7 @@ impl Flags {
     }
 }
 
+#[derive(Debug)]
 pub enum FlagType {
     None,
     Short,

@@ -20,7 +20,6 @@ fn main() {
 }
 
 fn run() -> crate::Result<()> {
-    let matches = cli::get_matches();
-    let (command, flags) = cli::parse_matches(matches)?;
-    Evaluator::evaluate(command, flags)
+    let command = cli::parse_args_and_flags()?;
+    Evaluator::evaluate(command)
 }
