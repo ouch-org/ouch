@@ -1,0 +1,9 @@
+[package]
+name = "oof"
+version = "0.1.0"
+authors = ["João M. Bezerra <marcospb19@hotmail.com>"]
+edition = "2018"
+description = "Ouch's argparsing library"
+repository = "https://github.com/vrmiguel/ouch"
+
+[dependencies]
