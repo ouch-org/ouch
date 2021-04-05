@@ -4,28 +4,33 @@ version = "0.1.4"
 authors = ["Vinícius Rodrigues Miguel <vrmiguel99@gmail.com>", "João M. Bezerra <marcospb19@hotmail.com>"]
 edition = "2018"
 readme = "README.md"
-homepage = "https://github.com/vrmiguel/ouch"
 repository = "https://github.com/vrmiguel/ouch"
 license = "MIT"
 keywords = ["decompression", "compression", "zip", "tar", "gzip"]
 categories = ["command-line-utilities", "compression", "encoding"]
 description = "A command-line utility for easily compressing and decompressing files and directories."
 
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 colored = "2.0.0"
 walkdir = "2.3.2"
-clap    = "2.33.3"
 tar     = "0.4.33"
 xz2     = "0.1.6"
 bzip2   = "0.4.2"
 flate2  = "1.0.14"
 zip     = "0.5.11"
 
+# Dependency from workspace
+oof = { path = "./oof" }
 
 [profile.release]
 lto = true
 codegen-units = 1
 opt-level = 3
+
+[workspace]
+members = [
+    ".",
+    "oof",
+]

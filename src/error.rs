@@ -15,10 +15,10 @@ pub enum Error {
     InvalidZipArchive(&'static str),
     PermissionDenied,
     UnsupportedZipArchive(&'static str),
-    InputsMustHaveBeenDecompressible(PathBuf),
+    // InputsMustBeDecompressible(PathBuf),
     InternalError,
     CompressingRootFolder,
-    WalkdirError
+    WalkdirError,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -44,11 +44,11 @@ impl fmt::Display for Error {
                 write!(f, "{} ", "[ERROR]".red())?;
                 write!(f, "cannot compress to \'{}\', likely because it has an unsupported (or missing) extension.", filename)
             }
-            Error::InputsMustHaveBeenDecompressible(file) => {
-                write!(f, "{} ", "[ERROR]".red())?;
-                write!(f, "file '{:?}' is not decompressible", file)
-            }
-            Error::WalkdirError => {                
+            // Error::InputsMustBeDecompressible(file) => {
+            //     write!(f, "{} ", "[ERROR]".red())?;
+            //     write!(f, "file '{:?}' is not decompressible", file)
+            // }
+            Error::WalkdirError => {
                 // Already printed in the From block
                 write!(f, "")
             }
@@ -61,8 +61,17 @@ impl fmt::Display for Error {
                 write!(f, "{} ", "[ERROR]".red())?;
                 let spacing = "        ";
                 writeln!(f, "It seems you're trying to compress the root folder.")?;
-                writeln!(f, "{}This is unadvisable since ouch does compressions in-memory.", spacing)?;
-                write!(f, "{}Use a more appropriate tool for this, such as {}.", spacing, "rsync".green())
+                writeln!(
+                    f,
+                    "{}This is unadvisable since ouch does compressions in-memory.",
+                    spacing
+                )?;
+                write!(
+                    f,
+                    "{}Use a more appropriate tool for this, such as {}.",
+                    spacing,
+                    "rsync".green()
+                )
             }
             Error::InternalError => {
                 write!(f, "{} ", "[ERROR]".red())?;
@@ -79,7 +88,7 @@ impl fmt::Display for Error {
 impl From<std::io::Error> for Error {
     fn from(err: std::io::Error) -> Self {
         match err.kind() {
-            std::io::ErrorKind::NotFound => Self::FileNotFound("".into()),
+            std::io::ErrorKind::NotFound => panic!("{}", err),
             std::io::ErrorKind::PermissionDenied => Self::PermissionDenied,
             std::io::ErrorKind::AlreadyExists => Self::AlreadyExists,
             _other => {
@@ -106,5 +115,11 @@ impl From<walkdir::Error> for Error {
     fn from(err: walkdir::Error) -> Self {
         eprintln!("{} {}", "[ERROR]".red(), err);
         Self::WalkdirError
+    }
+}
+
+impl From<oof::OofError> for Error {
+    fn from(_err: oof::OofError) -> Self {
+        todo!("We need to implement this properly");
     }
 }

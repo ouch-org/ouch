@@ -1,11 +1,13 @@
 use std::{
-    env, fs,
+    env,
+    ffi::OsStr,
+    fs,
     path::{Path, PathBuf},
 };
 
 use colored::Colorize;
 
-use crate::{cli::Flags, dialogs::Confirmation, extension::CompressionFormat, file::File};
+use crate::{dialogs::Confirmation, extension::CompressionFormat, file::File};
 
 pub(crate) fn ensure_exists<'a, P>(path: P) -> crate::Result<()>
 where
@@ -47,19 +49,18 @@ pub(crate) fn create_path_if_non_existent(path: &Path) -> crate::Result<()> {
     Ok(())
 }
 
-pub(crate) fn get_destination_path(dest: &Option<File>) -> &Path {
+pub(crate) fn get_destination_path<'a>(dest: &'a Option<File>) -> &'a Path {
     match dest {
-        Some(output) => {
+        Some(output_file) => {
             // Must be None according to the way command-line arg. parsing in Ouch works
-            assert_eq!(output.extension, None);
-
-            Path::new(&output.path)
+            assert_eq!(output_file.extension, None);
+            Path::new(&output_file.path)
         }
         None => Path::new("."),
     }
 }
 
-pub(crate) fn change_dir_and_return_parent(filename: &PathBuf) -> crate::Result<PathBuf> {
+pub(crate) fn change_dir_and_return_parent(filename: &Path) -> crate::Result<PathBuf> {
     let previous_location = env::current_dir()?;
 
     let parent = if let Some(parent) = filename.parent() {
@@ -68,21 +69,30 @@ pub(crate) fn change_dir_and_return_parent(filename: &PathBuf) -> crate::Result<
         return Err(crate::Error::CompressingRootFolder);
     };
 
-    env::set_current_dir(parent)?;
+    env::set_current_dir(parent).unwrap();
+
     Ok(previous_location)
 }
 
 pub fn permission_for_overwriting(
-    path: &PathBuf,
-    flags: Flags,
+    path: &Path,
+    flags: &oof::Flags,
     confirm: &Confirmation,
 ) -> crate::Result<bool> {
-    match flags {
-        Flags::AlwaysYes => return Ok(true),
-        Flags::AlwaysNo => return Ok(false),
-        Flags::None => {}
+    match (flags.is_present("yes"), flags.is_present("false")) {
+        (true, true) => {
+            unreachable!("This shoul've been cutted out in the ~/src/cli.rs filter flags function.")
+        }
+        (true, _) => return Ok(true),
+        (_, true) => return Ok(false),
+        _ => {}
     }
 
-    let file_path_str = &*path.as_path().to_string_lossy();
-    Ok(confirm.ask(Some(file_path_str))?)
+    let file_path_str = to_utf(path);
+    confirm.ask(Some(&file_path_str))
+}
+
+pub fn to_utf(os_str: impl AsRef<OsStr>) -> String {
+    let text = format!("{:?}", os_str.as_ref());
+    text.trim_matches('"').to_string()
 }

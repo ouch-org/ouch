@@ -1,11 +1,11 @@
-use std::path::PathBuf;
+use std::path::Path;
 
 use crate::extension::Extension;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct File {
+pub struct File<'a> {
     /// File's (relative) path
-    pub path: PathBuf,
+    pub path: &'a Path,
     /// The bytes that compose the file.
     /// Only used when the whole file is kept in-memory
     pub contents_in_memory: Option<Vec<u8>>,
@@ -17,12 +17,15 @@ pub struct File {
     pub extension: Option<Extension>,
 }
 
-impl From<(PathBuf, Extension)> for File {
-    fn from((path, format): (PathBuf, Extension)) -> Self {
-        Self {
+impl<'a> File<'a> {
+    pub fn from(path: &'a Path) -> crate::Result<Self> {
+        let extension = Extension::from(path.as_ref())?;
+        eprintln!("dev warning: Should we really ignore the errors from the convertion above?");
+
+        Ok(File {
             path,
             contents_in_memory: None,
-            extension: Some(format),
-        }
+            extension: Some(extension),
+        })
     }
 }

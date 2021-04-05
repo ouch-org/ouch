@@ -5,8 +5,7 @@ use tar::Builder;
 use walkdir::WalkDir;
 
 use super::compressor::Entry;
-use crate::utils;
-use crate::{compressors::Compressor, file::File};
+use crate::{compressors::Compressor, file::File, utils};
 
 pub struct TarCompressor {}
 

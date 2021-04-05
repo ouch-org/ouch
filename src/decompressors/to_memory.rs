@@ -6,7 +6,7 @@ use std::{
 use colored::Colorize;
 
 use super::decompressor::{DecompressionResult, Decompressor};
-use crate::{cli::Flags, utils};
+use crate::utils;
 // use niffler;
 use crate::{extension::CompressionFormat, file::File};
 
@@ -28,8 +28,8 @@ fn get_decoder<'a>(
 }
 
 impl DecompressorToMemory {
-    fn unpack_file(from: &Path, format: CompressionFormat) -> crate::Result<Vec<u8>> {
-        let file = std::fs::read(from)?;
+    fn unpack_file(path: &Path, format: CompressionFormat) -> crate::Result<Vec<u8>> {
+        let file = std::fs::read(path)?;
 
         let mut reader = get_decoder(format, Box::new(&file[..]));
 
@@ -39,7 +39,7 @@ impl DecompressorToMemory {
         println!(
             "{}: {:?} extracted into memory ({} bytes).",
             "info".yellow(),
-            from,
+            path,
             bytes_read
         );
 
@@ -66,7 +66,7 @@ impl Decompressor for GzipDecompressor {
         &self,
         from: File,
         into: &Option<File>,
-        _: Flags,
+        _: &oof::Flags,
     ) -> crate::Result<DecompressionResult> {
         DecompressorToMemory::decompress(from, CompressionFormat::Gzip, into)
     }
@@ -77,7 +77,7 @@ impl Decompressor for BzipDecompressor {
         &self,
         from: File,
         into: &Option<File>,
-        _: Flags,
+        _: &oof::Flags,
     ) -> crate::Result<DecompressionResult> {
         DecompressorToMemory::decompress(from, CompressionFormat::Bzip, into)
     }
@@ -88,7 +88,7 @@ impl Decompressor for LzmaDecompressor {
         &self,
         from: File,
         into: &Option<File>,
-        _: Flags,
+        _: &oof::Flags,
     ) -> crate::Result<DecompressionResult> {
         DecompressorToMemory::decompress(from, CompressionFormat::Lzma, into)
     }
