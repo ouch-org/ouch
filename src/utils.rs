@@ -83,6 +83,11 @@ pub fn permission_for_overwriting(
         Flags::None => {}
     }
 
-    let file_path_str = path.to_string_lossy();
+    let file_path_str = to_utf(path);
     confirm.ask(Some(&file_path_str))
+}
+
+pub fn to_utf(os_str: impl AsRef<OsStr>) -> String {
+    let text = format!("{:?}", os_str.as_ref());
+    text.trim_matches('"').to_string()
 }
