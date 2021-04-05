@@ -5,6 +5,7 @@ pub fn trim_double_hyphen(flag_text: &str) -> &str {
     chars.as_str()
 }
 
+// Currently unused
 /// Util function to skip the single leading short flag hyphen.
 pub fn trim_single_hyphen(flag_text: &str) -> &str {
     let mut chars = flag_text.chars();
