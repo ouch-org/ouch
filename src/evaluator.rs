@@ -19,7 +19,8 @@ use crate::{
     dialogs::Confirmation, 
     extension::{CompressionFormat, Extension}, 
     file::File, 
-    utils
+    utils,
+    debug
 };
 
 pub struct Evaluator {}
@@ -213,7 +214,7 @@ impl Evaluator {
         output: Option<&Path>,
         flags: &oof::Flags,
     ) -> crate::Result<()> {        
-        let file = File::from(file_path)?;
+        let file = debug!(File::from(file_path)?);
         let output = match output {
             Some(inner) => Some(File::from(inner)?),
             None => None,

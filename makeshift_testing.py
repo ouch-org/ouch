@@ -12,9 +12,9 @@ def make_random_file():
 def sanity_check_format(format: str):
 	make_random_file()
 	md5sum = hashlib.md5(open('test-file', 'rb').read()).hexdigest()
-	os.system(f"cargo run -- -i test-file -o test-file.{format}")
+	os.system(f"cargo run -- compress test-file test-file.{format}")
 	os.remove('test-file')
-	os.system(f"cargo run -- -i test-file.{format}")
+	os.system(f"cargo run -- test-file.{format}")
 	if md5sum != hashlib.md5(open('test-file', 'rb').read()).hexdigest():
 		print("Something went wrong with tar (de)compression.")
 		os._exit(2)
@@ -81,16 +81,16 @@ if __name__ == "__main__":
 			print(f"Failed while decompressing {file}")		
 			os._exit(2)
 
-	# os.chdir("..")
-	# os.system("rm -rf testbuilds")
+	os.chdir("..")
+	os.system("rm -rf testbuilds")
 
-	# # We'll now verify if ouch is not altering the data it is compressing
-	# # and decompressing
+	# We'll now verify if ouch is not altering the data it is compressing
+	# and decompressing
 
-	# sanity_check_format("zip")
-	# sanity_check_format("tar")
-	# sanity_check_format("tar.gz")
-	# sanity_check_format("tar.bz")
-	# sanity_check_format("tar.bz2")
-	# sanity_check_format("tar.lz")
-	# sanity_check_format("tar.lzma")
+	sanity_check_format("zip")
+	sanity_check_format("tar")
+	sanity_check_format("tar.gz")
+	sanity_check_format("tar.bz")
+	sanity_check_format("tar.bz2")
+	sanity_check_format("tar.lz")
+	sanity_check_format("tar.lzma")
