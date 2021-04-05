@@ -1,4 +1,8 @@
-use std::{ffi::OsStr, fs, io::Write, path::PathBuf};
+use std::{
+    fs,
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 use colored::Colorize;
 
@@ -20,10 +24,13 @@ use crate::{
 
 pub struct Evaluator {}
 
+type BoxedCompressor = Box<dyn Compressor>;
+type BoxedDecompressor = Box<dyn Decompressor>;
+
 impl Evaluator {
     pub fn get_compressor(
         file: &File,
-    ) -> crate::Result<(Option<Box<dyn Compressor>>, Box<dyn Compressor>)> {
+    ) -> crate::Result<(Option<BoxedCompressor>, BoxedCompressor)> {
         let extension = match &file.extension {
             Some(extension) => extension.clone(),
             None => {
@@ -65,7 +72,7 @@ impl Evaluator {
 
     pub fn get_decompressor(
         file: &File,
-    ) -> crate::Result<(Option<Box<dyn Decompressor>>, Box<dyn Decompressor>)> {
+    ) -> crate::Result<(Option<BoxedDecompressor>, BoxedDecompressor)> {
         let extension = match &file.extension {
             Some(extension) => extension.clone(),
             None => {
@@ -100,24 +107,25 @@ impl Evaluator {
 
     fn decompress_file_in_memory(
         bytes: Vec<u8>,
-        file_path: PathBuf,
+        file_path: &Path,
         decompressor: Option<Box<dyn Decompressor>>,
-        output_file: &Option<File>,
+        output_file: Option<File>,
         extension: Option<Extension>,
-        flags: Flags,
+        flags: &oof::Flags,
     ) -> crate::Result<()> {
-        let output_file_path = utils::get_destination_path(output_file);
+        let output_file_path = utils::get_destination_path(&output_file);
 
-        let mut filename = file_path
+        let file_name = file_path
             .file_stem()
-            .unwrap_or_else(|| output_file_path.as_os_str());
+            .map(Path::new)
+            .unwrap_or(output_file_path);
 
-        if filename == "." {
+        if "." == file_name.as_os_str() {
             // I believe this is only possible when the supplied input has a name
             // of the sort `.tar` or `.zip' and no output has been supplied.
-            filename = OsStr::new("ouch-output");
+            // file_name = OsStr::new("ouch-output");
+            todo!("Pending review, what is this supposed to do??");
         }
-        let filename = PathBuf::from(filename);
 
         // If there is a decompressor to use, we'll create a file in-memory and decompress it
         let decompressor = match decompressor {
@@ -125,43 +133,47 @@ impl Evaluator {
             None => {
                 // There is no more processing to be done on the input file (or there is but currently unsupported)
                 // Therefore, we'll save what we have in memory into a file.
-                println!("{}: saving to {:?}.", "info".yellow(), filename);
+                println!("{}: saving to {:?}.", "info".yellow(), file_name);
 
-                if filename.exists() {
+                if file_name.exists() {
                     let confirm =
                         Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE"));
-                    if !utils::permission_for_overwriting(&filename, flags, &confirm)? {
+                    if !utils::permission_for_overwriting(&file_name, flags, &confirm)? {
                         return Ok(());
                     }
                 }
 
-                let mut f = fs::File::create(output_file_path.join(filename))?;
+                let mut f = fs::File::create(output_file_path.join(file_name))?;
                 f.write_all(&bytes)?;
                 return Ok(());
             }
         };
 
         let file = File {
-            path: filename,
+            path: file_name,
             contents_in_memory: Some(bytes),
             extension,
         };
 
-        let decompression_result = decompressor.decompress(file, output_file, flags)?;
+        let decompression_result = decompressor.decompress(file, &output_file, flags)?;
         if let DecompressionResult::FileInMemory(_) = decompression_result {
-            // Should not be reachable.
-            unreachable!();
+            unreachable!("Shouldn't");
         }
 
         Ok(())
     }
 
-    fn compress_files(files: Vec<PathBuf>, mut output: File, flags: Flags) -> crate::Result<()> {
+    fn compress_files(
+        files: Vec<PathBuf>,
+        output_path: &Path,
+        flags: &oof::Flags,
+    ) -> crate::Result<()> {
+        let mut output = File::from(output_path)?;
+
         let confirm = Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE"));
         let (first_compressor, second_compressor) = Self::get_compressor(&output)?;
 
         // TODO: use -y and -n here
-        let output_path = output.path.clone();
         if output_path.exists()
             && !utils::permission_for_overwriting(&output_path, flags, &confirm)?
         {
@@ -187,7 +199,7 @@ impl Evaluator {
         println!(
             "{}: writing to {:?}. ({} bytes)",
             "info".yellow(),
-            &output_path,
+            output_path,
             bytes.len()
         );
         fs::write(output_path, bytes)?;
@@ -195,13 +207,21 @@ impl Evaluator {
         Ok(())
     }
 
-    fn decompress_file(file: File, output: &Option<File>, flags: Flags) -> crate::Result<()> {
+    fn decompress_file(
+        file_path: &Path,
+        output: Option<&Path>,
+        flags: &oof::Flags,
+    ) -> crate::Result<()> {
+        let file = File::from(file_path)?;
+        let output = match output {
+            Some(inner) => Some(File::from(inner)?),
+            None => None,
+        };
         let (first_decompressor, second_decompressor) = Self::get_decompressor(&file)?;
 
-        let file_path = file.path.clone();
         let extension = file.extension.clone();
 
-        let decompression_result = second_decompressor.decompress(file, output, flags)?;
+        let decompression_result = second_decompressor.decompress(file, &output, &flags)?;
 
         match decompression_result {
             DecompressionResult::FileInMemory(bytes) => {
@@ -230,43 +250,24 @@ impl Evaluator {
         Ok(())
     }
 
-    pub fn evaluate(command: Command) -> crate::Result<()> {
-        // Compress {
-        //     files: Vec<PathBuf>,
-        //     flags: oof::Flags,
-        // },
-        // /// Files to be decompressed and their extensions
-        // Decompress {
-        //     files: Vec<PathBuf>,
-        //     output_folder: Option<PathBuf>,
-        //     flags: oof::Flags,
-        // },
-        // ShowHelp,
-        // ShowVersion,
+    pub fn evaluate(command: Command, flags: &oof::Flags) -> crate::Result<()> {
         match command {
-            Command::Compress { files, flags } => {}
+            Command::Compress {
+                files,
+                compressed_output_path,
+            } => Self::compress_files(files, &compressed_output_path, flags)?,
             Command::Decompress {
                 files,
                 output_folder,
-                flags,
             } => {
-                // for file in files { decompress }
-            }
-            Command::ShowHelp => todo!(),
-            Command::ShowVersion => todo!(),
-        }
-
-        match command.kind {
-            CommandKind::Compression(files_to_compress) => {
-                // Safe to unwrap since output is mandatory for compression
-                let output = output.unwrap();
-                Self::compress_files(files_to_compress, output, flags)?;
-            }
-            CommandKind::Decompression(files_to_decompress) => {
-                for file in files_to_decompress {
-                    Self::decompress_file(file, &output, flags)?;
+                // From Option<PathBuf> to Option<&Path>
+                let output_folder = output_folder.as_ref().map(|path| Path::new(path));
+                for file in files.iter() {
+                    Self::decompress_file(file, output_folder, flags)?;
                 }
             }
+            Command::ShowHelp => todo!("call help function"),
+            Command::ShowVersion => todo!("call version function"),
         }
         Ok(())
     }

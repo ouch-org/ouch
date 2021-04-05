@@ -8,7 +8,7 @@ use colored::Colorize;
 use zip::{self, read::ZipFile, ZipArchive};
 
 use super::decompressor::{DecompressionResult, Decompressor};
-use crate::{cli::Flags, dialogs::Confirmation, file::File, utils};
+use crate::{dialogs::Confirmation, file::File, utils};
 
 #[cfg(unix)]
 fn __unix_set_permissions(file_path: &Path, file: &ZipFile) {
@@ -34,13 +34,13 @@ impl ZipDecompressor {
         }
     }
 
-    pub fn zip_decompress<T>(
-        archive: &mut ZipArchive<T>,
+    pub fn zip_decompress<R>(
+        archive: &mut ZipArchive<R>,
         into: &Path,
-        flags: Flags,
+        flags: &oof::Flags,
     ) -> crate::Result<Vec<PathBuf>>
     where
-        T: Read + Seek,
+        R: Read + Seek,
     {
         let confirm = Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE"));
         let mut unpacked_files = vec![];
@@ -94,7 +94,7 @@ impl ZipDecompressor {
         Ok(unpacked_files)
     }
 
-    fn unpack_files(from: File, into: &Path, flags: Flags) -> crate::Result<Vec<PathBuf>> {
+    fn unpack_files(from: File, into: &Path, flags: &oof::Flags) -> crate::Result<Vec<PathBuf>> {
         println!("{} decompressing {:?}", "[OUCH]".bright_blue(), &from.path);
 
         match from.contents_in_memory {
@@ -119,7 +119,7 @@ impl Decompressor for ZipDecompressor {
         &self,
         from: File,
         into: &Option<File>,
-        flags: Flags,
+        flags: &oof::Flags,
     ) -> crate::Result<DecompressionResult> {
         let destination_path = utils::get_destination_path(into);
 

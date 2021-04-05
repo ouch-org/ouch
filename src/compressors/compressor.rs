@@ -8,9 +8,9 @@ use crate::file::File;
 //     FileInMemory(Vec<u8>)
 // }
 
-pub enum Entry {
+pub enum Entry<'a> {
     Files(Vec<PathBuf>),
-    InMemory(File),
+    InMemory(File<'a>),
 }
 
 pub trait Compressor {

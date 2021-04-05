@@ -12,6 +12,8 @@ mod utils;
 use error::{Error, Result};
 use evaluator::Evaluator;
 
+use crate::cli::ParsedArgs;
+
 fn main() {
     if let Err(err) = run() {
         println!("{}", err);
@@ -20,6 +22,7 @@ fn main() {
 }
 
 fn run() -> crate::Result<()> {
-    let command = cli::parse_args_and_flags()?;
-    Evaluator::evaluate(command)
+    let ParsedArgs { command, flags } = cli::parse_args()?;
+    dbg!(&command);
+    Evaluator::evaluate(command, &flags)
 }

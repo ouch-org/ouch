@@ -15,7 +15,7 @@ pub enum Error {
     InvalidZipArchive(&'static str),
     PermissionDenied,
     UnsupportedZipArchive(&'static str),
-    InputsMustHaveBeenDecompressible(PathBuf),
+    // InputsMustBeDecompressible(PathBuf),
     InternalError,
     CompressingRootFolder,
     WalkdirError,
@@ -44,10 +44,10 @@ impl fmt::Display for Error {
                 write!(f, "{} ", "[ERROR]".red())?;
                 write!(f, "cannot compress to \'{}\', likely because it has an unsupported (or missing) extension.", filename)
             }
-            Error::InputsMustHaveBeenDecompressible(file) => {
-                write!(f, "{} ", "[ERROR]".red())?;
-                write!(f, "file '{:?}' is not decompressible", file)
-            }
+            // Error::InputsMustBeDecompressible(file) => {
+            //     write!(f, "{} ", "[ERROR]".red())?;
+            //     write!(f, "file '{:?}' is not decompressible", file)
+            // }
             Error::WalkdirError => {
                 // Already printed in the From block
                 write!(f, "")
@@ -88,7 +88,7 @@ impl fmt::Display for Error {
 impl From<std::io::Error> for Error {
     fn from(err: std::io::Error) -> Self {
         match err.kind() {
-            std::io::ErrorKind::NotFound => Self::FileNotFound("".into()),
+            std::io::ErrorKind::NotFound => panic!("{}", err),
             std::io::ErrorKind::PermissionDenied => Self::PermissionDenied,
             std::io::ErrorKind::AlreadyExists => Self::AlreadyExists,
             _other => {
@@ -119,7 +119,7 @@ impl From<walkdir::Error> for Error {
 }
 
 impl From<oof::OofError> for Error {
-    fn from(err: oof::OofError) -> Self {
+    fn from(_err: oof::OofError) -> Self {
         todo!("We need to implement this properly");
     }
 }
