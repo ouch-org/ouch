@@ -68,7 +68,9 @@ impl ZipCompressor {
                 if entry_path.is_dir() {
                     continue;
                 }
+                
                 writer.start_file(entry_path.to_string_lossy(), options)?;
+                println!("Compressing {:?}", entry_path);
                 let file_bytes = std::fs::read(entry.path())?;
                 writer.write_all(&*file_bytes)?;
             }

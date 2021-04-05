@@ -14,7 +14,7 @@ use crate::{dialogs::Confirmation, file::File, utils};
 pub struct TarDecompressor {}
 
 impl TarDecompressor {
-    fn unpack_files(from: File, into: &Path, flags: &oof::Flags) -> crate::Result<Vec<PathBuf>> {
+    fn unpack_files(from: File, into: &Path, flags: &oof::Flags) -> crate::Result<Vec<PathBuf>> {        
         println!(
             "{}: attempting to decompress {:?}",
             "ouch".bright_blue(),

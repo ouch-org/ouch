@@ -7,19 +7,19 @@ use std::{
 use colored::Colorize;
 
 use crate::{
-    cli::Command,
+    cli::{VERSION, Command},
     compressors::{
-        BzipCompressor, Compressor, Entry, GzipCompressor, LzmaCompressor, TarCompressor,
+        Entry, Compressor, BzipCompressor, GzipCompressor, LzmaCompressor, TarCompressor,
         ZipCompressor,
     },
     decompressors::{
         BzipDecompressor, DecompressionResult, Decompressor, GzipDecompressor, LzmaDecompressor,
         TarDecompressor, ZipDecompressor,
-    },
-    dialogs::Confirmation,
-    extension::{CompressionFormat, Extension},
-    file::File,
-    utils,
+    }, 
+    dialogs::Confirmation, 
+    extension::{CompressionFormat, Extension}, 
+    file::File, 
+    utils
 };
 
 pub struct Evaluator {}
@@ -31,6 +31,7 @@ impl Evaluator {
     pub fn get_compressor(
         file: &File,
     ) -> crate::Result<(Option<BoxedCompressor>, BoxedCompressor)> {
+        
         let extension = match &file.extension {
             Some(extension) => extension.clone(),
             None => {
@@ -211,7 +212,7 @@ impl Evaluator {
         file_path: &Path,
         output: Option<&Path>,
         flags: &oof::Flags,
-    ) -> crate::Result<()> {
+    ) -> crate::Result<()> {        
         let file = File::from(file_path)?;
         let output = match output {
             Some(inner) => Some(File::from(inner)?),
@@ -266,9 +267,25 @@ impl Evaluator {
                     Self::decompress_file(file, output_folder, flags)?;
                 }
             }
-            Command::ShowHelp => todo!("call help function"),
-            Command::ShowVersion => todo!("call version function"),
+            Command::ShowHelp => help_message(),
+            Command::ShowVersion => version_message(),
         }
         Ok(())
     }
+}
+
+#[inline]
+fn version_message() {
+    println!("ouch {}", VERSION);
+}
+
+fn help_message() {
+    version_message();
+    println!("Vinícius R. M. & João M. Bezerra");
+    println!("ouch is a unified compression & decompression utility");
+    println!();
+    println!(" COMPRESSION USAGE:");
+    println!("    ouch compress <input...> output-file");
+    println!("DECOMPRESSION USAGE:");
+    println!("    ouch <input> [-o/--output output-folder]");
 }
