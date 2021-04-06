@@ -3,6 +3,44 @@ on: [push, pull_request]
 name: build-and-test
 
 jobs:
+  armv7:
+    name: Ubuntu 18.04 (for ARMv7)
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: armv7-unknown-linux-gnueabihf
+          override: true
+
+      - name: Install binutils-arm-none-eabi
+        run: |
+          sudo apt-get update
+          sudo apt-get install binutils-arm-none-eabi
+      
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --target=armv7-unknown-linux-gnueabihf
+
+      - name: Run cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: test
+          args: --target=armv7-unknown-linux-gnueabihf
+          
+      - name: Strip binary
+        run: arm-none-eabi-strip target/armv7-unknown-linux-gnueabihf/release/ouch
+          
+      - name: Upload binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: 'ouch-linux-armv7-glibc'
+          path: target/armv7-unknown-linux-gnueabihf/release/ouch
+          
   ubuntu:
     name: Ubuntu 18.04
     runs-on: ubuntu-18.04
@@ -35,6 +73,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
+          args: --target x86_64-unknown-linux-musl
 
       - name: Strip binary
         run: strip target/x86_64-unknown-linux-musl/release/ouch
@@ -42,7 +81,7 @@ jobs:
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
-          name: 'ouch-linux-musl'
+          name: 'ouch-linux-x86-64-musl'
           path: target/x86_64-unknown-linux-musl/release/ouch
 
   macos:
