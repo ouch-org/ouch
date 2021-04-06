@@ -91,7 +91,7 @@ impl FlagType {
         #[cfg(target_family = "windows")]
         {
             use std::os::windows::ffi::OsStrExt;
-            iter = text.encode_wide
+            iter = text.encode_wide();
         }
 
         // 45 is the code for a hyphen
