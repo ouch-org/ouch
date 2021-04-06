@@ -8,7 +8,7 @@ use colored::Colorize;
 use tar::{self, Archive};
 
 use super::decompressor::{DecompressionResult, Decompressor};
-use crate::{dialogs::Confirmation, file::File, utils};
+use crate::{dialogs::Confirmation, file::File, bytes::Bytes, utils};
 
 #[derive(Debug)]
 pub struct TarDecompressor {}
@@ -45,10 +45,10 @@ impl TarDecompressor {
             file.unpack_in(into)?;
 
             println!(
-                "{}: {:?} extracted. ({} bytes)",
+                "{}: {:?} extracted. ({})",
                 "info".yellow(),
                 into.join(file.path()?),
-                file.size()
+                Bytes::new(file.size())
             );
 
             let file_path = fs::canonicalize(file_path)?;

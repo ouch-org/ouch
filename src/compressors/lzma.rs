@@ -6,6 +6,7 @@ use super::{Compressor, Entry};
 use crate::{
     extension::CompressionFormat,
     file::File,
+    bytes::Bytes,
     utils::{check_for_multiple_files, ensure_exists},
 };
 
@@ -27,10 +28,10 @@ impl LzmaCompressor {
         };
 
         println!(
-            "{}: compressed {:?} into memory ({} bytes)",
+            "{}: compressed {:?} into memory ({})",
             "info".yellow(),
             &path,
-            bytes.len()
+            Bytes::new(bytes.len() as u64)
         );
 
         Ok(bytes)

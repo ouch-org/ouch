@@ -7,7 +7,7 @@ use colored::Colorize;
 
 use super::decompressor::{DecompressionResult, Decompressor};
 use crate::utils;
-// use niffler;
+use crate::bytes::Bytes;
 use crate::{extension::CompressionFormat, file::File};
 
 struct DecompressorToMemory {}
@@ -37,10 +37,10 @@ impl DecompressorToMemory {
         let bytes_read = reader.read_to_end(&mut buffer)?;
 
         println!(
-            "{}: {:?} extracted into memory ({} bytes).",
+            "{}: {:?} extracted into memory ({}).",
             "info".yellow(),
             path,
-            bytes_read
+            Bytes::new(bytes_read as u64)
         );
 
         Ok(buffer)

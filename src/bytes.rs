@@ -2,7 +2,7 @@ use std::cmp;
 
 const UNITS: [&str; 4] = ["B", "kB", "MB", "GB"];
 
-struct Bytes {
+pub struct Bytes {
     bytes: f64,
 }
 
