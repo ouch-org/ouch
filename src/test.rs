@@ -87,28 +87,39 @@ mod argparsing {
 
     #[test]
     fn test_arg_parsing_decompress_subcommand() -> crate::Result<()> {
-        let files = vec!["a", "b", "c"];
+        let files = vec!["d", "e", "f"];
         make_dummy_files(&*files)?;
-        let files: Vec<_> = ["a", "b", "c"].iter().map(PathBuf::from).collect();
+        
+        let files: Vec<_> = files.iter().map(PathBuf::from).collect();
 
         let expected = Command::Decompress {
-            files: files.iter().filter_map(|p| fs::canonicalize(p).ok()).collect(),
+            files: files
+                .iter()
+                .map(fs::canonicalize)
+                .map(Result::unwrap)
+                .collect(),
             output_folder: None,
         };
-        assert_eq!(expected, parse!("a b c").command);
+        
+        assert_eq!(expected, parse!("d e f").command);
 
         let expected = Command::Decompress {
             files: files.iter().map(fs::canonicalize).map(Result::unwrap).collect(),
             output_folder: Some("folder".into()),
         };
-        assert_eq!(expected, parse!("a b c --output folder").command);
-        assert_eq!(expected, parse!("a b --output folder c").command);
-        assert_eq!(expected, parse!("a --output folder b c").command);
-        assert_eq!(expected, parse!("--output folder a b c").command);
+        assert_eq!(expected, parse!("d e f --output folder").command);
+        assert_eq!(expected, parse!("d e --output folder f").command);
+        assert_eq!(expected, parse!("d --output folder e f").command);
+        assert_eq!(expected, parse!("--output folder d e f").command);
 
-        fs::remove_file("a")?;
-        fs::remove_file("b")?;
-        fs::remove_file("c")?;
+        assert_eq!(expected, parse!("d e f -o folder").command);
+        assert_eq!(expected, parse!("d e -o folder f").command);
+        assert_eq!(expected, parse!("d -o folder e f").command);
+        assert_eq!(expected, parse!("-o folder d e f").command);
+
+        fs::remove_file("d")?;
+        fs::remove_file("e")?;
+        fs::remove_file("f")?;
         Ok(())
     }
 }
