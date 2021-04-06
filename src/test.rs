@@ -86,23 +86,30 @@ mod argparsing {
     }
 
     #[test]
-    fn test_arg_parsing_decompress_subcommand() {
+    fn test_arg_parsing_decompress_subcommand() -> crate::Result<()> {
+        let files = vec!["a", "b", "c"];
+        make_dummy_files(&*files)?;
         let files: Vec<_> = ["a", "b", "c"].iter().map(PathBuf::from).collect();
 
         let expected = Command::Decompress {
-            files: files.clone(),
+            files: files.iter().filter_map(|p| fs::canonicalize(p).ok()).collect(),
             output_folder: None,
         };
         assert_eq!(expected, parse!("a b c").command);
 
         let expected = Command::Decompress {
-            files,
+            files: files.iter().map(fs::canonicalize).map(Result::unwrap).collect(),
             output_folder: Some("folder".into()),
         };
         assert_eq!(expected, parse!("a b c --output folder").command);
         assert_eq!(expected, parse!("a b --output folder c").command);
         assert_eq!(expected, parse!("a --output folder b c").command);
         assert_eq!(expected, parse!("--output folder a b c").command);
+
+        fs::remove_file("a")?;
+        fs::remove_file("b")?;
+        fs::remove_file("c")?;
+        Ok(())
     }
 }
 
