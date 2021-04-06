@@ -94,3 +94,5 @@ if __name__ == "__main__":
 	sanity_check_format("tar.bz2")
 	sanity_check_format("tar.lz")
 	sanity_check_format("tar.lzma")
+	print("Test finished!")
+	os._exit(0)
