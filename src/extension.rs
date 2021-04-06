@@ -57,7 +57,11 @@ impl Extension {
                 (os_str, snd) if os_str.is_empty() => (None, snd),
                 (fst, snd) => (Some(fst), snd),
             },
-            None => return Err(crate::Error::MissingExtensionError(to_utf(file_name))),
+            None => {
+                return Err(crate::Error::MissingExtensionError(PathBuf::from(
+                    file_name,
+                )))
+            }
         };
 
         let (first_ext, second_ext) = match (first_ext, second_ext) {
@@ -119,7 +123,7 @@ impl TryFrom<&PathBuf> for CompressionFormat {
         let ext = match ext.extension() {
             Some(ext) => ext,
             None => {
-                return Err(crate::Error::MissingExtensionError(String::new()));
+                return Err(crate::Error::MissingExtensionError(PathBuf::new()));
             }
         };
         extension_from_os_str(ext)
@@ -133,7 +137,7 @@ impl TryFrom<&str> for CompressionFormat {
         let file_name = Path::new(file_name);
         let ext = match file_name.extension() {
             Some(ext) => ext,
-            None => return Err(crate::Error::MissingExtensionError(String::new())),
+            None => return Err(crate::Error::MissingExtensionError(PathBuf::new())),
         };
 
         extension_from_os_str(ext)

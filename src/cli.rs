@@ -1,8 +1,11 @@
-use std::{env, ffi::OsString, io, path::PathBuf, vec::Vec};
+use std::{
+    env,
+    ffi::OsString,
+    path::{Path, PathBuf},
+    vec::Vec,
+};
 
 use oof::{arg_flag, flag};
-
-use crate::debug;
 
 pub const VERSION: &str = "0.1.5";
 
@@ -41,8 +44,28 @@ pub struct ParsedArgs {
     // pub program_called: OsString, // Useful?
 }
 
-fn canonicalize_files(files: Vec<PathBuf>) -> io::Result<Vec<PathBuf>> {
-    files.into_iter().map(|path| path.canonicalize()).collect()
+fn canonicalize<'a, P>(path: P) -> crate::Result<PathBuf>
+where
+    P: AsRef<Path> + 'a,
+{
+    match std::fs::canonicalize(&path.as_ref()) {
+        Ok(abs_path) => Ok(abs_path),
+        Err(io_err) => {
+            if !path.as_ref().exists() {
+                Err(crate::Error::FileNotFound(PathBuf::from(path.as_ref())))
+            } else {
+                eprintln!("{} {}", "[ERROR]", io_err);
+                Err(crate::Error::IoError)
+            }
+        }
+    }
+}
+
+fn canonicalize_files<'a, P>(files: Vec<P>) -> crate::Result<Vec<PathBuf>>
+where
+    P: AsRef<Path> + 'a,
+{
+    files.into_iter().map(canonicalize).collect()
 }
 
 pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
@@ -87,18 +110,22 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
         // Defaults to decompression when there is no subcommand
         None => {
             flags_info.push(arg_flag!('o', "output"));
-            debug!(&flags_info);
 
             // Parse flags
             let (args, mut flags) = oof::filter_flags(args, &flags_info)?;
-            debug!((&args, &flags));
 
-            let files: Vec<_> = args.into_iter().map(PathBuf::from).collect();
-            // TODO: This line doesn't seem to be working correctly
+            let files = args.into_iter().map(canonicalize);
+            for file in files.clone() {
+                if let Err(err) = file {
+                    return Err(err);
+                }
+            }
+            let files = files.map(Result::unwrap).collect();
+
             let output_folder = flags.take_arg("output").map(PathBuf::from);
 
-            // Is the output here fully correct?
-            // With the paths not canonicalized?
+            // TODO: ensure all files are decompressible
+
             let command = Command::Decompress {
                 files,
                 output_folder,

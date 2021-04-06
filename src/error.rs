@@ -5,7 +5,7 @@ use colored::Colorize;
 #[derive(PartialEq, Eq)]
 pub enum Error {
     UnknownExtensionError(String),
-    MissingExtensionError(String),
+    MissingExtensionError(PathBuf),
     // TODO: get rid of this error variant
     InvalidUnicode,
     InvalidInput,
@@ -35,7 +35,7 @@ impl fmt::Display for Error {
             Error::MissingExtensionError(filename) => {
                 write!(f, "{} ", "[ERROR]".red())?;
                 // TODO: show MIME type of the unsupported file
-                write!(f, "cannot compress to \'{}\', likely because it has an unsupported (or missing) extension.", filename)
+                write!(f, "cannot compress to {:?}, likely because it has an unsupported (or missing) extension.", filename)
             }
             Error::WalkdirError => {
                 // Already printed in the From block

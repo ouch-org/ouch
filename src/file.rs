@@ -24,7 +24,7 @@ impl<'a> File<'a> {
         Ok(File {
             path,
             contents_in_memory: None,
-            extension
+            extension,
         })
     }
 }

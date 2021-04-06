@@ -27,7 +27,7 @@ where
 
 #[cfg(test)]
 mod argparsing {
-    use super::{make_dummy_files};
+    use super::make_dummy_files;
     use crate::cli;
     use crate::cli::Command;
     use std::{ffi::OsString, fs, path::PathBuf};
@@ -65,10 +65,13 @@ mod argparsing {
 
     #[test]
     fn test_arg_parsing_compress_subcommand() -> crate::Result<()> {
-        
         let files = vec!["a", "b", "c"];
         make_dummy_files(&*files)?;
-        let files= files.iter().map(fs::canonicalize).map(Result::unwrap).collect();
+        let files = files
+            .iter()
+            .map(fs::canonicalize)
+            .map(Result::unwrap)
+            .collect();
 
         let expected = Command::Compress {
             files,
@@ -83,23 +86,41 @@ mod argparsing {
     }
 
     #[test]
-    fn test_arg_parsing_decompress_subcommand() {
-        let files: Vec<_> = ["a", "b", "c"].iter().map(PathBuf::from).collect();
+    fn test_arg_parsing_decompress_subcommand() -> crate::Result<()> {
+        let files = vec!["d", "e", "f"];
+        make_dummy_files(&*files)?;
+        
+        let files: Vec<_> = files.iter().map(PathBuf::from).collect();
 
         let expected = Command::Decompress {
-            files: files.clone(),
+            files: files
+                .iter()
+                .map(fs::canonicalize)
+                .map(Result::unwrap)
+                .collect(),
             output_folder: None,
         };
-        assert_eq!(expected, parse!("a b c").command);
+        
+        assert_eq!(expected, parse!("d e f").command);
 
         let expected = Command::Decompress {
-            files,
+            files: files.iter().map(fs::canonicalize).map(Result::unwrap).collect(),
             output_folder: Some("folder".into()),
         };
-        assert_eq!(expected, parse!("a b c --output folder").command);
-        assert_eq!(expected, parse!("a b --output folder c").command);
-        assert_eq!(expected, parse!("a --output folder b c").command);
-        assert_eq!(expected, parse!("--output folder a b c").command);
+        assert_eq!(expected, parse!("d e f --output folder").command);
+        assert_eq!(expected, parse!("d e --output folder f").command);
+        assert_eq!(expected, parse!("d --output folder e f").command);
+        assert_eq!(expected, parse!("--output folder d e f").command);
+
+        assert_eq!(expected, parse!("d e f -o folder").command);
+        assert_eq!(expected, parse!("d e -o folder f").command);
+        assert_eq!(expected, parse!("d -o folder e f").command);
+        assert_eq!(expected, parse!("-o folder d e f").command);
+
+        fs::remove_file("d")?;
+        fs::remove_file("e")?;
+        fs::remove_file("f")?;
+        Ok(())
     }
 }
 
@@ -107,70 +128,37 @@ mod argparsing {
 mod byte_pretty_printing {
     use crate::bytes::Bytes;
     #[test]
-    fn bytes () {
-        assert_eq!(
-            &format!("{}", Bytes::new(234)),
-            "234.00 B"
-        );
+    fn bytes() {
+        assert_eq!(&format!("{}", Bytes::new(234)), "234.00 B");
 
-        assert_eq!(
-            &format!("{}", Bytes::new(999)),
-            "999.00 B"
-        );
+        assert_eq!(&format!("{}", Bytes::new(999)), "999.00 B");
     }
 
     #[test]
-    fn kilobytes () {
-        assert_eq!(
-            &format!("{}", Bytes::new(2234)),
-            "2.23 kB"
-        );
+    fn kilobytes() {
+        assert_eq!(&format!("{}", Bytes::new(2234)), "2.23 kB");
 
-        assert_eq!(
-            &format!("{}", Bytes::new(62500)),
-            "62.50 kB"
-        );
+        assert_eq!(&format!("{}", Bytes::new(62500)), "62.50 kB");
 
-        assert_eq!(
-            &format!("{}", Bytes::new(329990)),
-            "329.99 kB"
-        );
+        assert_eq!(&format!("{}", Bytes::new(329990)), "329.99 kB");
     }
 
     #[test]
-    fn megabytes () {
-        assert_eq!(
-            &format!("{}", Bytes::new(2750000)),
-            "2.75 MB"
-        );
+    fn megabytes() {
+        assert_eq!(&format!("{}", Bytes::new(2750000)), "2.75 MB");
 
-        assert_eq!(
-            &format!("{}", Bytes::new(55000000)),
-            "55.00 MB"
-        );
+        assert_eq!(&format!("{}", Bytes::new(55000000)), "55.00 MB");
 
-        assert_eq!(
-            &format!("{}", Bytes::new(987654321)),
-            "987.65 MB"
-        );
+        assert_eq!(&format!("{}", Bytes::new(987654321)), "987.65 MB");
     }
 
     #[test]
-    fn gigabytes () {
-        assert_eq!(
-            &format!("{}", Bytes::new(5280000000)),
-            "5.28 GB"
-        );
+    fn gigabytes() {
+        assert_eq!(&format!("{}", Bytes::new(5280000000)), "5.28 GB");
 
-        assert_eq!(
-            &format!("{}", Bytes::new(95200000000)),
-            "95.20 GB"
-        );
+        assert_eq!(&format!("{}", Bytes::new(95200000000)), "95.20 GB");
 
-        assert_eq!(
-            &format!("{}", Bytes::new(302000000000)),
-            "302.00 GB"
-        );
+        assert_eq!(&format!("{}", Bytes::new(302000000000)), "302.00 GB");
     }
 }
 

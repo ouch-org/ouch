@@ -6,8 +6,8 @@ use std::{
 use colored::Colorize;
 
 use super::decompressor::{DecompressionResult, Decompressor};
-use crate::utils;
 use crate::bytes::Bytes;
+use crate::utils;
 use crate::{extension::CompressionFormat, file::File};
 
 struct DecompressorToMemory {}
