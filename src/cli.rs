@@ -7,8 +7,6 @@ use std::{
 
 use oof::{arg_flag, flag};
 
-pub const VERSION: &str = "0.1.5";
-
 #[derive(PartialEq, Eq, Debug)]
 pub enum Command {
     /// Files to be compressed
@@ -29,7 +27,6 @@ pub enum Command {
 pub struct CommandInfo {
     pub command: Command,
     pub flags: oof::Flags,
-    // pub config: Config, // From .TOML, maybe, in the future
 }
 
 /// Calls parse_args_and_flags_from using std::env::args_os ( argv )
@@ -41,7 +38,6 @@ pub fn parse_args() -> crate::Result<ParsedArgs> {
 pub struct ParsedArgs {
     pub command: Command,
     pub flags: oof::Flags,
-    // pub program_called: OsString, // Useful?
 }
 
 fn canonicalize<'a, P>(path: P) -> crate::Result<PathBuf>
@@ -54,7 +50,7 @@ where
             if !path.as_ref().exists() {
                 Err(crate::Error::FileNotFound(PathBuf::from(path.as_ref())))
             } else {
-                eprintln!("{} {}", "[ERROR]", io_err);
+                eprintln!("[ERROR] {}", io_err);
                 Err(crate::Error::IoError)
             }
         }

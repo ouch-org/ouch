@@ -10,7 +10,7 @@ use crate::{
     utils::{check_for_multiple_files, ensure_exists},
 };
 
-pub struct BzipCompressor {}
+pub struct BzipCompressor;
 
 impl BzipCompressor {
     fn compress_files(files: Vec<PathBuf>, format: CompressionFormat) -> crate::Result<Vec<u8>> {

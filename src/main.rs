@@ -10,6 +10,8 @@ mod file;
 mod test;
 mod utils;
 
+pub const VERSION: &str = "0.1.5";
+
 use error::{Error, Result};
 use evaluator::Evaluator;
 

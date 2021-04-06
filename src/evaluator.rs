@@ -8,7 +8,7 @@ use colored::Colorize;
 
 use crate::{
     bytes::Bytes,
-    cli::{Command, VERSION},
+    cli::Command,
     compressors::{
         BzipCompressor, Compressor, Entry, GzipCompressor, LzmaCompressor, TarCompressor,
         ZipCompressor,
@@ -23,7 +23,7 @@ use crate::{
     utils,
 };
 
-pub struct Evaluator {}
+pub struct Evaluator;
 
 type BoxedCompressor = Box<dyn Compressor>;
 type BoxedDecompressor = Box<dyn Decompressor>;
@@ -48,11 +48,11 @@ impl Evaluator {
         // .tar and .zip
         let first_compressor: Option<Box<dyn Compressor>> = match extension.first_ext {
             Some(ext) => match ext {
-                CompressionFormat::Tar => Some(Box::new(TarCompressor {})),
-                CompressionFormat::Zip => Some(Box::new(ZipCompressor {})),
-                CompressionFormat::Bzip => Some(Box::new(BzipCompressor {})),
-                CompressionFormat::Gzip => Some(Box::new(GzipCompressor {})),
-                CompressionFormat::Lzma => Some(Box::new(LzmaCompressor {})),
+                CompressionFormat::Tar => Some(Box::new(TarCompressor)),
+                CompressionFormat::Zip => Some(Box::new(ZipCompressor)),
+                CompressionFormat::Bzip => Some(Box::new(BzipCompressor)),
+                CompressionFormat::Gzip => Some(Box::new(GzipCompressor)),
+                CompressionFormat::Lzma => Some(Box::new(LzmaCompressor)),
             },
             None => None,
         };
@@ -60,11 +60,11 @@ impl Evaluator {
         // Supported second compressors:
         // any
         let second_compressor: Box<dyn Compressor> = match extension.second_ext {
-            CompressionFormat::Tar => Box::new(TarCompressor {}),
-            CompressionFormat::Zip => Box::new(ZipCompressor {}),
-            CompressionFormat::Bzip => Box::new(BzipCompressor {}),
-            CompressionFormat::Gzip => Box::new(GzipCompressor {}),
-            CompressionFormat::Lzma => Box::new(LzmaCompressor {}),
+            CompressionFormat::Tar => Box::new(TarCompressor),
+            CompressionFormat::Zip => Box::new(ZipCompressor),
+            CompressionFormat::Bzip => Box::new(BzipCompressor),
+            CompressionFormat::Gzip => Box::new(GzipCompressor),
+            CompressionFormat::Lzma => Box::new(LzmaCompressor),
         };
 
         Ok((first_compressor, second_compressor))
@@ -86,17 +86,17 @@ impl Evaluator {
         };
 
         let second_decompressor: Box<dyn Decompressor> = match extension.second_ext {
-            CompressionFormat::Tar => Box::new(TarDecompressor {}),
-            CompressionFormat::Zip => Box::new(ZipDecompressor {}),
-            CompressionFormat::Gzip => Box::new(GzipDecompressor {}),
-            CompressionFormat::Lzma => Box::new(LzmaDecompressor {}),
-            CompressionFormat::Bzip => Box::new(BzipDecompressor {}),
+            CompressionFormat::Tar => Box::new(TarDecompressor),
+            CompressionFormat::Zip => Box::new(ZipDecompressor),
+            CompressionFormat::Gzip => Box::new(GzipDecompressor),
+            CompressionFormat::Lzma => Box::new(LzmaDecompressor),
+            CompressionFormat::Bzip => Box::new(BzipDecompressor),
         };
 
         let first_decompressor: Option<Box<dyn Decompressor>> = match extension.first_ext {
             Some(ext) => match ext {
-                CompressionFormat::Tar => Some(Box::new(TarDecompressor {})),
-                CompressionFormat::Zip => Some(Box::new(ZipDecompressor {})),
+                CompressionFormat::Tar => Some(Box::new(TarDecompressor)),
+                CompressionFormat::Zip => Some(Box::new(ZipDecompressor)),
                 _other => None,
             },
             None => None,
@@ -282,7 +282,7 @@ impl Evaluator {
 
 #[inline]
 fn version_message() {
-    println!("ouch {}", VERSION);
+    println!("ouch {}", crate::VERSION);
 }
 
 fn help_message() {

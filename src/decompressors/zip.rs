@@ -19,7 +19,7 @@ fn __unix_set_permissions(file_path: &Path, file: &ZipFile) {
     }
 }
 
-pub struct ZipDecompressor {}
+pub struct ZipDecompressor;
 
 impl ZipDecompressor {
     fn check_for_comments(file: &ZipFile) {

@@ -11,7 +11,7 @@ use super::decompressor::{DecompressionResult, Decompressor};
 use crate::{bytes::Bytes, dialogs::Confirmation, file::File, utils};
 
 #[derive(Debug)]
-pub struct TarDecompressor {}
+pub struct TarDecompressor;
 
 impl TarDecompressor {
     fn unpack_files(from: File, into: &Path, flags: &oof::Flags) -> crate::Result<Vec<PathBuf>> {

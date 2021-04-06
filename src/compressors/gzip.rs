@@ -10,7 +10,7 @@ use crate::{
     utils::{check_for_multiple_files, ensure_exists},
 };
 
-pub struct GzipCompressor {}
+pub struct GzipCompressor;
 
 impl GzipCompressor {
     pub fn compress_files(

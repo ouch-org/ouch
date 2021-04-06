@@ -8,7 +8,7 @@ use walkdir::WalkDir;
 use super::compressor::Entry;
 use crate::{compressors::Compressor, file::File, utils};
 
-pub struct ZipCompressor {}
+pub struct ZipCompressor;
 
 impl ZipCompressor {
     // TODO: this function does not seem to be working correctly ;/

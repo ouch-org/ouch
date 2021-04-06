@@ -7,7 +7,7 @@ use walkdir::WalkDir;
 use super::compressor::Entry;
 use crate::{compressors::Compressor, file::File, utils};
 
-pub struct TarCompressor {}
+pub struct TarCompressor;
 
 impl TarCompressor {
     // TODO: implement this

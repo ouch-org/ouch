@@ -86,16 +86,11 @@ impl Extension {
 #[derive(Clone, PartialEq, Eq, Debug)]
 /// Accepted extensions for input and output
 pub enum CompressionFormat {
-    // .gz
-    Gzip,
-    // .bz
-    Bzip,
-    // .lzma
-    Lzma,
-    // .tar (technically not a compression extension, but will do for now)
-    Tar,
-    // .zip
-    Zip,
+    Gzip, // .gz
+    Bzip, // .bz
+    Lzma, // .lzma
+    Tar,  // .tar (technically not a compression extension, but will do for now)
+    Zip,  // .zip
 }
 
 fn extension_from_os_str(ext: &OsStr) -> Result<CompressionFormat, crate::Error> {

@@ -10,7 +10,7 @@ use crate::{
     utils::{check_for_multiple_files, ensure_exists},
 };
 
-pub struct LzmaCompressor {}
+pub struct LzmaCompressor;
 
 impl LzmaCompressor {
     pub fn compress_files(
