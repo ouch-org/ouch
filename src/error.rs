@@ -15,21 +15,13 @@ pub enum Error {
     InvalidZipArchive(&'static str),
     PermissionDenied,
     UnsupportedZipArchive(&'static str),
-    // InputsMustBeDecompressible(PathBuf),
     InternalError,
     CompressingRootFolder,
+    MissingArgumentsForCompression,
     WalkdirError,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
-
-// impl std::error::Error for Error {
-//     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-//         // TODO: get rid of PartialEq and Eq in self::Error in order to
-//         // correctly use `source`.
-//         None
-//     }
-// }
 
 impl fmt::Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -42,19 +34,18 @@ impl fmt::Display for Error {
         match self {
             Error::MissingExtensionError(filename) => {
                 write!(f, "{} ", "[ERROR]".red())?;
+                // TODO: show MIME type of the unsupported file
                 write!(f, "cannot compress to \'{}\', likely because it has an unsupported (or missing) extension.", filename)
             }
-            // Error::InputsMustBeDecompressible(file) => {
-            //     write!(f, "{} ", "[ERROR]".red())?;
-            //     write!(f, "file '{:?}' is not decompressible", file)
-            // }
             Error::WalkdirError => {
                 // Already printed in the From block
                 write!(f, "")
             }
             Error::FileNotFound(file) => {
                 write!(f, "{} ", "[ERROR]".red())?;
-                // TODO: check if file == ""
+                if file == &PathBuf::from("") {
+                    return write!(f, "file not found!");
+                }
                 write!(f, "file {:?} not found!", file)
             }
             Error::CompressingRootFolder => {
@@ -72,6 +63,10 @@ impl fmt::Display for Error {
                     spacing,
                     "rsync".green()
                 )
+            }
+            Error::MissingArgumentsForCompression => {
+                write!(f, "{} ", "[ERROR]".red())?;
+                write!(f,"The compress subcommands demands at least 2 arguments, see usage: <TODO-USAGE>")
             }
             Error::InternalError => {
                 write!(f, "{} ", "[ERROR]".red())?;

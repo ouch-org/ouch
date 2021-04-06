@@ -19,13 +19,12 @@ pub struct File<'a> {
 
 impl<'a> File<'a> {
     pub fn from(path: &'a Path) -> crate::Result<Self> {
-        let extension = Extension::from(path.as_ref())?;
-        eprintln!("dev warning: Should we really ignore the errors from the convertion above?");
+        let extension = Extension::from(path.as_ref()).ok();
 
         Ok(File {
             path,
             contents_in_memory: None,
-            extension: Some(extension),
+            extension
         })
     }
 }

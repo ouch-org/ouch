@@ -7,7 +7,7 @@ use std::{
 
 use CompressionFormat::*;
 
-use crate::utils::to_utf;
+use crate::{debug, utils::to_utf};
 
 /// Represents the extension of a file, but only really caring about
 /// compression formats (and .tar).

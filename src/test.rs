@@ -1,38 +1,111 @@
-// TODO: remove tests of CompressionFormat::try_from since that's no longer used anywhere
+use std::{fs, path::Path};
 
-// use std::{
-//     convert::TryFrom,
-//     ffi::{OsStr, OsString},
-//     fs,
-//     path::Path,
-// };
+#[allow(dead_code)]
+// ouch's command-line logic uses fs::canonicalize on its inputs so we cannot
+// use made-up files for testing.
+// make_dummy_file therefores creates a small temporary file to bypass fs::canonicalize errors
+fn make_dummy_file<'a, P>(path: P) -> crate::Result<()>
+where
+    P: AsRef<Path> + 'a,
+{
+    fs::write(path.as_ref(), &[2, 3, 4, 5, 6, 7, 8, 9, 10])?;
+    Ok(())
+}
 
-// use crate::{
-//     cli::Command,
-//     extension::{CompressionFormat, CompressionFormat::*, Extension},
-//     file::File,
-// };
+#[allow(dead_code)]
+fn make_dummy_files<'a, P>(paths: &[P]) -> crate::Result<()>
+where
+    P: AsRef<Path> + 'a,
+{
+    let _ = paths
+        .iter()
+        .map(make_dummy_file)
+        .map(Result::unwrap)
+        .collect::<Vec<_>>();
+    Ok(())
+}
 
-// // Helper
-// fn gen_args(text: &str) -> Vec<OsString> {
-//     let args = text.split_whitespace();
-//     args.map(OsString::from).collect()
-// }
+#[cfg(test)]
+mod tests {
+    use super::{make_dummy_files};
+    use crate::cli;
+    use crate::cli::Command;
+    use std::{ffi::OsString, fs, path::PathBuf};
+
+    fn gen_args(text: &str) -> Vec<OsString> {
+        let args = text.split_whitespace();
+        args.map(OsString::from).collect()
+    }
+
+    macro_rules! parse {
+        ($input_text:expr) => {{
+            let args = gen_args($input_text);
+            cli::parse_args_from(args).unwrap()
+        }};
+    }
+
+    #[test]
+    // The absolute flags that ignore all the other argparsing rules are --help and --version
+    fn test_absolute_flags() {
+        let expected = Command::ShowHelp;
+        assert_eq!(expected, parse!("").command);
+        assert_eq!(expected, parse!("-h").command);
+        assert_eq!(expected, parse!("--help").command);
+        assert_eq!(expected, parse!("aaaaaaaa --help -o -e aaa").command);
+        assert_eq!(expected, parse!("aaaaaaaa -h").command);
+        assert_eq!(expected, parse!("--help compress aaaaaaaa").command);
+        assert_eq!(expected, parse!("compress --help").command);
+        assert_eq!(expected, parse!("--version --help").command);
+        assert_eq!(expected, parse!("aaaaaaaa -v aaaa -h").command);
+
+        let expected = Command::ShowVersion;
+        assert_eq!(expected, parse!("ouch --version").command);
+        assert_eq!(expected, parse!("ouch a --version b").command);
+    }
+
+    #[test]
+    fn test_arg_parsing_compress_subcommand() -> crate::Result<()> {
+        
+        let files = vec!["a", "b", "c"];
+        make_dummy_files(&*files)?;
+        let files= files.iter().map(fs::canonicalize).map(Result::unwrap).collect();
+
+        let expected = Command::Compress {
+            files,
+            compressed_output_path: "d".into(),
+        };
+        assert_eq!(expected, parse!("compress a b c d").command);
+
+        fs::remove_file("a")?;
+        fs::remove_file("b")?;
+        fs::remove_file("c")?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_arg_parsing_decompress_subcommand() {
+        let files: Vec<_> = ["a", "b", "c"].iter().map(PathBuf::from).collect();
+
+        let expected = Command::Decompress {
+            files: files.clone(),
+            output_folder: None,
+        };
+        assert_eq!(expected, parse!("a b c").command);
+
+        let expected = Command::Decompress {
+            files,
+            output_folder: Some("folder".into()),
+        };
+        assert_eq!(expected, parse!("a b c --output folder").command);
+        assert_eq!(expected, parse!("a b --output folder c").command);
+        assert_eq!(expected, parse!("a --output folder b c").command);
+        assert_eq!(expected, parse!("--output folder a b c").command);
+    }
+}
 
 // #[cfg(test)]
 // mod cli {
 //     use super::*;
-
-//     // ouch's command-line logic uses fs::canonicalize on its inputs so we cannot
-//     // use made-up files for testing.
-//     // make_dummy_file therefores creates a small temporary file to bypass fs::canonicalize errors
-//     fn make_dummy_file<'a, P>(path: P) -> crate::Result<()>
-//     where
-//         P: AsRef<Path> + 'a,
-//     {
-//         fs::write(path.as_ref(), &[2, 3, 4, 5, 6, 7, 8, 9, 10])?;
-//         Ok(())
-//     }
 
 //     #[test]
 //     fn decompress_files_into_folder() -> crate::Result<()> {

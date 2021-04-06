@@ -126,7 +126,7 @@ pub fn filter_flags(
 
             // For each letter in the short arg, except the last one
             for (i, letter) in letters.iter().copied().enumerate() {
-                // Safety: this loop only runs when len >= 1
+                // Safety: this loop only runs when len >= 1, so this subtraction is safe
                 let is_last_letter = i == letters.len() - 1;
 
                 let flag_info = short_flags_info.get(&letter).unwrap_or_else(|| {
@@ -149,16 +149,15 @@ pub fn filter_flags(
                     }
 
                     // pop the next one
-                    let flag_argument = iter.next();
-                    flag_argument.unwrap_or_else(|| {
+                    let flag_argument = iter.next().unwrap_or_else(|| {
                         panic!(
                             "USer errror: argument flag `argument_flag` came at last, but it \
                              requires an argument"
                         )
                     });
 
-                    // Otherwise, insert it (TODO: grab next one and add it)
-                    // result_flags.argument_flags.insert(flag_info.long);
+                    // Otherwise, insert it.
+                    result_flags.argument_flags.insert(flag_name, flag_argument);
                 } else {
                     // If it was already inserted
                     if result_flags.boolean_flags.contains(flag_name) {

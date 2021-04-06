@@ -12,10 +12,6 @@
 - [Installation](#Installation)
 - [Supported operating systems](#Supported-operating-systems)
 
-**Note** 
-   * This README represents the new, but not yet implemented, interface that `ouch` will use.
-   * For current usage instructions, check [the old README](https://github.com/vrmiguel/ouch/blob/0f453e9dfc70066056b9cc40e8032dcc6ee703bc/README.md).
-
 ## Usage
 
 ### Decompressing files

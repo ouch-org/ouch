@@ -29,6 +29,7 @@ impl TarCompressor {
             for entry in WalkDir::new(&filename) {
                 let entry = entry?;
                 let path = entry.path();
+                println!("Compressing {:?}", path);
                 if path.is_dir() {
                     continue;
                 }

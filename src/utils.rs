@@ -9,6 +9,19 @@ use colored::Colorize;
 
 use crate::{dialogs::Confirmation, extension::CompressionFormat, file::File};
 
+#[macro_export]
+#[cfg(debug_assertions)]
+macro_rules! debug {
+    ($x:expr) => { dbg!($x) }
+}
+
+#[macro_export]
+#[cfg(not(debug_assertions))]
+macro_rules! debug {
+    ($x:expr) => { std::convert::identity($x) }
+}
+
+
 pub(crate) fn ensure_exists<'a, P>(path: P) -> crate::Result<()>
 where
     P: AsRef<Path> + 'a,
@@ -69,7 +82,7 @@ pub(crate) fn change_dir_and_return_parent(filename: &Path) -> crate::Result<Pat
         return Err(crate::Error::CompressingRootFolder);
     };
 
-    env::set_current_dir(parent).unwrap();
+    env::set_current_dir(parent).ok().ok_or(crate::Error::CompressingRootFolder)?;
 
     Ok(previous_location)
 }
