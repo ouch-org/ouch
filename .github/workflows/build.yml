@@ -17,14 +17,19 @@ jobs:
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: ${{ matrix.rust }}
+          toolchain: stable
+          target: x86_64-unknown-linux-musl
           override: true
 
+      - name: Install dependencies for musl libc
+        run: |
+          sudo apt-get update
+          sudo apt-get install musl-tools
       - name: Run cargo build
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release
+          args: --release --target x86_64-unknown-linux-musl
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
@@ -32,13 +37,13 @@ jobs:
           command: test
 
       - name: Strip binary
-        run: strip target/release/ouch
+        run: strip target/x86_64-unknown-linux-musl/release/ouch
 
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
-          name: 'ouch-ubuntu-18.04-glibc'
-          path: target/release/ouch
+          name: 'ouch-linux-musl'
+          path: target/x86_64-unknown-linux-musl/release/ouch
 
   macos:
     name: macOS
