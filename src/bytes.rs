@@ -17,7 +17,7 @@ impl Bytes {
 impl std::fmt::Display for Bytes {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let num = self.bytes;
-        debug_assert!(num >= 0.0);        
+        debug_assert!(num >= 0.0);
         if num < 1_f64 {
             return write!(f, "{} B", num);
         }

@@ -8,13 +8,13 @@ use colored::Colorize;
 use tar::{self, Archive};
 
 use super::decompressor::{DecompressionResult, Decompressor};
-use crate::{dialogs::Confirmation, file::File, bytes::Bytes, utils};
+use crate::{bytes::Bytes, dialogs::Confirmation, file::File, utils};
 
 #[derive(Debug)]
 pub struct TarDecompressor {}
 
 impl TarDecompressor {
-    fn unpack_files(from: File, into: &Path, flags: &oof::Flags) -> crate::Result<Vec<PathBuf>> {        
+    fn unpack_files(from: File, into: &Path, flags: &oof::Flags) -> crate::Result<Vec<PathBuf>> {
         println!(
             "{}: attempting to decompress {:?}",
             "ouch".bright_blue(),

@@ -8,7 +8,7 @@ use colored::Colorize;
 use zip::{self, read::ZipFile, ZipArchive};
 
 use super::decompressor::{DecompressionResult, Decompressor};
-use crate::{dialogs::Confirmation, file::File, bytes::Bytes, utils};
+use crate::{bytes::Bytes, dialogs::Confirmation, file::File, utils};
 
 #[cfg(unix)]
 fn __unix_set_permissions(file_path: &Path, file: &ZipFile) {

@@ -8,20 +8,19 @@ use colored::Colorize;
 
 use crate::{
     bytes::Bytes,
-    cli::{VERSION, Command},
+    cli::{Command, VERSION},
     compressors::{
-        Entry, Compressor, BzipCompressor, GzipCompressor, LzmaCompressor, TarCompressor,
+        BzipCompressor, Compressor, Entry, GzipCompressor, LzmaCompressor, TarCompressor,
         ZipCompressor,
     },
     decompressors::{
         BzipDecompressor, DecompressionResult, Decompressor, GzipDecompressor, LzmaDecompressor,
         TarDecompressor, ZipDecompressor,
-    }, 
-    dialogs::Confirmation, 
-    extension::{CompressionFormat, Extension}, 
-    file::File, 
+    },
+    dialogs::Confirmation,
+    extension::{CompressionFormat, Extension},
+    file::File,
     utils,
-    debug
 };
 
 pub struct Evaluator {}
@@ -33,7 +32,6 @@ impl Evaluator {
     pub fn get_compressor(
         file: &File,
     ) -> crate::Result<(Option<BoxedCompressor>, BoxedCompressor)> {
-        
         let extension = match &file.extension {
             Some(extension) => extension.clone(),
             None => {
@@ -213,8 +211,16 @@ impl Evaluator {
         file_path: &Path,
         output: Option<&Path>,
         flags: &oof::Flags,
-    ) -> crate::Result<()> {        
-        let file = debug!(File::from(file_path)?);
+    ) -> crate::Result<()> {
+        // The file to be decompressed
+        let file = File::from(file_path)?;
+        // The file must have a supported decompressible format
+        if file.extension == None {
+            return Err(crate::Error::MissingExtensionError(PathBuf::from(
+                file_path,
+            )));
+        }
+
         let output = match output {
             Some(inner) => Some(File::from(inner)?),
             None => None,

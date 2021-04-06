@@ -1,4 +1,9 @@
-use std::{env, ffi::OsString, path::{Path, PathBuf}, vec::Vec};
+use std::{
+    env,
+    ffi::OsString,
+    path::{Path, PathBuf},
+    vec::Vec,
+};
 
 use oof::{arg_flag, flag};
 
@@ -39,9 +44,9 @@ pub struct ParsedArgs {
     // pub program_called: OsString, // Useful?
 }
 
-fn canonicalize<'a, P>(path: P) -> crate::Result<PathBuf> 
+fn canonicalize<'a, P>(path: P) -> crate::Result<PathBuf>
 where
-    P: AsRef<Path> + 'a
+    P: AsRef<Path> + 'a,
 {
     match std::fs::canonicalize(&path.as_ref()) {
         Ok(abs_path) => Ok(abs_path),
@@ -56,7 +61,7 @@ where
     }
 }
 
-fn canonicalize_files<'a, P>(files: Vec<P>) -> crate::Result<Vec<PathBuf>> 
+fn canonicalize_files<'a, P>(files: Vec<P>) -> crate::Result<Vec<PathBuf>>
 where
     P: AsRef<Path> + 'a,
 {
@@ -105,7 +110,7 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
         // Defaults to decompression when there is no subcommand
         None => {
             flags_info.push(arg_flag!('o', "output"));
-            
+
             // Parse flags
             let (args, mut flags) = oof::filter_flags(args, &flags_info)?;
 
@@ -116,8 +121,9 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
                 }
             }
             let files = files.map(Result::unwrap).collect();
-            
+
             let output_folder = flags.take_arg("output").map(PathBuf::from);
+
             // TODO: ensure all files are decompressible
 
             let command = Command::Decompress {

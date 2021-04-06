@@ -4,8 +4,8 @@ use colored::Colorize;
 
 use super::{Compressor, Entry};
 use crate::{
-    extension::CompressionFormat,
     bytes::Bytes,
+    extension::CompressionFormat,
     file::File,
     utils::{check_for_multiple_files, ensure_exists},
 };
