@@ -50,10 +50,9 @@ impl Evaluator {
             Some(ext) => match ext {
                 CompressionFormat::Tar => Some(Box::new(TarCompressor {})),
                 CompressionFormat::Zip => Some(Box::new(ZipCompressor {})),
-                // _other => Some(Box::new(NifflerCompressor {})),
-                _other => {
-                    todo!();
-                }
+                CompressionFormat::Bzip => Some(Box::new(BzipCompressor {})),
+                CompressionFormat::Gzip => Some(Box::new(GzipCompressor {})),
+                CompressionFormat::Lzma => Some(Box::new(LzmaCompressor {})),
             },
             None => None,
         };
