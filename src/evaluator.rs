@@ -35,12 +35,8 @@ impl Evaluator {
         let extension = match &file.extension {
             Some(extension) => extension.clone(),
             None => {
-                // This block *should* be unreachable
-                eprintln!(
-                    "{} reached Evaluator::get_decompressor without known extension.",
-                    "[internal error]".red()
-                );
-                return Err(crate::Error::InternalError);
+                // This is reached when the output file given does not have an extension or has an unsupported one
+                return Err(crate::Error::MissingExtensionError(file.path.to_path_buf()));
             }
         };
 
