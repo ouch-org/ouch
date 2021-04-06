@@ -8,7 +8,7 @@ use colored::Colorize;
 use zip::{self, read::ZipFile, ZipArchive};
 
 use super::decompressor::{DecompressionResult, Decompressor};
-use crate::{dialogs::Confirmation, file::File, utils};
+use crate::{dialogs::Confirmation, file::File, bytes::Bytes, utils};
 
 #[cfg(unix)]
 fn __unix_set_permissions(file_path: &Path, file: &ZipFile) {
@@ -73,10 +73,10 @@ impl ZipDecompressor {
                         }
                     }
                     println!(
-                        "{}: \"{}\" extracted. ({} bytes)",
+                        "{}: \"{}\" extracted. ({})",
                         "info".yellow(),
                         file_path.display(),
-                        file.size()
+                        Bytes::new(file.size())
                     );
 
                     let mut output_file = fs::File::create(&file_path)?;

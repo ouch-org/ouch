@@ -1,3 +1,4 @@
+mod bytes;
 mod cli;
 mod compressors;
 mod decompressors;

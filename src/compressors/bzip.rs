@@ -5,6 +5,7 @@ use colored::Colorize;
 use super::{Compressor, Entry};
 use crate::{
     extension::CompressionFormat,
+    bytes::Bytes,
     file::File,
     utils::{check_for_multiple_files, ensure_exists},
 };
@@ -22,10 +23,10 @@ impl BzipCompressor {
         };
 
         println!(
-            "{}: compressed {:?} into memory ({} bytes)",
+            "{}: compressed {:?} into memory ({})",
             "info".yellow(),
             &path,
-            contents.len()
+            Bytes::new(contents.len() as u64)
         );
 
         Ok(contents)
