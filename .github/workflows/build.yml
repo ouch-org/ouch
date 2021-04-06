@@ -31,15 +31,6 @@ jobs:
         with:
           command: test
 
-      - name: Install dependencies for Python test script
-        run: |
-          sudo apt-get update
-          sudo apt-get install libmagic1 
-          python3 -m pip install python-magic
-
-      - name: Run test script
-        run: python3 makeshift_testing.py
-
       - name: Strip binary
         run: strip target/release/ouch
 
@@ -77,11 +68,6 @@ jobs:
         with:
           command: test
 
-      - name: Install dependencies for Python test script
-        run: |
-          brew install libmagic
-          python3 -m pip install python-magic
-
       - name: Strip binary
         run: strip target/release/ouch
 
@@ -90,9 +76,6 @@ jobs:
         with:
           name: 'ouch-macOS'
           path: target/release/ouch
-
-      - name: Run test script
-        run: python3 makeshift_testing.py
 
   windows:
     name: Windows Server
