@@ -23,7 +23,6 @@ fn main() {
 }
 
 fn run() -> crate::Result<()> {
-    let ParsedArgs { command, flags } = cli::parse_args()?;
-    debug!(&command);
+    let ParsedArgs { command, flags } = cli::parse_args()?;    
     Evaluator::evaluate(command, &flags)
 }

@@ -2,8 +2,6 @@ use std::{env, ffi::OsString, io, path::PathBuf, vec::Vec};
 
 use oof::{arg_flag, flag};
 
-use crate::debug;
-
 pub const VERSION: &str = "0.1.5";
 
 #[derive(PartialEq, Eq, Debug)]
@@ -87,11 +85,9 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
         // Defaults to decompression when there is no subcommand
         None => {
             flags_info.push(arg_flag!('o', "output"));
-            debug!(&flags_info);
-
+            
             // Parse flags
             let (args, mut flags) = oof::filter_flags(args, &flags_info)?;
-            debug!((&args, &flags));
 
             let files: Vec<_> = args.into_iter().map(PathBuf::from).collect();
             // TODO: This line doesn't seem to be working correctly

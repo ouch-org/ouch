@@ -176,7 +176,6 @@ impl Evaluator {
         let confirm = Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE"));
         let (first_compressor, second_compressor) = Self::get_compressor(&output)?;
 
-        // TODO: use -y and -n here
         if output_path.exists()
             && !utils::permission_for_overwriting(&output_path, flags, &confirm)?
         {
