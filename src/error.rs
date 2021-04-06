@@ -66,7 +66,10 @@ impl fmt::Display for Error {
             }
             Error::MissingArgumentsForCompression => {
                 write!(f, "{} ", "[ERROR]".red())?;
-                write!(f,"The compress subcommands demands at least 2 arguments, see usage: <TODO-USAGE>")
+                let spacing = "        ";
+                writeln!(f,"The compress subcommands demands at least 2 arguments, an input file and an output file.")?;
+                writeln!(f,"{}Example: `ouch compress img.jpeg img.zip", spacing)?;
+                write!(f,"{}For more information, run `ouch --help`", spacing)
             }
             Error::InternalError => {
                 write!(f, "{} ", "[ERROR]".red())?;
