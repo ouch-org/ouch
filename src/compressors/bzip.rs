@@ -3,20 +3,15 @@ use std::{fs, io::Write, path::PathBuf};
 use colored::Colorize;
 
 use super::{Compressor, Entry};
-use crate::{
-    bytes::Bytes,
-    extension::CompressionFormat,
-    file::File,
-    utils::{check_for_multiple_files, ensure_exists},
-};
+use crate::{extension::CompressionFormat, file::File, utils};
 
-pub struct BzipCompressor {}
+pub struct BzipCompressor;
 
 impl BzipCompressor {
     fn compress_files(files: Vec<PathBuf>, format: CompressionFormat) -> crate::Result<Vec<u8>> {
-        check_for_multiple_files(&files, &format)?;
+        utils::check_for_multiple_files(&files, &format)?;
         let path = &files[0];
-        ensure_exists(path)?;
+        utils::ensure_exists(path)?;
         let contents = {
             let bytes = fs::read(path)?;
             Self::compress_bytes(&*bytes)?
@@ -26,7 +21,7 @@ impl BzipCompressor {
             "{}: compressed {:?} into memory ({})",
             "info".yellow(),
             &path,
-            Bytes::new(contents.len() as u64)
+            utils::Bytes::new(contents.len() as u64)
         );
 
         Ok(contents)

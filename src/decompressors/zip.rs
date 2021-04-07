@@ -8,7 +8,7 @@ use colored::Colorize;
 use zip::{self, read::ZipFile, ZipArchive};
 
 use super::decompressor::{DecompressionResult, Decompressor};
-use crate::{bytes::Bytes, dialogs::Confirmation, file::File, utils};
+use crate::{dialogs::Confirmation, file::File, utils};
 
 #[cfg(unix)]
 fn __unix_set_permissions(file_path: &Path, file: &ZipFile) {
@@ -19,7 +19,7 @@ fn __unix_set_permissions(file_path: &Path, file: &ZipFile) {
     }
 }
 
-pub struct ZipDecompressor {}
+pub struct ZipDecompressor;
 
 impl ZipDecompressor {
     fn check_for_comments(file: &ZipFile) {
@@ -76,7 +76,7 @@ impl ZipDecompressor {
                         "{}: \"{}\" extracted. ({})",
                         "info".yellow(),
                         file_path.display(),
-                        Bytes::new(file.size())
+                        utils::Bytes::new(file.size())
                     );
 
                     let mut output_file = fs::File::create(&file_path)?;

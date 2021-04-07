@@ -6,14 +6,12 @@ use std::{
 use colored::Colorize;
 
 use super::decompressor::{DecompressionResult, Decompressor};
-use crate::bytes::Bytes;
-use crate::utils;
-use crate::{extension::CompressionFormat, file::File};
+use crate::{extension::CompressionFormat, file::File, utils};
 
-struct DecompressorToMemory {}
-pub struct GzipDecompressor {}
-pub struct LzmaDecompressor {}
-pub struct BzipDecompressor {}
+struct DecompressorToMemory;
+pub struct GzipDecompressor;
+pub struct LzmaDecompressor;
+pub struct BzipDecompressor;
 
 fn get_decoder<'a>(
     format: CompressionFormat,
@@ -40,7 +38,7 @@ impl DecompressorToMemory {
             "{}: {:?} extracted into memory ({}).",
             "info".yellow(),
             path,
-            Bytes::new(bytes_read as u64)
+            utils::Bytes::new(bytes_read as u64)
         );
 
         Ok(buffer)
