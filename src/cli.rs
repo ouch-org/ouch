@@ -23,12 +23,6 @@ pub enum Command {
     ShowVersion,
 }
 
-#[derive(PartialEq, Eq, Debug)]
-pub struct CommandInfo {
-    pub command: Command,
-    pub flags: oof::Flags,
-}
-
 /// Calls parse_args_and_flags_from using std::env::args_os ( argv )
 pub fn parse_args() -> crate::Result<ParsedArgs> {
     let args = env::args_os().skip(1).collect();
