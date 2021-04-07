@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 
-use colored::Colorize;
+use crate::utils::colors;
 
 pub struct Confirmation<'a> {
     pub prompt: &'a str,
@@ -26,7 +26,7 @@ impl<'a> Confirmation<'a> {
         };
 
         loop {
-            print!("{} [{}/{}] ", message, "Y".bright_green(), "n".bright_red());
+            print!("{} [{}Y{}/{}n{}] ", message, colors::green(), colors::reset(), colors::red(), colors::reset());
             io::stdout().flush()?;
 
             let mut answer = String::new();

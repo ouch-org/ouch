@@ -4,8 +4,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use colored::Colorize;
+
 use tar::{self, Archive};
+use utils::colors;
 
 use super::decompressor::{DecompressionResult, Decompressor};
 use crate::{dialogs::Confirmation, file::File, utils};
@@ -16,8 +17,9 @@ pub struct TarDecompressor;
 impl TarDecompressor {
     fn unpack_files(from: File, into: &Path, flags: &oof::Flags) -> crate::Result<Vec<PathBuf>> {
         println!(
-            "{}: attempting to decompress {:?}",
-            "ouch".bright_blue(),
+            "{}[INFO]{} attempting to decompress {:?}",
+            colors::blue(),
+            colors::reset(),
             &from.path
         );
         let mut files_unpacked = vec![];
@@ -45,8 +47,9 @@ impl TarDecompressor {
             file.unpack_in(into)?;
 
             println!(
-                "{}: {:?} extracted. ({})",
-                "info".yellow(),
+                "{}[INFO]{} {:?} extracted. ({})",
+                colors::yellow(),
+                colors::reset(),
                 into.join(file.path()?),
                 utils::Bytes::new(file.size())
             );

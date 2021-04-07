@@ -3,7 +3,8 @@ use std::{
     path::Path,
 };
 
-use colored::Colorize;
+
+use utils::colors;
 
 use super::decompressor::{DecompressionResult, Decompressor};
 use crate::{extension::CompressionFormat, file::File, utils};
@@ -35,8 +36,9 @@ impl DecompressorToMemory {
         let bytes_read = reader.read_to_end(&mut buffer)?;
 
         println!(
-            "{}: {:?} extracted into memory ({}).",
-            "info".yellow(),
+            "{}[INFO]{} {:?} extracted into memory ({}).",
+            colors::yellow(),
+            colors::reset(),
             path,
             utils::Bytes::new(bytes_read as u64)
         );

@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use colored::Colorize;
+use utils::colors;
 
 use crate::{
     cli::Command,
@@ -88,8 +88,9 @@ fn get_decompressor(file: &File) -> crate::Result<(Option<BoxedDecompressor>, Bo
         None => {
             // This block *should* be unreachable
             eprintln!(
-                "{} reached Evaluator::get_decompressor without known extension.",
-                "[internal error]".red()
+                "{}[internal error]{} reached Evaluator::get_decompressor without known extension.",
+                colors::red(),
+                colors::reset()
             );
             return Err(crate::Error::InvalidInput);
         }
@@ -143,7 +144,7 @@ fn decompress_file_in_memory(
         None => {
             // There is no more processing to be done on the input file (or there is but currently unsupported)
             // Therefore, we'll save what we have in memory into a file.
-            println!("{}: saving to {:?}.", "info".yellow(), file_name);
+            println!("{}[INFO]{} saving to {:?}.", colors::yellow(), colors::reset(), file_name);
 
             if file_name.exists() {
                 let confirm = Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE"));
@@ -203,8 +204,9 @@ fn compress_files(
     };
 
     println!(
-        "{}: writing to {:?}. ({})",
-        "info".yellow(),
+        "{}[INFO]{} writing to {:?}. ({})",
+        colors::yellow(),
+        colors::reset(),
         output_path,
         utils::Bytes::new(bytes.len() as u64)
     );

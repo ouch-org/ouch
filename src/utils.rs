@@ -5,8 +5,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use colored::Colorize;
-
 use crate::{dialogs::Confirmation, extension::CompressionFormat, file::File};
 
 #[macro_export]
@@ -42,10 +40,11 @@ pub fn check_for_multiple_files(
 ) -> crate::Result<()> {
     if files.len() != 1 {
         eprintln!(
-            "{}: cannot compress multiple files directly to {:#?}.\n\
+            "{}[ERROR]{} cannot compress multiple files directly to {:#?}.\n\
                Try using an intermediate archival method such as Tar.\n\
                Example: filename.tar{}",
-            "[ERROR]".red(),
+            colors::red(),
+            colors::reset(),
             format,
             format
         );
@@ -58,14 +57,16 @@ pub fn check_for_multiple_files(
 pub fn create_path_if_non_existent(path: &Path) -> crate::Result<()> {
     if !path.exists() {
         println!(
-            "{}: attempting to create folder {:?}.",
-            "[INFO]".yellow(),
+            "{}[INFO]{} attempting to create folder {:?}.",
+            colors::yellow(),
+            colors::reset(),
             &path
         );
         std::fs::create_dir_all(path)?;
         println!(
-            "{}: directory {:#?} created.",
-            "[INFO]".yellow(),
+            "{}[INFO]{} directory {:#?} created.",
+            colors::yellow(),
+            colors::reset(),
             fs::canonicalize(&path)?
         );
     }
@@ -106,7 +107,7 @@ pub fn permission_for_overwriting(
 ) -> crate::Result<bool> {
     match (flags.is_present("yes"), flags.is_present("false")) {
         (true, true) => {
-            unreachable!("This shoul've been cutted out in the ~/src/cli.rs filter flags function.")
+            unreachable!("This should've been cutted out in the ~/src/cli.rs filter flags function.")
         }
         (true, _) => return Ok(true),
         (_, true) => return Ok(false),
