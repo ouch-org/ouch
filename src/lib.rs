@@ -1,6 +1,6 @@
 // Public modules
 pub mod cli;
-pub mod evaluator;
+pub mod commands;
 
 // Private modules
 mod compressors;

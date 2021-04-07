@@ -1,7 +1,6 @@
 use ouch::{
     cli::{parse_args, ParsedArgs},
-    evaluator::Evaluator,
-    Result,
+    commands, Result,
 };
 
 fn main() {
@@ -13,5 +12,5 @@ fn main() {
 
 fn run() -> crate::Result<()> {
     let ParsedArgs { command, flags } = parse_args()?;
-    Evaluator::evaluate(command, &flags)
+    commands::run(command, &flags)
 }
