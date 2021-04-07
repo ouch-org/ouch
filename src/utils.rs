@@ -126,7 +126,9 @@ pub struct Bytes {
     bytes: f64,
 }
 
-#[allow(dead_code)]
+/// Module with a list of bright colors.
+#[allow(dead_code, non_upper_case_globals)]
+#[cfg(target_family = "unix")]
 pub mod colors {
     use termion::color::*;
 
@@ -157,6 +159,22 @@ pub mod colors {
     pub fn yellow() -> &'static str {
         LightYellow.fg_str()
     }
+}
+// Termion does not support Windows
+#[cfg(not(target_family = "unix"))]
+pub mod colors {
+    pub fn empty() -> &'static str {
+        ""
+    }
+    pub const reset: fn() -> &'static str = empty;
+    pub const black: fn() -> &'static str = empty;
+    pub const blue: fn() -> &'static str = empty;
+    pub const cyan: fn() -> &'static str = empty;
+    pub const green: fn() -> &'static str = empty;
+    pub const magenta: fn() -> &'static str = empty;
+    pub const red: fn() -> &'static str = empty;
+    pub const white: fn() -> &'static str = empty;
+    pub const yellow: fn() -> &'static str = empty;
 }
 
 impl Bytes {
