@@ -5,7 +5,9 @@ use std::{
     vec::Vec,
 };
 
-use oof::{arg_flag, flag};
+use strsim::normalized_damerau_levenshtein;
+use oof::{Flag, arg_flag, flag};
+
 
 #[derive(PartialEq, Eq, Debug)]
 pub enum Command {
@@ -34,6 +36,24 @@ pub struct ParsedArgs {
     pub flags: oof::Flags,
 }
 
+
+/// check_for_typo checks if the first argument is 
+/// a typo for the compress subcommand. 
+/// Returns true if the arg is probably a typo or false otherwise.
+fn is_typo<'a, P>(path: P) -> bool 
+where
+    P: AsRef<Path> + 'a,
+{
+    if path.as_ref().exists() {
+        // If the file exists then we won't check for a typo
+        return false;
+    }
+
+    let path = path.as_ref().to_string_lossy();
+    // We'll consider it a typo if the word is somewhat 'close' to "compress"
+    normalized_damerau_levenshtein("compress", &path) > 0.625
+}
+
 fn canonicalize<'a, P>(path: P) -> crate::Result<PathBuf>
 where
     P: AsRef<Path> + 'a,
@@ -50,6 +70,8 @@ where
         }
     }
 }
+
+
 
 fn canonicalize_files<'a, P>(files: Vec<P>) -> crate::Result<Vec<PathBuf>>
 where
@@ -77,9 +99,8 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
 
     let mut flags_info = vec![flag!('y', "yes"), flag!('n', "no")];
 
-    let parsed_args = match oof::pop_subcommand(&mut args, subcommands) {
-        Some(&"compress") => {
-            let (args, flags) = oof::filter_flags(args, &flags_info)?;
+    let process_compression_command = |args, flags_info: Vec<Flag>| {
+        let (args, flags) = oof::filter_flags(args, &flags_info)?;
             let mut files: Vec<PathBuf> = args.into_iter().map(PathBuf::from).collect();
 
             if files.len() < 2 {
@@ -95,11 +116,27 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
                 files,
                 compressed_output_path,
             };
-            ParsedArgs { command, flags }
+            Ok(ParsedArgs { command, flags })
+    };
+
+    let parsed_args = match oof::pop_subcommand(&mut args, subcommands) {
+        Some(&"compress") => {
+            process_compression_command(args, flags_info)?
         }
         // Defaults to decompression when there is no subcommand
         None => {
             flags_info.push(arg_flag!('o', "output"));
+
+            {
+                let first_arg = args.first().unwrap();
+                if is_typo(first_arg) {
+                    println!("Did you mean `ouch compress`?");
+                    // TODO: ask for permission ?
+                    args.remove(0);
+                    return process_compression_command(args, flags_info);
+                }
+            }
+            
 
             // Parse flags
             let (args, mut flags) = oof::filter_flags(args, &flags_info)?;

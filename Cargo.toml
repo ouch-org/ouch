@@ -15,11 +15,13 @@ description = "A command-line utility for easily compressing and decompressing f
 [dependencies]
 colored = "2.0.0"
 walkdir = "2.3.2"
+strsim  = "0.10.0"
+flate2  = "1.0.14"
+bzip2   = "0.4.2"
 tar     = "0.4.33"
 xz2     = "0.1.6"
-bzip2   = "0.4.2"
-flate2  = "1.0.14"
 zip     = "0.5.11"
+
 
 # Dependency from workspace
 oof = { path = "./oof" }
