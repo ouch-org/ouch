@@ -38,26 +38,10 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                 decompress_file(file, output_folder, flags)?;
             }
         }
-        Command::ShowHelp => help_command(),
-        Command::ShowVersion => version_command(),
+        Command::ShowHelp => crate::help_command(),
+        Command::ShowVersion => crate::version_command(),
     }
     Ok(())
-}
-
-fn help_command() {
-    version_command();
-    println!("Vinícius R. M. & João M. Bezerra");
-    println!("ouch is a unified compression & decompression utility");
-    println!();
-    println!(" COMPRESSION USAGE:");
-    println!("    ouch compress <input...> output-file");
-    println!("DECOMPRESSION USAGE:");
-    println!("    ouch <input> [-o/--output output-folder]");
-}
-
-#[inline]
-fn version_command() {
-    println!("ouch {}", crate::VERSION);
 }
 
 type BoxedCompressor = Box<dyn Compressor>;

@@ -126,6 +126,39 @@ pub struct Bytes {
     bytes: f64,
 }
 
+#[allow(dead_code)]
+pub mod colors {
+    use termion::color::*;
+
+    pub fn reset() -> &'static str {
+        Reset.fg_str()
+    }
+    pub fn black() -> &'static str {
+        LightBlack.fg_str()
+    }
+    pub fn blue() -> &'static str {
+        LightBlue.fg_str()
+    }
+    pub fn cyan() -> &'static str {
+        LightCyan.fg_str()
+    }
+    pub fn green() -> &'static str {
+        LightGreen.fg_str()
+    }
+    pub fn magenta() -> &'static str {
+        LightMagenta.fg_str()
+    }
+    pub fn red() -> &'static str {
+        LightRed.fg_str()
+    }
+    pub fn white() -> &'static str {
+        LightWhite.fg_str()
+    }
+    pub fn yellow() -> &'static str {
+        LightYellow.fg_str()
+    }
+}
+
 impl Bytes {
     const UNIT_PREFIXES: [&'static str; 6] = ["", "k", "M", "G", "T", "P"];
 
