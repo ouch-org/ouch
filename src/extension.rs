@@ -7,7 +7,7 @@ use std::{
 
 use CompressionFormat::*;
 
-use crate::utils::to_utf;
+use crate::utils;
 
 /// Represents the extension of a file, but only really caring about
 /// compression formats (and .tar).
@@ -49,7 +49,7 @@ impl Extension {
             _ if ext == "gz" => Ok(Gzip),
             _ if ext == "bz" || ext == "bz2" => Ok(Bzip),
             _ if ext == "xz" || ext == "lz" || ext == "lzma" => Ok(Lzma),
-            other => Err(crate::Error::UnknownExtensionError(to_utf(other))),
+            other => Err(crate::Error::UnknownExtensionError(utils::to_utf(other))),
         };
 
         let (first_ext, second_ext) = match get_extension_from_filename(&file_name) {

@@ -7,7 +7,6 @@ use std::{
 use colored::Colorize;
 
 use crate::{
-    bytes::Bytes,
     cli::Command,
     compressors::{
         BzipCompressor, Compressor, Entry, GzipCompressor, LzmaCompressor, TarCompressor,
@@ -195,7 +194,7 @@ impl Evaluator {
             "{}: writing to {:?}. ({})",
             "info".yellow(),
             output_path,
-            Bytes::new(bytes.len() as u64)
+            utils::Bytes::new(bytes.len() as u64)
         );
         fs::write(output_path, bytes)?;
 

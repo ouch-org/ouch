@@ -6,7 +6,7 @@ use std::{
 use colored::Colorize;
 
 use super::decompressor::{DecompressionResult, Decompressor};
-use crate::{bytes::Bytes, extension::CompressionFormat, file::File, utils};
+use crate::{extension::CompressionFormat, file::File, utils};
 
 struct DecompressorToMemory;
 pub struct GzipDecompressor;
@@ -38,7 +38,7 @@ impl DecompressorToMemory {
             "{}: {:?} extracted into memory ({}).",
             "info".yellow(),
             path,
-            Bytes::new(bytes_read as u64)
+            utils::Bytes::new(bytes_read as u64)
         );
 
         Ok(buffer)
