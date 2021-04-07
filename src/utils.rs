@@ -127,7 +127,7 @@ pub struct Bytes {
 }
 
 /// Module with a list of bright colors.
-#[allow(dead_code, non_upper_case_globals)]
+#[allow(dead_code)]
 #[cfg(target_family = "unix")]
 pub mod colors {
     use termion::color::*;
@@ -161,6 +161,7 @@ pub mod colors {
     }
 }
 // Termion does not support Windows
+#[allow(dead_code, non_upper_case_globals)]
 #[cfg(not(target_family = "unix"))]
 pub mod colors {
     pub fn empty() -> &'static str {
