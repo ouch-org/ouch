@@ -1,20 +1,20 @@
 use std::{fmt, path::PathBuf};
 use crate::utils::colors;
 
-#[derive(PartialEq, Eq)]
 pub enum Error {
     UnknownExtensionError(String),
     MissingExtensionError(PathBuf),
     // TODO: get rid of this error variant
     InvalidUnicode,
     InvalidInput,
-    IoError,
+    IoError(std::io::Error),
     FileNotFound(PathBuf),
     AlreadyExists,
     InvalidZipArchive(&'static str),
     PermissionDenied,
     UnsupportedZipArchive(&'static str),
     InternalError,
+    OofError,
     CompressingRootFolder,
     MissingArgumentsForCompression,
     WalkdirError,
@@ -75,6 +75,9 @@ impl fmt::Display for Error {
                 write!(f, "{}[ERROR]{} ", colors::red(), colors::reset())?;
                 write!(f, "You've reached an internal error! This really should not have happened.\nPlease file an issue at {}https://github.com/vrmiguel/ouch{}", colors::green(), colors::reset())
             }
+            Error::IoError(io_err) => {
+                write!(f, "{}[ERROR]{} {}", colors::red(), colors::reset(), io_err)
+            }
             _err => {
                 // TODO
                 write!(f, "")
@@ -90,8 +93,7 @@ impl From<std::io::Error> for Error {
             std::io::ErrorKind::PermissionDenied => Self::PermissionDenied,
             std::io::ErrorKind::AlreadyExists => Self::AlreadyExists,
             _other => {
-                println!("{}[IO error]{} {}", colors::red(), colors::reset(), err);
-                Self::IoError
+                Self::IoError(err)
             }
         }
     }
@@ -117,7 +119,10 @@ impl From<walkdir::Error> for Error {
 }
 
 impl<'t> From<oof::OofError<'t>> for Error {
-    fn from(_err: oof::OofError) -> Self {
-        todo!("We need to implement this properly");
+    fn from(err: oof::OofError) -> Self {
+        // To avoid entering a lifetime hell, we'll just print the Oof error here
+        // and skip saving it into a variant of Self
+        println!("{}[ERROR]{} {}", colors::red(), colors::reset(), err);
+        Self::OofError
     }
 }

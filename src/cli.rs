@@ -64,8 +64,7 @@ where
             if !path.as_ref().exists() {
                 Err(crate::Error::FileNotFound(PathBuf::from(path.as_ref())))
             } else {
-                eprintln!("[ERROR] {}", io_err);
-                Err(crate::Error::IoError)
+                Err(crate::Error::IoError(io_err))
             }
         }
     }
