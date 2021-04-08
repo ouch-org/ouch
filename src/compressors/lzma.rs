@@ -1,6 +1,6 @@
 use std::{fs, io::Write, path::PathBuf};
 
-use colored::Colorize;
+use utils::colors;
 
 use super::{Compressor, Entry};
 use crate::{extension::CompressionFormat, file::File, utils};
@@ -23,8 +23,9 @@ impl LzmaCompressor {
         };
 
         println!(
-            "{}: compressed {:?} into memory ({})",
-            "info".yellow(),
+            "{}[INFO]{} compressed {:?} into memory ({})",
+            colors::yellow(),
+            colors::reset(),
             &path,
             utils::Bytes::new(bytes.len() as u64)
         );

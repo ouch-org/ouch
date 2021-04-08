@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use colored::Colorize;
+use utils::colors;
 use zip::{self, read::ZipFile, ZipArchive};
 
 use super::decompressor::{DecompressionResult, Decompressor};
@@ -26,8 +26,9 @@ impl ZipDecompressor {
         let comment = file.comment();
         if !comment.is_empty() {
             println!(
-                "{}: Comment in {}: {}",
-                "info".yellow(),
+                "{}[INFO]{} Comment in {}: {}",
+                colors::yellow(),
+                colors::reset(),
                 file.name(),
                 comment
             );
@@ -73,8 +74,9 @@ impl ZipDecompressor {
                         }
                     }
                     println!(
-                        "{}: \"{}\" extracted. ({})",
-                        "info".yellow(),
+                        "{}[INFO]{} \"{}\" extracted. ({})",
+                        colors::yellow(),
+                        colors::reset(),
                         file_path.display(),
                         utils::Bytes::new(file.size())
                     );
@@ -95,7 +97,7 @@ impl ZipDecompressor {
     }
 
     fn unpack_files(from: File, into: &Path, flags: &oof::Flags) -> crate::Result<Vec<PathBuf>> {
-        println!("{} decompressing {:?}", "[OUCH]".bright_blue(), &from.path);
+        println!("{}[INFO]{} decompressing {:?}", colors::blue(), colors::reset(), &from.path);
 
         match from.contents_in_memory {
             Some(bytes) => {

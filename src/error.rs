@@ -1,23 +1,23 @@
 use std::{fmt, path::PathBuf};
+use crate::utils::colors;
 
-use colored::Colorize;
-
-#[derive(PartialEq, Eq)]
 pub enum Error {
     UnknownExtensionError(String),
     MissingExtensionError(PathBuf),
     // TODO: get rid of this error variant
     InvalidUnicode,
     InvalidInput,
-    IoError,
+    IoError(std::io::Error),
     FileNotFound(PathBuf),
     AlreadyExists,
     InvalidZipArchive(&'static str),
     PermissionDenied,
     UnsupportedZipArchive(&'static str),
     InternalError,
+    OofError,
     CompressingRootFolder,
     MissingArgumentsForCompression,
+    CompressionTypo,
     WalkdirError,
 }
 
@@ -33,7 +33,7 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::MissingExtensionError(filename) => {
-                write!(f, "{} ", "[ERROR]".red())?;
+                write!(f, "{}[ERROR]{} ", colors::red(), colors::reset())?;
                 // TODO: show MIME type of the unsupported file
                 write!(f, "cannot compress to {:?}, likely because it has an unsupported (or missing) extension.", filename)
             }
@@ -42,14 +42,14 @@ impl fmt::Display for Error {
                 write!(f, "")
             }
             Error::FileNotFound(file) => {
-                write!(f, "{} ", "[ERROR]".red())?;
+                write!(f, "{}[ERROR]{} ", colors::red(), colors::reset())?;
                 if file == &PathBuf::from("") {
                     return write!(f, "file not found!");
                 }
                 write!(f, "file {:?} not found!", file)
             }
             Error::CompressingRootFolder => {
-                write!(f, "{} ", "[ERROR]".red())?;
+                write!(f, "{}[ERROR]{} ", colors::red(), colors::reset())?;
                 let spacing = "        ";
                 writeln!(f, "It seems you're trying to compress the root folder.")?;
                 writeln!(
@@ -59,21 +59,28 @@ impl fmt::Display for Error {
                 )?;
                 write!(
                     f,
-                    "{}Use a more appropriate tool for this, such as {}.",
+                    "{}Use a more appropriate tool for this, such as {}rsync{}.",
                     spacing,
-                    "rsync".green()
+                    colors::green(),
+                    colors::reset()
                 )
             }
             Error::MissingArgumentsForCompression => {
-                write!(f, "{} ", "[ERROR]".red())?;
+                write!(f, "{}[ERROR]{} ", colors::red(), colors::reset())?;
                 let spacing = "        ";
                 writeln!(f,"The compress subcommands demands at least 2 arguments, an input file and an output file.")?;
                 writeln!(f,"{}Example: `ouch compress img.jpeg img.zip", spacing)?;
                 write!(f,"{}For more information, run `ouch --help`", spacing)
             }
             Error::InternalError => {
-                write!(f, "{} ", "[ERROR]".red())?;
-                write!(f, "You've reached an internal error! This really should not have happened.\nPlease file an issue at {}", "https://github.com/vrmiguel/ouch".green())
+                write!(f, "{}[ERROR]{} ", colors::red(), colors::reset())?;
+                write!(f, "You've reached an internal error! This really should not have happened.\nPlease file an issue at {}https://github.com/vrmiguel/ouch{}", colors::green(), colors::reset())
+            }
+            Error::IoError(io_err) => {
+                write!(f, "{}[ERROR]{} {}", colors::red(), colors::reset(), io_err)
+            }
+            Error::CompressionTypo =>{
+                write!(f, "Did you mean {}ouch compress{}?", colors::magenta(), colors::reset())
             }
             _err => {
                 // TODO
@@ -90,8 +97,7 @@ impl From<std::io::Error> for Error {
             std::io::ErrorKind::PermissionDenied => Self::PermissionDenied,
             std::io::ErrorKind::AlreadyExists => Self::AlreadyExists,
             _other => {
-                println!("{} {}", "[IO error]".red(), err);
-                Self::IoError
+                Self::IoError(err)
             }
         }
     }
@@ -111,13 +117,16 @@ impl From<zip::result::ZipError> for Error {
 
 impl From<walkdir::Error> for Error {
     fn from(err: walkdir::Error) -> Self {
-        eprintln!("{} {}", "[ERROR]".red(), err);
+        eprintln!("{}[ERROR]{} {}", colors::red(), colors::reset(), err);
         Self::WalkdirError
     }
 }
 
-impl From<oof::OofError> for Error {
-    fn from(_err: oof::OofError) -> Self {
-        todo!("We need to implement this properly");
+impl<'t> From<oof::OofError<'t>> for Error {
+    fn from(err: oof::OofError) -> Self {
+        // To avoid entering a lifetime hell, we'll just print the Oof error here
+        // and skip saving it into a variant of Self
+        println!("{}[ERROR]{} {}", colors::red(), colors::reset(), err);
+        Self::OofError
     }
 }

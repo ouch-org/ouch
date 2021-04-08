@@ -1,7 +1,7 @@
 use std::{env, fs, path::PathBuf};
 
-use colored::Colorize;
 use tar::Builder;
+use utils::colors;
 use walkdir::WalkDir;
 
 use super::compressor::Entry;
@@ -13,8 +13,9 @@ impl TarCompressor {
     // TODO: implement this
     fn make_archive_from_memory(_input: File) -> crate::Result<Vec<u8>> {
         println!(
-            "{} .tar.tar and .zip.tar is currently unimplemented.",
-            "[ERROR]".red()
+            "{}[ERROR]{} .tar.tar and .zip.tar is currently unimplemented.",
+            colors::red(),
+            colors::reset()
         );
         Err(crate::Error::InvalidZipArchive(""))
     }

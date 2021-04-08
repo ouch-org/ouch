@@ -5,8 +5,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use colored::Colorize;
-
 use crate::{dialogs::Confirmation, extension::CompressionFormat, file::File};
 
 #[macro_export]
@@ -42,10 +40,11 @@ pub fn check_for_multiple_files(
 ) -> crate::Result<()> {
     if files.len() != 1 {
         eprintln!(
-            "{}: cannot compress multiple files directly to {:#?}.\n\
+            "{}[ERROR]{} cannot compress multiple files directly to {:#?}.\n\
                Try using an intermediate archival method such as Tar.\n\
                Example: filename.tar{}",
-            "[ERROR]".red(),
+            colors::red(),
+            colors::reset(),
             format,
             format
         );
@@ -58,14 +57,16 @@ pub fn check_for_multiple_files(
 pub fn create_path_if_non_existent(path: &Path) -> crate::Result<()> {
     if !path.exists() {
         println!(
-            "{}: attempting to create folder {:?}.",
-            "[INFO]".yellow(),
+            "{}[INFO]{} attempting to create folder {:?}.",
+            colors::yellow(),
+            colors::reset(),
             &path
         );
         std::fs::create_dir_all(path)?;
         println!(
-            "{}: directory {:#?} created.",
-            "[INFO]".yellow(),
+            "{}[INFO]{} directory {:#?} created.",
+            colors::yellow(),
+            colors::reset(),
             fs::canonicalize(&path)?
         );
     }
@@ -106,7 +107,7 @@ pub fn permission_for_overwriting(
 ) -> crate::Result<bool> {
     match (flags.is_present("yes"), flags.is_present("false")) {
         (true, true) => {
-            unreachable!("This shoul've been cutted out in the ~/src/cli.rs filter flags function.")
+            unreachable!("This should've been cutted out in the ~/src/cli.rs filter flags function.")
         }
         (true, _) => return Ok(true),
         (_, true) => return Ok(false),
@@ -130,37 +131,35 @@ pub struct Bytes {
 #[allow(dead_code)]
 #[cfg(target_family = "unix")]
 pub mod colors {
-    use termion::color::*;
-
-    pub fn reset() -> &'static str {
-        Reset.fg_str()
+    pub const fn reset() -> &'static str {
+        "\u{1b}[39m"
     }
-    pub fn black() -> &'static str {
-        LightBlack.fg_str()
+    pub const fn black() -> &'static str {
+        "\u{1b}[38;5;8m"
     }
-    pub fn blue() -> &'static str {
-        LightBlue.fg_str()
+    pub const fn blue() -> &'static str {
+        "\u{1b}[38;5;12m"
     }
-    pub fn cyan() -> &'static str {
-        LightCyan.fg_str()
+    pub const fn cyan() -> &'static str {
+        "\u{1b}[38;5;14m"
     }
-    pub fn green() -> &'static str {
-        LightGreen.fg_str()
+    pub const fn green() -> &'static str {
+        "\u{1b}[38;5;10m"
     }
-    pub fn magenta() -> &'static str {
-        LightMagenta.fg_str()
+    pub const fn magenta() -> &'static str {
+        "\u{1b}[38;5;13m"
     }
-    pub fn red() -> &'static str {
-        LightRed.fg_str()
+    pub const fn red() -> &'static str {
+        "\u{1b}[38;5;9m"
     }
-    pub fn white() -> &'static str {
-        LightWhite.fg_str()
+    pub const fn white() -> &'static str {
+        "\u{1b}[38;5;15m"
     }
-    pub fn yellow() -> &'static str {
-        LightYellow.fg_str()
+    pub const fn yellow() -> &'static str {
+        "\u{1b}[38;5;11m"
     }
 }
-// Termion does not support Windows
+// Windows does not support ANSI escape codes
 #[allow(dead_code, non_upper_case_globals)]
 #[cfg(not(target_family = "unix"))]
 pub mod colors {

@@ -126,7 +126,7 @@ mod argparsing {
 
 #[cfg(test)]
 mod byte_pretty_printing {
-    use crate::bytes::Bytes;
+    use crate::utils::Bytes;
     #[test]
     fn bytes() {
         assert_eq!(&format!("{}", Bytes::new(234)), "234.00 B");

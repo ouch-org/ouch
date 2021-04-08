@@ -5,7 +5,9 @@ use std::{
     vec::Vec,
 };
 
+use strsim::normalized_damerau_levenshtein;
 use oof::{arg_flag, flag};
+
 
 #[derive(PartialEq, Eq, Debug)]
 pub enum Command {
@@ -23,12 +25,6 @@ pub enum Command {
     ShowVersion,
 }
 
-#[derive(PartialEq, Eq, Debug)]
-pub struct CommandInfo {
-    pub command: Command,
-    pub flags: oof::Flags,
-}
-
 /// Calls parse_args_and_flags_from using std::env::args_os ( argv )
 pub fn parse_args() -> crate::Result<ParsedArgs> {
     let args = env::args_os().skip(1).collect();
@@ -38,6 +34,24 @@ pub fn parse_args() -> crate::Result<ParsedArgs> {
 pub struct ParsedArgs {
     pub command: Command,
     pub flags: oof::Flags,
+}
+
+
+/// check_for_typo checks if the first argument is 
+/// a typo for the compress subcommand. 
+/// Returns true if the arg is probably a typo or false otherwise.
+fn is_typo<'a, P>(path: P) -> bool 
+where
+    P: AsRef<Path> + 'a,
+{
+    if path.as_ref().exists() {
+        // If the file exists then we won't check for a typo
+        return false;
+    }
+
+    let path = path.as_ref().to_string_lossy();
+    // We'll consider it a typo if the word is somewhat 'close' to "compress"
+    normalized_damerau_levenshtein("compress", &path) > 0.625
 }
 
 fn canonicalize<'a, P>(path: P) -> crate::Result<PathBuf>
@@ -50,12 +64,13 @@ where
             if !path.as_ref().exists() {
                 Err(crate::Error::FileNotFound(PathBuf::from(path.as_ref())))
             } else {
-                eprintln!("[ERROR] {}", io_err);
-                Err(crate::Error::IoError)
+                Err(crate::Error::IoError(io_err))
             }
         }
     }
 }
+
+
 
 fn canonicalize_files<'a, P>(files: Vec<P>) -> crate::Result<Vec<PathBuf>>
 where
@@ -85,6 +100,7 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
 
     let parsed_args = match oof::pop_subcommand(&mut args, subcommands) {
         Some(&"compress") => {
+            // `ouch compress` subcommand
             let (args, flags) = oof::filter_flags(args, &flags_info)?;
             let mut files: Vec<PathBuf> = args.into_iter().map(PathBuf::from).collect();
 
@@ -106,6 +122,13 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
         // Defaults to decompression when there is no subcommand
         None => {
             flags_info.push(arg_flag!('o', "output"));
+            {
+                let first_arg = args.first().unwrap();
+                if is_typo(first_arg) {
+                    return Err(crate::Error::CompressionTypo);
+                }
+            }
+            
 
             // Parse flags
             let (args, mut flags) = oof::filter_flags(args, &flags_info)?;

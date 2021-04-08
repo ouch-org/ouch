@@ -7,10 +7,7 @@ mod error;
 mod flags;
 pub mod util;
 
-use std::{
-    collections::BTreeMap,
-    ffi::{OsStr, OsString},
-};
+use std::{collections::BTreeMap, ffi::{OsStr, OsString}};
 
 pub use error::OofError;
 pub use flags::{ArgFlag, Flag, FlagType, Flags};
@@ -105,10 +102,11 @@ pub fn filter_flags(
             continue;
         }
 
-        // If it is a flag, now we try to interpret as valid utf-8
-        let flag: &str = arg
-            .to_str()
-            .unwrap_or_else(|| panic!("User error: The flag needs to be valid utf8"));
+        // If it is a flag, now we try to interpret it as valid utf-8
+        let flag= match arg.to_str() {
+            Some(arg) => arg,
+            None => return Err(OofError::InvalidUnicode(arg))
+        };
 
         // Only one hyphen in the flag
         // A short flag can be of form "-", "-abcd", "-h", "-v", etc
@@ -129,14 +127,14 @@ pub fn filter_flags(
                 // Safety: this loop only runs when len >= 1, so this subtraction is safe
                 let is_last_letter = i == letters.len() - 1;
 
-                let flag_info = short_flags_info.get(&letter).unwrap_or_else(|| {
-                    panic!("User error: Unexpected/UNKNOWN flag `letter`, error")
-                });
+                let flag_info = short_flags_info.get(&letter).ok_or( 
+                    OofError::UnknownShortFlag(letter)
+                )?;
 
                 if !is_last_letter && flag_info.takes_value {
-                    panic!("User error: Only the last letter can refer to flag that takes values");
+                    return Err(OofError::MisplacedShortArgFlagError(letter))
                     // Because "-AB argument" only works if B takes values, not A.
-                    // That is, the short flag that takes values need to come at the end
+                    // That is, the short flag that takes values needs to come at the end
                     // of this piece of text
                 }
 
@@ -145,23 +143,20 @@ pub fn filter_flags(
                 if flag_info.takes_value {
                     // If it was already inserted
                     if result_flags.argument_flags.contains_key(flag_name) {
-                        panic!("User error: duplicated, found this flag TWICE!");
+                        return Err(OofError::DuplicatedFlag(flag_info));
                     }
 
                     // pop the next one
-                    let flag_argument = iter.next().unwrap_or_else(|| {
-                        panic!(
-                            "USer errror: argument flag `argument_flag` came at last, but it \
-                             requires an argument"
-                        )
-                    });
+                    let flag_argument = iter.next().ok_or(
+                        OofError::MissingValueToFlag(flag_info)
+                    )?;
 
                     // Otherwise, insert it.
                     result_flags.argument_flags.insert(flag_name, flag_argument);
                 } else {
                     // If it was already inserted
                     if result_flags.boolean_flags.contains(flag_name) {
-                        panic!("User error: duplicated, found this flag TWICE!");
+                        return Err(OofError::DuplicatedFlag(flag_info));
                     }
                     // Otherwise, insert it
                     result_flags.boolean_flags.insert(flag_name);
@@ -172,29 +167,26 @@ pub fn filter_flags(
         if let FlagType::Long = flag_type {
             let flag = trim_double_hyphen(flag);
 
-            let flag_info = long_flags_info.get(flag).unwrap_or_else(|| {
-                panic!("User error: Unexpected/UNKNOWN flag '{}'", flag);
-            });
+            let flag_info = long_flags_info.get(flag).ok_or_else(|| {
+                OofError::UnknownLongFlag(String::from(flag))
+            })?;
 
             let flag_name = flag_info.long;
 
             if flag_info.takes_value {
                 // If it was already inserted
                 if result_flags.argument_flags.contains_key(&flag_name) {
-                    panic!("User error: duplicated, found this flag TWICE!");
+                    return Err(OofError::DuplicatedFlag(flag_info));
                 }
 
-                let flag_argument = iter.next().unwrap_or_else(|| {
-                    panic!(
-                        "USer errror: argument flag `argument_flag` came at last, but it requires \
-                         an argument"
-                    )
-                });
+                let flag_argument = iter.next().ok_or(
+                    OofError::MissingValueToFlag(flag_info)
+                )?;
                 result_flags.argument_flags.insert(flag_name, flag_argument);
             } else {
                 // If it was already inserted
                 if result_flags.boolean_flags.contains(&flag_name) {
-                    panic!("User error: duplicated, found this flag TWICE!");
+                    return Err(OofError::DuplicatedFlag(flag_info));
                 }
                 // Otherwise, insert it
                 result_flags.boolean_flags.insert(&flag_name);

@@ -29,6 +29,15 @@ pub struct Flag {
     pub takes_value: bool,
 }
 
+impl std::fmt::Display for Flag {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.short {
+            Some(short_flag) => write!(f, "-{}/--{}", short_flag, self.long),
+            None => write!(f, "--{}", self.long),
+        }
+    }
+}
+
 impl Flag {
     pub fn long(name: &'static str) -> Self {
         Self {
