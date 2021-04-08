@@ -147,12 +147,9 @@ pub fn filter_flags(
                     }
 
                     // pop the next one
-                    let flag_argument = iter.next().unwrap_or_else(|| {
-                        panic!(
-                            "USer errror: argument flag `argument_flag` came at last, but it \
-                             requires an argument"
-                        )
-                    });
+                    let flag_argument = iter.next().ok_or_else(|| {
+                        OofError::MissingValueToFlag(flag_info)
+                    })?;
 
                     // Otherwise, insert it.
                     result_flags.argument_flags.insert(flag_name, flag_argument);

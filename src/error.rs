@@ -116,7 +116,7 @@ impl From<walkdir::Error> for Error {
     }
 }
 
-impl From<oof::OofError> for Error {
+impl<'t> From<oof::OofError<'t>> for Error {
     fn from(_err: oof::OofError) -> Self {
         todo!("We need to implement this properly");
     }
