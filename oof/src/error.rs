@@ -14,7 +14,8 @@ pub enum OofError<'t> {
     /// User supplied an unrecognized short flag
     UnknownShortFlag(char),
     MisplacedShortArgFlagError(char),
-    MissingValueToFlag(&'t Flag)
+    MissingValueToFlag(&'t Flag),
+    DuplicatedFlag(&'t Flag)
 }
 
 impl<'t> error::Error for OofError<'t> {
@@ -39,7 +40,8 @@ impl<'t> fmt::Display for OofError<'t> {
             OofError::InvalidUnicode(flag) => write!(f, "{:?} is not valid Unicode.", flag),
             OofError::UnknownShortFlag(ch) => write!(f, "Unknown argument '-{}'", ch),
             OofError::MisplacedShortArgFlagError(ch) => write!(f, "Invalid placement of `-{}`.\nOnly the last letter in a sequence of short flags can take values.", ch),
-            OofError::MissingValueToFlag(flag) => write!(f, "Flag {} takes value but none was supplied.", flag)
+            OofError::MissingValueToFlag(flag) => write!(f, "Flag {} takes value but none was supplied.", flag),
+            OofError::DuplicatedFlag(flag) => write!(f, "Duplicated usage of {}.", flag),
         }
     }
 }

@@ -143,7 +143,7 @@ pub fn filter_flags(
                 if flag_info.takes_value {
                     // If it was already inserted
                     if result_flags.argument_flags.contains_key(flag_name) {
-                        panic!("User error: duplicated, found this flag TWICE!");
+                        return Err(OofError::DuplicatedFlag(flag_info));
                     }
 
                     // pop the next one
@@ -156,7 +156,7 @@ pub fn filter_flags(
                 } else {
                     // If it was already inserted
                     if result_flags.boolean_flags.contains(flag_name) {
-                        panic!("User error: duplicated, found this flag TWICE!");
+                        return Err(OofError::DuplicatedFlag(flag_info));
                     }
                     // Otherwise, insert it
                     result_flags.boolean_flags.insert(flag_name);
@@ -176,7 +176,7 @@ pub fn filter_flags(
             if flag_info.takes_value {
                 // If it was already inserted
                 if result_flags.argument_flags.contains_key(&flag_name) {
-                    panic!("User error: duplicated, found this flag TWICE!");
+                    return Err(OofError::DuplicatedFlag(flag_info));
                 }
 
                 let flag_argument = iter.next().unwrap_or_else(|| {
@@ -189,7 +189,7 @@ pub fn filter_flags(
             } else {
                 // If it was already inserted
                 if result_flags.boolean_flags.contains(&flag_name) {
-                    panic!("User error: duplicated, found this flag TWICE!");
+                    return Err(OofError::DuplicatedFlag(flag_info));
                 }
                 // Otherwise, insert it
                 result_flags.boolean_flags.insert(&flag_name);
