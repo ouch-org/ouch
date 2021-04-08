@@ -127,9 +127,9 @@ pub fn filter_flags(
                 // Safety: this loop only runs when len >= 1, so this subtraction is safe
                 let is_last_letter = i == letters.len() - 1;
 
-                let flag_info = short_flags_info.get(&letter).ok_or_else(|| {
+                let flag_info = short_flags_info.get(&letter).ok_or( 
                     OofError::UnknownShortFlag(letter)
-                })?;
+                )?;
 
                 if !is_last_letter && flag_info.takes_value {
                     return Err(OofError::MisplacedShortArgFlagError(letter))
@@ -147,9 +147,9 @@ pub fn filter_flags(
                     }
 
                     // pop the next one
-                    let flag_argument = iter.next().ok_or_else(|| {
+                    let flag_argument = iter.next().ok_or(
                         OofError::MissingValueToFlag(flag_info)
-                    })?;
+                    )?;
 
                     // Otherwise, insert it.
                     result_flags.argument_flags.insert(flag_name, flag_argument);
@@ -179,9 +179,9 @@ pub fn filter_flags(
                     return Err(OofError::DuplicatedFlag(flag_info));
                 }
 
-                let flag_argument = iter.next().ok_or_else(|| {
+                let flag_argument = iter.next().ok_or(
                     OofError::MissingValueToFlag(flag_info)
-                })?;
+                )?;
                 result_flags.argument_flags.insert(flag_name, flag_argument);
             } else {
                 // If it was already inserted

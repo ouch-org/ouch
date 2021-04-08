@@ -20,6 +20,7 @@ where
     let _ = paths
         .iter()
         .map(make_dummy_file)
+        .map(Result::unwrap)
         .collect::<Vec<_>>();
     Ok(())
 }
