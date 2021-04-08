@@ -167,9 +167,9 @@ pub fn filter_flags(
         if let FlagType::Long = flag_type {
             let flag = trim_double_hyphen(flag);
 
-            let flag_info = long_flags_info.get(flag).unwrap_or_else(|| {
-                panic!("User error: Unexpected/UNKNOWN flag '{}'", flag);
-            });
+            let flag_info = long_flags_info.get(flag).ok_or_else(|| {
+                OofError::UnknownLongFlag(String::from(flag))
+            })?;
 
             let flag_name = flag_info.long;
 
@@ -179,12 +179,9 @@ pub fn filter_flags(
                     return Err(OofError::DuplicatedFlag(flag_info));
                 }
 
-                let flag_argument = iter.next().unwrap_or_else(|| {
-                    panic!(
-                        "USer errror: argument flag `argument_flag` came at last, but it requires \
-                         an argument"
-                    )
-                });
+                let flag_argument = iter.next().ok_or_else(|| {
+                    OofError::MissingValueToFlag(flag_info)
+                })?;
                 result_flags.argument_flags.insert(flag_name, flag_argument);
             } else {
                 // If it was already inserted
