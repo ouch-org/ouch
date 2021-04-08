@@ -7,10 +7,7 @@ mod error;
 mod flags;
 pub mod util;
 
-use std::{
-    collections::BTreeMap,
-    ffi::{OsStr, OsString},
-};
+use std::{collections::BTreeMap, ffi::{OsStr, OsString}};
 
 pub use error::OofError;
 pub use flags::{ArgFlag, Flag, FlagType, Flags};
@@ -105,10 +102,11 @@ pub fn filter_flags(
             continue;
         }
 
-        // If it is a flag, now we try to interpret as valid utf-8
-        let flag: &str = arg
-            .to_str()
-            .unwrap_or_else(|| panic!("User error: The flag needs to be valid utf8"));
+        // If it is a flag, now we try to interpret it as valid utf-8
+        let flag= match arg.to_str() {
+            Some(arg) => arg,
+            None => return Err(OofError::InvalidUnicode(arg))
+        };
 
         // Only one hyphen in the flag
         // A short flag can be of form "-", "-abcd", "-h", "-v", etc
@@ -129,14 +127,14 @@ pub fn filter_flags(
                 // Safety: this loop only runs when len >= 1, so this subtraction is safe
                 let is_last_letter = i == letters.len() - 1;
 
-                let flag_info = short_flags_info.get(&letter).unwrap_or_else(|| {
-                    panic!("User error: Unexpected/UNKNOWN flag `letter`, error")
-                });
+                let flag_info = short_flags_info.get(&letter).ok_or_else(|| {
+                    OofError::UnknownShortFlag(letter)
+                })?;
 
                 if !is_last_letter && flag_info.takes_value {
-                    panic!("User error: Only the last letter can refer to flag that takes values");
+                    return Err(OofError::MisplacedShortArgFlagError(letter))
                     // Because "-AB argument" only works if B takes values, not A.
-                    // That is, the short flag that takes values need to come at the end
+                    // That is, the short flag that takes values needs to come at the end
                     // of this piece of text
                 }
 
