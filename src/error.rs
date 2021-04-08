@@ -17,6 +17,7 @@ pub enum Error {
     OofError,
     CompressingRootFolder,
     MissingArgumentsForCompression,
+    CompressionTypo,
     WalkdirError,
 }
 
@@ -77,6 +78,9 @@ impl fmt::Display for Error {
             }
             Error::IoError(io_err) => {
                 write!(f, "{}[ERROR]{} {}", colors::red(), colors::reset(), io_err)
+            }
+            Error::CompressionTypo =>{
+                write!(f, "Did you mean {}ouch compress{}?", colors::magenta(), colors::reset())
             }
             _err => {
                 // TODO

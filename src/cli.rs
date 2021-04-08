@@ -6,7 +6,7 @@ use std::{
 };
 
 use strsim::normalized_damerau_levenshtein;
-use oof::{Flag, arg_flag, flag};
+use oof::{arg_flag, flag};
 
 
 #[derive(PartialEq, Eq, Debug)]
@@ -98,8 +98,10 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
 
     let mut flags_info = vec![flag!('y', "yes"), flag!('n', "no")];
 
-    let process_compression_command = |args, flags_info: Vec<Flag>| {
-        let (args, flags) = oof::filter_flags(args, &flags_info)?;
+    let parsed_args = match oof::pop_subcommand(&mut args, subcommands) {
+        Some(&"compress") => {
+            // `ouch compress` subcommand
+            let (args, flags) = oof::filter_flags(args, &flags_info)?;
             let mut files: Vec<PathBuf> = args.into_iter().map(PathBuf::from).collect();
 
             if files.len() < 2 {
@@ -115,24 +117,15 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
                 files,
                 compressed_output_path,
             };
-            Ok(ParsedArgs { command, flags })
-    };
-
-    let parsed_args = match oof::pop_subcommand(&mut args, subcommands) {
-        Some(&"compress") => {
-            process_compression_command(args, flags_info)?
+            ParsedArgs { command, flags }
         }
         // Defaults to decompression when there is no subcommand
         None => {
             flags_info.push(arg_flag!('o', "output"));
-
             {
                 let first_arg = args.first().unwrap();
                 if is_typo(first_arg) {
-                    println!("Did you mean `ouch compress`?");
-                    // TODO: ask for permission ?
-                    args.remove(0);
-                    return process_compression_command(args, flags_info);
+                    return Err(crate::Error::CompressionTypo);
                 }
             }
             
