@@ -12,7 +12,7 @@ use crate::utils;
 /// Represents the extension of a file, but only really caring about
 /// compression formats (and .tar).
 /// Ex.: Extension::new("file.tar.gz") == Extension { first_ext: Some(Tar), second_ext: Gzip }
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Extension {
     pub first_ext: Option<CompressionFormat>,
     pub second_ext: CompressionFormat,
@@ -83,7 +83,7 @@ impl Extension {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 /// Accepted extensions for input and output
 pub enum CompressionFormat {
     Gzip, // .gz
