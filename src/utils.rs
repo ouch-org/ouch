@@ -105,7 +105,7 @@ pub fn permission_for_overwriting(
     flags: &oof::Flags,
     confirm: &Confirmation,
 ) -> crate::Result<bool> {
-    match (flags.is_present("yes"), flags.is_present("false")) {
+    match (flags.is_present("yes"), flags.is_present("no")) {
         (true, true) => {
             unreachable!("This should've been cutted out in the ~/src/cli.rs filter flags function.")
         }
