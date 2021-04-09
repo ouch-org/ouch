@@ -94,12 +94,14 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
         });
     }
 
-    let subcommands = &["compress"];
+    let subcommands = &[
+        "c", "compress"
+    ];
 
     let mut flags_info = vec![flag!('y', "yes"), flag!('n', "no")];
 
     let parsed_args = match oof::pop_subcommand(&mut args, subcommands) {
-        Some(&"compress") => {
+        Some(&"c") | Some(&"compress") => {
             // `ouch compress` subcommand
             let (args, flags) = oof::filter_flags(args, &flags_info)?;
             let mut files: Vec<PathBuf> = args.into_iter().map(PathBuf::from).collect();
