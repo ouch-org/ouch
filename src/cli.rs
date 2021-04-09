@@ -135,13 +135,10 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
             // Parse flags
             let (args, mut flags) = oof::filter_flags(args, &flags_info)?;
 
-            let files = args.into_iter().map(canonicalize);
-            for file in files.clone() {
-                if let Err(err) = file {
-                    return Err(err);
-                }
-            }
-            let files = files.map(Result::unwrap).collect();
+            let files = args
+                .into_iter()
+                .map(canonicalize)
+                .collect::<Result<Vec<_>, _>>()?;
 
             let output_folder = flags.take_arg("output").map(PathBuf::from);
 
