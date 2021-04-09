@@ -3,6 +3,7 @@ pub mod cli;
 pub mod commands;
 
 // Private modules
+mod listers;
 mod compressors;
 mod decompressors;
 mod dialogs;

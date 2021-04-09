@@ -16,6 +16,7 @@ use crate::{
         BzipDecompressor, DecompressionResult, Decompressor, GzipDecompressor, LzmaDecompressor,
         TarDecompressor, ZipDecompressor,
     },
+    listers::list_file,
     dialogs::Confirmation,
     extension::{CompressionFormat, Extension},
     file::File,
@@ -37,7 +38,21 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
             for file in files.iter() {
                 decompress_file(file, output_folder, flags)?;
             }
-        }
+        },
+        Command::List { 
+            files
+        } => {
+            // for file in files.iter() {
+            //     list_file(file)?
+            // }
+            dbg!("hello?");
+            let ok = files
+                .iter()
+                .map(PathBuf::as_path)
+                .map(list_file)
+                .collect::<Result<Vec<_>, _>>()?;
+            dbg!(ok);
+        },
         Command::ShowHelp => crate::help_command(),
         Command::ShowVersion => crate::version_command(),
     }
@@ -49,7 +64,7 @@ type BoxedDecompressor = Box<dyn Decompressor>;
 
 fn get_compressor(file: &File) -> crate::Result<(Option<BoxedCompressor>, BoxedCompressor)> {
     let extension = match &file.extension {
-        Some(extension) => extension,
+        Some(extension) => extension.clone(),
         None => {
             // This is reached when the output file given does not have an extension or has an unsupported one
             return Err(crate::Error::MissingExtensionError(file.path.to_path_buf()));
@@ -58,7 +73,7 @@ fn get_compressor(file: &File) -> crate::Result<(Option<BoxedCompressor>, BoxedC
 
     // Supported first compressors:
     // .tar and .zip
-    let first_compressor: Option<Box<dyn Compressor>> = match &extension.first_ext {
+    let first_compressor: Option<Box<dyn Compressor>> = match extension.first_ext {
         Some(ext) => match ext {
             CompressionFormat::Tar => Some(Box::new(TarCompressor)),
             CompressionFormat::Zip => Some(Box::new(ZipCompressor)),
@@ -96,6 +111,10 @@ fn get_decompressor(file: &File) -> crate::Result<(Option<BoxedDecompressor>, Bo
         }
     };
 
+
+    // In a file like a.tar.gz, let's arbitrarily say that .tar is our first extension
+    // and that .gz is our second.
+    // The layout belows follows this logic
     let second_decompressor: Box<dyn Decompressor> = match extension.second_ext {
         CompressionFormat::Tar => Box::new(TarDecompressor),
         CompressionFormat::Zip => Box::new(ZipDecompressor),
@@ -173,7 +192,8 @@ fn decompress_file_in_memory(
     Ok(())
 }
 
-fn compress_files(
+// TODO: send to compressors/compressor.rs
+pub fn compress_files(
     files: Vec<PathBuf>,
     output_path: &Path,
     flags: &oof::Flags,
@@ -215,6 +235,7 @@ fn compress_files(
     Ok(())
 }
 
+// TODO: move over to decompressors/decompressor.rs
 fn decompress_file(
     file_path: &Path,
     output: Option<&Path>,

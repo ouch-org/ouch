@@ -21,6 +21,9 @@ pub enum Command {
         files: Vec<PathBuf>,
         output_folder: Option<PathBuf>,
     },
+    List {
+        files: Vec<PathBuf>,
+    },
     ShowHelp,
     ShowVersion,
 }
@@ -95,7 +98,8 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
     }
 
     let subcommands = &[
-        "c", "compress"
+        "c", "compress",
+        "ls", "list"
     ];
 
     let mut flags_info = vec![flag!('y', "yes"), flag!('n', "no")];
@@ -121,6 +125,16 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
             };
             ParsedArgs { command, flags }
         }
+        Some(&"ls") | Some(&"list") => {
+            let command = Command::List {
+                files: args
+                    .into_iter()
+                    .map(canonicalize)
+                    .collect::<Result<Vec<_>, _>>()?
+            };
+
+            ParsedArgs { command, flags: oof::Flags::new() }
+        }
         // Defaults to decompression when there is no subcommand
         None => {
             flags_info.push(arg_flag!('o', "output"));
@@ -130,7 +144,6 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
                     return Err(crate::Error::CompressionTypo);
                 }
             }
-            
 
             // Parse flags
             let (args, mut flags) = oof::filter_flags(args, &flags_info)?;
@@ -139,7 +152,7 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
                 .into_iter()
                 .map(canonicalize)
                 .collect::<Result<Vec<_>, _>>()?;
-
+            
             let output_folder = flags.take_arg("output").map(PathBuf::from);
 
             // TODO: ensure all files are decompressible
