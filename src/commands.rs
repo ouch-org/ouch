@@ -49,7 +49,7 @@ type BoxedDecompressor = Box<dyn Decompressor>;
 
 fn get_compressor(file: &File) -> crate::Result<(Option<BoxedCompressor>, BoxedCompressor)> {
     let extension = match &file.extension {
-        Some(extension) => extension.clone(),
+        Some(extension) => extension,
         None => {
             // This is reached when the output file given does not have an extension or has an unsupported one
             return Err(crate::Error::MissingExtensionError(file.path.to_path_buf()));
@@ -58,7 +58,7 @@ fn get_compressor(file: &File) -> crate::Result<(Option<BoxedCompressor>, BoxedC
 
     // Supported first compressors:
     // .tar and .zip
-    let first_compressor: Option<Box<dyn Compressor>> = match extension.first_ext {
+    let first_compressor: Option<Box<dyn Compressor>> = match &extension.first_ext {
         Some(ext) => match ext {
             CompressionFormat::Tar => Some(Box::new(TarCompressor)),
             CompressionFormat::Zip => Some(Box::new(ZipCompressor)),
@@ -84,7 +84,7 @@ fn get_compressor(file: &File) -> crate::Result<(Option<BoxedCompressor>, BoxedC
 
 fn get_decompressor(file: &File) -> crate::Result<(Option<BoxedDecompressor>, BoxedDecompressor)> {
     let extension = match &file.extension {
-        Some(extension) => extension.clone(),
+        Some(extension) => extension,
         None => {
             // This block *should* be unreachable
             eprintln!(
@@ -104,7 +104,7 @@ fn get_decompressor(file: &File) -> crate::Result<(Option<BoxedDecompressor>, Bo
         CompressionFormat::Bzip => Box::new(BzipDecompressor),
     };
 
-    let first_decompressor: Option<Box<dyn Decompressor>> = match extension.first_ext {
+    let first_decompressor: Option<Box<dyn Decompressor>> = match &extension.first_ext {
         Some(ext) => match ext {
             CompressionFormat::Tar => Some(Box::new(TarDecompressor)),
             CompressionFormat::Zip => Some(Box::new(ZipDecompressor)),
