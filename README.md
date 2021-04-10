@@ -2,7 +2,7 @@
 
 <!-- ![ouch_image](https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR5ilNDTFZZ-Vy_ctm2YyAe8Yk0UT7lB2hIhg&usqp=CAU)  -->
 
-`ouch` loosely stands for Obvious Unified Compression (ᵃⁿᵈ ᵈᵉᶜᵒᵐᵖʳᵉˢˢᶦᵒⁿ) Helper and aims to be an easy and intuitive way of compressing and decompressing files on the command-line.
+`ouch` loosely stands for Obvious Unified Compression files Helper and aims to be an easy and intuitive way of compressing and decompressing files on the command-line.
 
 - [Usage](#Usage)
     - [Decompressing files](#Decompressing-files)
@@ -35,6 +35,8 @@ ouch a.zip  b.tar.gz  c.tar.bz2 -o new_folder
 
 The `compress` subcommand is able to compress files and folders. The **last** argument will be the **output file**. 
 
+You can also use the `c` alias for this subcommand.
+
 The compression format employed will be defined according to the output file's extension.
 
 ```bash
@@ -46,11 +48,14 @@ ouch compress a.mp4 b.jpg c.png files.tar.bz2
 
 # Compress a folder and a file into `videos.tar.xz`
 ouch compress Videos/ funny_meme.mp4 videos.tar.xz
+
+# Compress two folders into a lzma file
+ouch c src/ target/ build.tar.lz
 ```
 
 ### Listing the elements of an archive
 
-(TODO -- not implemented at all)
+* **Upcoming feature**
 
 ```
 # Shows the files and folders contained in videos.tar.xz
@@ -98,11 +103,17 @@ cd ouch && cargo run --release
 ## Supported operating systems
 
 `ouch` runs on Linux, macOS and Windows 10. Binaries are available on our [Releases](https://github.com/vrmiguel/ouch/releases) page.
-Binaries are also available at the end of each (successful) [GitHub Actions](https://github.com/vrmiguel/ouch/actions) run. 
 
-**Note on Windows**: colors are currently messed up on PowerShell but work fine on [ConEmu](https://conemu.github.io/). A feature for disabling colors is planned.
+Binaries are also available at the end of each (successful) [GitHub Actions](https://github.com/vrmiguel/ouch/actions) run for these targets:
 
+* Linux x86-64 statically linked (musl libc) 
+* macOS x86-64 dynamically linked
+* Windows 10
+* Linux ARMv7 dynamically linked (glibc)
+
+One must be logged into GitHub to access build artifacts.
 
 ## Limitations
 
 `ouch` does encoding and decoding in-memory, so decompressing very large files with it is not advisable.
+
