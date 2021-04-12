@@ -23,11 +23,6 @@ macro_rules! debug {
     };
 }
 
-pub enum Either<L, R> {
-    Left(L),
-    Right(R),
-}
-
 pub fn ensure_exists<'a, P>(path: P) -> crate::Result<()>
 where
     P: AsRef<Path> + 'a,

@@ -21,7 +21,7 @@ impl ZipLister {
     {
         let mut unpacked_files = vec![];
         for idx in 0..archive.len() {
-            let mut file = archive.by_index(idx)?;
+            let file = archive.by_index(idx)?;
             let file_path = match file.enclosed_name() {
                 Some(path) => path.to_owned(),
                 None => continue,
