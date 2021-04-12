@@ -43,11 +43,6 @@ pub fn list_file(path: &Path) -> crate::Result<Vec<PathBuf>> {
         return Err(crate::Error::MissingExtensionError(PathBuf::from(path)));
     }
 
-    // Step 1: check for directly listable formats (.zip and .tar)
-    // if let Some(lister) = get_directly_listable(&file) {
-    //     return lister.list(file);
-    // }
-
     let extension = match &file.extension {
         Some(ext) => ext,
         None => unreachable!(),

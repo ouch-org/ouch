@@ -2,7 +2,6 @@
 
 mod lister;
 mod tar;
-mod to_memory;
 mod zip;
 
 pub use lister::{Lister, ListingResult};
