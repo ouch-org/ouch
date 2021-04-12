@@ -61,9 +61,11 @@ pub fn list_file(path: &Path) -> crate::Result<Vec<PathBuf>> {
                     contents_in_memory: Some(bytes),
                     extension,
                 };
+                let lister = get_directly_listable(&first_ext).expect("TODO error message for this");
+                return lister.list(file);
             },
-            DecompressionResult::FilesUnpacked(files) => {
-                // This shouldn't be reachable but I guess it'd be OK if we returned the `files` variable here
+            DecompressionResult::FilesUnpacked(_) => {
+                unreachable!("unreachable code in lister::list_file")
             }
         }
 
