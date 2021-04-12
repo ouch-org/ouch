@@ -88,6 +88,9 @@ impl fmt::Display for Error {
                     colors::reset()
                 )
             }
+            Error::UnlistableFormat(format) => {
+                write!(f, "{}[ERROR]{} Cannot list files of archives with format {}.", colors::red(), colors::reset(), format)
+            }
             _err => {
                 // TODO
                 write!(f, "")
