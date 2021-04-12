@@ -1,5 +1,5 @@
-use std::{fmt, path::PathBuf};
 use crate::utils::colors;
+use std::{fmt, path::PathBuf};
 
 pub enum Error {
     UnknownExtensionError(String),
@@ -70,8 +70,8 @@ impl fmt::Display for Error {
                 write!(f, "{}[ERROR]{} ", colors::red(), colors::reset())?;
                 let spacing = "        ";
                 writeln!(f,"The compress subcommands demands at least 2 arguments, an input file and an output file.")?;
-                writeln!(f,"{}Example: `ouch compress img.jpeg img.zip", spacing)?;
-                write!(f,"{}For more information, run `ouch --help`", spacing)
+                writeln!(f, "{}Example: `ouch compress img.jpeg img.zip", spacing)?;
+                write!(f, "{}For more information, run `ouch --help`", spacing)
             }
             Error::InternalError => {
                 write!(f, "{}[ERROR]{} ", colors::red(), colors::reset())?;
@@ -80,8 +80,13 @@ impl fmt::Display for Error {
             Error::IoError(io_err) => {
                 write!(f, "{}[ERROR]{} {}", colors::red(), colors::reset(), io_err)
             }
-            Error::CompressionTypo =>{
-                write!(f, "Did you mean {}ouch compress{}?", colors::magenta(), colors::reset())
+            Error::CompressionTypo => {
+                write!(
+                    f,
+                    "Did you mean {}ouch compress{}?",
+                    colors::magenta(),
+                    colors::reset()
+                )
             }
             _err => {
                 // TODO
@@ -97,9 +102,7 @@ impl From<std::io::Error> for Error {
             std::io::ErrorKind::NotFound => panic!("{}", err),
             std::io::ErrorKind::PermissionDenied => Self::PermissionDenied,
             std::io::ErrorKind::AlreadyExists => Self::AlreadyExists,
-            _other => {
-                Self::IoError(err)
-            }
+            _other => Self::IoError(err),
         }
     }
 }

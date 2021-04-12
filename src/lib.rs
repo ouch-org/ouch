@@ -3,15 +3,15 @@ pub mod cli;
 pub mod commands;
 
 // Private modules
-mod listers;
 mod compressors;
 mod decompressors;
 mod dialogs;
 mod error;
 mod extension;
 mod file;
-mod utils;
+mod listers;
 mod test;
+mod utils;
 
 pub use error::{Error, Result};
 

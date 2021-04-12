@@ -4,7 +4,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-
 use tar::{self, Archive};
 use utils::colors;
 

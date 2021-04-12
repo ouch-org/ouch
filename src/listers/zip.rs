@@ -1,21 +1,18 @@
 use std::{
     fs,
-    io::{self, Cursor, Read, Seek},
+    io::{Cursor, Read, Seek},
     path::PathBuf,
 };
 
 use utils::colors;
 use zip::{self, ZipArchive};
 
-use super::lister::{ListingResult, Lister};
+use super::lister::{Lister, ListingResult};
 use crate::{file::File, utils};
 pub struct ZipLister;
 
 impl ZipLister {
-
-    pub fn zip_decompress<R>(
-        archive: &mut ZipArchive<R>,
-    ) -> crate::Result<Vec<PathBuf>>
+    pub fn zip_decompress<R>(archive: &mut ZipArchive<R>) -> crate::Result<Vec<PathBuf>>
     where
         R: Read + Seek,
     {
@@ -54,7 +51,12 @@ impl ZipLister {
     }
 
     fn unpack_files(from: File) -> crate::Result<Vec<PathBuf>> {
-        println!("{}[INFO]{} decompressing {:?}", colors::blue(), colors::reset(), &from.path);
+        println!(
+            "{}[INFO]{} decompressing {:?}",
+            colors::blue(),
+            colors::reset(),
+            &from.path
+        );
 
         match from.contents_in_memory {
             Some(bytes) => {
@@ -74,11 +76,7 @@ impl ZipLister {
 }
 
 impl Lister for ZipLister {
-    fn list (
-        &self,
-        from: File,
-    ) -> crate::Result<ListingResult> {
-
+    fn list(&self, from: File) -> crate::Result<ListingResult> {
         let files_unpacked = Self::unpack_files(from)?;
 
         Ok(files_unpacked)

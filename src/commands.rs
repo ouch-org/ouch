@@ -16,10 +16,10 @@ use crate::{
         BzipDecompressor, DecompressionResult, Decompressor, GzipDecompressor, LzmaDecompressor,
         TarDecompressor, ZipDecompressor,
     },
-    listers::list_file,
     dialogs::Confirmation,
     extension::{CompressionFormat, Extension},
     file::File,
+    listers::list_file,
     utils,
 };
 
@@ -38,10 +38,8 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
             for file in files.iter() {
                 decompress_file(file, output_folder, flags)?;
             }
-        },
-        Command::List { 
-            files
-        } => {
+        }
+        Command::List { files } => {
             // for file in files.iter() {
             //     list_file(file)?
             // }
@@ -52,7 +50,7 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                 .map(list_file)
                 .collect::<Result<Vec<_>, _>>()?;
             dbg!(ok);
-        },
+        }
         Command::ShowHelp => crate::help_command(),
         Command::ShowVersion => crate::version_command(),
     }
@@ -64,7 +62,7 @@ type BoxedDecompressor = Box<dyn Decompressor>;
 
 fn get_compressor(file: &File) -> crate::Result<(Option<BoxedCompressor>, BoxedCompressor)> {
     let extension = match &file.extension {
-        Some(extension) => extension.clone(),
+        Some(extension) => extension,
         None => {
             // This is reached when the output file given does not have an extension or has an unsupported one
             return Err(crate::Error::MissingExtensionError(file.path.to_path_buf()));
@@ -110,7 +108,6 @@ fn get_decompressor(file: &File) -> crate::Result<(Option<BoxedDecompressor>, Bo
             return Err(crate::Error::InvalidInput);
         }
     };
-
 
     // In a file like a.tar.gz, let's arbitrarily say that .tar is our first extension
     // and that .gz is our second.
@@ -163,7 +160,12 @@ fn decompress_file_in_memory(
         None => {
             // There is no more processing to be done on the input file (or there is but currently unsupported)
             // Therefore, we'll save what we have in memory into a file.
-            println!("{}[INFO]{} saving to {:?}.", colors::yellow(), colors::reset(), file_name);
+            println!(
+                "{}[INFO]{} saving to {:?}.",
+                colors::yellow(),
+                colors::reset(),
+                file_name
+            );
 
             if file_name.exists() {
                 let confirm = Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE"));

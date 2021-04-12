@@ -5,7 +5,7 @@ mod tar;
 mod to_memory;
 mod zip;
 
-pub use lister::{ListingResult, Lister};
+pub use lister::{Lister, ListingResult};
 
 // pub use self::to_memory::{BzipLister, GzipLister, LzmaLister};
 // The .tar and .zip decompressors are capable of decompressing directly to storage

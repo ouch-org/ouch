@@ -89,7 +89,7 @@ mod argparsing {
     fn test_arg_parsing_decompress_subcommand() -> crate::Result<()> {
         let files = vec!["d", "e", "f"];
         make_dummy_files(&*files)?;
-        
+
         let files: Vec<_> = files.iter().map(PathBuf::from).collect();
 
         let expected = Command::Decompress {
@@ -100,11 +100,15 @@ mod argparsing {
                 .collect(),
             output_folder: None,
         };
-        
+
         assert_eq!(expected, parse!("d e f").command);
 
         let expected = Command::Decompress {
-            files: files.iter().map(fs::canonicalize).map(Result::unwrap).collect(),
+            files: files
+                .iter()
+                .map(fs::canonicalize)
+                .map(Result::unwrap)
+                .collect(),
             output_folder: Some("folder".into()),
         };
         assert_eq!(expected, parse!("d e f --output folder").command);

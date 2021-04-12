@@ -5,9 +5,8 @@ use std::{
     vec::Vec,
 };
 
-use strsim::normalized_damerau_levenshtein;
 use oof::{arg_flag, flag};
-
+use strsim::normalized_damerau_levenshtein;
 
 #[derive(PartialEq, Eq, Debug)]
 pub enum Command {
@@ -39,11 +38,10 @@ pub struct ParsedArgs {
     pub flags: oof::Flags,
 }
 
-
-/// check_for_typo checks if the first argument is 
-/// a typo for the compress subcommand. 
+/// check_for_typo checks if the first argument is
+/// a typo for the compress subcommand.
 /// Returns true if the arg is probably a typo or false otherwise.
-fn is_typo<'a, P>(path: P) -> bool 
+fn is_typo<'a, P>(path: P) -> bool
 where
     P: AsRef<Path> + 'a,
 {
@@ -73,8 +71,6 @@ where
     }
 }
 
-
-
 fn canonicalize_files<'a, P>(files: Vec<P>) -> crate::Result<Vec<PathBuf>>
 where
     P: AsRef<Path> + 'a,
@@ -97,10 +93,7 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
         });
     }
 
-    let subcommands = &[
-        "c", "compress",
-        "ls", "list"
-    ];
+    let subcommands = &["c", "compress", "ls", "list"];
 
     let mut flags_info = vec![flag!('y', "yes"), flag!('n', "no")];
 
@@ -130,10 +123,13 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
                 files: args
                     .into_iter()
                     .map(canonicalize)
-                    .collect::<Result<Vec<_>, _>>()?
+                    .collect::<Result<Vec<_>, _>>()?,
             };
 
-            ParsedArgs { command, flags: oof::Flags::new() }
+            ParsedArgs {
+                command,
+                flags: oof::Flags::new(),
+            }
         }
         // Defaults to decompression when there is no subcommand
         None => {
@@ -152,7 +148,7 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
                 .into_iter()
                 .map(canonicalize)
                 .collect::<Result<Vec<_>, _>>()?;
-            
+
             let output_folder = flags.take_arg("output").map(PathBuf::from);
 
             // TODO: ensure all files are decompressible

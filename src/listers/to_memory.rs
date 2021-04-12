@@ -3,7 +3,6 @@
 //     path::Path,
 // };
 
-
 // use utils::colors;
 
 // use super::lister::{ListingResult, Lister};
@@ -50,7 +49,7 @@
 //         from: File,
 //         format: CompressionFormat,
 //     ) -> crate::Result<ListingResult> {
-        
+
 //         let bytes = Self::unpack_file(&from.path, format)?;
 
 //         Ok(ListingResult::FileInMemory(bytes))

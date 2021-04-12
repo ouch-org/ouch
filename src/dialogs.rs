@@ -26,7 +26,14 @@ impl<'a> Confirmation<'a> {
         };
 
         loop {
-            print!("{} [{}Y{}/{}n{}] ", message, colors::green(), colors::reset(), colors::red(), colors::reset());
+            print!(
+                "{} [{}Y{}/{}n{}] ",
+                message,
+                colors::green(),
+                colors::reset(),
+                colors::red(),
+                colors::reset()
+            );
             io::stdout().flush()?;
 
             let mut answer = String::new();

@@ -1,13 +1,12 @@
 use std::{
     fs,
     io::{Cursor, Read},
-    path::{PathBuf},
+    path::PathBuf,
 };
-
 
 use tar::{self, Archive};
 
-use super::lister::{ListingResult, Lister};
+use super::lister::{Lister, ListingResult};
 use crate::file::File;
 
 #[derive(Debug)]
@@ -15,7 +14,6 @@ pub struct TarLister;
 
 impl TarLister {
     fn unpack_files(from: File) -> crate::Result<Vec<PathBuf>> {
-        
         let mut files_unpacked = vec![];
 
         let mut archive: Archive<Box<dyn Read>> = match from.contents_in_memory {
@@ -38,11 +36,7 @@ impl TarLister {
 }
 
 impl Lister for TarLister {
-    fn list(
-        &self,
-        from: File,
-    ) -> crate::Result<ListingResult> {
-        
+    fn list(&self, from: File) -> crate::Result<ListingResult> {
         let files_unpacked = Self::unpack_files(from)?;
 
         Ok(files_unpacked)

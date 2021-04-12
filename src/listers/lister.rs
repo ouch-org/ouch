@@ -7,9 +7,14 @@
 use std::path::{Path, PathBuf};
 
 use super::{TarLister, ZipLister};
-use crate::{decompressors::{BzipDecompressor, GzipDecompressor, LzmaDecompressor, TarDecompressor, ZipDecompressor}, extension::{CompressionFormat, Extension}};
-use crate::{decompressors::Decompressor, file::File, Error};
 use crate::decompressors::DecompressionResult;
+use crate::{decompressors::Decompressor, file::File, Error};
+use crate::{
+    decompressors::{
+        BzipDecompressor, GzipDecompressor, LzmaDecompressor, TarDecompressor, ZipDecompressor,
+    },
+    extension::CompressionFormat,
+};
 
 pub type ListingResult = Vec<PathBuf>;
 
@@ -50,11 +55,11 @@ pub fn list_file(path: &Path) -> crate::Result<Vec<PathBuf>> {
 
     if let Some(first_ext) = extension.first_ext {
         // We're dealing with extensions like .zip.{.bz, .gz, .lz, ..}, .tar.
-        
+
         let extension = file.extension.clone().unwrap();
         let second_ext = &extension.second_ext;
         let decompressor = decompressor_from_format(second_ext);
-        let extension = file.extension.clone();
+        let extension = file.extension;
         match decompressor.decompress(file, &None, &oof::Flags::default())? {
             DecompressionResult::FileInMemory(bytes) => {
                 // We had a file, such as .tar.gz, and now have the .tar stored in-memory.
@@ -67,17 +72,18 @@ pub fn list_file(path: &Path) -> crate::Result<Vec<PathBuf>> {
                 let lister = if let Some(lister) = get_directly_listable(&first_ext) {
                     lister
                 } else {
-                    return Err(Error::UnlistableFormat(format!("{}{}", first_ext, second_ext)))
+                    return Err(Error::UnlistableFormat(format!(
+                        "{}{}",
+                        first_ext, second_ext
+                    )));
                 };
-                
-                return lister.list(file);
-            },
+
+                lister.list(file)
+            }
             DecompressionResult::FilesUnpacked(_) => {
                 unreachable!("unreachable code in lister::list_file")
             }
         }
-
-        
     } else {
         // We're dealing with extensions like .zip, .tar, .gz, .bz, .lz
         match extension.second_ext {
@@ -90,25 +96,6 @@ pub fn list_file(path: &Path) -> crate::Result<Vec<PathBuf>> {
             }
         }
     }
-
-    // match &extension.first_ext {
-    //     Some(ext) => {
-
-    //     },
-    //     None => {
-    //         match extension.second_ext {
-    //             CompressionFormat::Gzip => {}
-    //             CompressionFormat::Bzip => {}
-    //             CompressionFormat::Lzma => {}
-    //             CompressionFormat::Tar
-    //             | CompressionFormat::Zip => {}
-    //         }
-    //         // CompressionFormat::Zip | CompressionFormat::Tar => unreachable!("Already checked in get_directly_listable")
-    //     }
-    // }
-
-    // placeholder return
-    Ok(vec![])
 }
 
 fn decompressor_from_format(fmt: &CompressionFormat) -> Box<dyn Decompressor> {
@@ -117,6 +104,6 @@ fn decompressor_from_format(fmt: &CompressionFormat) -> Box<dyn Decompressor> {
         CompressionFormat::Bzip => Box::new(BzipDecompressor),
         CompressionFormat::Lzma => Box::new(LzmaDecompressor),
         CompressionFormat::Tar => Box::new(TarDecompressor),
-        CompressionFormat::Zip => Box::new(ZipDecompressor)
+        CompressionFormat::Zip => Box::new(ZipDecompressor),
     }
 }

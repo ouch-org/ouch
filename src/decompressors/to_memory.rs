@@ -3,7 +3,6 @@ use std::{
     path::Path,
 };
 
-
 use utils::colors;
 
 use super::decompressor::{DecompressionResult, Decompressor};
