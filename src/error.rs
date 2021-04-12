@@ -17,6 +17,7 @@ pub enum Error {
     OofError,
     CompressingRootFolder,
     MissingArgumentsForCompression,
+    UnlistableFormat(String),
     CompressionTypo,
     WalkdirError,
 }

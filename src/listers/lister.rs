@@ -50,7 +50,10 @@ pub fn list_file(path: &Path) -> crate::Result<Vec<PathBuf>> {
 
     if let Some(first_ext) = extension.first_ext {
         // We're dealing with extensions like .zip.{.bz, .gz, .lz, ..}, .tar.
-        let decompressor = decompressor_from_format(&extension.second_ext);
+        
+        let extension = file.extension.clone().unwrap();
+        let second_ext = &extension.second_ext;
+        let decompressor = decompressor_from_format(second_ext);
         let extension = file.extension.clone();
         match decompressor.decompress(file, &None, &oof::Flags::default())? {
             DecompressionResult::FileInMemory(bytes) => {
@@ -61,7 +64,12 @@ pub fn list_file(path: &Path) -> crate::Result<Vec<PathBuf>> {
                     contents_in_memory: Some(bytes),
                     extension,
                 };
-                let lister = get_directly_listable(&first_ext).expect("TODO error message for this");
+                let lister = if let Some(lister) = get_directly_listable(&first_ext) {
+                    lister
+                } else {
+                    return Err(Error::UnlistableFormat(format!("{}{}", first_ext, second_ext)))
+                };
+                
                 return lister.list(file);
             },
             DecompressionResult::FilesUnpacked(_) => {
