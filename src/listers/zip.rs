@@ -1,22 +1,22 @@
 use std::{
     fs,
     io::{Cursor, Read, Seek},
-    path::PathBuf,
 };
 
 use utils::colors;
 use zip::{self, ZipArchive};
 
-use super::lister::{Lister, ListingResult};
+use super::lister::{Lister, Listing};
+use super::FileMetadata;
 use crate::{file::File, utils};
 pub struct ZipLister;
 
 impl ZipLister {
-    pub fn zip_decompress<R>(archive: &mut ZipArchive<R>) -> crate::Result<Vec<PathBuf>>
+    pub fn zip_decompress<R>(archive: &mut ZipArchive<R>) -> crate::Result<Listing>
     where
         R: Read + Seek,
     {
-        let mut unpacked_files = vec![];
+        let mut listing = vec![];
         for idx in 0..archive.len() {
             let file = archive.by_index(idx)?;
             let file_path = match file.enclosed_name() {
@@ -44,13 +44,17 @@ impl ZipLister {
                     );
                 }
             }
-            unpacked_files.push(file_path);
+            let metadata = FileMetadata {
+                path: file_path,
+                bytes: file.size(),
+            };
+            listing.push(metadata);
         }
 
-        Ok(unpacked_files)
+        Ok(listing)
     }
 
-    fn unpack_files(from: File) -> crate::Result<Vec<PathBuf>> {
+    fn unpack_files(from: File) -> crate::Result<Listing> {
         println!(
             "{}[INFO]{} decompressing {:?}",
             colors::blue(),
@@ -76,7 +80,7 @@ impl ZipLister {
 }
 
 impl Lister for ZipLister {
-    fn list(&self, from: File) -> crate::Result<ListingResult> {
+    fn list(&self, from: File) -> crate::Result<Listing> {
         let files_unpacked = Self::unpack_files(from)?;
 
         Ok(files_unpacked)

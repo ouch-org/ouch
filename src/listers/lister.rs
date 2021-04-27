@@ -16,10 +16,16 @@ use crate::{
     extension::CompressionFormat,
 };
 
-pub type ListingResult = Vec<PathBuf>;
+#[derive(Debug)]
+pub struct FileMetadata {
+    pub path: PathBuf,
+    pub bytes: u64
+}
+
+pub type Listing = Vec<FileMetadata>;
 
 pub trait Lister {
-    fn list(&self, from: File) -> crate::Result<ListingResult>;
+    fn list(&self, from: File) -> crate::Result<Listing>;
 }
 
 type BoxedLister = Box<dyn Lister>;
@@ -34,7 +40,7 @@ fn get_directly_listable(fmt: &CompressionFormat) -> Option<BoxedLister> {
 }
 
 /// Lists the files contained in the given archive
-pub fn list_file(path: &Path) -> crate::Result<Vec<PathBuf>> {
+pub fn list_file(path: &Path) -> crate::Result<Listing> {
     // The file to be decompressed
     let file = File::from(path)?;
 
