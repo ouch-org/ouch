@@ -10,7 +10,6 @@ mod error;
 mod extension;
 mod file;
 mod utils;
-mod test;
 
 pub use error::{Error, Result};
 
