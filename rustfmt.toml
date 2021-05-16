@@ -1,0 +1,13 @@
+# Normal features
+max_width = 100
+imports_granularity = "Crate"
+match_block_trailing_comma = true
+overflow_delimited_expr = true
+reorder_impl_items = true
+use_field_init_shorthand = true
+newline_style = "Unix"
+edition = "2018"
+reorder_imports = true
+reorder_modules = true
+use_try_shorthand = true
+use_small_heuristics = "Max"

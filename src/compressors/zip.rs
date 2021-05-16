@@ -37,7 +37,7 @@ impl ZipCompressor {
                 // TODO: error description, although this block should not be
                 // reachable
                 return Err(crate::Error::InvalidInput);
-            }
+            },
         };
 
         writer.write_all(&*input_bytes)?;

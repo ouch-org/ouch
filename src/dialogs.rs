@@ -12,10 +12,7 @@ pub struct Error;
 
 impl<'a> Confirmation<'a> {
     pub fn new(prompt: &'a str, pattern: Option<&'a str>) -> Self {
-        Self {
-            prompt,
-            placeholder: pattern,
-        }
+        Self { prompt, placeholder: pattern }
     }
 
     pub fn ask(&self, substitute: Option<&'a str>) -> crate::Result<bool> {
@@ -26,7 +23,14 @@ impl<'a> Confirmation<'a> {
         };
 
         loop {
-            print!("{} [{}Y{}/{}n{}] ", message, colors::green(), colors::reset(), colors::red(), colors::reset());
+            print!(
+                "{} [{}Y{}/{}n{}] ",
+                message,
+                colors::green(),
+                colors::reset(),
+                colors::red(),
+                colors::reset()
+            );
             io::stdout().flush()?;
 
             let mut answer = String::new();
@@ -40,7 +44,7 @@ impl<'a> Confirmation<'a> {
             match trimmed_answer.to_ascii_lowercase().as_ref() {
                 "y" | "yes" => return Ok(true),
                 "n" | "no" => return Ok(false),
-                _ => {}
+                _ => {},
             }
         }
     }

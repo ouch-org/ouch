@@ -79,7 +79,7 @@ pub fn get_destination_path<'a>(dest: &'a Option<File>) -> &'a Path {
             // Must be None according to the way command-line arg. parsing in Ouch works
             assert_eq!(output_file.extension, None);
             Path::new(&output_file.path)
-        }
+        },
         None => Path::new("."),
     }
 }
@@ -93,9 +93,7 @@ pub fn change_dir_and_return_parent(filename: &Path) -> crate::Result<PathBuf> {
         return Err(crate::Error::CompressingRootFolder);
     };
 
-    env::set_current_dir(parent)
-        .ok()
-        .ok_or(crate::Error::CompressingRootFolder)?;
+    env::set_current_dir(parent).ok().ok_or(crate::Error::CompressingRootFolder)?;
 
     Ok(previous_location)
 }
@@ -107,11 +105,13 @@ pub fn permission_for_overwriting(
 ) -> crate::Result<bool> {
     match (flags.is_present("yes"), flags.is_present("no")) {
         (true, true) => {
-            unreachable!("This should've been cutted out in the ~/src/cli.rs filter flags function.")
-        }
+            unreachable!(
+                "This should've been cutted out in the ~/src/cli.rs filter flags function."
+            )
+        },
         (true, _) => return Ok(true),
         (_, true) => return Ok(false),
-        _ => {}
+        _ => {},
     }
 
     let file_path_str = to_utf(path);
@@ -181,9 +181,7 @@ impl Bytes {
     const UNIT_PREFIXES: [&'static str; 6] = ["", "k", "M", "G", "T", "P"];
 
     pub fn new(bytes: u64) -> Self {
-        Self {
-            bytes: bytes as f64,
-        }
+        Self { bytes: bytes as f64 }
     }
 }
 

@@ -66,7 +66,7 @@ impl ZipDecompressor {
                 _is_dir @ true => {
                     println!("File {} extracted to \"{}\"", idx, file_path.display());
                     fs::create_dir_all(&file_path)?;
-                }
+                },
                 _is_file @ false => {
                     if let Some(path) = file_path.parent() {
                         if !path.exists() {
@@ -83,7 +83,7 @@ impl ZipDecompressor {
 
                     let mut output_file = fs::File::create(&file_path)?;
                     io::copy(&mut file, &mut output_file)?;
-                }
+                },
             }
 
             #[cfg(unix)]
@@ -104,14 +104,14 @@ impl ZipDecompressor {
                 // Decompressing a .zip archive loaded up in memory
                 let mut archive = zip::ZipArchive::new(Cursor::new(bytes))?;
                 Ok(Self::zip_decompress(&mut archive, into, flags)?)
-            }
+            },
             None => {
                 // Decompressing a .zip archive from the file system
                 let file = fs::File::open(&from.path)?;
                 let mut archive = zip::ZipArchive::new(file)?;
 
                 Ok(Self::zip_decompress(&mut archive, into, flags)?)
-            }
+            },
         }
     }
 }

@@ -72,10 +72,5 @@ Visit https://github.com/vrmiguel/ouch for more usage examples.",
 #[inline]
 fn version_command() {
     use utils::colors::*;
-    println!(
-        "{green}ouch{reset} {}",
-        crate::VERSION,
-        green = green(),
-        reset = reset(),
-    );
+    println!("{green}ouch{reset} {}", crate::VERSION, green = green(), reset = reset(),);
 }

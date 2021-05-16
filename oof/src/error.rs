@@ -16,7 +16,7 @@ pub enum OofError<'t> {
     UnknownLongFlag(String),
     MisplacedShortArgFlagError(char),
     MissingValueToFlag(&'t Flag),
-    DuplicatedFlag(&'t Flag)
+    DuplicatedFlag(&'t Flag),
 }
 
 impl<'t> error::Error for OofError<'t> {

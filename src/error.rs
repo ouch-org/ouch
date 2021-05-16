@@ -1,5 +1,6 @@
-use crate::utils::colors;
 use std::{fmt, path::PathBuf};
+
+use crate::utils::colors;
 
 pub enum Error {
     UnknownExtensionError(String),
@@ -36,18 +37,18 @@ impl fmt::Display for Error {
                 write!(f, "{}[ERROR]{} ", colors::red(), colors::reset())?;
                 // TODO: show MIME type of the unsupported file
                 write!(f, "cannot compress to {:?}, likely because it has an unsupported (or missing) extension.", filename)
-            }
+            },
             Error::WalkdirError => {
                 // Already printed in the From block
                 write!(f, "")
-            }
+            },
             Error::FileNotFound(file) => {
                 write!(f, "{}[ERROR]{} ", colors::red(), colors::reset())?;
                 if file == &PathBuf::from("") {
                     return write!(f, "file not found!");
                 }
                 write!(f, "file {:?} not found!", file)
-            }
+            },
             Error::CompressingRootFolder => {
                 write!(f, "{}[ERROR]{} ", colors::red(), colors::reset())?;
                 let spacing = "        ";
@@ -64,32 +65,27 @@ impl fmt::Display for Error {
                     colors::green(),
                     colors::reset()
                 )
-            }
+            },
             Error::MissingArgumentsForCompression => {
                 write!(f, "{}[ERROR]{} ", colors::red(), colors::reset())?;
                 let spacing = "        ";
                 writeln!(f,"The compress subcommands demands at least 2 arguments, an input file and an output file.")?;
                 writeln!(f, "{}Example: `ouch compress img.jpeg img.zip`", spacing)?;
                 write!(f, "{}For more information, run `ouch --help`", spacing)
-            }
+            },
             Error::InternalError => {
                 write!(f, "{}[ERROR]{} ", colors::red(), colors::reset())?;
                 write!(f, "You've reached an internal error! This really should not have happened.\nPlease file an issue at {}https://github.com/vrmiguel/ouch{}", colors::green(), colors::reset())
-            }
+            },
             Error::IoError(io_err) => {
                 write!(f, "{}[ERROR]{} {}", colors::red(), colors::reset(), io_err)
-            }
+            },
             Error::CompressionTypo => {
-                write!(
-                    f,
-                    "Did you mean {}ouch compress{}?",
-                    colors::magenta(),
-                    colors::reset()
-                )
-            }
+                write!(f, "Did you mean {}ouch compress{}?", colors::magenta(), colors::reset())
+            },
             _err => {
                 todo!();
-            }
+            },
         }
     }
 }
