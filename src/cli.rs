@@ -5,9 +5,8 @@ use std::{
     vec::Vec,
 };
 
-use strsim::normalized_damerau_levenshtein;
 use oof::{arg_flag, flag};
-
+use strsim::normalized_damerau_levenshtein;
 
 #[derive(PartialEq, Eq, Debug)]
 pub enum Command {
@@ -36,11 +35,10 @@ pub struct ParsedArgs {
     pub flags: oof::Flags,
 }
 
-
-/// check_for_typo checks if the first argument is 
-/// a typo for the compress subcommand. 
+/// check_for_typo checks if the first argument is
+/// a typo for the compress subcommand.
 /// Returns true if the arg is probably a typo or false otherwise.
-fn is_typo<'a, P>(path: P) -> bool 
+fn is_typo<'a, P>(path: P) -> bool
 where
     P: AsRef<Path> + 'a,
 {
@@ -66,11 +64,9 @@ where
             } else {
                 Err(crate::Error::IoError(io_err))
             }
-        }
+        },
     }
 }
-
-
 
 fn canonicalize_files<'a, P>(files: Vec<P>) -> crate::Result<Vec<PathBuf>>
 where
@@ -81,22 +77,14 @@ where
 
 pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
     if oof::matches_any_arg(&args, &["--help", "-h"]) || args.is_empty() {
-        return Ok(ParsedArgs {
-            command: Command::ShowHelp,
-            flags: oof::Flags::default(),
-        });
+        return Ok(ParsedArgs { command: Command::ShowHelp, flags: oof::Flags::default() });
     }
 
     if oof::matches_any_arg(&args, &["--version"]) {
-        return Ok(ParsedArgs {
-            command: Command::ShowVersion,
-            flags: oof::Flags::default(),
-        });
+        return Ok(ParsedArgs { command: Command::ShowVersion, flags: oof::Flags::default() });
     }
 
-    let subcommands = &[
-        "c", "compress"
-    ];
+    let subcommands = &["c", "compress"];
 
     let mut flags_info = vec![flag!('y', "yes"), flag!('n', "no")];
 
@@ -115,41 +103,33 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
 
             let files = canonicalize_files(files)?;
 
-            let command = Command::Compress {
-                files,
-                compressed_output_path,
-            };
+            let command = Command::Compress { files, compressed_output_path };
             ParsedArgs { command, flags }
-        }
+        },
         // Defaults to decompression when there is no subcommand
         None => {
             flags_info.push(arg_flag!('o', "output"));
-            {
-                let first_arg = args.first().unwrap();
+
+            if let Some(first_arg) = args.first() {
                 if is_typo(first_arg) {
                     return Err(crate::Error::CompressionTypo);
                 }
+            } else {
+                todo!("Complain that no decompression arguments were given.");
             }
-            
 
             // Parse flags
             let (args, mut flags) = oof::filter_flags(args, &flags_info)?;
 
-            let files = args
-                .into_iter()
-                .map(canonicalize)
-                .collect::<Result<Vec<_>, _>>()?;
+            let files = args.into_iter().map(canonicalize).collect::<Result<Vec<_>, _>>()?;
 
             let output_folder = flags.take_arg("output").map(PathBuf::from);
 
             // TODO: ensure all files are decompressible
 
-            let command = Command::Decompress {
-                files,
-                output_folder,
-            };
+            let command = Command::Decompress { files, output_folder };
             ParsedArgs { command, flags }
-        }
+        },
         _ => unreachable!("You should match each subcommand passed."),
     };
 

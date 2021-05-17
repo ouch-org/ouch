@@ -34,10 +34,7 @@ pub fn get_extension_from_filename(file_name: &OsStr) -> Option<(&OsStr, &OsStr)
 
 impl From<CompressionFormat> for Extension {
     fn from(second_ext: CompressionFormat) -> Self {
-        Self {
-            first_ext: None,
-            second_ext,
-        }
+        Self { first_ext: None, second_ext }
     }
 }
 
@@ -57,29 +54,22 @@ impl Extension {
                 (os_str, snd) if os_str.is_empty() => (None, snd),
                 (fst, snd) => (Some(fst), snd),
             },
-            None => {
-                return Err(crate::Error::MissingExtensionError(PathBuf::from(
-                    file_name,
-                )))
-            }
+            None => return Err(crate::Error::MissingExtensionError(PathBuf::from(file_name))),
         };
 
         let (first_ext, second_ext) = match (first_ext, second_ext) {
             (None, snd) => {
                 let ext = compression_format_from(snd)?;
                 (None, ext)
-            }
+            },
             (Some(fst), snd) => {
                 let snd = compression_format_from(snd)?;
                 let fst = compression_format_from(fst).ok();
                 (fst, snd)
-            }
+            },
         };
 
-        Ok(Self {
-            first_ext,
-            second_ext,
-        })
+        Ok(Self { first_ext, second_ext })
     }
 }
 
@@ -119,7 +109,7 @@ impl TryFrom<&PathBuf> for CompressionFormat {
             Some(ext) => ext,
             None => {
                 return Err(crate::Error::MissingExtensionError(PathBuf::new()));
-            }
+            },
         };
         extension_from_os_str(ext)
     }
@@ -141,16 +131,12 @@ impl TryFrom<&str> for CompressionFormat {
 
 impl Display for CompressionFormat {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Gzip => ".gz",
-                Bzip => ".bz",
-                Lzma => ".lz",
-                Tar => ".tar",
-                Zip => ".zip",
-            }
-        )
+        write!(f, "{}", match self {
+            Gzip => ".gz",
+            Bzip => ".bz",
+            Lzma => ".lz",
+            Tar => ".tar",
+            Zip => ".zip",
+        })
     }
 }

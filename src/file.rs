@@ -21,10 +21,6 @@ impl<'a> File<'a> {
     pub fn from(path: &'a Path) -> crate::Result<Self> {
         let extension = Extension::from(path.as_ref()).ok();
 
-        Ok(File {
-            path,
-            contents_in_memory: None,
-            extension,
-        })
+        Ok(File { path, contents_in_memory: None, extension })
     }
 }

@@ -4,7 +4,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-
 use tar::{self, Archive};
 use utils::colors;
 
@@ -30,7 +29,7 @@ impl TarDecompressor {
             None => {
                 let file = fs::File::open(&from.path)?;
                 tar::Archive::new(Box::new(file))
-            }
+            },
         };
 
         for file in archive.entries()? {

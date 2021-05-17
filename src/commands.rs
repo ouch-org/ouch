@@ -24,20 +24,16 @@ use crate::{
 
 pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
     match command {
-        Command::Compress {
-            files,
-            compressed_output_path,
-        } => compress_files(files, &compressed_output_path, flags)?,
-        Command::Decompress {
-            files,
-            output_folder,
-        } => {
+        Command::Compress { files, compressed_output_path } => {
+            compress_files(files, &compressed_output_path, flags)?
+        },
+        Command::Decompress { files, output_folder } => {
             // From Option<PathBuf> to Option<&Path>
             let output_folder = output_folder.as_ref().map(|path| Path::new(path));
             for file in files.iter() {
                 decompress_file(file, output_folder, flags)?;
             }
-        }
+        },
         Command::ShowHelp => crate::help_command(),
         Command::ShowVersion => crate::version_command(),
     }
@@ -53,7 +49,7 @@ fn get_compressor(file: &File) -> crate::Result<(Option<BoxedCompressor>, BoxedC
         None => {
             // This is reached when the output file given does not have an extension or has an unsupported one
             return Err(crate::Error::MissingExtensionError(file.path.to_path_buf()));
-        }
+        },
     };
 
     // Supported first compressors:
@@ -93,7 +89,7 @@ fn get_decompressor(file: &File) -> crate::Result<(Option<BoxedDecompressor>, Bo
                 colors::reset()
             );
             return Err(crate::Error::InvalidInput);
-        }
+        },
     };
 
     let second_decompressor: Box<dyn Decompressor> = match extension.second_ext {
@@ -126,10 +122,7 @@ fn decompress_file_in_memory(
 ) -> crate::Result<()> {
     let output_file_path = utils::get_destination_path(&output_file);
 
-    let file_name = file_path
-        .file_stem()
-        .map(Path::new)
-        .unwrap_or(output_file_path);
+    let file_name = file_path.file_stem().map(Path::new).unwrap_or(output_file_path);
 
     if "." == file_name.as_os_str() {
         // I believe this is only possible when the supplied input has a name
@@ -156,14 +149,10 @@ fn decompress_file_in_memory(
             let mut f = fs::File::create(output_file_path.join(file_name))?;
             f.write_all(&bytes)?;
             return Ok(());
-        }
+        },
     };
 
-    let file = File {
-        path: file_name,
-        contents_in_memory: Some(bytes),
-        extension,
-    };
+    let file = File { path: file_name, contents_in_memory: Some(bytes), extension };
 
     let decompression_result = decompressor.decompress(file, &output_file, flags)?;
     if let DecompressionResult::FileInMemory(_) = decompression_result {
@@ -196,11 +185,11 @@ fn compress_files(
             output.contents_in_memory = Some(bytes);
             entry = Entry::InMemory(output);
             second_compressor.compress(entry)?
-        }
+        },
         None => {
             let entry = Entry::Files(files);
             second_compressor.compress(entry)?
-        }
+        },
     };
 
     println!(
@@ -224,9 +213,7 @@ fn decompress_file(
     let file = File::from(file_path)?;
     // The file must have a supported decompressible format
     if file.extension == None {
-        return Err(crate::Error::MissingExtensionError(PathBuf::from(
-            file_path,
-        )));
+        return Err(crate::Error::MissingExtensionError(PathBuf::from(file_path)));
     }
 
     let output = match output {
@@ -251,7 +238,7 @@ fn decompress_file(
                 extension,
                 flags,
             )?;
-        }
+        },
         DecompressionResult::FilesUnpacked(_files) => {
             // If the file's last extension was an archival method,
             // such as .tar, .zip or (to-do) .rar, then we won't look for
@@ -260,7 +247,7 @@ fn decompress_file(
             // to worry about, at least at the moment.
 
             // TODO: use the `files` variable for something
-        }
+        },
     }
 
     Ok(())

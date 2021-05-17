@@ -21,9 +21,12 @@ tar     = "0.4.33"
 xz2     = "0.1.6"
 zip     = "0.5.11"
 
-
 # Dependency from workspace
 oof = { path = "./oof" }
+
+[dev-dependencies]
+tempdir = "0.3.7"
+rand = { version = "0.8.3", default-features = false, features = ["small_rng", "std"] }
 
 [profile.release]
 lto = true

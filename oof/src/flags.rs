@@ -13,11 +13,7 @@ pub struct ArgFlag;
 
 impl ArgFlag {
     pub fn long(name: &'static str) -> Flag {
-        Flag {
-            long: name,
-            short: None,
-            takes_value: true,
-        }
+        Flag { long: name, short: None, takes_value: true }
     }
 }
 
@@ -40,11 +36,7 @@ impl std::fmt::Display for Flag {
 
 impl Flag {
     pub fn long(name: &'static str) -> Self {
-        Self {
-            long: name,
-            short: None,
-            takes_value: false,
-        }
+        Self { long: name, short: None, takes_value: false }
     }
 
     pub fn short(mut self, short_flag_char: char) -> Self {

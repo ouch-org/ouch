@@ -7,7 +7,10 @@ mod error;
 mod flags;
 pub mod util;
 
-use std::{collections::BTreeMap, ffi::{OsStr, OsString}};
+use std::{
+    collections::BTreeMap,
+    ffi::{OsStr, OsString},
+};
 
 pub use error::OofError;
 pub use flags::{ArgFlag, Flag, FlagType, Flags};
@@ -103,9 +106,9 @@ pub fn filter_flags(
         }
 
         // If it is a flag, now we try to interpret it as valid utf-8
-        let flag= match arg.to_str() {
+        let flag = match arg.to_str() {
             Some(arg) => arg,
-            None => return Err(OofError::InvalidUnicode(arg))
+            None => return Err(OofError::InvalidUnicode(arg)),
         };
 
         // Only one hyphen in the flag
@@ -127,12 +130,11 @@ pub fn filter_flags(
                 // Safety: this loop only runs when len >= 1, so this subtraction is safe
                 let is_last_letter = i == letters.len() - 1;
 
-                let flag_info = short_flags_info.get(&letter).ok_or( 
-                    OofError::UnknownShortFlag(letter)
-                )?;
+                let flag_info =
+                    short_flags_info.get(&letter).ok_or(OofError::UnknownShortFlag(letter))?;
 
                 if !is_last_letter && flag_info.takes_value {
-                    return Err(OofError::MisplacedShortArgFlagError(letter))
+                    return Err(OofError::MisplacedShortArgFlagError(letter));
                     // Because "-AB argument" only works if B takes values, not A.
                     // That is, the short flag that takes values needs to come at the end
                     // of this piece of text
@@ -147,9 +149,8 @@ pub fn filter_flags(
                     }
 
                     // pop the next one
-                    let flag_argument = iter.next().ok_or(
-                        OofError::MissingValueToFlag(flag_info)
-                    )?;
+                    let flag_argument =
+                        iter.next().ok_or(OofError::MissingValueToFlag(flag_info))?;
 
                     // Otherwise, insert it.
                     result_flags.argument_flags.insert(flag_name, flag_argument);
@@ -167,9 +168,9 @@ pub fn filter_flags(
         if let FlagType::Long = flag_type {
             let flag = trim_double_hyphen(flag);
 
-            let flag_info = long_flags_info.get(flag).ok_or_else(|| {
-                OofError::UnknownLongFlag(String::from(flag))
-            })?;
+            let flag_info = long_flags_info
+                .get(flag)
+                .ok_or_else(|| OofError::UnknownLongFlag(String::from(flag)))?;
 
             let flag_name = flag_info.long;
 
@@ -179,9 +180,7 @@ pub fn filter_flags(
                     return Err(OofError::DuplicatedFlag(flag_info));
                 }
 
-                let flag_argument = iter.next().ok_or(
-                    OofError::MissingValueToFlag(flag_info)
-                )?;
+                let flag_argument = iter.next().ok_or(OofError::MissingValueToFlag(flag_info))?;
                 result_flags.argument_flags.insert(flag_name, flag_argument);
             } else {
                 // If it was already inserted
@@ -209,9 +208,7 @@ where
     T: AsRef<OsStr>,
     U: AsRef<str>,
 {
-    texts
-        .iter()
-        .any(|text| args.iter().any(|arg| arg.as_ref() == text.as_ref()))
+    texts.iter().any(|text| args.iter().any(|arg| arg.as_ref() == text.as_ref()))
 }
 
 #[cfg(test)]
@@ -237,14 +234,8 @@ mod tests {
 
         assert_eq!(args, gen_args("ouch a.zip b.tar.gz c.tar"));
         assert!(flags.is_present("output_file"));
-        assert_eq!(
-            Some(&OsString::from("new_folder")),
-            flags.arg("output_file")
-        );
-        assert_eq!(
-            Some(OsString::from("new_folder")),
-            flags.take_arg("output_file")
-        );
+        assert_eq!(Some(&OsString::from("new_folder")), flags.arg("output_file"));
+        assert_eq!(Some(OsString::from("new_folder")), flags.take_arg("output_file"));
         assert!(!flags.is_present("output_file"));
     }
 
@@ -291,10 +282,7 @@ mod tests {
     // TODO: remove should_panic and use proper error handling inside of filter_args
     #[should_panic]
     fn test_flag_info_with_long_flag_conflict() {
-        let flags_info = [
-            ArgFlag::long("verbose").short('a'),
-            Flag::long("verbose").short('b'),
-        ];
+        let flags_info = [ArgFlag::long("verbose").short('a'), Flag::long("verbose").short('b')];
 
         // Should panic here
         let result = filter_flags(vec![], &flags_info);
@@ -305,10 +293,8 @@ mod tests {
     // TODO: remove should_panic and use proper error handling inside of filter_args
     #[should_panic]
     fn test_flag_info_with_short_flag_conflict() {
-        let flags_info = [
-            ArgFlag::long("output_file").short('o'),
-            Flag::long("verbose").short('o'),
-        ];
+        let flags_info =
+            [ArgFlag::long("output_file").short('o'), Flag::long("verbose").short('o')];
 
         // Should panic here
         filter_flags(vec![], &flags_info).unwrap_err();

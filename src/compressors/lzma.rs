@@ -38,7 +38,7 @@ impl LzmaCompressor {
             Some(bytes) => bytes,
             None => {
                 unreachable!();
-            }
+            },
         };
 
         Self::compress_bytes(file_contents)

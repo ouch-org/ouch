@@ -34,7 +34,7 @@ impl BzipCompressor {
             Some(bytes) => bytes,
             None => {
                 return Err(crate::Error::InternalError);
-            }
+            },
         };
 
         Self::compress_bytes(&*bytes)
