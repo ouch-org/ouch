@@ -5,7 +5,7 @@ use std::{
 };
 
 use ouch::{cli::Command, commands::run};
-use rand::random;
+use rand::{rngs::SmallRng, RngCore, SeedableRng};
 use tempdir::TempDir;
 
 #[test]
@@ -13,27 +13,28 @@ use tempdir::TempDir;
 /// TODO: test the remaining formats.
 /// TODO2: Fix testing of .tar.zip and .zip.zip
 fn test_each_format() {
-    test_compression_and_decompression("tar");
-    test_compression_and_decompression("tar.gz");
-    test_compression_and_decompression("tar.bz");
-    test_compression_and_decompression("tar.bz2");
-    test_compression_and_decompression("tar.xz");
-    test_compression_and_decompression("tar.lz");
-    test_compression_and_decompression("tar.lzma");
-    // test_compression_and_decompression("tar.zip");
-    test_compression_and_decompression("zip");
-    test_compression_and_decompression("zip.gz");
-    test_compression_and_decompression("zip.bz");
-    test_compression_and_decompression("zip.bz2");
-    test_compression_and_decompression("zip.xz");
-    test_compression_and_decompression("zip.lz");
-    test_compression_and_decompression("zip.lzma");
-    // test_compression_and_decompression("zip.zip");
+    let mut rng = SmallRng::from_entropy();
+    test_compression_and_decompression(&mut rng, "tar");
+    test_compression_and_decompression(&mut rng, "tar.gz");
+    test_compression_and_decompression(&mut rng, "tar.bz");
+    test_compression_and_decompression(&mut rng, "tar.bz2");
+    test_compression_and_decompression(&mut rng, "tar.xz");
+    test_compression_and_decompression(&mut rng, "tar.lz");
+    test_compression_and_decompression(&mut rng, "tar.lzma");
+    // test_compression_and_decompression(&mut rng, "tar.zip");
+    test_compression_and_decompression(&mut rng, "zip");
+    test_compression_and_decompression(&mut rng, "zip.gz");
+    test_compression_and_decompression(&mut rng, "zip.bz");
+    test_compression_and_decompression(&mut rng, "zip.bz2");
+    test_compression_and_decompression(&mut rng, "zip.xz");
+    test_compression_and_decompression(&mut rng, "zip.lz");
+    test_compression_and_decompression(&mut rng, "zip.lzma");
+    // test_compression_and_decompression(&mut rng, "zip.zip");
 }
 
 type FileContent = Vec<u8>;
 
-fn test_compression_and_decompression(format: &str) {
+fn test_compression_and_decompression(rng: &mut impl RngCore, format: &str) {
     // System temporary directory depends on the platform
     // For linux it is /tmp
     let system_tmp = env::temp_dir();
@@ -43,10 +44,10 @@ fn test_compression_and_decompression(format: &str) {
     let testing_dir = testing_dir.path();
 
     // Quantity of compressed files vary from 1 to 10
-    let quantity_of_files = random::<u32>() % 10 + 1;
+    let quantity_of_files = rng.next_u32() % 10 + 1;
 
     let contents_of_files: Vec<FileContent> =
-        (0..quantity_of_files).map(|_| generate_random_file_content()).collect();
+        (0..quantity_of_files).map(|_| generate_random_file_content(rng)).collect();
 
     let mut file_paths = create_files(&testing_dir, &contents_of_files);
     let archive_path = compress_files(&testing_dir, &file_paths, &format);
@@ -63,9 +64,11 @@ fn test_compression_and_decompression(format: &str) {
 }
 
 // Crate file contents from 1024 up to 8192 random bytes
-fn generate_random_file_content() -> FileContent {
-    let quantity = 1024 + random::<u32>() % (8192 - 1024);
-    (0..quantity).map(|_| random()).collect()
+fn generate_random_file_content(rng: &mut impl RngCore) -> FileContent {
+    let quantity = 1024 + rng.next_u32() % (8192 - 1024);
+    let mut vec = vec![0; quantity as usize];
+    rng.fill_bytes(&mut vec);
+    vec
 }
 
 // Create files using the indexes as file names (eg. 0, 1, 2 and 3)
