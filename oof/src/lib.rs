@@ -220,6 +220,25 @@ mod tests {
         args.map(OsString::from).collect()
     }
 
+    fn setup_args_scenario(arg_str: &str) -> Result<(Vec<OsString>, Flags), OofError> {
+        let flags_info = [
+            ArgFlag::long("output_file").short('o'),
+            Flag::long("verbose").short('v'),
+            Flag::long("help").short('h'),
+        ];
+
+        let args = gen_args(arg_str);
+        filter_flags(args, &flags_info)
+    }
+
+    #[test]
+    fn test_unknown_short_flag() {
+        let result = setup_args_scenario("ouch a.zip -s b.tar.gz c.tar").unwrap_err();
+        assert!(matches!(result, OofError::UnknownShortFlag('s')));
+        let result = setup_args_scenario("ouch a.zip --foobar b.tar.gz c.tar").unwrap_err();
+        // TODO: assert `UnknownLongFlag` error
+    }
+
     // asdasdsa
     #[test]
     fn test_filter_flags() {
@@ -237,19 +256,6 @@ mod tests {
         assert_eq!(Some(&OsString::from("new_folder")), flags.arg("output_file"));
         assert_eq!(Some(OsString::from("new_folder")), flags.take_arg("output_file"));
         assert!(!flags.is_present("output_file"));
-    }
-
-    #[test]
-    fn test_unknown_short_flag() {
-        let flags_info = [
-            ArgFlag::long("output_file").short('o'),
-            Flag::long("verbose").short('v'),
-            Flag::long("help").short('h'),
-        ];
-
-        let args = gen_args("ouch a.zip -s b.tar.gz");
-        let result = filter_flags(args, &flags_info).unwrap_err();
-        assert!(matches!(result, OofError::UnknownShortFlag('s')));
     }
 
     #[test]
