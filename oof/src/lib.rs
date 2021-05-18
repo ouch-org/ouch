@@ -240,6 +240,19 @@ mod tests {
     }
 
     #[test]
+    fn test_unknown_short_flag() {
+        let flags_info = [
+            ArgFlag::long("output_file").short('o'),
+            Flag::long("verbose").short('v'),
+            Flag::long("help").short('h'),
+        ];
+
+        let args = gen_args("ouch a.zip -s b.tar.gz");
+        let result = filter_flags(args, &flags_info).unwrap_err();
+        assert!(matches!(result, OofError::UnknownShortFlag('s')));
+    }
+
+    #[test]
     fn test_pop_subcommand() {
         let subcommands = &["commit", "add", "push", "remote"];
         let mut args = gen_args("add a b c");
