@@ -131,7 +131,7 @@ pub fn filter_flags(
                 let is_last_letter = i == letters.len() - 1;
 
                 let flag_info =
-                    short_flags_info.get(&letter).ok_or(OofError::UnknownShortFlag(letter))?;
+                    *short_flags_info.get(&letter).ok_or(OofError::UnknownShortFlag(letter))?;
 
                 if !is_last_letter && flag_info.takes_value {
                     return Err(OofError::MisplacedShortArgFlagError(letter));
@@ -145,19 +145,20 @@ pub fn filter_flags(
                 if flag_info.takes_value {
                     // If it was already inserted
                     if result_flags.argument_flags.contains_key(flag_name) {
-                        return Err(OofError::DuplicatedFlag(flag_info));
+                        return Err(OofError::DuplicatedFlag(flag_info.clone()));
                     }
 
                     // pop the next one
-                    let flag_argument =
-                        iter.next().ok_or(OofError::MissingValueToFlag(flag_info))?;
+                    let flag_argument = iter
+                        .next()
+                        .ok_or_else(|| OofError::MissingValueToFlag(flag_info.clone()))?;
 
                     // Otherwise, insert it.
                     result_flags.argument_flags.insert(flag_name, flag_argument);
                 } else {
                     // If it was already inserted
                     if result_flags.boolean_flags.contains(flag_name) {
-                        return Err(OofError::DuplicatedFlag(flag_info));
+                        return Err(OofError::DuplicatedFlag(flag_info.clone()));
                     }
                     // Otherwise, insert it
                     result_flags.boolean_flags.insert(flag_name);
@@ -168,7 +169,7 @@ pub fn filter_flags(
         if let FlagType::Long = flag_type {
             let flag = trim_double_hyphen(flag);
 
-            let flag_info = long_flags_info
+            let flag_info = *long_flags_info
                 .get(flag)
                 .ok_or_else(|| OofError::UnknownLongFlag(String::from(flag)))?;
 
@@ -177,15 +178,16 @@ pub fn filter_flags(
             if flag_info.takes_value {
                 // If it was already inserted
                 if result_flags.argument_flags.contains_key(&flag_name) {
-                    return Err(OofError::DuplicatedFlag(flag_info));
+                    return Err(OofError::DuplicatedFlag(flag_info.clone()));
                 }
 
-                let flag_argument = iter.next().ok_or(OofError::MissingValueToFlag(flag_info))?;
+                let flag_argument =
+                    iter.next().ok_or_else(|| OofError::MissingValueToFlag(flag_info.clone()))?;
                 result_flags.argument_flags.insert(flag_name, flag_argument);
             } else {
                 // If it was already inserted
                 if result_flags.boolean_flags.contains(&flag_name) {
-                    return Err(OofError::DuplicatedFlag(flag_info));
+                    return Err(OofError::DuplicatedFlag(flag_info.clone()));
                 }
                 // Otherwise, insert it
                 result_flags.boolean_flags.insert(&flag_name);
