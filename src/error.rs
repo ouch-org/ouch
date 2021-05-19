@@ -120,7 +120,7 @@ impl From<walkdir::Error> for Error {
     }
 }
 
-impl<'t> From<oof::OofError<'t>> for Error {
+impl From<oof::OofError> for Error {
     fn from(err: oof::OofError) -> Self {
         // To avoid entering a lifetime hell, we'll just print the Oof error here
         // and skip saving it into a variant of Self
