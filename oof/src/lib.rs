@@ -234,11 +234,29 @@ mod tests {
     }
 
     #[test]
-    fn test_unknown_short_flag() {
+    fn test_unknown_flags() {
         let result = setup_args_scenario("ouch a.zip -s b.tar.gz c.tar").unwrap_err();
         assert!(matches!(result, OofError::UnknownShortFlag('s')));
         let result = setup_args_scenario("ouch a.zip --foobar b.tar.gz c.tar").unwrap_err();
-        // TODO: assert `UnknownLongFlag` error
+        // TODO: Try removing the `_` from `_foobar`
+        let _foobar = "foobar".to_string();
+        assert!(matches!(result, OofError::UnknownLongFlag(_foobar)));
+    }
+
+    #[test]
+    fn test_incomplete_flags() {
+        // TODO: Try removing the `_` from `_incomplete_flag`
+        let _incomplete_flag = Flag::long("output_file").short('o');
+        let result = setup_args_scenario("ouch a.zip b.tar.gz c.tar -o").unwrap_err();
+        assert!(matches!(result, OofError::MissingValueToFlag(_incomplete_flag)));
+    }
+
+    #[test]
+    fn test_duplicated_flags() {
+        // TODO: Try removing the `_` from `_duplicated_flag`
+        let _duplicated_flag = Flag::long("output_file").short('o');
+        let result = setup_args_scenario("ouch a.zip b.tar.gz c.tar -o -o -o").unwrap_err();
+        assert!(matches!(result, OofError::DuplicatedFlag(_duplicated_flag)));
     }
 
     // asdasdsa
