@@ -237,26 +237,54 @@ mod tests {
     fn test_unknown_flags() {
         let result = setup_args_scenario("ouch a.zip -s b.tar.gz c.tar").unwrap_err();
         assert!(matches!(result, OofError::UnknownShortFlag('s')));
+
+        let unknown_long_flag = "foobar".to_string();
         let result = setup_args_scenario("ouch a.zip --foobar b.tar.gz c.tar").unwrap_err();
-        // TODO: Try removing the `_` from `_foobar`
-        let _foobar = "foobar".to_string();
-        assert!(matches!(result, OofError::UnknownLongFlag(_foobar)));
+
+        assert!(match result {
+            OofError::UnknownLongFlag(flag) if flag == unknown_long_flag => true,
+            _ => false,
+        })
     }
 
     #[test]
     fn test_incomplete_flags() {
-        // TODO: Try removing the `_` from `_incomplete_flag`
-        let _incomplete_flag = Flag::long("output_file").short('o');
+        let incomplete_flag = ArgFlag::long("output_file").short('o');
         let result = setup_args_scenario("ouch a.zip b.tar.gz c.tar -o").unwrap_err();
-        assert!(matches!(result, OofError::MissingValueToFlag(_incomplete_flag)));
+
+        assert!(match result {
+            OofError::MissingValueToFlag(flag) if flag == incomplete_flag => true,
+            _ => false,
+        })
     }
 
     #[test]
     fn test_duplicated_flags() {
-        // TODO: Try removing the `_` from `_duplicated_flag`
-        let _duplicated_flag = Flag::long("output_file").short('o');
+        let duplicated_flag = ArgFlag::long("output_file").short('o');
         let result = setup_args_scenario("ouch a.zip b.tar.gz c.tar -o -o -o").unwrap_err();
-        assert!(matches!(result, OofError::DuplicatedFlag(_duplicated_flag)));
+
+        assert!(match result {
+            OofError::DuplicatedFlag(flag) if flag == duplicated_flag => true,
+            _ => false,
+        })
+    }
+
+    #[test]
+    fn test_misplaced_flag() {
+        let misplaced_flag = ArgFlag::long("output_file").short('o');
+        let result = setup_args_scenario("ouch -ov a.zip b.tar.gz c.tar").unwrap_err();
+
+        assert!(match result {
+            OofError::MisplacedShortArgFlagError(flag) if flag == misplaced_flag.short.unwrap() =>
+                true,
+            _ => false,
+        })
+    }
+
+    #[test]
+    fn test_invalid_unicode_flag() {
+        // let invalid_unicode_flag = char::from();
+        // TODO: how to store invalid unicode?
     }
 
     // asdasdsa
