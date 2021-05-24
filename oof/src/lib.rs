@@ -215,6 +215,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::os::unix::prelude::OsStringExt;
+
     use crate::*;
 
     fn gen_args(text: &str) -> Vec<OsString> {
@@ -283,8 +285,14 @@ mod tests {
 
     #[test]
     fn test_invalid_unicode_flag() {
-        // let invalid_unicode_flag = char::from();
-        // TODO: how to store invalid unicode?
+        // `invalid_unicode_flag` has to contain a leading hyphen to be considered a flag.
+        let invalid_unicode_flag = OsString::from_vec(vec![45, 0, 0, 0, 255, 255, 255, 255]);
+        let result = filter_flags(vec![invalid_unicode_flag.clone()], &[]).unwrap_err();
+
+        assert!(match result {
+            OofError::InvalidUnicode(flag) if flag == invalid_unicode_flag => true,
+            _ => false,
+        })
     }
 
     // asdasdsa
