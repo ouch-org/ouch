@@ -20,7 +20,7 @@ To decompress any number of files, just supply them to `ouch`.
 
 Use the `-o, --output` flag to redirect the output of decompressions to a folder.
 
-```bash
+```sh
 # Decompress `a.zip`
 ouch a.zip
 
@@ -39,7 +39,7 @@ You can also use the `c` alias for this subcommand.
 
 The compression format employed will be defined according to the output file's extension.
 
-```bash
+```sh
 # Compress four files into `archive.zip`
 ouch compress a b c d archive.zip
 
@@ -80,8 +80,8 @@ Note: .tar.*¹: .tar.gz, .tar.bz, .tar.bz2, .tar.xz, .tar.lz, .tar.lzma, .tar.zi
 
 ### Getting a pre-compiled binary
 
-```bash
-curl -s https://raw.githubusercontent.com/vrmiguel/ouch/master/install.sh | bash
+```sh
+curl -s https://raw.githubusercontent.com/vrmiguel/ouch/master/install.sh | sh
 ```
 
 ### Building
@@ -90,7 +90,7 @@ A recent [Rust](rust-lang.org) toolchain is needed to build `ouch`. You can inst
 
 Once [Cargo](https://doc.rust-lang.org/cargo/) is installed, run:
 
-```bash
+```sh
 cargo install ouch
 # or 
 git clone https://github.com/vrmiguel/ouch
@@ -116,4 +116,3 @@ One must be logged into GitHub to access build artifacts.
 ## Limitations
 
 `ouch` does encoding and decoding in-memory, so decompressing very large files with it is not advisable.
-
