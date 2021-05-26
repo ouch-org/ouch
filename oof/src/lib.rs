@@ -238,15 +238,12 @@ mod tests {
     #[test]
     fn test_unknown_flags() {
         let result = setup_args_scenario("ouch a.zip -s b.tar.gz c.tar").unwrap_err();
-        assert!(matches!(result, OofError::UnknownShortFlag('s')));
+        assert!(matches!(result, OofError::UnknownShortFlag(flag) if flag == 's'));
 
         let unknown_long_flag = "foobar".to_string();
         let result = setup_args_scenario("ouch a.zip --foobar b.tar.gz c.tar").unwrap_err();
 
-        assert!(match result {
-            OofError::UnknownLongFlag(flag) if flag == unknown_long_flag => true,
-            _ => false,
-        })
+        assert!(matches!(result, OofError::UnknownLongFlag(flag) if flag == unknown_long_flag));
     }
 
     #[test]
@@ -254,10 +251,7 @@ mod tests {
         let incomplete_flag = ArgFlag::long("output_file").short('o');
         let result = setup_args_scenario("ouch a.zip b.tar.gz c.tar -o").unwrap_err();
 
-        assert!(match result {
-            OofError::MissingValueToFlag(flag) if flag == incomplete_flag => true,
-            _ => false,
-        })
+        assert!(matches!(result, OofError::MissingValueToFlag(flag) if flag == incomplete_flag));
     }
 
     #[test]
@@ -265,10 +259,7 @@ mod tests {
         let duplicated_flag = ArgFlag::long("output_file").short('o');
         let result = setup_args_scenario("ouch a.zip b.tar.gz c.tar -o -o -o").unwrap_err();
 
-        assert!(match result {
-            OofError::DuplicatedFlag(flag) if flag == duplicated_flag => true,
-            _ => false,
-        })
+        assert!(matches!(result, OofError::DuplicatedFlag(flag) if flag == duplicated_flag));
     }
 
     #[test]
@@ -276,11 +267,9 @@ mod tests {
         let misplaced_flag = ArgFlag::long("output_file").short('o');
         let result = setup_args_scenario("ouch -ov a.zip b.tar.gz c.tar").unwrap_err();
 
-        assert!(match result {
-            OofError::MisplacedShortArgFlagError(flag) if flag == misplaced_flag.short.unwrap() =>
-                true,
-            _ => false,
-        })
+        assert!(
+            matches!(result, OofError::MisplacedShortArgFlagError(flag) if flag == misplaced_flag.short.unwrap())
+        );
     }
 
     #[test]
@@ -289,10 +278,7 @@ mod tests {
         let invalid_unicode_flag = OsString::from_vec(vec![45, 0, 0, 0, 255, 255, 255, 255]);
         let result = filter_flags(vec![invalid_unicode_flag.clone()], &[]).unwrap_err();
 
-        assert!(match result {
-            OofError::InvalidUnicode(flag) if flag == invalid_unicode_flag => true,
-            _ => false,
-        })
+        assert!(matches!(result, OofError::InvalidUnicode(flag) if flag == invalid_unicode_flag));
     }
 
     // asdasdsa
