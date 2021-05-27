@@ -1,6 +1,6 @@
 use std::{error, ffi::OsString, fmt};
 
-use crate::Flag;
+use super::Flag;
 
 #[derive(Debug)]
 pub enum OofError {

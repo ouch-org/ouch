@@ -19,7 +19,7 @@ use crate::{
     dialogs::Confirmation,
     extension::{CompressionFormat, Extension},
     file::File,
-    utils,
+    oof, utils,
 };
 
 pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {

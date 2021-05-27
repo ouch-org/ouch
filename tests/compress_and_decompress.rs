@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use ouch::{cli::Command, commands::run};
+use ouch::{cli::Command, commands::run, oof};
 use rand::{rngs::SmallRng, RngCore, SeedableRng};
 use tempdir::TempDir;
 

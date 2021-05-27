@@ -1,6 +1,6 @@
 use std::{fmt, path::PathBuf};
 
-use crate::utils::colors;
+use crate::{oof, utils::colors};
 
 pub enum Error {
     UnknownExtensionError(String),

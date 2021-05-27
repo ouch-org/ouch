@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{dialogs::Confirmation, extension::CompressionFormat, file::File};
+use crate::{dialogs::Confirmation, extension::CompressionFormat, file::File, oof};
 
 #[macro_export]
 #[cfg(debug_assertions)]

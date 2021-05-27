@@ -6,7 +6,7 @@ use std::{
 use utils::colors;
 
 use super::decompressor::{DecompressionResult, Decompressor};
-use crate::{extension::CompressionFormat, file::File, utils};
+use crate::{extension::CompressionFormat, file::File, oof, utils};
 
 struct DecompressorToMemory;
 pub struct GzipDecompressor;

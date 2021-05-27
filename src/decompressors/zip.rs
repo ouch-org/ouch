@@ -8,7 +8,7 @@ use utils::colors;
 use zip::{self, read::ZipFile, ZipArchive};
 
 use super::decompressor::{DecompressionResult, Decompressor};
-use crate::{dialogs::Confirmation, file::File, utils};
+use crate::{dialogs::Confirmation, file::File, oof, utils};
 
 #[cfg(unix)]
 fn __unix_set_permissions(file_path: &Path, file: &ZipFile) {

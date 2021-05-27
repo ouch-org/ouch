@@ -217,7 +217,7 @@ where
 mod tests {
     use std::os::unix::prelude::OsStringExt;
 
-    use crate::*;
+    use super::*;
 
     fn gen_args(text: &str) -> Vec<OsString> {
         let args = text.split_whitespace();

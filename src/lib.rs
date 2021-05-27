@@ -1,6 +1,7 @@
 // Public modules
 pub mod cli;
 pub mod commands;
+pub mod oof;
 
 // Private modules
 mod compressors;

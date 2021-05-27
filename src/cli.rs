@@ -5,8 +5,9 @@ use std::{
     vec::Vec,
 };
 
-use oof::{arg_flag, flag};
 use strsim::normalized_damerau_levenshtein;
+
+use crate::{arg_flag, flag, oof};
 
 #[derive(PartialEq, Eq, Debug)]
 pub enum Command {

@@ -8,7 +8,7 @@ use tar::{self, Archive};
 use utils::colors;
 
 use super::decompressor::{DecompressionResult, Decompressor};
-use crate::{dialogs::Confirmation, file::File, utils};
+use crate::{dialogs::Confirmation, file::File, oof, utils};
 
 #[derive(Debug)]
 pub struct TarDecompressor;

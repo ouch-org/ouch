@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::file::File;
+use crate::{file::File, oof};
 
 pub enum DecompressionResult {
     FilesUnpacked(Vec<PathBuf>),
