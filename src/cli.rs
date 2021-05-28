@@ -26,9 +26,21 @@ pub enum Command {
 }
 
 /// Calls parse_args_and_flags_from using std::env::args_os ( argv )
+///
+/// This function is also responsible for treating and checking the cli input
+/// Like calling canonicale, checking if it exists.
 pub fn parse_args() -> crate::Result<ParsedArgs> {
     let args = env::args_os().skip(1).collect();
-    parse_args_from(args)
+    let mut parsed_args = parse_args_from(args)?;
+
+    // If has a list of files, canonicalize them, reporting error if they do now exist
+    match &mut parsed_args.command {
+        Command::Compress { files, .. } | Command::Decompress { files, .. } => {
+            *files = canonicalize_files(&files)?;
+        },
+        _ => {},
+    }
+    Ok(parsed_args)
 }
 
 #[derive(Debug)]
@@ -70,7 +82,7 @@ where
     }
 }
 
-fn canonicalize_files<'a, P>(files: Vec<P>) -> crate::Result<Vec<PathBuf>>
+fn canonicalize_files<'a, P>(files: &[P]) -> crate::Result<Vec<PathBuf>>
 where
     P: AsRef<Path> + 'a,
 {
@@ -87,7 +99,6 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
     }
 
     let subcommands = &["c", "compress"];
-
     let mut flags_info = vec![flag!('y', "yes"), flag!('n', "no")];
 
     let parsed_args = match oof::pop_subcommand(&mut args, subcommands) {
@@ -102,8 +113,6 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
 
             // Safety: we checked that args.len() >= 2
             let compressed_output_path = files.pop().unwrap();
-
-            let files = canonicalize_files(files)?;
 
             let command = Command::Compress { files, compressed_output_path };
             ParsedArgs { command, flags }
@@ -121,9 +130,8 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
             }
 
             // Parse flags
-            let (args, mut flags) = oof::filter_flags(args, &flags_info)?;
-
-            let files = args.into_iter().map(canonicalize).collect::<Result<Vec<_>, _>>()?;
+            let (files, mut flags) = oof::filter_flags(args, &flags_info)?;
+            let files = files.into_iter().map(PathBuf::from).collect();
 
             let output_folder = flags.take_arg("output").map(PathBuf::from);
 
