@@ -31,6 +31,7 @@ pub fn parse_args() -> crate::Result<ParsedArgs> {
     parse_args_from(args)
 }
 
+#[derive(Debug)]
 pub struct ParsedArgs {
     pub command: Command,
     pub flags: oof::Flags,
@@ -63,7 +64,7 @@ where
             if !path.as_ref().exists() {
                 Err(crate::Error::FileNotFound(PathBuf::from(path.as_ref())))
             } else {
-                Err(crate::Error::IoError(io_err))
+                Err(io_err.into())
             }
         },
     }

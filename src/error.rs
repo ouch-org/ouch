@@ -2,13 +2,14 @@ use std::{fmt, path::PathBuf};
 
 use crate::{oof, utils::colors};
 
+#[derive(Debug, PartialEq)]
 pub enum Error {
     UnknownExtensionError(String),
     MissingExtensionError(PathBuf),
     // TODO: get rid of this error variant
     InvalidUnicode,
     InvalidInput,
-    IoError(std::io::Error),
+    IoError { reason: String },
     FileNotFound(PathBuf),
     AlreadyExists,
     InvalidZipArchive(&'static str),
@@ -23,12 +24,6 @@ pub enum Error {
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
-
-impl fmt::Debug for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self)
-    }
-}
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -77,8 +72,8 @@ impl fmt::Display for Error {
                 write!(f, "{}[ERROR]{} ", colors::red(), colors::reset())?;
                 write!(f, "You've reached an internal error! This really should not have happened.\nPlease file an issue at {}https://github.com/vrmiguel/ouch{}", colors::green(), colors::reset())
             },
-            Error::IoError(io_err) => {
-                write!(f, "{}[ERROR]{} {}", colors::red(), colors::reset(), io_err)
+            Error::IoError { reason } => {
+                write!(f, "{}[ERROR]{} {}", colors::red(), colors::reset(), reason)
             },
             Error::CompressionTypo => {
                 write!(f, "Did you mean {}ouch compress{}?", colors::magenta(), colors::reset())
@@ -96,7 +91,7 @@ impl From<std::io::Error> for Error {
             std::io::ErrorKind::NotFound => panic!("{}", err),
             std::io::ErrorKind::PermissionDenied => Self::PermissionDenied,
             std::io::ErrorKind::AlreadyExists => Self::AlreadyExists,
-            _other => Self::IoError(err),
+            _other => Self::IoError { reason: err.to_string() },
         }
     }
 }
