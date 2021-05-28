@@ -52,10 +52,7 @@ pub struct ParsedArgs {
 /// check_for_typo checks if the first argument is
 /// a typo for the compress subcommand.
 /// Returns true if the arg is probably a typo or false otherwise.
-fn is_typo<'a, P>(path: P) -> bool
-where
-    P: AsRef<Path> + 'a,
-{
+fn is_typo(path: impl AsRef<Path>) -> bool {
     if path.as_ref().exists() {
         // If the file exists then we won't check for a typo
         return false;
@@ -66,10 +63,7 @@ where
     normalized_damerau_levenshtein("compress", &path) > 0.625
 }
 
-fn canonicalize<'a, P>(path: P) -> crate::Result<PathBuf>
-where
-    P: AsRef<Path> + 'a,
-{
+fn canonicalize(path: impl AsRef<Path>) -> crate::Result<PathBuf> {
     match std::fs::canonicalize(&path.as_ref()) {
         Ok(abs_path) => Ok(abs_path),
         Err(io_err) => {
@@ -82,11 +76,8 @@ where
     }
 }
 
-fn canonicalize_files<'a, P>(files: &[P]) -> crate::Result<Vec<PathBuf>>
-where
-    P: AsRef<Path> + 'a,
-{
-    files.into_iter().map(canonicalize).collect()
+fn canonicalize_files(files: &[impl AsRef<Path>]) -> crate::Result<Vec<PathBuf>> {
+    files.iter().map(canonicalize).collect()
 }
 
 pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {

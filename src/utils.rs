@@ -23,10 +23,7 @@ macro_rules! debug {
     };
 }
 
-pub fn ensure_exists<'a, P>(path: P) -> crate::Result<()>
-where
-    P: AsRef<Path> + 'a,
-{
+pub fn ensure_exists(path: impl AsRef<Path>) -> crate::Result<()> {
     let exists = path.as_ref().exists();
     if !exists {
         return Err(crate::Error::FileNotFound(PathBuf::from(path.as_ref())));
