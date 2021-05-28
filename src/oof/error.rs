@@ -2,7 +2,7 @@ use std::{error, ffi::OsString, fmt};
 
 use super::Flag;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum OofError {
     FlagValueConflict {
         flag: Flag,

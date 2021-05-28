@@ -16,11 +16,11 @@ pub enum Error {
     PermissionDenied,
     UnsupportedZipArchive(&'static str),
     InternalError,
-    OofError,
+    OofError(oof::OofError),
     CompressingRootFolder,
     MissingArgumentsForCompression,
     CompressionTypo,
-    WalkdirError,
+    WalkdirError { reason: String },
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -33,9 +33,8 @@ impl fmt::Display for Error {
                 // TODO: show MIME type of the unsupported file
                 write!(f, "cannot compress to {:?}, likely because it has an unsupported (or missing) extension.", filename)
             },
-            Error::WalkdirError => {
-                // Already printed in the From block
-                write!(f, "")
+            Error::WalkdirError { reason } => {
+                write!(f, "{}[ERROR]{} {}", colors::red(), colors::reset(), reason)
             },
             Error::FileNotFound(file) => {
                 write!(f, "{}[ERROR]{} ", colors::red(), colors::reset())?;
@@ -71,6 +70,9 @@ impl fmt::Display for Error {
             Error::InternalError => {
                 write!(f, "{}[ERROR]{} ", colors::red(), colors::reset())?;
                 write!(f, "You've reached an internal error! This really should not have happened.\nPlease file an issue at {}https://github.com/vrmiguel/ouch{}", colors::green(), colors::reset())
+            },
+            Error::OofError(err) => {
+                write!(f, "{}[ERROR]{} {}", colors::red(), colors::reset(), err)
             },
             Error::IoError { reason } => {
                 write!(f, "{}[ERROR]{} {}", colors::red(), colors::reset(), reason)
@@ -110,16 +112,12 @@ impl From<zip::result::ZipError> for Error {
 
 impl From<walkdir::Error> for Error {
     fn from(err: walkdir::Error) -> Self {
-        eprintln!("{}[ERROR]{} {}", colors::red(), colors::reset(), err);
-        Self::WalkdirError
+        Self::WalkdirError { reason: err.to_string() }
     }
 }
 
 impl From<oof::OofError> for Error {
     fn from(err: oof::OofError) -> Self {
-        // To avoid entering a lifetime hell, we'll just print the Oof error here
-        // and skip saving it into a variant of Self
-        println!("{}[ERROR]{} {}", colors::red(), colors::reset(), err);
-        Self::OofError
+        Self::OofError(err)
     }
 }
