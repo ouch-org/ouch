@@ -1,6 +1,9 @@
-use std::{fmt, path::PathBuf};
+use std::{
+    fmt,
+    path::{Path, PathBuf},
+};
 
-use crate::{oof, utils::colors};
+use crate::{oof, utils::colors::*};
 
 #[derive(Debug, PartialEq)]
 pub enum Error {
@@ -25,65 +28,111 @@ pub enum Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+struct FinalError {
+    title: String,
+    details: Vec<String>,
+    hints: Vec<String>,
+}
+
+impl FinalError {
+    pub fn with_title(title: impl ToString) -> Self {
+        Self { title: title.to_string(), details: vec![], hints: vec![] }
+    }
+
+    pub fn detail(&mut self, detail: impl ToString) -> &mut Self {
+        self.details.push(detail.to_string());
+        self
+    }
+
+    pub fn hint(&mut self, hint: impl ToString) -> &mut Self {
+        self.hints.push(hint.to_string());
+        self
+    }
+
+    pub fn display(&self) {
+        // Title
+        eprintln!("{}[ERROR]{} {}", red(), reset(), self.title);
+
+        // Details
+        for detail in &self.details {
+            eprintln!(" {}-{} {}", white(), yellow(), detail);
+        }
+
+        // Hints
+        if !self.hints.is_empty() {
+            // Separate by one blank line.
+            eprintln!();
+            for hint in &self.hints {
+                eprintln!("{}hint:{} {}", green(), reset(), hint);
+            }
+        }
+
+        // Make sure to fix colors
+        eprint!("{}", reset());
+    }
+}
+
 impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, _: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::MissingExtensionError(filename) => {
-                write!(f, "{}[ERROR]{} ", colors::red(), colors::reset())?;
-                // TODO: show MIME type of the unsupported file
-                write!(f, "cannot compress to {:?}, likely because it has an unsupported (or missing) extension.", filename)
+                FinalError::with_title(format!("Cannot compress to {:?}", filename))
+                    .detail("Ouch could not detect the compression format")
+                    .hint("Use a supported format extension, like '.zip' or '.tar.gz'")
+                    .hint("Check https://github.com/vrmiguel/ouch for a full list of supported formats")
+                    .display();
             },
             Error::WalkdirError { reason } => {
-                write!(f, "{}[ERROR]{} {}", colors::red(), colors::reset(), reason)
+                FinalError::with_title(reason).display();
             },
             Error::FileNotFound(file) => {
-                write!(f, "{}[ERROR]{} ", colors::red(), colors::reset())?;
-                if file == &PathBuf::from("") {
-                    return write!(f, "file not found!");
+                if file == Path::new("") {
+                    FinalError::with_title("file not found!")
+                } else {
+                    FinalError::with_title(format!("file {:?} not found!", file))
                 }
-                write!(f, "file {:?} not found!", file)
+                .display();
             },
             Error::CompressingRootFolder => {
-                write!(f, "{}[ERROR]{} ", colors::red(), colors::reset())?;
-                let spacing = "        ";
-                writeln!(f, "It seems you're trying to compress the root folder.")?;
-                writeln!(
-                    f,
-                    "{}This is unadvisable since ouch does compressions in-memory.",
-                    spacing
-                )?;
-                write!(
-                    f,
-                    "{}Use a more appropriate tool for this, such as {}rsync{}.",
-                    spacing,
-                    colors::green(),
-                    colors::reset()
-                )
+                FinalError::with_title("It seems you're trying to compress the root folder.")
+                    .detail("This is unadvisable since ouch does compressions in-memory.")
+                    .hint("Use a more appropriate tool for this, such as rsync.")
+                    .display();
             },
             Error::MissingArgumentsForCompression => {
-                write!(f, "{}[ERROR]{} ", colors::red(), colors::reset())?;
-                let spacing = "        ";
-                writeln!(f,"The compress subcommands demands at least 2 arguments, an input file and an output file.")?;
-                writeln!(f, "{}Example: `ouch compress img.jpeg img.zip`", spacing)?;
-                write!(f, "{}For more information, run `ouch --help`", spacing)
+                FinalError::with_title("Could not compress")
+                    .detail("The compress command requires at least 2 arguments")
+                    .hint("You must provide:")
+                    .hint("  - At least one input argument.")
+                    .hint("  - The output argument.")
+                    .hint("")
+                    .hint("Example: `ouch compress image.png img.zip`")
+                    .display();
             },
             Error::InternalError => {
-                write!(f, "{}[ERROR]{} ", colors::red(), colors::reset())?;
-                write!(f, "You've reached an internal error! This really should not have happened.\nPlease file an issue at {}https://github.com/vrmiguel/ouch{}", colors::green(), colors::reset())
+                FinalError::with_title("InternalError :(")
+                    .detail("This should not have happened")
+                    .detail("It's probably our fault")
+                    .detail("Please help us improve by reporting the issue at:")
+                    .detail(format!("    {}https://github.com/vrmiguel/ouch/issues ", cyan()))
+                    .display();
             },
             Error::OofError(err) => {
-                write!(f, "{}[ERROR]{} {}", colors::red(), colors::reset(), err)
+                FinalError::with_title(err).display();
             },
             Error::IoError { reason } => {
-                write!(f, "{}[ERROR]{} {}", colors::red(), colors::reset(), reason)
+                FinalError::with_title(reason).display();
             },
             Error::CompressionTypo => {
-                write!(f, "Did you mean {}ouch compress{}?", colors::magenta(), colors::reset())
+                FinalError::with_title("Possible typo detected")
+                    .hint(format!("Did you mean '{}ouch compress{}'?", magenta(), reset()))
+                    .display();
             },
             _err => {
                 todo!();
             },
         }
+        Ok(())
     }
 }
 
