@@ -72,7 +72,7 @@ fn canonicalize(path: impl AsRef<Path>) -> crate::Result<PathBuf> {
             } else {
                 Err(io_err.into())
             }
-        },
+        }
     }
 }
 
@@ -107,7 +107,7 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
 
             let command = Command::Compress { files, compressed_output_path };
             ParsedArgs { command, flags }
-        },
+        }
         // Defaults to decompression when there is no subcommand
         None => {
             flags_info.push(arg_flag!('o', "output"));
@@ -130,9 +130,37 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
 
             let command = Command::Decompress { files, output_folder };
             ParsedArgs { command, flags }
-        },
+        }
         _ => unreachable!("You should match each subcommand passed."),
     };
 
     Ok(parsed_args)
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use std::process::Command;
+
+    fn gen_args(text: &str) -> Vec<OsString> {
+        let args = text.split_whitespace();
+        args.map(OsString::from).collect()
+    }
+
+    #[test]
+    fn test_something() {
+        let args = gen_args("ouch foo.zip bar.zip");
+        let result = parse_args_from(args).unwrap(); // ERROR: file `ouch` not found
+
+        assert!(false)
+    }
+
+    #[test]
+    fn test_command_execution() {
+        let args = gen_args("foo bar");
+        let cmd = Command::new("ouch").args(args).output().unwrap(); // ErrorKind: File not Found
+
+        assert!(false)
+    }
 }
