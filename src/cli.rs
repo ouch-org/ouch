@@ -37,8 +37,8 @@ pub fn parse_args() -> crate::Result<ParsedArgs> {
     match &mut parsed_args.command {
         Command::Compress { files, .. } | Command::Decompress { files, .. } => {
             *files = canonicalize_files(&files)?;
-        },
-        _ => {},
+        }
+        _ => {}
     }
     Ok(parsed_args)
 }
@@ -141,26 +141,57 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
 mod tests {
 
     use super::*;
-    use std::process::Command;
 
     fn gen_args(text: &str) -> Vec<OsString> {
         let args = text.split_whitespace();
         args.map(OsString::from).collect()
     }
 
-    #[test]
-    fn test_something() {
-        let args = gen_args("ouch foo.zip bar.zip");
-        let result = parse_args_from(args).unwrap(); // ERROR: file `ouch` not found
-
-        assert!(false)
+    fn test_cli(args: &str) -> crate::Result<ParsedArgs> {
+        let args = gen_args(args);
+        parse_args_from(args)
     }
 
     #[test]
-    fn test_command_execution() {
-        let args = gen_args("foo bar");
-        let cmd = Command::new("ouch").args(args).output().unwrap(); // ErrorKind: File not Found
+    fn test_cli_commands() {
+        assert_eq!(test_cli("--help").unwrap().command, Command::ShowHelp);
+        assert_eq!(test_cli("--version").unwrap().command, Command::ShowVersion);
+        assert_eq!(test_cli("--version").unwrap().flags, oof::Flags::default());
+        assert_eq!(
+            test_cli("foo.zip bar.zip").unwrap().command,
+            Command::Decompress {
+                files: vec!["foo.zip".into(), "bar.zip".into()],
+                output_folder: None
+            }
+        );
+        assert_eq!(
+            test_cli("compress foo bar baz.zip").unwrap().command,
+            Command::Compress {
+                files: vec!["foo".into(), "bar".into()],
+                compressed_output_path: "baz.zip".into()
+            }
+        );
+        assert_eq!(test_cli("compress").unwrap_err(), crate::Error::MissingArgumentsForCompression);
+    }
 
-        assert!(false)
+    #[test]
+    fn test_cli_flags() {
+        // --help and --version flags are considered commands that are ran over anything else
+        assert_eq!(test_cli("--help").unwrap().flags, oof::Flags::default());
+        assert_eq!(test_cli("--version").unwrap().flags, oof::Flags::default());
+
+        // Just for reference:
+        // pub struct Flags {
+        //     pub boolean_flags: BTreeSet<&'static str>,
+        //     pub argument_flags: BTreeMap<&'static str, OsString>,
+        // }
+
+        assert_eq!(
+            test_cli("foo bar --output hey.zip").unwrap().flags,
+            oof::Flags {
+                boolean_flags: vec!["yes"].into_iter().collect(),
+                argument_flags: vec![("--output", OsString::from("hey"))].into_iter().collect(),
+            }
+        );
     }
 }
