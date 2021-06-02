@@ -55,9 +55,7 @@ impl Flags {
     pub fn new() -> Self {
         Self::default()
     }
-}
 
-impl Flags {
     pub fn is_present(&self, flag_name: &str) -> bool {
         self.boolean_flags.contains(flag_name) || self.argument_flags.contains_key(flag_name)
     }
