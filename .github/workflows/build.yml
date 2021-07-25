@@ -1,10 +1,49 @@
 on: [push, pull_request]
 
+
 name: build-and-test
 
 jobs:
-  armv7:
-    name: Ubuntu 18.04 (for ARMv7)
+  aarch64-glibc:
+    name: Ubuntu 18.04 (for ARMv8 - glibc)
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: aarch64-unknown-linux-gnu
+          override: true
+
+      - name: Install binutils-arm-none-eabi
+        run: |
+          sudo apt-get update
+          sudo apt-get install binutils-aarch64-linux-gnu
+      
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --target=aarch64-unknown-linux-gnu
+
+      - name: Run cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: test
+          args: --release --target=aarch64-unknown-linux-gnu
+          
+      - name: Strip binary
+        run: aarch64-linux-gnu-strip target/aarch64-unknown-linux-gnu/release/ouch
+          
+      - name: Upload binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: 'ouch-aarch64-unknown-linux-gnu'
+          path: target/aarch64-unknown-linux-gnu/release/ouch
+
+  armv7-glibc:
+    name: Ubuntu 18.04 (for ARMv7 - glibc)
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
@@ -38,12 +77,12 @@ jobs:
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
-          name: 'ouch-linux-armv7-glibc'
+          name: 'ouch-armv7-unknown-linux-gnueabihf'
           path: target/armv7-unknown-linux-gnueabihf/release/ouch
           
-  ubuntu:
-    name: Ubuntu 18.04
-    runs-on: ubuntu-18.04
+  x86_64_musl:
+    name: Ubuntu 20.04
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         rust:
@@ -81,8 +120,47 @@ jobs:
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
-          name: 'ouch-linux-x86-64-musl'
+          name: 'ouch-x86_64-unknown-linux-musl'
           path: target/x86_64-unknown-linux-musl/release/ouch
+
+          
+  x86_64_glibc:
+    name: Ubuntu 18.04 (glibc)
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        rust:
+          - stable
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          
+      - name: Run cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+
+      - name: Run cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --release
+
+      - name: Strip binary
+        run: strip target/release/ouch
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: 'ouch-x86_64-unknown-linux-gnu'
+          path: target/release/ouch
 
   macos:
     name: macOS
@@ -118,12 +196,13 @@ jobs:
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
-          name: 'ouch-macOS'
+          name: 'ouch-x86_64-apple-darwin'
           path: target/release/ouch
 
-  windows:
-    name: Windows Server
-    runs-on: windows-2019
+
+  windows-msvc:
+    name: Windows Server (MSVC)
+    runs-on: windows-latest
     strategy:
       matrix:
         rust:
@@ -137,6 +216,7 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           override: true
+          
 
       - name: Run cargo build
         uses: actions-rs/cargo@v1
@@ -152,5 +232,42 @@ jobs:
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
-          name: 'ouch-windows'
+          name: 'ouch-x86_64-pc-windows-msvc'
           path: target\release\ouch.exe
+
+
+  windows-mingw:
+    name: Windows Server (MinGW)
+    runs-on: windows-2019
+    strategy:
+      matrix:
+        rust:
+          - stable
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: x86_64-pc-windows-gnu
+          override: true
+
+      - name: Run cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --target x86_64-pc-windows-gnu
+
+      - name: Run cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --release --target x86_64-pc-windows-gnu
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: 'ouch-x86_64-pc-windows-gnu'
+          path: target\x86_64-pc-windows-gnu\release\ouch.exe
