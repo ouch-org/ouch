@@ -12,9 +12,12 @@ mod extension;
 mod file;
 mod utils;
 
+use dialogs::Confirmation;
 pub use error::{Error, Result};
 
 const VERSION: &str = "0.1.5";
+const OVERWRITE_CONFIRMATION: Confirmation =
+    Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE"));
 
 fn help_command() {
     use utils::colors::*;

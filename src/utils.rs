@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{dialogs::Confirmation, extension::CompressionFormat, file::File, oof};
+use crate::{extension::CompressionFormat, file::File, oof, OVERWRITE_CONFIRMATION};
 
 #[macro_export]
 #[cfg(debug_assertions)]
@@ -95,11 +95,7 @@ pub fn change_dir_and_return_parent(filename: &Path) -> crate::Result<PathBuf> {
     Ok(previous_location)
 }
 
-pub fn permission_for_overwriting(
-    path: &Path,
-    flags: &oof::Flags,
-    confirm: &Confirmation,
-) -> crate::Result<bool> {
+pub fn permission_for_overwriting(path: &Path, flags: &oof::Flags) -> crate::Result<bool> {
     match (flags.is_present("yes"), flags.is_present("no")) {
         (true, true) => {
             unreachable!(
@@ -112,7 +108,7 @@ pub fn permission_for_overwriting(
     }
 
     let file_path_str = to_utf(path);
-    confirm.ask(Some(&file_path_str))
+    OVERWRITE_CONFIRMATION.ask(Some(&file_path_str))
 }
 
 pub fn to_utf(os_str: impl AsRef<OsStr>) -> String {

@@ -16,7 +16,6 @@ use crate::{
         BzipDecompressor, DecompressionResult, Decompressor, GzipDecompressor, LzmaDecompressor,
         TarDecompressor, ZipDecompressor,
     },
-    dialogs::Confirmation,
     extension::{CompressionFormat, Extension},
     file::File,
     oof, utils,
@@ -140,8 +139,7 @@ fn decompress_file_in_memory(
             println!("{}[INFO]{} saving to {:?}.", colors::yellow(), colors::reset(), file_name);
 
             if file_name.exists() {
-                let confirm = Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE"));
-                if !utils::permission_for_overwriting(&file_name, flags, &confirm)? {
+                if !utils::permission_for_overwriting(&file_name, flags)? {
                     return Ok(());
                 }
             }
@@ -169,10 +167,9 @@ fn compress_files(
 ) -> crate::Result<()> {
     let mut output = File::from(output_path)?;
 
-    let confirm = Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE"));
     let (first_compressor, second_compressor) = get_compressor(&output)?;
 
-    if output_path.exists() && !utils::permission_for_overwriting(&output_path, flags, &confirm)? {
+    if output_path.exists() && !utils::permission_for_overwriting(&output_path, flags)? {
         // The user does not want to overwrite the file
         return Ok(());
     }

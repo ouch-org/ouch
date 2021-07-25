@@ -11,7 +11,7 @@ pub struct Confirmation<'a> {
 pub struct Error;
 
 impl<'a> Confirmation<'a> {
-    pub fn new(prompt: &'a str, pattern: Option<&'a str>) -> Self {
+    pub const fn new(prompt: &'a str, pattern: Option<&'a str>) -> Self {
         Self { prompt, placeholder: pattern }
     }
 

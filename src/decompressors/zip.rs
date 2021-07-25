@@ -8,7 +8,7 @@ use utils::colors;
 use zip::{self, read::ZipFile, ZipArchive};
 
 use super::decompressor::{DecompressionResult, Decompressor};
-use crate::{dialogs::Confirmation, file::File, oof, utils};
+use crate::{file::File, oof, utils};
 
 #[cfg(unix)]
 fn __unix_set_permissions(file_path: &Path, file: &ZipFile) {
@@ -43,7 +43,6 @@ impl ZipDecompressor {
     where
         R: Read + Seek,
     {
-        let confirm = Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE"));
         let mut unpacked_files = vec![];
         for idx in 0..archive.len() {
             let mut file = archive.by_index(idx)?;
@@ -53,9 +52,7 @@ impl ZipDecompressor {
             };
 
             let file_path = into.join(file_path);
-            if file_path.exists()
-                && !utils::permission_for_overwriting(&file_path, flags, &confirm)?
-            {
+            if file_path.exists() && !utils::permission_for_overwriting(&file_path, flags)? {
                 // The user does not want to overwrite the file
                 continue;
             }
