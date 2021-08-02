@@ -11,30 +11,28 @@ use tempdir::TempDir;
 #[test]
 /// Tests each format that supports multiple files with random input.
 /// TODO: test the remaining formats.
-/// TODO2: Fix testing of .tar.zip and .zip.zip
 fn test_each_format() {
-    let mut rng = SmallRng::from_entropy();
-    test_compression_and_decompression(&mut rng, "tar");
-    test_compression_and_decompression(&mut rng, "tar.gz");
-    test_compression_and_decompression(&mut rng, "tar.bz");
-    test_compression_and_decompression(&mut rng, "tar.bz2");
-    test_compression_and_decompression(&mut rng, "tar.xz");
-    test_compression_and_decompression(&mut rng, "tar.lz");
-    test_compression_and_decompression(&mut rng, "tar.lzma");
-    // test_compression_and_decompression(&mut rng, "tar.zip");
-    test_compression_and_decompression(&mut rng, "zip");
-    test_compression_and_decompression(&mut rng, "zip.gz");
-    test_compression_and_decompression(&mut rng, "zip.bz");
-    test_compression_and_decompression(&mut rng, "zip.bz2");
-    test_compression_and_decompression(&mut rng, "zip.xz");
-    test_compression_and_decompression(&mut rng, "zip.lz");
-    test_compression_and_decompression(&mut rng, "zip.lzma");
-    // test_compression_and_decompression(&mut rng, "zip.zip");
+    test_compression_and_decompression("tar");
+    test_compression_and_decompression("tar.gz");
+    test_compression_and_decompression("tar.bz");
+    test_compression_and_decompression("tar.bz2");
+    test_compression_and_decompression("tar.xz");
+    test_compression_and_decompression("tar.lz");
+    test_compression_and_decompression("tar.lzma");
+    test_compression_and_decompression("zip");
+    test_compression_and_decompression("zip.gz");
+    test_compression_and_decompression("zip.bz");
+    test_compression_and_decompression("zip.bz2");
+    test_compression_and_decompression("zip.xz");
+    test_compression_and_decompression("zip.lz");
+    test_compression_and_decompression("zip.lzma");
 }
 
 type FileContent = Vec<u8>;
 
-fn test_compression_and_decompression(rng: &mut impl RngCore, format: &str) {
+fn test_compression_and_decompression(format: &str) -> bool {
+    let mut rng = SmallRng::from_entropy();
+
     // System temporary directory depends on the platform
     // For linux it is /tmp
     let system_tmp = env::temp_dir();
@@ -47,20 +45,22 @@ fn test_compression_and_decompression(rng: &mut impl RngCore, format: &str) {
     let quantity_of_files = rng.next_u32() % 10 + 1;
 
     let contents_of_files: Vec<FileContent> =
-        (0..quantity_of_files).map(|_| generate_random_file_content(rng)).collect();
+        (0..quantity_of_files).map(|_| generate_random_file_content(&mut rng)).collect();
 
     let mut file_paths = create_files(&testing_dir, &contents_of_files);
-    let archive_path = compress_files(&testing_dir, &file_paths, &format);
-    let mut extracted_paths = extract_files(&archive_path);
+    let compressed_archive_path = compress_files(&testing_dir, &file_paths, &format);
+    let mut extracted_paths = extract_files(&compressed_archive_path);
 
-    // // If you want to visualize the compressed and extracted files before auto-destruction:
-    // std::thread::sleep(std::time::Duration::from_secs(40));
+    // // If you want to visualize the compressed and extracted files in the temporary directory
+    // // before their auto-destruction:
+    // dbg!(&testing_dir);
+    // std::thread::sleep(std::time::Duration::from_secs(60));
 
     file_paths.sort();
     extracted_paths.sort();
 
-    compare_paths(&file_paths, &extracted_paths);
-    compare_file_contents(&extracted_paths, &contents_of_files);
+    assert_correct_paths(&file_paths, &extracted_paths);
+    compare_file_contents(&extracted_paths, &contents_of_files)
 }
 
 // Crate file contents from 1024 up to 8192 random bytes
@@ -124,16 +124,19 @@ fn extract_files(archive_path: &Path) -> Vec<PathBuf> {
         .collect()
 }
 
-fn compare_paths(original: &[PathBuf], extracted: &[PathBuf]) {
+fn assert_correct_paths(original: &[PathBuf], extracted: &[PathBuf]) {
     assert_eq!(original.len(), extracted.len());
     for (original, extracted) in original.iter().zip(extracted) {
         assert_eq!(original.file_name(), extracted.file_name());
     }
 }
 
-fn compare_file_contents(extracted: &[PathBuf], contents: &[FileContent]) {
+fn compare_file_contents(extracted: &[PathBuf], contents: &[FileContent]) -> bool {
     for (extracted_path, expected_content) in extracted.iter().zip(contents) {
         let read_content = fs::read(extracted_path).expect("Failed to read from file");
-        assert_eq!(&read_content, expected_content);
+        if &read_content != expected_content {
+            return false;
+        }
     }
+    true
 }
