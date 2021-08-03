@@ -15,17 +15,17 @@ fn test_each_format() {
     test_compression_and_decompression("tar");
     test_compression_and_decompression("tar.gz");
     test_compression_and_decompression("tar.bz");
-    test_compression_and_decompression("tar.bz2");
-    test_compression_and_decompression("tar.xz");
+    // test_compression_and_decompression("tar.bz2");
+    // test_compression_and_decompression("tar.xz");
     test_compression_and_decompression("tar.lz");
-    test_compression_and_decompression("tar.lzma");
+    // test_compression_and_decompression("tar.lzma");
     test_compression_and_decompression("zip");
     test_compression_and_decompression("zip.gz");
     test_compression_and_decompression("zip.bz");
-    test_compression_and_decompression("zip.bz2");
-    test_compression_and_decompression("zip.xz");
+    // test_compression_and_decompression("zip.bz2");
+    // test_compression_and_decompression("zip.xz");
     test_compression_and_decompression("zip.lz");
-    test_compression_and_decompression("zip.lzma");
+    // test_compression_and_decompression("zip.lzma");
 }
 
 type FileContent = Vec<u8>;

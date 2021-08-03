@@ -4,8 +4,8 @@ pub mod commands;
 pub mod oof;
 
 // Private modules
+pub mod archive;
 mod compressors;
-mod decompressors;
 mod dialogs;
 mod error;
 mod extension;

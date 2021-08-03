@@ -1,6 +1,6 @@
 use std::{
     fs,
-    io::Write,
+    io::{self, BufReader, Read},
     path::{Path, PathBuf},
 };
 
@@ -12,13 +12,12 @@ use crate::{
         BzipCompressor, Compressor, Entry, GzipCompressor, LzmaCompressor, TarCompressor,
         ZipCompressor,
     },
-    decompressors::{
-        BzipDecompressor, DecompressionResult, Decompressor, GzipDecompressor, LzmaDecompressor,
-        TarDecompressor, ZipDecompressor,
+    extension::{
+        self,
+        CompressionFormat::{self, *},
     },
-    extension::{CompressionFormat, Extension},
-    file::File,
-    oof, utils,
+    file, oof, utils,
+    utils::to_utf,
 };
 
 pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
@@ -40,9 +39,8 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
 }
 
 type BoxedCompressor = Box<dyn Compressor>;
-type BoxedDecompressor = Box<dyn Decompressor>;
 
-fn get_compressor(file: &File) -> crate::Result<(Option<BoxedCompressor>, BoxedCompressor)> {
+fn get_compressor(file: &file::File) -> crate::Result<(Option<BoxedCompressor>, BoxedCompressor)> {
     let extension = match &file.extension {
         Some(extension) => extension,
         None => {
@@ -77,99 +75,16 @@ fn get_compressor(file: &File) -> crate::Result<(Option<BoxedCompressor>, BoxedC
     Ok((first_compressor, second_compressor))
 }
 
-fn get_decompressor(file: &File) -> crate::Result<(Option<BoxedDecompressor>, BoxedDecompressor)> {
-    let extension = match &file.extension {
-        Some(extension) => extension,
-        None => {
-            // This block *should* be unreachable
-            eprintln!(
-                "{}[internal error]{} reached Evaluator::get_decompressor without known extension.",
-                colors::red(),
-                colors::reset()
-            );
-            return Err(crate::Error::InvalidInput);
-        },
-    };
-
-    let second_decompressor: Box<dyn Decompressor> = match extension.second_ext {
-        CompressionFormat::Tar => Box::new(TarDecompressor),
-        CompressionFormat::Zip => Box::new(ZipDecompressor),
-        CompressionFormat::Gzip => Box::new(GzipDecompressor),
-        CompressionFormat::Lzma => Box::new(LzmaDecompressor),
-        CompressionFormat::Bzip => Box::new(BzipDecompressor),
-    };
-
-    let first_decompressor: Option<Box<dyn Decompressor>> = match &extension.first_ext {
-        Some(ext) => match ext {
-            CompressionFormat::Tar => Some(Box::new(TarDecompressor)),
-            CompressionFormat::Zip => Some(Box::new(ZipDecompressor)),
-            _other => None,
-        },
-        None => None,
-    };
-
-    Ok((first_decompressor, second_decompressor))
-}
-
-fn decompress_file_in_memory(
-    bytes: Vec<u8>,
-    file_path: &Path,
-    decompressor: Option<Box<dyn Decompressor>>,
-    output_file: Option<File>,
-    extension: Option<Extension>,
-    flags: &oof::Flags,
-) -> crate::Result<()> {
-    let output_file_path = utils::get_destination_path(&output_file);
-
-    let file_name = file_path.file_stem().map(Path::new).unwrap_or(output_file_path);
-
-    if "." == file_name.as_os_str() {
-        // I believe this is only possible when the supplied input has a name
-        // of the sort `.tar` or `.zip' and no output has been supplied.
-        // file_name = OsStr::new("ouch-output");
-        todo!("Pending review, what is this supposed to do??");
-    }
-
-    // If there is a decompressor to use, we'll create a file in-memory and decompress it
-    let decompressor = match decompressor {
-        Some(decompressor) => decompressor,
-        None => {
-            // There is no more processing to be done on the input file (or there is but currently unsupported)
-            // Therefore, we'll save what we have in memory into a file.
-            println!("{}[INFO]{} saving to {:?}.", colors::yellow(), colors::reset(), file_name);
-
-            if file_name.exists() {
-                if !utils::permission_for_overwriting(&file_name, flags)? {
-                    return Ok(());
-                }
-            }
-
-            let mut f = fs::File::create(output_file_path.join(file_name))?;
-            f.write_all(&bytes)?;
-            return Ok(());
-        },
-    };
-
-    let file = File { path: file_name, contents_in_memory: Some(bytes), extension };
-
-    let decompression_result = decompressor.decompress(file, &output_file, flags)?;
-    if let DecompressionResult::FileInMemory(_) = decompression_result {
-        unreachable!("Shouldn't");
-    }
-
-    Ok(())
-}
-
 fn compress_files(
     files: Vec<PathBuf>,
     output_path: &Path,
     flags: &oof::Flags,
 ) -> crate::Result<()> {
-    let mut output = File::from(output_path)?;
+    let mut output = file::File::from(output_path)?;
 
     let (first_compressor, second_compressor) = get_compressor(&output)?;
 
-    if output_path.exists() && !utils::permission_for_overwriting(&output_path, flags)? {
+    if output_path.exists() && !utils::permission_for_overwriting(output_path, flags)? {
         // The user does not want to overwrite the file
         return Ok(());
     }
@@ -202,48 +117,89 @@ fn compress_files(
 }
 
 fn decompress_file(
-    file_path: &Path,
-    output: Option<&Path>,
+    input_file_path: &Path,
+    output_folder: Option<&Path>,
     flags: &oof::Flags,
 ) -> crate::Result<()> {
-    // The file to be decompressed
-    let file = File::from(file_path)?;
-    // The file must have a supported decompressible format
-    if file.extension == None {
-        return Err(crate::Error::MissingExtensionError(PathBuf::from(file_path)));
+    let (file_name, formats) = extension::separate_known_extensions_from_name(input_file_path);
+
+    // TODO: improve error message
+    let reader = fs::File::open(&input_file_path)?;
+
+    // Output path is used by single file formats
+    let output_path = if let Some(output_folder) = output_folder {
+        output_folder.join(file_name)
+    } else {
+        file_name.to_path_buf()
+    };
+
+    // Output folder is used by archive file formats (zip and tar)
+    let output_folder = output_folder.unwrap_or_else(|| Path::new("."));
+
+    // Zip archives are special, because they require io::Seek, so it requires it's logic separated
+    // from decoder chaining.
+    //
+    // This is the only case where we can read and unpack it directly, without having to do
+    // in-memory decompression/copying first.
+    //
+    // Any other Zip decompression done can take up the whole RAM and freeze ouch.
+    if let [Zip] = *formats.as_slice() {
+        utils::create_dir_if_non_existent(output_folder)?;
+        let zip_archive = zip::ZipArchive::new(reader)?;
+        let _files = crate::archive::zip::unpack_archive(zip_archive, output_folder, flags)?;
+        println!("[INFO]: Successfully uncompressed bundle at '{}'.", to_utf(output_folder));
+        return Ok(());
     }
 
-    let output = match output {
-        Some(inner) => Some(File::from(inner)?),
-        None => None,
+    // Will be used in decoder chaining
+    let reader = BufReader::new(reader);
+    let mut reader: Box<dyn Read> = Box::new(reader);
+
+    // Grab previous decoder and wrap it inside of a new one
+    let chain_reader_decoder = |format: &CompressionFormat, decoder: Box<dyn Read>| {
+        let decoder: Box<dyn Read> = match format {
+            Gzip => Box::new(flate2::read::GzDecoder::new(decoder)),
+            Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
+            Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
+            _ => unreachable!(),
+        };
+        decoder
     };
-    let (first_decompressor, second_decompressor) = get_decompressor(&file)?;
 
-    let extension = file.extension.clone();
+    for format in formats.iter().skip(1).rev() {
+        reader = chain_reader_decoder(format, reader);
+    }
 
-    let decompression_result = second_decompressor.decompress(file, &output, &flags)?;
+    match formats[0] {
+        Gzip | Bzip | Lzma => {
+            reader = chain_reader_decoder(&formats[0], reader);
 
-    match decompression_result {
-        DecompressionResult::FileInMemory(bytes) => {
-            // We'll now decompress a file currently in memory.
-            // This will currently happen in the case of .bz, .xz and .lzma
-            decompress_file_in_memory(
-                bytes,
-                file_path,
-                first_decompressor,
-                output,
-                extension,
-                flags,
-            )?;
+            // TODO: improve error treatment
+            let mut writer = fs::File::create(&output_path)?;
+
+            io::copy(&mut reader, &mut writer)?;
+            println!("[INFO]: Successfully uncompressed file at '{}'.", to_utf(output_path));
         },
-        DecompressionResult::FilesUnpacked(_files) => {
-            // If the file's last extension was an archival method,
-            // such as .tar, .zip or (to-do) .rar, then we won't look for
-            // further processing.
-            // The reason for this is that cases such as "file.xz.tar" are too rare
-            // to worry about, at least at the moment.
+        Tar => {
+            utils::create_dir_if_non_existent(output_folder)?;
+            let _ = crate::archive::tar::unpack_archive(reader, output_folder, flags)?;
+            println!("[INFO]: Successfully uncompressed bundle at '{}'.", to_utf(output_folder));
+        },
+        Zip => {
+            utils::create_dir_if_non_existent(output_folder)?;
 
-            // TODO: use the `files` variable for something
+            eprintln!("Compressing first into .zip.");
+            eprintln!("Warning: .zip archives with extra extensions have a downside.");
+            eprintln!("The only way is loading everything into the RAM while compressing, and then write everything down.");
+            eprintln!("this means that by compressing .zip with extra compression formats, you can run out of RAM if the file is too large!");
+
+            let mut vec = vec![];
+            io::copy(&mut reader, &mut vec)?;
+            let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
+
+            let _ = crate::archive::zip::unpack_archive(zip_archive, output_folder, flags)?;
+
+            println!("[INFO]: Successfully uncompressed bundle at '{}'.", to_utf(output_folder));
         },
     }
 

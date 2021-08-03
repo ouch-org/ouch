@@ -78,7 +78,7 @@ pub fn filter_flags(
             flag.long
         );
 
-        long_flags_info.insert(flag.long, &flag);
+        long_flags_info.insert(flag.long, flag);
 
         if let Some(short) = flag.short {
             // Panics if duplicated/conflicts
@@ -87,7 +87,7 @@ pub fn filter_flags(
                 "DEV ERROR: duplicated short flag '-{}'.",
                 short
             );
-            short_flags_info.insert(short, &flag);
+            short_flags_info.insert(short, flag);
         }
     }
 
@@ -190,7 +190,7 @@ pub fn filter_flags(
                     return Err(OofError::DuplicatedFlag(flag_info.clone()));
                 }
                 // Otherwise, insert it
-                result_flags.boolean_flags.insert(&flag_name);
+                result_flags.boolean_flags.insert(flag_name);
             }
 
             // // TODO

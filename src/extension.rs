@@ -1,7 +1,6 @@
 use std::{
-    convert::TryFrom,
     ffi::OsStr,
-    fmt::Display,
+    fmt,
     path::{Path, PathBuf},
 };
 
@@ -32,12 +31,6 @@ pub fn get_extension_from_filename(file_name: &OsStr) -> Option<(&OsStr, &OsStr)
     }
 }
 
-impl From<CompressionFormat> for Extension {
-    fn from(second_ext: CompressionFormat) -> Self {
-        Self { first_ext: None, second_ext }
-    }
-}
-
 impl Extension {
     pub fn from(file_name: &OsStr) -> crate::Result<Self> {
         let compression_format_from = |ext: &OsStr| match ext {
@@ -49,7 +42,7 @@ impl Extension {
             other => Err(crate::Error::UnknownExtensionError(utils::to_utf(other))),
         };
 
-        let (first_ext, second_ext) = match get_extension_from_filename(&file_name) {
+        let (first_ext, second_ext) = match get_extension_from_filename(file_name) {
             Some(extension_tuple) => match extension_tuple {
                 (os_str, snd) if os_str.is_empty() => (None, snd),
                 (fst, snd) => (Some(fst), snd),
@@ -83,54 +76,8 @@ pub enum CompressionFormat {
     Zip,  // .zip
 }
 
-fn extension_from_os_str(ext: &OsStr) -> Result<CompressionFormat, crate::Error> {
-    // let ext = Path::new(ext);
-
-    let ext = match ext.to_str() {
-        Some(str) => str,
-        None => return Err(crate::Error::InvalidUnicode),
-    };
-
-    match ext {
-        "zip" => Ok(Zip),
-        "tar" => Ok(Tar),
-        "gz" => Ok(Gzip),
-        "bz" | "bz2" => Ok(Bzip),
-        "xz" | "lzma" | "lz" => Ok(Lzma),
-        other => Err(crate::Error::UnknownExtensionError(other.into())),
-    }
-}
-
-impl TryFrom<&PathBuf> for CompressionFormat {
-    type Error = crate::Error;
-
-    fn try_from(ext: &PathBuf) -> Result<Self, Self::Error> {
-        let ext = match ext.extension() {
-            Some(ext) => ext,
-            None => {
-                return Err(crate::Error::MissingExtensionError(PathBuf::new()));
-            },
-        };
-        extension_from_os_str(ext)
-    }
-}
-
-impl TryFrom<&str> for CompressionFormat {
-    type Error = crate::Error;
-
-    fn try_from(file_name: &str) -> Result<Self, Self::Error> {
-        let file_name = Path::new(file_name);
-        let ext = match file_name.extension() {
-            Some(ext) => ext,
-            None => return Err(crate::Error::MissingExtensionError(PathBuf::new())),
-        };
-
-        extension_from_os_str(ext)
-    }
-}
-
-impl Display for CompressionFormat {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for CompressionFormat {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", match self {
             Gzip => ".gz",
             Bzip => ".bz",
@@ -139,4 +86,37 @@ impl Display for CompressionFormat {
             Zip => ".zip",
         })
     }
+}
+
+pub fn separate_known_extensions_from_name(mut path: &Path) -> (&Path, Vec<CompressionFormat>) {
+    // // TODO: check for file names with the name of an extension
+    // // TODO2: warn the user that currently .tar.gz is a .gz file named .tar
+    //
+    // let all = ["tar", "zip", "bz", "bz2", "gz", "xz", "lzma", "lz"];
+    // if path.file_name().is_some() && all.iter().any(|ext| path.file_name().unwrap() == *ext) {
+    //     todo!("we found a extension in the path name instead, what to do with this???");
+    // }
+
+    let mut extensions = vec![];
+
+    // While there is known extensions at the tail, grab them
+    while let Some(extension) = path.extension() {
+        let extension = match () {
+            _ if extension == "tar" => Tar,
+            _ if extension == "zip" => Zip,
+            _ if extension == "bz" => Bzip,
+            _ if extension == "gz" || extension == "bz2" => Gzip,
+            _ if extension == "xz" || extension == "lzma" || extension == "lz" => Lzma,
+            _ => break,
+        };
+
+        extensions.push(extension);
+
+        // Update for the next iteration
+        path = if let Some(stem) = path.file_stem() { Path::new(stem) } else { Path::new("") };
+    }
+    // Put the extensions in the correct order: left to right
+    extensions.reverse();
+
+    (path, extensions)
 }

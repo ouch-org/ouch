@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{extension::CompressionFormat, file::File, oof, OVERWRITE_CONFIRMATION};
+use crate::{extension::CompressionFormat, oof, OVERWRITE_CONFIRMATION};
 
 #[macro_export]
 #[cfg(debug_assertions)]
@@ -51,7 +51,7 @@ pub fn check_for_multiple_files(
     Ok(())
 }
 
-pub fn create_path_if_non_existent(path: &Path) -> crate::Result<()> {
+pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
     if !path.exists() {
         println!(
             "{}[INFO]{} attempting to create folder {:?}.",
@@ -59,7 +59,7 @@ pub fn create_path_if_non_existent(path: &Path) -> crate::Result<()> {
             colors::reset(),
             &path
         );
-        std::fs::create_dir_all(path)?;
+        fs::create_dir_all(path)?;
         println!(
             "{}[INFO]{} directory {:#?} created.",
             colors::yellow(),
@@ -68,17 +68,6 @@ pub fn create_path_if_non_existent(path: &Path) -> crate::Result<()> {
         );
     }
     Ok(())
-}
-
-pub fn get_destination_path<'a>(dest: &'a Option<File>) -> &'a Path {
-    match dest {
-        Some(output_file) => {
-            // Must be None according to the way command-line arg. parsing in Ouch works
-            assert_eq!(output_file.extension, None);
-            Path::new(&output_file.path)
-        },
-        None => Path::new("."),
-    }
 }
 
 pub fn change_dir_and_return_parent(filename: &Path) -> crate::Result<PathBuf> {

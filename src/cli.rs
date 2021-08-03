@@ -36,7 +36,7 @@ pub fn parse_args() -> crate::Result<ParsedArgs> {
     // If has a list of files, canonicalize them, reporting error if they do now exist
     match &mut parsed_args.command {
         Command::Compress { files, .. } | Command::Decompress { files, .. } => {
-            *files = canonicalize_files(&files)?;
+            *files = canonicalize_files(files)?;
         },
         _ => {},
     }
