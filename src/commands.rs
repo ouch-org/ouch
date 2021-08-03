@@ -26,10 +26,39 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
             compress_files(files, &compressed_output_path, flags)?
         },
         Command::Decompress { files, output_folder } => {
+            let mut output_paths = vec![];
+            let mut formats = vec![];
+
+            for path in files.iter() {
+                let (file_output_path, file_formats) =
+                    extension::separate_known_extensions_from_name(path);
+                output_paths.push(file_output_path);
+                formats.push(file_formats);
+            }
+
+            let files_missing_format: Vec<PathBuf> = files
+                .iter()
+                .zip(&formats)
+                .filter(|(_, formats)| formats.is_empty())
+                .map(|(input_path, _)| PathBuf::from(input_path))
+                .collect();
+
+            // Error
+            if !files_missing_format.is_empty() {
+                eprintln!("Some file you asked ouch to decompress lacks a supported extension.");
+                eprintln!("Could not decompress {}.", to_utf(&files_missing_format[0]));
+                todo!(
+                    "Dev note: add this error variant and pass the Vec to it, all the files \
+                     lacking extension shall be shown: {:#?}.",
+                    files_missing_format
+                );
+            }
+
             // From Option<PathBuf> to Option<&Path>
-            let output_folder = output_folder.as_ref().map(|path| Path::new(path));
-            for file in files.iter() {
-                decompress_file(file, output_folder, flags)?;
+            let output_folder = output_folder.as_ref().map(|path| path.as_ref());
+
+            for ((input_path, formats), file_name) in files.iter().zip(formats).zip(output_paths) {
+                decompress_file(input_path, formats, output_folder, file_name, flags)?;
             }
         },
         Command::ShowHelp => crate::help_command(),
@@ -116,13 +145,17 @@ fn compress_files(
     Ok(())
 }
 
+// File at input_file_path is opened for reading, example: "archive.tar.gz"
+// formats contains each format necessary for decompression, example: [Gz, Tar] (in decompression order)
+// output_folder it's where the file will be decompressed to
+// file_name is only used when extracting single file formats, no archive formats like .tar or .zip
 fn decompress_file(
     input_file_path: &Path,
+    formats: Vec<extension::CompressionFormat>,
     output_folder: Option<&Path>,
+    file_name: &Path,
     flags: &oof::Flags,
 ) -> crate::Result<()> {
-    let (file_name, formats) = extension::separate_known_extensions_from_name(input_file_path);
-
     // TODO: improve error message
     let reader = fs::File::open(&input_file_path)?;
 
