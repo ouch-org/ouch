@@ -15,17 +15,20 @@ fn test_each_format() {
     test_compression_and_decompression("tar");
     test_compression_and_decompression("tar.gz");
     test_compression_and_decompression("tar.bz");
-    // test_compression_and_decompression("tar.bz2");
-    // test_compression_and_decompression("tar.xz");
+    test_compression_and_decompression("tar.bz2");
+    test_compression_and_decompression("tar.xz");
     test_compression_and_decompression("tar.lz");
-    // test_compression_and_decompression("tar.lzma");
+    test_compression_and_decompression("tar.lzma");
     test_compression_and_decompression("zip");
     test_compression_and_decompression("zip.gz");
     test_compression_and_decompression("zip.bz");
-    // test_compression_and_decompression("zip.bz2");
-    // test_compression_and_decompression("zip.xz");
+    test_compression_and_decompression("zip.bz2");
+    test_compression_and_decompression("zip.xz");
     test_compression_and_decompression("zip.lz");
-    // test_compression_and_decompression("zip.lzma");
+    test_compression_and_decompression("zip.lzma");
+
+    // Why not
+    test_compression_and_decompression("tar.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.lz.lz.lz.lz.lz.lz.lz.lz.lz.lz.bz.bz.bz.bz.bz.bz.bz");
 }
 
 type FileContent = Vec<u8>;
@@ -92,7 +95,7 @@ fn compress_files(at: &Path, paths_to_compress: &[PathBuf], format: &str) -> Pat
 
     let command = Command::Compress {
         files: paths_to_compress.to_vec(),
-        compressed_output_path: archive_path.to_path_buf(),
+        output_path: archive_path.to_path_buf(),
     };
     run(command, &oof::Flags::default()).expect("Failed to compress test dummy files");
 

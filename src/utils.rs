@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{extension::CompressionFormat, oof, OVERWRITE_CONFIRMATION};
+use crate::{oof, OVERWRITE_CONFIRMATION};
 
 #[macro_export]
 #[cfg(debug_assertions)]
@@ -21,34 +21,6 @@ macro_rules! debug {
     ($x:expr) => {
         std::convert::identity($x)
     };
-}
-
-pub fn ensure_exists(path: impl AsRef<Path>) -> crate::Result<()> {
-    let exists = path.as_ref().exists();
-    if !exists {
-        return Err(crate::Error::FileNotFound(PathBuf::from(path.as_ref())));
-    }
-    Ok(())
-}
-
-pub fn check_for_multiple_files(
-    files: &[PathBuf],
-    format: &CompressionFormat,
-) -> crate::Result<()> {
-    if files.len() != 1 {
-        eprintln!(
-            "{}[ERROR]{} cannot compress multiple files directly to {:#?}.\n\
-               Try using an intermediate archival method such as Tar.\n\
-               Example: filename.tar{}",
-            colors::red(),
-            colors::reset(),
-            format,
-            format
-        );
-        return Err(crate::Error::InvalidInput);
-    }
-
-    Ok(())
 }
 
 pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
@@ -70,7 +42,7 @@ pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
     Ok(())
 }
 
-pub fn change_dir_and_return_parent(filename: &Path) -> crate::Result<PathBuf> {
+pub fn cd_into_same_dir_as(filename: &Path) -> crate::Result<PathBuf> {
     let previous_location = env::current_dir()?;
 
     let parent = if let Some(parent) = filename.parent() {
@@ -79,6 +51,8 @@ pub fn change_dir_and_return_parent(filename: &Path) -> crate::Result<PathBuf> {
         return Err(crate::Error::CompressingRootFolder);
     };
 
+    // TODO: fix this error variant, as it is not the only possible error that can
+    // come out of this operation
     env::set_current_dir(parent).ok().ok_or(crate::Error::CompressingRootFolder)?;
 
     Ok(previous_location)

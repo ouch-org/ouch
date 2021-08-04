@@ -14,7 +14,7 @@ pub enum Command {
     /// Files to be compressed
     Compress {
         files: Vec<PathBuf>,
-        compressed_output_path: PathBuf,
+        output_path: PathBuf,
     },
     /// Files to be decompressed and their extensions
     Decompress {
@@ -103,9 +103,9 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
             }
 
             // Safety: we checked that args.len() >= 2
-            let compressed_output_path = files.pop().unwrap();
+            let output_path = files.pop().unwrap();
 
-            let command = Command::Compress { files, compressed_output_path };
+            let command = Command::Compress { files, output_path };
             ParsedArgs { command, flags }
         },
         // Defaults to decompression when there is no subcommand
@@ -163,7 +163,7 @@ mod tests {
         });
         assert_eq!(test_cli("compress foo bar baz.zip").unwrap().command, Command::Compress {
             files: vec!["foo".into(), "bar".into()],
-            compressed_output_path: "baz.zip".into()
+            output_path: "baz.zip".into()
         });
         assert_eq!(test_cli("compress").unwrap_err(), crate::Error::MissingArgumentsForCompression);
     }

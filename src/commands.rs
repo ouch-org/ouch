@@ -1,29 +1,31 @@
 use std::{
     fs,
-    io::{self, BufReader, Read},
+    io::{self, BufReader, BufWriter, Read, Write},
     path::{Path, PathBuf},
 };
 
 use utils::colors;
 
 use crate::{
+    archive,
     cli::Command,
-    compressors::{
-        BzipCompressor, Compressor, Entry, GzipCompressor, LzmaCompressor, TarCompressor,
-        ZipCompressor,
-    },
     extension::{
         self,
         CompressionFormat::{self, *},
     },
-    file, oof, utils,
+    oof, utils,
     utils::to_utf,
 };
 
 pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
     match command {
-        Command::Compress { files, compressed_output_path } => {
-            compress_files(files, &compressed_output_path, flags)?
+        Command::Compress { files, output_path } => {
+            let formats = extension::extensions_from_path(&output_path);
+            let output_file = fs::File::create(&output_path)?;
+            let compression_result = compress_files(files, formats, output_file, flags);
+            if let Err(_err) = compression_result {
+                fs::remove_file(&output_path).unwrap();
+            }
         },
         Command::Decompress { files, output_folder } => {
             let mut output_paths = vec![];
@@ -67,80 +69,72 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
     Ok(())
 }
 
-type BoxedCompressor = Box<dyn Compressor>;
-
-fn get_compressor(file: &file::File) -> crate::Result<(Option<BoxedCompressor>, BoxedCompressor)> {
-    let extension = match &file.extension {
-        Some(extension) => extension,
-        None => {
-            // This is reached when the output file given does not have an extension or has an unsupported one
-            return Err(crate::Error::MissingExtensionError(file.path.to_path_buf()));
-        },
-    };
-
-    // Supported first compressors:
-    // .tar and .zip
-    let first_compressor: Option<Box<dyn Compressor>> = match &extension.first_ext {
-        Some(ext) => match ext {
-            CompressionFormat::Tar => Some(Box::new(TarCompressor)),
-            CompressionFormat::Zip => Some(Box::new(ZipCompressor)),
-            CompressionFormat::Bzip => Some(Box::new(BzipCompressor)),
-            CompressionFormat::Gzip => Some(Box::new(GzipCompressor)),
-            CompressionFormat::Lzma => Some(Box::new(LzmaCompressor)),
-        },
-        None => None,
-    };
-
-    // Supported second compressors:
-    // any
-    let second_compressor: Box<dyn Compressor> = match extension.second_ext {
-        CompressionFormat::Tar => Box::new(TarCompressor),
-        CompressionFormat::Zip => Box::new(ZipCompressor),
-        CompressionFormat::Bzip => Box::new(BzipCompressor),
-        CompressionFormat::Gzip => Box::new(GzipCompressor),
-        CompressionFormat::Lzma => Box::new(LzmaCompressor),
-    };
-
-    Ok((first_compressor, second_compressor))
-}
-
 fn compress_files(
     files: Vec<PathBuf>,
-    output_path: &Path,
-    flags: &oof::Flags,
+    formats: Vec<CompressionFormat>,
+    output_file: fs::File,
+    _flags: &oof::Flags,
 ) -> crate::Result<()> {
-    let mut output = file::File::from(output_path)?;
+    let file_writer = BufWriter::new(output_file);
 
-    let (first_compressor, second_compressor) = get_compressor(&output)?;
+    if formats.len() == 1 {
+        let build_archive_from_paths = match formats[0] {
+            Tar => archive::tar::build_archive_from_paths,
+            Zip => archive::zip::build_archive_from_paths,
+            _ => unreachable!(),
+        };
 
-    if output_path.exists() && !utils::permission_for_overwriting(output_path, flags)? {
-        // The user does not want to overwrite the file
-        return Ok(());
+        let mut bufwriter = build_archive_from_paths(&files, file_writer)?;
+        bufwriter.flush()?;
+    } else {
+        let mut writer: Box<dyn Write> = Box::new(file_writer);
+
+        // Grab previous encoder and wrap it inside of a new one
+        let chain_writer_encoder = |format: &CompressionFormat, encoder: Box<dyn Write>| {
+            let encoder: Box<dyn Write> = match format {
+                Gzip => Box::new(flate2::write::GzEncoder::new(encoder, Default::default())),
+                Bzip => Box::new(bzip2::write::BzEncoder::new(encoder, Default::default())),
+                Lzma => Box::new(xz2::write::XzEncoder::new(encoder, 6)),
+                _ => unreachable!(),
+            };
+            encoder
+        };
+
+        for format in formats.iter().skip(1).rev() {
+            writer = chain_writer_encoder(format, writer);
+        }
+
+        match formats[0] {
+            Gzip | Bzip | Lzma => {
+                writer = chain_writer_encoder(&formats[0], writer);
+                let mut reader = fs::File::open(&files[0]).unwrap();
+                io::copy(&mut reader, &mut writer)?;
+            },
+            Tar => {
+                let mut writer = archive::tar::build_archive_from_paths(&files, writer)?;
+                writer.flush()?;
+            },
+            Zip => {
+                eprintln!(
+                    "{yellow}Warning:{reset}",
+                    yellow = colors::yellow(),
+                    reset = colors::reset()
+                );
+                eprintln!("\tCompressing .zip entirely in memory.");
+                eprintln!("\tIf the file is too big, your pc might freeze!");
+                eprintln!(
+                    "\tThis is a limitation for formats like '{}'.",
+                    formats.iter().map(|format| format.to_string()).collect::<String>()
+                );
+                eprintln!("\tThe design of .zip makes it impossible to compress via stream.");
+
+                let mut vec_buffer = io::Cursor::new(vec![]);
+                archive::zip::build_archive_from_paths(&files, &mut vec_buffer)?;
+                let vec_buffer = vec_buffer.into_inner();
+                io::copy(&mut vec_buffer.as_slice(), &mut writer)?;
+            },
+        }
     }
-
-    let bytes = match first_compressor {
-        Some(first_compressor) => {
-            let mut entry = Entry::Files(files);
-            let bytes = first_compressor.compress(entry)?;
-
-            output.contents_in_memory = Some(bytes);
-            entry = Entry::InMemory(output);
-            second_compressor.compress(entry)?
-        },
-        None => {
-            let entry = Entry::Files(files);
-            second_compressor.compress(entry)?
-        },
-    };
-
-    println!(
-        "{}[INFO]{} writing to {:?}. ({})",
-        colors::yellow(),
-        colors::reset(),
-        output_path,
-        utils::Bytes::new(bytes.len() as u64)
-    );
-    fs::write(output_path, bytes)?;
 
     Ok(())
 }

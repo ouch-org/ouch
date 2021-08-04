@@ -5,11 +5,9 @@ pub mod oof;
 
 // Private modules
 pub mod archive;
-mod compressors;
 mod dialogs;
 mod error;
 mod extension;
-mod file;
 mod utils;
 
 use dialogs::Confirmation;

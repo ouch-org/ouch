@@ -1,9 +1,10 @@
 use std::{
-    fs,
-    io::{self, Read, Seek},
+    env, fs,
+    io::{self, prelude::*},
     path::{Path, PathBuf},
 };
 
+use walkdir::WalkDir;
 use zip::{self, read::ZipFile, ZipArchive};
 
 use crate::{
@@ -89,4 +90,55 @@ where
     }
 
     Ok(unpacked_files)
+}
+
+pub fn build_archive_from_paths<W>(input_filenames: &[PathBuf], writer: W) -> crate::Result<W>
+where
+    W: Write + Seek,
+{
+    let mut writer = zip::ZipWriter::new(writer);
+    let options = zip::write::FileOptions::default();
+
+    // Vec of any filename that failed the UTF-8 check
+    let invalid_unicode_filenames: Vec<PathBuf> = input_filenames
+        .iter()
+        .map(|path| (path, path.to_str()))
+        .filter(|(_, x)| x.is_none())
+        .map(|(a, _)| a.to_path_buf())
+        .collect();
+
+    if !invalid_unicode_filenames.is_empty() {
+        panic!(
+            "invalid unicode filenames found, cannot be supported by Zip:\n {:#?}",
+            invalid_unicode_filenames
+        );
+    }
+
+    for filename in input_filenames {
+        let previous_location = utils::cd_into_same_dir_as(filename)?;
+
+        // Safe unwrap, input shall be treated before
+        let filename = filename.file_name().unwrap();
+
+        for entry in WalkDir::new(filename) {
+            let entry = entry?;
+            let path = &entry.path();
+
+            println!("Compressing '{}'.", utils::to_utf(path));
+            if path.is_dir() {
+                continue;
+            }
+
+            writer.start_file(path.to_str().unwrap().to_owned(), options)?;
+            // TODO: check if isn't there a function that already does this for us......
+            // TODO: better error messages
+            let file_bytes = fs::read(entry.path())?;
+            writer.write_all(&*file_bytes)?;
+        }
+
+        env::set_current_dir(previous_location)?;
+    }
+
+    let bytes = writer.finish()?;
+    Ok(bytes)
 }
