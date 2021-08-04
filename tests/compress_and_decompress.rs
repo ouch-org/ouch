@@ -12,23 +12,23 @@ use tempdir::TempDir;
 /// Tests each format that supports multiple files with random input.
 /// TODO: test the remaining formats.
 fn test_each_format() {
-    test_compression_and_decompression("tar");
-    test_compression_and_decompression("tar.gz");
-    test_compression_and_decompression("tar.bz");
-    test_compression_and_decompression("tar.bz2");
-    test_compression_and_decompression("tar.xz");
-    test_compression_and_decompression("tar.lz");
-    test_compression_and_decompression("tar.lzma");
-    test_compression_and_decompression("zip");
-    test_compression_and_decompression("zip.gz");
-    test_compression_and_decompression("zip.bz");
-    test_compression_and_decompression("zip.bz2");
-    test_compression_and_decompression("zip.xz");
-    test_compression_and_decompression("zip.lz");
-    test_compression_and_decompression("zip.lzma");
+    assert!(test_compression_and_decompression("tar"));
+    assert!(test_compression_and_decompression("tar.gz"));
+    assert!(test_compression_and_decompression("tar.bz"));
+    assert!(test_compression_and_decompression("tar.bz2"));
+    assert!(test_compression_and_decompression("tar.xz"));
+    assert!(test_compression_and_decompression("tar.lz"));
+    assert!(test_compression_and_decompression("tar.lzma"));
+    assert!(test_compression_and_decompression("zip"));
+    assert!(test_compression_and_decompression("zip.gz"));
+    assert!(test_compression_and_decompression("zip.bz"));
+    assert!(test_compression_and_decompression("zip.bz2"));
+    assert!(test_compression_and_decompression("zip.xz"));
+    assert!(test_compression_and_decompression("zip.lz"));
+    assert!(test_compression_and_decompression("zip.lzma"));
 
     // Why not
-    test_compression_and_decompression("tar.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.lz.lz.lz.lz.lz.lz.lz.lz.lz.lz.bz.bz.bz.bz.bz.bz.bz");
+    assert!(test_compression_and_decompression("tar.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.lz.lz.lz.lz.lz.lz.lz.lz.lz.lz.bz.bz.bz.bz.bz.bz.bz"));
 }
 
 type FileContent = Vec<u8>;
@@ -135,11 +135,8 @@ fn assert_correct_paths(original: &[PathBuf], extracted: &[PathBuf]) {
 }
 
 fn compare_file_contents(extracted: &[PathBuf], contents: &[FileContent]) -> bool {
-    for (extracted_path, expected_content) in extracted.iter().zip(contents) {
-        let read_content = fs::read(extracted_path).expect("Failed to read from file");
-        if &read_content != expected_content {
-            return false;
-        }
-    }
-    true
+    extracted.iter().zip(contents).all(|(extracted_path, expected_content)| {
+        let actual_content = fs::read(extracted_path).unwrap();
+        expected_content == actual_content.as_slice()
+    })
 }
