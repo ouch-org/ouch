@@ -7,22 +7,6 @@ use std::{
 
 use crate::{oof, OVERWRITE_CONFIRMATION};
 
-#[macro_export]
-#[cfg(debug_assertions)]
-macro_rules! debug {
-    ($x:expr) => {
-        dbg!($x)
-    };
-}
-
-#[macro_export]
-#[cfg(not(debug_assertions))]
-macro_rules! debug {
-    ($x:expr) => {
-        std::convert::identity($x)
-    };
-}
-
 pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
     if !path.exists() {
         println!(
