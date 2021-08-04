@@ -25,21 +25,27 @@ pub enum Command {
     ShowVersion,
 }
 
-/// Calls parse_args_and_flags_from using std::env::args_os ( argv )
+/// Calls parse_args_and_flags_from using argv (std::env::args_os)
 ///
 /// This function is also responsible for treating and checking the cli input
 /// Like calling canonicale, checking if it exists.
 pub fn parse_args() -> crate::Result<ParsedArgs> {
-    let args = env::args_os().skip(1).collect();
+    // From argv, but ignoring empty arguments
+    let args = env::args_os().skip(1).filter(|arg| !arg.is_empty()).collect();
     let mut parsed_args = parse_args_from(args)?;
 
-    // If has a list of files, canonicalize them, reporting error if they do now exist
+    // If has a list of files, canonicalize them, reporting error if they do not exist
     match &mut parsed_args.command {
         Command::Compress { files, .. } | Command::Decompress { files, .. } => {
             *files = canonicalize_files(files)?;
         },
         _ => {},
     }
+
+    if parsed_args.flags.is_present("yes") && parsed_args.flags.is_present("no") {
+        todo!("conflicting flags, better error message.");
+    }
+
     Ok(parsed_args)
 }
 

@@ -6,7 +6,7 @@ use ouch::{
 fn main() {
     if let Err(err) = run() {
         println!("{}", err);
-        std::process::exit(127);
+        std::process::exit(ouch::EXIT_FAILURE);
     }
 }
 

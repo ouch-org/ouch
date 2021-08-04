@@ -28,7 +28,7 @@ pub enum Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-struct FinalError {
+pub struct FinalError {
     title: String,
     details: Vec<String>,
     hints: Vec<String>,
@@ -69,6 +69,11 @@ impl FinalError {
 
         // Make sure to fix colors
         eprint!("{}", reset());
+    }
+
+    pub fn display_and_crash(&self) -> ! {
+        self.display();
+        std::process::exit(crate::EXIT_FAILURE)
     }
 }
 
