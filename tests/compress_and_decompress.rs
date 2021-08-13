@@ -11,35 +11,33 @@ use rand::{rngs::SmallRng, RngCore, SeedableRng};
 /// Tests each format that supports multiple files with random input.
 /// TODO: test the remaining formats.
 fn test_each_format() {
-    assert!(test_compression_and_decompression("tar"));
-    assert!(test_compression_and_decompression("tar.gz"));
-    assert!(test_compression_and_decompression("tar.bz"));
-    assert!(test_compression_and_decompression("tar.bz2"));
-    assert!(test_compression_and_decompression("tar.xz"));
-    assert!(test_compression_and_decompression("tar.lz"));
-    assert!(test_compression_and_decompression("tar.lzma"));
-    assert!(test_compression_and_decompression("zip"));
-    assert!(test_compression_and_decompression("zip.gz"));
-    assert!(test_compression_and_decompression("zip.bz"));
-    assert!(test_compression_and_decompression("zip.bz2"));
-    assert!(test_compression_and_decompression("zip.xz"));
-    assert!(test_compression_and_decompression("zip.lz"));
-    assert!(test_compression_and_decompression("zip.lzma"));
+    test_compressing_and_decompressing_archive("tar");
+    test_compressing_and_decompressing_archive("tar.gz");
+    test_compressing_and_decompressing_archive("tar.bz");
+    test_compressing_and_decompressing_archive("tar.bz2");
+    test_compressing_and_decompressing_archive("tar.xz");
+    test_compressing_and_decompressing_archive("tar.lz");
+    test_compressing_and_decompressing_archive("tar.lzma");
+    test_compressing_and_decompressing_archive("zip");
+    test_compressing_and_decompressing_archive("zip.gz");
+    test_compressing_and_decompressing_archive("zip.bz");
+    test_compressing_and_decompressing_archive("zip.bz2");
+    test_compressing_and_decompressing_archive("zip.xz");
+    test_compressing_and_decompressing_archive("zip.lz");
+    test_compressing_and_decompressing_archive("zip.lzma");
 
     // Why not
-    assert!(test_compression_and_decompression("tar.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.lz.lz.lz.lz.lz.lz.lz.lz.lz.lz.bz.bz.bz.bz.bz.bz.bz"));
+    test_compressing_and_decompressing_archive("tar.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.lz.lz.lz.lz.lz.lz.lz.lz.lz.lz.bz.bz.bz.bz.bz.bz.bz");
 }
 
 type FileContent = Vec<u8>;
 
-fn test_compression_and_decompression(format: &str) -> bool {
-    let mut rng = SmallRng::from_entropy();
-
-    // System temporary directory depends on the platform
-    // For linux it is /tmp
+/// Compress and decompresses random files to archive formats, checks if contents match
+fn test_compressing_and_decompressing_archive(format: &str) {
+    // System temporary directory depends on the platform, for linux it's /tmp
     let system_tmp = env::temp_dir();
 
-    // Create a folder that will be deleted on drop
+    // Create a temporary testing folder that will be deleted on scope drop
     let testing_dir = tempfile::Builder::new()
         .prefix("ouch-testing")
         .tempdir_in(system_tmp)
@@ -47,28 +45,32 @@ fn test_compression_and_decompression(format: &str) -> bool {
     let testing_dir_path = testing_dir.path();
 
     // Quantity of compressed files vary from 1 to 10
+    let mut rng = SmallRng::from_entropy();
     let quantity_of_files = rng.next_u32() % 10 + 1;
 
     let contents_of_files: Vec<FileContent> =
         (0..quantity_of_files).map(|_| generate_random_file_content(&mut rng)).collect();
 
+    // Create them
     let mut file_paths = create_files(&testing_dir_path, &contents_of_files);
+    // Compress them
     let compressed_archive_path = compress_files(&testing_dir_path, &file_paths, &format);
+    // Decompress them
     let mut extracted_paths = extract_files(&compressed_archive_path);
 
-    // // If you want to visualize the compressed and extracted files in the temporary directory
-    // // before their auto-destruction:
-    // dbg!(&testing_dir);
-    // std::thread::sleep(std::time::Duration::from_secs(60));
+    // // DEBUG UTIL:
+    // // Uncomment line below to freeze the code and see compressed and extracted files in
+    // // the temporary directory before their auto-destruction.
+    // std::thread::sleep(std::time::Duration::from_secs(1_000_000));
 
     file_paths.sort();
     extracted_paths.sort();
 
-    assert_correct_paths(&file_paths, &extracted_paths);
-    compare_file_contents(&extracted_paths, &contents_of_files)
+    assert_correct_paths(&file_paths, &extracted_paths, format);
+    compare_file_contents(&extracted_paths, &contents_of_files, format);
 }
 
-// Crate file contents from 1024 up to 8192 random bytes
+/// Crate file contents from 1024 up to 8192 random bytes
 fn generate_random_file_content(rng: &mut impl RngCore) -> FileContent {
     let quantity = 1024 + rng.next_u32() % (8192 - 1024);
     let mut vec = vec![0; quantity as usize];
@@ -76,8 +78,9 @@ fn generate_random_file_content(rng: &mut impl RngCore) -> FileContent {
     vec
 }
 
-// Create files using the indexes as file names (eg. 0, 1, 2 and 3)
-// Returns the paths
+/// Create files using the indexes as file names (eg. 0, 1, 2 and 3)
+///
+/// Return the path to each one.
 fn create_files(at: &Path, contents: &[FileContent]) -> Vec<PathBuf> {
     contents
         .iter()
@@ -129,16 +132,28 @@ fn extract_files(archive_path: &Path) -> Vec<PathBuf> {
         .collect()
 }
 
-fn assert_correct_paths(original: &[PathBuf], extracted: &[PathBuf]) {
-    assert_eq!(original.len(), extracted.len());
+fn assert_correct_paths(original: &[PathBuf], extracted: &[PathBuf], format: &str) {
+    assert_eq!(
+        original.len(),
+        extracted.len(),
+        "Number of compressed files does not match number of decompressed when testing archive format '{:?}'.",
+        format
+    );
     for (original, extracted) in original.iter().zip(extracted) {
-        assert_eq!(original.file_name(), extracted.file_name());
+        assert_eq!(original.file_name(), extracted.file_name(), "");
     }
 }
 
-fn compare_file_contents(extracted: &[PathBuf], contents: &[FileContent]) -> bool {
-    extracted.iter().zip(contents).all(|(extracted_path, expected_content)| {
+fn compare_file_contents(extracted: &[PathBuf], contents: &[FileContent], format: &str) {
+    extracted.iter().zip(contents).for_each(|(extracted_path, expected_content)| {
         let actual_content = fs::read(extracted_path).unwrap();
-        expected_content == actual_content.as_slice()
-    })
+
+        assert_eq!(
+            expected_content,
+            actual_content.as_slice(),
+            "Contents of file with path '{:?}' does not match after compression and decompression while testing archive format '{:?}.'",
+            extracted_path.canonicalize().unwrap(),
+            format
+        );
+    });
 }
