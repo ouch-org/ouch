@@ -10,14 +10,11 @@ mod error;
 mod extension;
 mod utils;
 
-use dialogs::Confirmation;
 pub use error::{Error, Result};
 
 pub const EXIT_FAILURE: i32 = 127;
 
 const VERSION: &str = "0.1.5";
-const OVERWRITE_CONFIRMATION: Confirmation =
-    Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE"));
 
 fn help_command() {
     use utils::colors::*;
@@ -76,5 +73,5 @@ Visit https://github.com/vrmiguel/ouch for more usage examples.",
 #[inline]
 fn version_command() {
     use utils::colors::*;
-    println!("{green}ouch{reset} {}", crate::VERSION, green = green(), reset = reset(),);
+    println!("{green}ouch{reset} {}", crate::VERSION, green = green(), reset = reset());
 }

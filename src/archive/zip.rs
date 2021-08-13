@@ -12,28 +12,6 @@ use crate::{
     utils::{self, colors},
 };
 
-#[cfg(unix)]
-fn __unix_set_permissions(file_path: &Path, file: &ZipFile) {
-    use std::os::unix::fs::PermissionsExt;
-
-    if let Some(mode) = file.unix_mode() {
-        fs::set_permissions(&file_path, fs::Permissions::from_mode(mode)).unwrap();
-    }
-}
-
-fn check_for_comments(file: &ZipFile) {
-    let comment = file.comment();
-    if !comment.is_empty() {
-        println!(
-            "{}[INFO]{} Comment in {}: {}",
-            colors::yellow(),
-            colors::reset(),
-            file.name(),
-            comment
-        );
-    }
-}
-
 pub fn unpack_archive<R>(
     mut archive: ZipArchive<R>,
     into: &Path,
@@ -51,8 +29,7 @@ where
         };
 
         let file_path = into.join(file_path);
-        if file_path.exists() && !utils::permission_for_overwriting(&file_path, flags)? {
-            // The user does not want to overwrite the file
+        if file_path.exists() && !utils::user_wants_to_overwrite(&file_path, flags)? {
             continue;
         }
 
@@ -141,4 +118,26 @@ where
 
     let bytes = writer.finish()?;
     Ok(bytes)
+}
+
+fn check_for_comments(file: &ZipFile) {
+    let comment = file.comment();
+    if !comment.is_empty() {
+        println!(
+            "{}[INFO]{} Comment in {}: {}",
+            colors::yellow(),
+            colors::reset(),
+            file.name(),
+            comment
+        );
+    }
+}
+
+#[cfg(unix)]
+fn __unix_set_permissions(file_path: &Path, file: &ZipFile) {
+    use std::os::unix::fs::PermissionsExt;
+
+    if let Some(mode) = file.unix_mode() {
+        fs::set_permissions(&file_path, fs::Permissions::from_mode(mode)).unwrap();
+    }
 }

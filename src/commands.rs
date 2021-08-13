@@ -89,8 +89,7 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                     .display_and_crash();
             }
 
-            if output_path.exists() && !utils::permission_for_overwriting(&output_path, flags)? {
-                // The user does not want to overwrite the file
+            if output_path.exists() && !utils::user_wants_to_overwrite(&output_path, flags)? {
                 return Ok(());
             }
 

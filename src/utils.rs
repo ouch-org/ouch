@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{oof, OVERWRITE_CONFIRMATION};
+use crate::{dialogs::Confirmation, oof};
 
 pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
     if !path.exists() {
@@ -42,7 +42,7 @@ pub fn cd_into_same_dir_as(filename: &Path) -> crate::Result<PathBuf> {
     Ok(previous_location)
 }
 
-pub fn permission_for_overwriting(path: &Path, flags: &oof::Flags) -> crate::Result<bool> {
+pub fn user_wants_to_overwrite(path: &Path, flags: &oof::Flags) -> crate::Result<bool> {
     match (flags.is_present("yes"), flags.is_present("no")) {
         (true, true) => {
             unreachable!(
@@ -55,7 +55,11 @@ pub fn permission_for_overwriting(path: &Path, flags: &oof::Flags) -> crate::Res
     }
 
     let file_path_str = to_utf(path);
-    OVERWRITE_CONFIRMATION.ask(Some(&file_path_str))
+
+    const OVERWRITE_CONFIRMATION_QUESTION: Confirmation =
+        Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE"));
+
+    OVERWRITE_CONFIRMATION_QUESTION.ask(Some(&file_path_str))
 }
 
 pub fn to_utf(os_str: impl AsRef<OsStr>) -> String {

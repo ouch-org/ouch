@@ -22,8 +22,7 @@ pub fn unpack_archive(
         let mut file = file?;
 
         let file_path = output_folder.join(file.path()?);
-        if file_path.exists() && !utils::permission_for_overwriting(&file_path, flags)? {
-            // The user does not want to overwrite the file
+        if file_path.exists() && !utils::user_wants_to_overwrite(&file_path, flags)? {
             continue;
         }
 
