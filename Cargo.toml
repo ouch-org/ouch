@@ -22,7 +22,7 @@ xz2     = "0.1.6"
 zip     = "0.5.11"
 
 [dev-dependencies]
-tempdir = "0.3.7"
+tempfile = "3.2.0"
 rand = { version = "0.8.3", default-features = false, features = ["small_rng", "std"] }
 
 [profile.release]

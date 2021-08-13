@@ -6,7 +6,6 @@ use std::{
 
 use ouch::{cli::Command, commands::run, oof};
 use rand::{rngs::SmallRng, RngCore, SeedableRng};
-use tempdir::TempDir;
 
 #[test]
 /// Tests each format that supports multiple files with random input.
@@ -39,10 +38,13 @@ fn test_compression_and_decompression(format: &str) -> bool {
     // System temporary directory depends on the platform
     // For linux it is /tmp
     let system_tmp = env::temp_dir();
+
     // Create a folder that will be deleted on drop
-    let testing_dir = String::from("ouch-testing-") + format;
-    let testing_dir = TempDir::new_in(system_tmp, &testing_dir).expect("Could not create tempdir");
-    let testing_dir = testing_dir.path();
+    let testing_dir = tempfile::Builder::new()
+        .prefix("ouch-testing")
+        .tempdir_in(system_tmp)
+        .expect("Could not create testing_dir");
+    let testing_dir_path = testing_dir.path();
 
     // Quantity of compressed files vary from 1 to 10
     let quantity_of_files = rng.next_u32() % 10 + 1;
@@ -50,8 +52,8 @@ fn test_compression_and_decompression(format: &str) -> bool {
     let contents_of_files: Vec<FileContent> =
         (0..quantity_of_files).map(|_| generate_random_file_content(&mut rng)).collect();
 
-    let mut file_paths = create_files(&testing_dir, &contents_of_files);
-    let compressed_archive_path = compress_files(&testing_dir, &file_paths, &format);
+    let mut file_paths = create_files(&testing_dir_path, &contents_of_files);
+    let compressed_archive_path = compress_files(&testing_dir_path, &file_paths, &format);
     let mut extracted_paths = extract_files(&compressed_archive_path);
 
     // // If you want to visualize the compressed and extracted files in the temporary directory
