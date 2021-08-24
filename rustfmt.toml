@@ -1,9 +1,4 @@
-# Normal features
-max_width = 100
-imports_granularity = "Crate"
-match_block_trailing_comma = true
-overflow_delimited_expr = true
-reorder_impl_items = true
+max_width = 120
 use_field_init_shorthand = true
 newline_style = "Unix"
 edition = "2018"
