@@ -1,6 +1,6 @@
 [package]
 name = "ouch"
-version = "0.1.5"
+version = "0.1.6"
 authors = ["Vinícius Rodrigues Miguel <vrmiguel99@gmail.com>", "João M. Bezerra <marcospb19@hotmail.com>"]
 edition = "2018"
 readme = "README.md"
@@ -15,11 +15,11 @@ description = "A command-line utility for easily compressing and decompressing f
 [dependencies]
 walkdir = "2.3.2"
 strsim  = "0.10.0"
-flate2  = "1.0.14"
-bzip2   = "0.4.2"
-tar     = "0.4.33"
+flate2  = "1.0.22"
+bzip2   = "0.4.3"
+tar     = "0.4.37"
 xz2     = "0.1.6"
-zip     = "0.5.11"
+zip     = "0.5.13"
 
 [dev-dependencies]
 tempfile = "3.2.0"
