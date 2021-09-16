@@ -15,11 +15,11 @@ description = "A command-line utility for easily compressing and decompressing f
 [dependencies]
 walkdir = "2.3.2"
 strsim  = "0.10.0"
-flate2  = "1.0.22"
+flate2  = { version = "1.0.22", default-features = false, features = ["zlib"] }
 bzip2   = "0.4.3"
 tar     = "0.4.37"
 xz2     = "0.1.6"
-zip     = "0.5.13"
+zip     = { version =  "0.5.13", default-features = false, features = ["deflate-miniz"] }
 
 [dev-dependencies]
 tempfile = "3.2.0"
