@@ -1,4 +1,7 @@
-use std::io::{self, Write};
+use std::{
+    borrow::Cow,
+    io::{self, Write},
+};
 
 use crate::utils::colors;
 
@@ -15,9 +18,9 @@ impl<'a> Confirmation<'a> {
 
     pub fn ask(&self, substitute: Option<&'a str>) -> crate::Result<bool> {
         let message = match (self.placeholder, substitute) {
-            (None, _) => self.prompt.into(),
+            (None, _) => Cow::Borrowed(self.prompt),
             (Some(_), None) => return Err(crate::Error::InternalError),
-            (Some(placeholder), Some(subs)) => self.prompt.replace(placeholder, subs),
+            (Some(placeholder), Some(subs)) => Cow::Owned(self.prompt.replace(placeholder, subs)),
         };
 
         loop {
