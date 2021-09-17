@@ -8,6 +8,7 @@ pub mod archive;
 mod dialogs;
 mod error;
 mod extension;
+mod macros;
 mod utils;
 
 pub use error::{Error, Result};

@@ -8,7 +8,6 @@ pub struct Confirmation<'a> {
     pub placeholder: Option<&'a str>,
 }
 
-
 impl<'a> Confirmation<'a> {
     pub const fn new(prompt: &'a str, pattern: Option<&'a str>) -> Self {
         Self { prompt, placeholder: pattern }

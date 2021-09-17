@@ -14,7 +14,7 @@ use crate::{
         self,
         CompressionFormat::{self, *},
     },
-    oof, utils,
+    info, oof, utils,
     utils::to_utf,
 };
 
@@ -94,12 +94,7 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                     eprintln!("  Error:{reset} {}{red}.{reset}\n", err, reset = colors::reset(), red = colors::red());
                 }
             } else {
-                println!(
-                    "{}[INFO]{} Successfully compressed '{}'.",
-                    colors::yellow(),
-                    colors::reset(),
-                    to_utf(output_path),
-                );
+                info!("Successfully compressed '{}'.", to_utf(output_path));
             }
 
             compress_result?;
@@ -243,7 +238,7 @@ fn decompress_file(
         utils::create_dir_if_non_existent(output_folder)?;
         let zip_archive = zip::ZipArchive::new(reader)?;
         let _files = crate::archive::zip::unpack_archive(zip_archive, output_folder, flags)?;
-        println!("[INFO]: Successfully uncompressed bundle at '{}'.", to_utf(output_folder));
+        info!("Successfully uncompressed bundle in '{}'.", to_utf(output_folder));
         return Ok(());
     }
 
@@ -274,12 +269,12 @@ fn decompress_file(
             let mut writer = fs::File::create(&output_path)?;
 
             io::copy(&mut reader, &mut writer)?;
-            println!("[INFO]: Successfully uncompressed file at '{}'.", to_utf(output_path));
+            info!("Successfully uncompressed bundle in '{}'.", to_utf(output_path));
         }
         Tar => {
             utils::create_dir_if_non_existent(output_folder)?;
             let _ = crate::archive::tar::unpack_archive(reader, output_folder, flags)?;
-            println!("[INFO]: Successfully uncompressed bundle at '{}'.", to_utf(output_folder));
+            info!("Successfully uncompressed bundle in '{}'.", to_utf(output_folder));
         }
         Zip => {
             utils::create_dir_if_non_existent(output_folder)?;
@@ -297,7 +292,7 @@ fn decompress_file(
 
             let _ = crate::archive::zip::unpack_archive(zip_archive, output_folder, flags)?;
 
-            println!("[INFO]: Successfully uncompressed bundle at '{}'.", to_utf(output_folder));
+            info!("Successfully uncompressed bundle in '{}'.", to_utf(output_folder));
         }
     }
 

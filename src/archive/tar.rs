@@ -5,10 +5,12 @@ use std::{
 };
 
 use tar;
-use utils::colors;
 use walkdir::WalkDir;
 
-use crate::{oof, utils};
+use crate::{
+    info, oof,
+    utils::{self, Bytes},
+};
 
 pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, flags: &oof::Flags) -> crate::Result<Vec<PathBuf>> {
     let mut archive = tar::Archive::new(reader);
@@ -24,13 +26,7 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, flags: &oof::
 
         file.unpack_in(output_folder)?;
 
-        println!(
-            "{}[INFO]{} {:?} extracted. ({})",
-            colors::yellow(),
-            colors::reset(),
-            output_folder.join(file.path()?),
-            utils::Bytes::new(file.size())
-        );
+        info!("{:?} extracted. ({})", output_folder.join(file.path()?), Bytes::new(file.size()));
 
         files_unpacked.push(file_path);
     }

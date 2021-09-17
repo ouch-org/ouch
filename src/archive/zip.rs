@@ -8,8 +8,8 @@ use walkdir::WalkDir;
 use zip::{self, read::ZipFile, ZipArchive};
 
 use crate::{
-    oof,
-    utils::{self, colors},
+    info, oof,
+    utils::{self, Bytes},
 };
 
 pub fn unpack_archive<R>(mut archive: ZipArchive<R>, into: &Path, flags: &oof::Flags) -> crate::Result<Vec<PathBuf>>
@@ -42,13 +42,8 @@ where
                         fs::create_dir_all(&path)?;
                     }
                 }
-                println!(
-                    "{}[INFO]{} \"{}\" extracted. ({})",
-                    colors::yellow(),
-                    colors::reset(),
-                    file_path.display(),
-                    utils::Bytes::new(file.size())
-                );
+
+                info!("{:?} extracted. ({})", file_path.display(), Bytes::new(file.size()));
 
                 let mut output_file = fs::File::create(&file_path)?;
                 io::copy(&mut file, &mut output_file)?;
@@ -116,7 +111,7 @@ where
 fn check_for_comments(file: &ZipFile) {
     let comment = file.comment();
     if !comment.is_empty() {
-        println!("{}[INFO]{} Comment in {}: {}", colors::yellow(), colors::reset(), file.name(), comment);
+        info!("Found comment in {}: {}", file.name(), comment);
     }
 }
 

@@ -5,13 +5,12 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{dialogs::Confirmation, oof};
+use crate::{dialogs::Confirmation, info, oof};
 
 pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
     if !path.exists() {
-        println!("{}[INFO]{} attempting to create folder {:?}.", colors::yellow(), colors::reset(), &path);
         fs::create_dir_all(path)?;
-        println!("{}[INFO]{} directory {:#?} created.", colors::yellow(), colors::reset(), fs::canonicalize(&path)?);
+        info!("directory {:#?} created.", to_utf(path));
     }
     Ok(())
 }
