@@ -10,7 +10,7 @@ use crate::{dialogs::Confirmation, info, oof};
 pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
     if !path.exists() {
         fs::create_dir_all(path)?;
-        info!("directory {:#?} created.", to_utf(path));
+        info!("directory {} created.", to_utf(path));
     }
     Ok(())
 }

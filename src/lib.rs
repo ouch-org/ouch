@@ -13,9 +13,19 @@ mod utils;
 
 pub use error::{Error, Result};
 
+use lazy_static::lazy_static;
+
 pub const EXIT_FAILURE: i32 = 127;
 
 const VERSION: &str = "0.1.5";
+
+lazy_static! {
+    static ref NO_COLOR_IS_SET: bool = {
+        use std::env;
+
+        env::var("NO_COLOR").is_ok()
+    };
+}
 
 fn help_command() {
     use utils::colors::*;
