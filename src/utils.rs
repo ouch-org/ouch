@@ -19,11 +19,7 @@ pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
 pub fn cd_into_same_dir_as(filename: &Path) -> crate::Result<PathBuf> {
     let previous_location = env::current_dir()?;
 
-    let parent = if let Some(parent) = filename.parent() {
-        parent
-    } else {
-        return Err(crate::Error::CompressingRootFolder);
-    };
+    let parent = filename.parent().ok_or(crate::Error::CompressingRootFolder)?;
 
     // TODO: fix this error variant, as it is not the only possible error that can
     // come out of this operation

@@ -2,13 +2,12 @@ use std::io::{self, Write};
 
 use crate::utils::colors;
 
+/// Represents a confirmation dialog
 pub struct Confirmation<'a> {
     pub prompt: &'a str,
     pub placeholder: Option<&'a str>,
 }
 
-#[derive(Debug)]
-pub struct Error;
 
 impl<'a> Confirmation<'a> {
     pub const fn new(prompt: &'a str, pattern: Option<&'a str>) -> Self {

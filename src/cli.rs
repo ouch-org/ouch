@@ -7,7 +7,7 @@ use std::{
 
 use strsim::normalized_damerau_levenshtein;
 
-use crate::{arg_flag, flag, oof};
+use crate::{arg_flag, flag, oof, Error};
 
 #[derive(PartialEq, Eq, Debug)]
 pub enum Command {
@@ -27,8 +27,8 @@ pub enum Command {
 
 /// Calls parse_args_and_flags_from using argv (std::env::args_os)
 ///
-/// This function is also responsible for treating and checking the cli input
-/// Like calling canonicale, checking if it exists.
+/// This function is also responsible for treating and checking the command-line input,
+/// such as calling [`canonicalize`](std::fs::canonicalize), checking if it the given files exists, etc.
 pub fn parse_args() -> crate::Result<ParsedArgs> {
     // From argv, but ignoring empty arguments
     let args = env::args_os().skip(1).filter(|arg| !arg.is_empty()).collect();
@@ -55,8 +55,7 @@ pub struct ParsedArgs {
     pub flags: oof::Flags,
 }
 
-/// check_for_typo checks if the first argument is
-/// a typo for the compress subcommand.
+/// Checks if the first argument is a typo for the `compress` subcommand.
 /// Returns true if the arg is probably a typo or false otherwise.
 fn is_typo(path: impl AsRef<Path>) -> bool {
     if path.as_ref().exists() {
@@ -74,7 +73,7 @@ fn canonicalize(path: impl AsRef<Path>) -> crate::Result<PathBuf> {
         Ok(abs_path) => Ok(abs_path),
         Err(io_err) => {
             if !path.as_ref().exists() {
-                Err(crate::Error::FileNotFound(PathBuf::from(path.as_ref())))
+                Err(Error::FileNotFound(path.as_ref().into()))
             } else {
                 Err(io_err.into())
             }
@@ -105,7 +104,7 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
             let mut files: Vec<PathBuf> = args.into_iter().map(PathBuf::from).collect();
 
             if files.len() < 2 {
-                return Err(crate::Error::MissingArgumentsForCompression);
+                return Err(Error::MissingArgumentsForCompression);
             }
 
             // Safety: we checked that args.len() >= 2
@@ -120,7 +119,7 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
 
             if let Some(first_arg) = args.first() {
                 if is_typo(first_arg) {
-                    return Err(crate::Error::CompressionTypo);
+                    return Err(Error::CompressionTypo);
                 }
             } else {
                 todo!("Complain that no decompression arguments were given.");
@@ -171,7 +170,7 @@ mod tests {
             test_cli("compress foo bar baz.zip").unwrap().command,
             Command::Compress { files: vec!["foo".into(), "bar".into()], output_path: "baz.zip".into() }
         );
-        assert_eq!(test_cli("compress").unwrap_err(), crate::Error::MissingArgumentsForCompression);
+        assert_eq!(test_cli("compress").unwrap_err(), Error::MissingArgumentsForCompression);
     }
 
     #[test]
