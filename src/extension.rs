@@ -14,13 +14,17 @@ pub enum CompressionFormat {
 
 impl fmt::Display for CompressionFormat {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", match self {
-            Gzip => ".gz",
-            Bzip => ".bz",
-            Lzma => ".lz",
-            Tar => ".tar",
-            Zip => ".zip",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Gzip => ".gz",
+                Bzip => ".bz",
+                Lzma => ".lz",
+                Tar => ".tar",
+                Zip => ".zip",
+            }
+        )
     }
 }
 

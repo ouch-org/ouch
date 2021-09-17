@@ -27,7 +27,9 @@ fn test_each_format() {
     test_compressing_and_decompressing_archive("zip.lzma");
 
     // Why not
-    test_compressing_and_decompressing_archive("tar.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.lz.lz.lz.lz.lz.lz.lz.lz.lz.lz.bz.bz.bz.bz.bz.bz.bz");
+    test_compressing_and_decompressing_archive(
+        "tar.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.lz.lz.lz.lz.lz.lz.lz.lz.lz.lz.bz.bz.bz.bz.bz.bz.bz",
+    );
 }
 
 type FileContent = Vec<u8>;
@@ -38,10 +40,8 @@ fn test_compressing_and_decompressing_archive(format: &str) {
     let system_tmp = env::temp_dir();
 
     // Create a temporary testing folder that will be deleted on scope drop
-    let testing_dir = tempfile::Builder::new()
-        .prefix("ouch-testing")
-        .tempdir_in(system_tmp)
-        .expect("Could not create testing_dir");
+    let testing_dir =
+        tempfile::Builder::new().prefix("ouch-testing").tempdir_in(system_tmp).expect("Could not create testing_dir");
     let testing_dir_path = testing_dir.path();
 
     // Quantity of compressed files vary from 1 to 10
@@ -98,10 +98,7 @@ fn compress_files(at: &Path, paths_to_compress: &[PathBuf], format: &str) -> Pat
     let archive_path = String::from("archive.") + format;
     let archive_path = at.join(archive_path);
 
-    let command = Command::Compress {
-        files: paths_to_compress.to_vec(),
-        output_path: archive_path.to_path_buf(),
-    };
+    let command = Command::Compress { files: paths_to_compress.to_vec(), output_path: archive_path.to_path_buf() };
     run(command, &oof::Flags::default()).expect("Failed to compress test dummy files");
 
     archive_path
@@ -125,11 +122,7 @@ fn extract_files(archive_path: &Path) -> Vec<PathBuf> {
     };
     run(command, &oof::Flags::default()).expect("Failed to extract");
 
-    fs::read_dir(extraction_output_folder)
-        .unwrap()
-        .map(Result::unwrap)
-        .map(|entry| entry.path())
-        .collect()
+    fs::read_dir(extraction_output_folder).unwrap().map(Result::unwrap).map(|entry| entry.path()).collect()
 }
 
 fn assert_correct_paths(original: &[PathBuf], extracted: &[PathBuf], format: &str) {

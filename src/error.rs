@@ -86,10 +86,10 @@ impl fmt::Display for Error {
                     .hint("Use a supported format extension, like '.zip' or '.tar.gz'")
                     .hint("Check https://github.com/vrmiguel/ouch for a full list of supported formats")
                     .display();
-            },
+            }
             Error::WalkdirError { reason } => {
                 FinalError::with_title(reason).display();
-            },
+            }
             Error::FileNotFound(file) => {
                 if file == Path::new("") {
                     FinalError::with_title("file not found!")
@@ -97,13 +97,13 @@ impl fmt::Display for Error {
                     FinalError::with_title(format!("file {:?} not found!", file))
                 }
                 .display();
-            },
+            }
             Error::CompressingRootFolder => {
                 FinalError::with_title("It seems you're trying to compress the root folder.")
                     .detail("This is unadvisable since ouch does compressions in-memory.")
                     .hint("Use a more appropriate tool for this, such as rsync.")
                     .display();
-            },
+            }
             Error::MissingArgumentsForCompression => {
                 FinalError::with_title("Could not compress")
                     .detail("The compress command requires at least 2 arguments")
@@ -113,7 +113,7 @@ impl fmt::Display for Error {
                     .hint("")
                     .hint("Example: `ouch compress image.png img.zip`")
                     .display();
-            },
+            }
             Error::InternalError => {
                 FinalError::with_title("InternalError :(")
                     .detail("This should not have happened")
@@ -121,21 +121,21 @@ impl fmt::Display for Error {
                     .detail("Please help us improve by reporting the issue at:")
                     .detail(format!("    {}https://github.com/vrmiguel/ouch/issues ", cyan()))
                     .display();
-            },
+            }
             Error::OofError(err) => {
                 FinalError::with_title(err).display();
-            },
+            }
             Error::IoError { reason } => {
                 FinalError::with_title(reason).display();
-            },
+            }
             Error::CompressionTypo => {
                 FinalError::with_title("Possible typo detected")
                     .hint(format!("Did you mean '{}ouch compress{}'?", magenta(), reset()))
                     .display();
-            },
+            }
             _err => {
                 todo!();
-            },
+            }
         }
         Ok(())
     }

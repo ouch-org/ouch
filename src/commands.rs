@@ -40,8 +40,7 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                 // It says:
                 // Change from file.bz.xz
                 // To          file.tar.bz.xz
-                let extensions_text: String =
-                    formats.iter().map(|format| format.to_string()).collect();
+                let extensions_text: String = formats.iter().map(|format| format.to_string()).collect();
 
                 let output_path = to_utf(output_path);
 
@@ -53,38 +52,21 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                 let mut suggested_output_path = output_path.clone();
                 suggested_output_path.replace_range(empty_range, ".tar");
 
-                FinalError::with_title(format!(
-                    "Cannot compress to '{}'.",
-                    to_utf(&output_path)
-                ))
-                .detail("You are trying to compress multiple files.")
-                .detail(format!(
-                    "The compression format '{}' cannot receive multiple files.",
-                    &formats[0]
-                ))
-                .detail("The only supported formats that bundle files into an archive are .tar and .zip.")
-                .hint(format!(
-                    "Try inserting '.tar' or '.zip' before '{}'.",
-                    &formats[0]
-                ))
-                .hint(format!("From: {}", output_path))
-                .hint(format!(" To : {}", suggested_output_path))
-                .display_and_crash();
+                FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))
+                    .detail("You are trying to compress multiple files.")
+                    .detail(format!("The compression format '{}' cannot receive multiple files.", &formats[0]))
+                    .detail("The only supported formats that bundle files into an archive are .tar and .zip.")
+                    .hint(format!("Try inserting '.tar' or '.zip' before '{}'.", &formats[0]))
+                    .hint(format!("From: {}", output_path))
+                    .hint(format!(" To : {}", suggested_output_path))
+                    .display_and_crash();
             }
 
-            if let Some(format) =
-                formats.iter().skip(1).position(|format| matches!(format, Tar | Zip))
-            {
+            if let Some(format) = formats.iter().skip(1).position(|format| matches!(format, Tar | Zip)) {
                 FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))
                     .detail(format!("Found the format '{}' in an incorrect position.", format))
-                    .detail(format!(
-                        "{} can only be used at the start of the file extension.",
-                        format
-                    ))
-                    .hint(format!(
-                        "If you wish to compress multiple files, start the extension with {}.",
-                        format
-                    ))
+                    .detail(format!("{} can only be used at the start of the file extension.", format))
+                    .hint(format!("If you wish to compress multiple files, start the extension with {}.", format))
                     .hint(format!("Otherwise, remove {} from '{}'.", format, to_utf(&output_path)))
                     .display_and_crash();
             }
@@ -108,16 +90,8 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                 if let Err(err) = fs::remove_file(&output_path) {
                     eprintln!("{red}FATAL ERROR:\n", red = colors::red());
                     eprintln!("  Please manually delete '{}'.", to_utf(&output_path));
-                    eprintln!(
-                        "  Compression failed and we could not delete '{}'.",
-                        to_utf(&output_path),
-                    );
-                    eprintln!(
-                        "  Error:{reset} {}{red}.{reset}\n",
-                        err,
-                        reset = colors::reset(),
-                        red = colors::red()
-                    );
+                    eprintln!("  Compression failed and we could not delete '{}'.", to_utf(&output_path),);
+                    eprintln!("  Error:{reset} {}{red}.{reset}\n", err, reset = colors::reset(), red = colors::red());
                 }
             } else {
                 println!(
@@ -129,14 +103,13 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
             }
 
             compress_result?;
-        },
+        }
         Command::Decompress { files, output_folder } => {
             let mut output_paths = vec![];
             let mut formats = vec![];
 
             for path in files.iter() {
-                let (file_output_path, file_formats) =
-                    extension::separate_known_extensions_from_name(path);
+                let (file_output_path, file_formats) = extension::separate_known_extensions_from_name(path);
                 output_paths.push(file_output_path);
                 formats.push(file_formats);
             }
@@ -165,7 +138,7 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
             for ((input_path, formats), file_name) in files.iter().zip(formats).zip(output_paths) {
                 decompress_file(input_path, formats, output_folder, file_name, flags)?;
             }
-        },
+        }
         Command::ShowHelp => crate::help_command(),
         Command::ShowVersion => crate::version_command(),
     }
@@ -212,17 +185,13 @@ fn compress_files(
                 writer = chain_writer_encoder(&formats[0], writer);
                 let mut reader = fs::File::open(&files[0]).unwrap();
                 io::copy(&mut reader, &mut writer)?;
-            },
+            }
             Tar => {
                 let mut writer = archive::tar::build_archive_from_paths(&files, writer)?;
                 writer.flush()?;
-            },
+            }
             Zip => {
-                eprintln!(
-                    "{yellow}Warning:{reset}",
-                    yellow = colors::yellow(),
-                    reset = colors::reset()
-                );
+                eprintln!("{yellow}Warning:{reset}", yellow = colors::yellow(), reset = colors::reset());
                 eprintln!("\tCompressing .zip entirely in memory.");
                 eprintln!("\tIf the file is too big, your pc might freeze!");
                 eprintln!(
@@ -235,7 +204,7 @@ fn compress_files(
                 archive::zip::build_archive_from_paths(&files, &mut vec_buffer)?;
                 let vec_buffer = vec_buffer.into_inner();
                 io::copy(&mut vec_buffer.as_slice(), &mut writer)?;
-            },
+            }
         }
     }
 
@@ -257,11 +226,8 @@ fn decompress_file(
     let reader = fs::File::open(&input_file_path)?;
 
     // Output path is used by single file formats
-    let output_path = if let Some(output_folder) = output_folder {
-        output_folder.join(file_name)
-    } else {
-        file_name.to_path_buf()
-    };
+    let output_path =
+        if let Some(output_folder) = output_folder { output_folder.join(file_name) } else { file_name.to_path_buf() };
 
     // Output folder is used by archive file formats (zip and tar)
     let output_folder = output_folder.unwrap_or_else(|| Path::new("."));
@@ -309,18 +275,20 @@ fn decompress_file(
 
             io::copy(&mut reader, &mut writer)?;
             println!("[INFO]: Successfully uncompressed file at '{}'.", to_utf(output_path));
-        },
+        }
         Tar => {
             utils::create_dir_if_non_existent(output_folder)?;
             let _ = crate::archive::tar::unpack_archive(reader, output_folder, flags)?;
             println!("[INFO]: Successfully uncompressed bundle at '{}'.", to_utf(output_folder));
-        },
+        }
         Zip => {
             utils::create_dir_if_non_existent(output_folder)?;
 
             eprintln!("Compressing first into .zip.");
             eprintln!("Warning: .zip archives with extra extensions have a downside.");
-            eprintln!("The only way is loading everything into the RAM while compressing, and then write everything down.");
+            eprintln!(
+                "The only way is loading everything into the RAM while compressing, and then write everything down."
+            );
             eprintln!("this means that by compressing .zip with extra compression formats, you can run out of RAM if the file is too large!");
 
             let mut vec = vec![];
@@ -330,7 +298,7 @@ fn decompress_file(
             let _ = crate::archive::zip::unpack_archive(zip_archive, output_folder, flags)?;
 
             println!("[INFO]: Successfully uncompressed bundle at '{}'.", to_utf(output_folder));
-        },
+        }
     }
 
     Ok(())

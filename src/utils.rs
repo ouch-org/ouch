@@ -9,19 +9,9 @@ use crate::{dialogs::Confirmation, oof};
 
 pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
     if !path.exists() {
-        println!(
-            "{}[INFO]{} attempting to create folder {:?}.",
-            colors::yellow(),
-            colors::reset(),
-            &path
-        );
+        println!("{}[INFO]{} attempting to create folder {:?}.", colors::yellow(), colors::reset(), &path);
         fs::create_dir_all(path)?;
-        println!(
-            "{}[INFO]{} directory {:#?} created.",
-            colors::yellow(),
-            colors::reset(),
-            fs::canonicalize(&path)?
-        );
+        println!("{}[INFO]{} directory {:#?} created.", colors::yellow(), colors::reset(), fs::canonicalize(&path)?);
     }
     Ok(())
 }
@@ -45,13 +35,11 @@ pub fn cd_into_same_dir_as(filename: &Path) -> crate::Result<PathBuf> {
 pub fn user_wants_to_overwrite(path: &Path, flags: &oof::Flags) -> crate::Result<bool> {
     match (flags.is_present("yes"), flags.is_present("no")) {
         (true, true) => {
-            unreachable!(
-                "This should've been cutted out in the ~/src/cli.rs filter flags function."
-            )
-        },
+            unreachable!("This should've been cutted out in the ~/src/cli.rs filter flags function.")
+        }
         (true, _) => return Ok(true),
         (_, true) => return Ok(false),
-        _ => {},
+        _ => {}
     }
 
     let file_path_str = to_utf(path);

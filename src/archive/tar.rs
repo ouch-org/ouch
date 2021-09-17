@@ -10,11 +10,7 @@ use walkdir::WalkDir;
 
 use crate::{oof, utils};
 
-pub fn unpack_archive(
-    reader: Box<dyn Read>,
-    output_folder: &Path,
-    flags: &oof::Flags,
-) -> crate::Result<Vec<PathBuf>> {
+pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, flags: &oof::Flags) -> crate::Result<Vec<PathBuf>> {
     let mut archive = tar::Archive::new(reader);
 
     let mut files_unpacked = vec![];

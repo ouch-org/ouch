@@ -63,30 +63,19 @@ where
 /// - User passes same flag twice (short or long, boolean or arg).
 ///
 /// ...
-pub fn filter_flags(
-    args: Vec<OsString>,
-    flags_info: &[Flag],
-) -> Result<(Vec<OsString>, Flags), OofError> {
+pub fn filter_flags(args: Vec<OsString>, flags_info: &[Flag]) -> Result<(Vec<OsString>, Flags), OofError> {
     let mut short_flags_info = BTreeMap::<char, &Flag>::new();
     let mut long_flags_info = BTreeMap::<&'static str, &Flag>::new();
 
     for flag in flags_info.iter() {
         // Panics if duplicated/conflicts
-        assert!(
-            !long_flags_info.contains_key(flag.long),
-            "DEV ERROR: duplicated long flag '{}'.",
-            flag.long
-        );
+        assert!(!long_flags_info.contains_key(flag.long), "DEV ERROR: duplicated long flag '{}'.", flag.long);
 
         long_flags_info.insert(flag.long, flag);
 
         if let Some(short) = flag.short {
             // Panics if duplicated/conflicts
-            assert!(
-                !short_flags_info.contains_key(&short),
-                "DEV ERROR: duplicated short flag '-{}'.",
-                short
-            );
+            assert!(!short_flags_info.contains_key(&short), "DEV ERROR: duplicated short flag '-{}'.", short);
             short_flags_info.insert(short, flag);
         }
     }
@@ -130,8 +119,7 @@ pub fn filter_flags(
                 // Safety: this loop only runs when len >= 1, so this subtraction is safe
                 let is_last_letter = i == letters.len() - 1;
 
-                let flag_info =
-                    *short_flags_info.get(&letter).ok_or(OofError::UnknownShortFlag(letter))?;
+                let flag_info = *short_flags_info.get(&letter).ok_or(OofError::UnknownShortFlag(letter))?;
 
                 if !is_last_letter && flag_info.takes_value {
                     return Err(OofError::MisplacedShortArgFlagError(letter));
@@ -149,9 +137,7 @@ pub fn filter_flags(
                     }
 
                     // pop the next one
-                    let flag_argument = iter
-                        .next()
-                        .ok_or_else(|| OofError::MissingValueToFlag(flag_info.clone()))?;
+                    let flag_argument = iter.next().ok_or_else(|| OofError::MissingValueToFlag(flag_info.clone()))?;
 
                     // Otherwise, insert it.
                     result_flags.argument_flags.insert(flag_name, flag_argument);
@@ -169,9 +155,7 @@ pub fn filter_flags(
         if let FlagType::Long = flag_type {
             let flag = trim_double_hyphen(flag);
 
-            let flag_info = *long_flags_info
-                .get(flag)
-                .ok_or_else(|| OofError::UnknownLongFlag(String::from(flag)))?;
+            let flag_info = *long_flags_info.get(flag).ok_or_else(|| OofError::UnknownLongFlag(String::from(flag)))?;
 
             let flag_name = flag_info.long;
 
@@ -181,8 +165,7 @@ pub fn filter_flags(
                     return Err(OofError::DuplicatedFlag(flag_info.clone()));
                 }
 
-                let flag_argument =
-                    iter.next().ok_or_else(|| OofError::MissingValueToFlag(flag_info.clone()))?;
+                let flag_argument = iter.next().ok_or_else(|| OofError::MissingValueToFlag(flag_info.clone()))?;
                 result_flags.argument_flags.insert(flag_name, flag_argument);
             } else {
                 // If it was already inserted
@@ -223,11 +206,8 @@ mod tests {
     }
 
     fn setup_args_scenario(arg_str: &str) -> Result<(Vec<OsString>, Flags), OofError> {
-        let flags_info = [
-            ArgFlag::long("output_file").short('o'),
-            Flag::long("verbose").short('v'),
-            Flag::long("help").short('h'),
-        ];
+        let flags_info =
+            [ArgFlag::long("output_file").short('o'), Flag::long("verbose").short('v'), Flag::long("help").short('h')];
 
         let args = gen_args(arg_str);
         filter_flags(args, &flags_info)
@@ -265,9 +245,7 @@ mod tests {
         let misplaced_flag = ArgFlag::long("output_file").short('o');
         let result = setup_args_scenario("ouch -ov a.zip b.tar.gz c.tar").unwrap_err();
 
-        assert!(
-            matches!(result, OofError::MisplacedShortArgFlagError(flag) if flag == misplaced_flag.short.unwrap())
-        );
+        assert!(matches!(result, OofError::MisplacedShortArgFlagError(flag) if flag == misplaced_flag.short.unwrap()));
     }
 
     // #[test]
@@ -284,11 +262,8 @@ mod tests {
     // asdasdsa
     #[test]
     fn test_filter_flags() {
-        let flags_info = [
-            ArgFlag::long("output_file").short('o'),
-            Flag::long("verbose").short('v'),
-            Flag::long("help").short('h'),
-        ];
+        let flags_info =
+            [ArgFlag::long("output_file").short('o'), Flag::long("verbose").short('v'), Flag::long("help").short('h')];
         let args = gen_args("ouch a.zip -v b.tar.gz --output_file new_folder c.tar");
 
         let (args, mut flags) = filter_flags(args, &flags_info).unwrap();
@@ -354,8 +329,7 @@ mod tests {
     // TODO: remove should_panic and use proper error handling inside of filter_args
     #[should_panic]
     fn test_flag_info_with_short_flag_conflict() {
-        let flags_info =
-            [ArgFlag::long("output_file").short('o'), Flag::long("verbose").short('o')];
+        let flags_info = [ArgFlag::long("output_file").short('o'), Flag::long("verbose").short('o')];
 
         // Should panic here
         filter_flags(vec![], &flags_info).unwrap_err();

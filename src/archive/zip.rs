@@ -12,11 +12,7 @@ use crate::{
     utils::{self, colors},
 };
 
-pub fn unpack_archive<R>(
-    mut archive: ZipArchive<R>,
-    into: &Path,
-    flags: &oof::Flags,
-) -> crate::Result<Vec<PathBuf>>
+pub fn unpack_archive<R>(mut archive: ZipArchive<R>, into: &Path, flags: &oof::Flags) -> crate::Result<Vec<PathBuf>>
 where
     R: Read + Seek,
 {
@@ -39,7 +35,7 @@ where
             _is_dir @ true => {
                 println!("File {} extracted to \"{}\"", idx, file_path.display());
                 fs::create_dir_all(&file_path)?;
-            },
+            }
             _is_file @ false => {
                 if let Some(path) = file_path.parent() {
                     if !path.exists() {
@@ -56,7 +52,7 @@ where
 
                 let mut output_file = fs::File::create(&file_path)?;
                 io::copy(&mut file, &mut output_file)?;
-            },
+            }
         }
 
         #[cfg(unix)]
@@ -85,10 +81,7 @@ where
         .collect();
 
     if !invalid_unicode_filenames.is_empty() {
-        panic!(
-            "invalid unicode filenames found, cannot be supported by Zip:\n {:#?}",
-            invalid_unicode_filenames
-        );
+        panic!("invalid unicode filenames found, cannot be supported by Zip:\n {:#?}", invalid_unicode_filenames);
     }
 
     for filename in input_filenames {
@@ -123,13 +116,7 @@ where
 fn check_for_comments(file: &ZipFile) {
     let comment = file.comment();
     if !comment.is_empty() {
-        println!(
-            "{}[INFO]{} Comment in {}: {}",
-            colors::yellow(),
-            colors::reset(),
-            file.name(),
-            comment
-        );
+        println!("{}[INFO]{} Comment in {}: {}", colors::yellow(), colors::reset(), file.name(), comment);
     }
 }
 
