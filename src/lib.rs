@@ -17,7 +17,7 @@ use lazy_static::lazy_static;
 
 pub const EXIT_FAILURE: i32 = 127;
 
-const VERSION: &str = "0.1.5";
+const VERSION: &str = "0.1.6";
 
 lazy_static! {
     static ref NO_COLOR_IS_SET: bool = {
