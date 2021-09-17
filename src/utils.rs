@@ -15,14 +15,15 @@ pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
     Ok(())
 }
 
+/// Changes the process' current directory to the directory that contains the
+/// file pointed to by `filename` and returns the directory that the process
+/// was in before this function was called.
 pub fn cd_into_same_dir_as(filename: &Path) -> crate::Result<PathBuf> {
     let previous_location = env::current_dir()?;
 
     let parent = filename.parent().ok_or(crate::Error::CompressingRootFolder)?;
 
-    // TODO: fix this error variant, as it is not the only possible error that can
-    // come out of this operation
-    env::set_current_dir(parent).ok().ok_or(crate::Error::CompressingRootFolder)?;
+    env::set_current_dir(parent)?;
 
     Ok(previous_location)
 }
