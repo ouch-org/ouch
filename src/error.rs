@@ -1,5 +1,5 @@
 use std::{
-    fmt,
+    fmt::{self, Display},
     path::{Path, PathBuf},
 };
 
@@ -28,10 +28,34 @@ pub enum Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+#[derive(Default)]
 pub struct FinalError {
     title: String,
     details: Vec<String>,
     hints: Vec<String>,
+}
+
+impl Display for FinalError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Title
+        writeln!(f, "{}[ERROR]{} {}", red(), reset(), self.title)?;
+
+        // Details
+        for detail in &self.details {
+            writeln!(f, " {}-{} {}", white(), yellow(), detail)?;
+        }
+
+        // Hints
+        if !self.hints.is_empty() {
+            // Separate by one blank line.
+            writeln!(f)?;
+            for hint in &self.hints {
+                writeln!(f, "{}hint:{} {}", green(), reset(), hint)?;
+            }
+        }
+
+        write!(f, "{}", reset())
+    }
 }
 
 impl FinalError {
@@ -49,95 +73,79 @@ impl FinalError {
         self
     }
 
-    pub fn display(&self) {
-        // Title
-        eprintln!("{}[ERROR]{} {}", red(), reset(), self.title);
-
-        // Details
-        for detail in &self.details {
-            eprintln!(" {}-{} {}", white(), yellow(), detail);
-        }
-
-        // Hints
-        if !self.hints.is_empty() {
-            // Separate by one blank line.
-            eprintln!();
-            for hint in &self.hints {
-                eprintln!("{}hint:{} {}", green(), reset(), hint);
-            }
-        }
-
-        // Make sure to fix colors
-        eprint!("{}", reset());
+    pub fn to_owned(&mut self) -> Self {
+        std::mem::take(self)
     }
 
     pub fn display_and_crash(&self) -> ! {
-        self.display();
+        eprintln!("{}", self);
         std::process::exit(crate::EXIT_FAILURE)
     }
 }
 
 impl fmt::Display for Error {
-    fn fmt(&self, _: &mut fmt::Formatter) -> fmt::Result {
-        match self {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let err = match self {
             Error::MissingExtensionError(filename) => {
-                FinalError::with_title(format!("Cannot compress to {:?}", filename))
+                let error = FinalError::with_title(format!("Cannot compress to {:?}", filename))
                     .detail("Ouch could not detect the compression format")
                     .hint("Use a supported format extension, like '.zip' or '.tar.gz'")
                     .hint("Check https://github.com/vrmiguel/ouch for a full list of supported formats")
-                    .display();
+                    .to_owned();
+
+                error
             }
-            Error::WalkdirError { reason } => {
-                FinalError::with_title(reason).display();
-            }
+            Error::WalkdirError { reason } => FinalError::with_title(reason),
             Error::FileNotFound(file) => {
-                if file == Path::new("") {
+                let error = if file == Path::new("") {
                     FinalError::with_title("file not found!")
                 } else {
                     FinalError::with_title(format!("file {:?} not found!", file))
-                }
-                .display();
+                };
+
+                error
             }
             Error::CompressingRootFolder => {
-                FinalError::with_title("It seems you're trying to compress the root folder.")
+                let error = FinalError::with_title("It seems you're trying to compress the root folder.")
                     .detail("This is unadvisable since ouch does compressions in-memory.")
                     .hint("Use a more appropriate tool for this, such as rsync.")
-                    .display();
+                    .to_owned();
+
+                error
             }
             Error::MissingArgumentsForCompression => {
-                FinalError::with_title("Could not compress")
+                let error = FinalError::with_title("Could not compress")
                     .detail("The compress command requires at least 2 arguments")
                     .hint("You must provide:")
                     .hint("  - At least one input argument.")
                     .hint("  - The output argument.")
                     .hint("")
                     .hint("Example: `ouch compress image.png img.zip`")
-                    .display();
+                    .to_owned();
+
+                error
             }
             Error::InternalError => {
-                FinalError::with_title("InternalError :(")
+                let error = FinalError::with_title("InternalError :(")
                     .detail("This should not have happened")
                     .detail("It's probably our fault")
                     .detail("Please help us improve by reporting the issue at:")
                     .detail(format!("    {}https://github.com/vrmiguel/ouch/issues ", cyan()))
-                    .display();
+                    .to_owned();
+
+                error
             }
-            Error::OofError(err) => {
-                FinalError::with_title(err).display();
-            }
-            Error::IoError { reason } => {
-                FinalError::with_title(reason).display();
-            }
-            Error::CompressionTypo => {
-                FinalError::with_title("Possible typo detected")
-                    .hint(format!("Did you mean '{}ouch compress{}'?", magenta(), reset()))
-                    .display();
-            }
+            Error::OofError(err) => FinalError::with_title(err),
+            Error::IoError { reason } => FinalError::with_title(reason),
+            Error::CompressionTypo => FinalError::with_title("Possible typo detected")
+                .hint(format!("Did you mean '{}ouch compress{}'?", magenta(), reset()))
+                .to_owned(),
             _err => {
                 todo!();
             }
-        }
-        Ok(())
+        };
+
+        write!(f, "{}", err)
     }
 }
 
