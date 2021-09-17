@@ -1,20 +1,24 @@
 # Ouch!
 
+[![crates.io](https://img.shields.io/crates/v/ouch.svg?style=for-the-badge&logo=rust)](https://crates.io/crates/ouch) [![license](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge&logo=Open-Source-Initiative&logoColor=ffffff)](https://github.com/ouch-org/ouch/blob/main/LICENSE)
+
 <!-- ![ouch_image](https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR5ilNDTFZZ-Vy_ctm2YyAe8Yk0UT7lB2hIhg&usqp=CAU)  -->
 
 `ouch` stands for **Obvious Unified Compression Helper**, and works on _Linux_, _Mac OS_ and _Windows_.
 
-It is a CLI tool to compress and decompress files that aims to be easy to use.
+It is a CLI tool to compress and decompress files that aims on ease of usage.
 
 <!-- TODO -->
 <!--     - [Listing files](#Listing-the-elements-of-an-archive) -->
 
-- [Installation](#Installation)
-- [Usage](#Usage)
-    - [Decompressing files](#Decompressing-files)
-    - [Compressing files/directories](#Compressing-files-and-directories)
-- [Supported Formats](#Supported-formats)
-- [Supported operating systems](#Supported-operating-systems)
+- [Usage](#usage)
+    - [Decompressing](#decompressing)
+    - [Compressing](#compressing)
+- [Installation](#installation)
+    - [Latest binary](#downloading-the-latest-binary)
+    - [Compiling from source](#installing-from-source-code)
+- [Supported Formats](#supported-formats)
+- [Contributing](#contributing)
 
 ## Usage
 
@@ -34,7 +38,7 @@ You can redirect the decompression results to a folder with the `-o/--output` fl
 
 ```sh
 # Create 'pictures' folder and decompress inside of it
-ouch 1.tar.gz 2.tar.gz -o pictures
+ouch a.zip -o pictures
 ```
 
 ### Compressing
@@ -58,8 +62,6 @@ ouch compress * files.zip
 ```
 
 `ouch` checks for the extensions of the **output file** to decide which formats should be used.
-
-Check the [list of all file extensions supported](#Supported-formats).
 
 <!-- ### Listing the elements of an archive
 
