@@ -3,11 +3,11 @@
 # Needs to be updated each version bump
 VERSION="0.1.6"
 
-DOWNLOAD_LOCATION="/tmp/ouch"
+DOWNLOAD_LOCATION="/tmp/ouch-binary"
 INSTALLATION_LOCATION="/usr/bin/ouch"
-REPO_URL="https://github.com/vrmiguel/ouch"
+REPO_URL="https://github.com/ouch-org/ouch"
 
-# Panicks script if anything fails
+# Panics script if anything fails
 set -e
 
 abort() {
@@ -23,17 +23,17 @@ install() {
     case "$(uname -s)" in
         Linux)
             echo "Linux."
-            system_suffix="-ubuntu-18.04-glibc"
+            system_suffix="-linux-musl"
         ;;
 
         Darwin)
             echo "Mac OS X."
-            system_suffix="-macOS"
+            system_suffix="-apple-darwin"
         ;;
 
         CYGWIN*|MINGW32*|MSYS*|MINGW*)
             echo "Windows."
-            system_suffix=".exe"
+            system_suffix="-pc-windows-msvc.exe"
         ;;
 
         *)
@@ -49,28 +49,44 @@ install() {
         ;;
     esac
 
-    binary_url="https://github.com/vrmiguel/ouch/releases/download/${VERSION}/ouch${system_suffix}"
+    binary_file_name="ouch-x86_64${system_suffix}"
+    binary_url="https://github.com/ouch-org/ouch/releases/download/${VERSION}/${binary_file_name}"
 
     echo ""
+
+    # Set $downloader
+    if [ $(which curl) ]; then
+        downloader="curl"
+        downloader_command="curl -fSL $binary_url -o $DOWNLOAD_LOCATION"
+    elif [ $(which wget) ]; then
+        downloader="wget"
+        downloader_command="wget $binary_url -O $DOWNLOAD_LOCATION"
+    else
+        echo "ERROR: have not found 'curl' nor 'wget' to donwload ouch binary."
+        exit 1
+    fi
 
     if [ -f "$DOWNLOAD_LOCATION" ]; then
         echo "Reusing downloaded binary at '$DOWNLOAD_LOCATION'."
     else
-        echo "Downloading binary to '$DOWNLOAD_LOCATION' with curl."
+        echo "Downloading binary to '$DOWNLOAD_LOCATION' with $downloader."
         echo "From $binary_url"
-        curl -fSL $binary_url -o $DOWNLOAD_LOCATION
+        # Run command to download binary
+        $downloader_command
     fi
 
     echo ""
 
     if [ "$USER" = "root" ]; then
         echo "Detected root user, trying to copy $DOWNLOAD_LOCATION to $INSTALLATION_LOCATION."
-        cp $DOWNLOAD_LOCATION $INSTALLATION_LOCATION || abort
+        cp $DOWNLOAD_LOCATION $INSTALLATION_LOCATION
+        chmod +x $INSTALLATION_LOCATION
     else
         echo "Asking for \"sudo\" permissions to finish installation."
         echo "Permission is needed to copy '$DOWNLOAD_LOCATION' to '$INSTALLATION_LOCATION'"
 
-        sudo cp $DOWNLOAD_LOCATION $INSTALLATION_LOCATION || abort
+        sudo cp $DOWNLOAD_LOCATION $INSTALLATION_LOCATION
+        sudo chmod +x $INSTALLATION_LOCATION
     fi
 
     echo ""

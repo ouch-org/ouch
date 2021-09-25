@@ -76,13 +76,19 @@ ouch list videos.tar.xz
 
 ### Downloading the latest binary
 
-WARNING: SCRIPT TEMPORARILY DISABLED.
-
-This script downloads the latest binary and copies it to `/usr/bin`.
+Download the script with `curl` and run it.
 
 ```sh
-curl -s https://raw.githubusercontent.com/vrmiguel/ouch/master/install.sh | sh
+curl -s https://raw.githubusercontent.com/ouch-org/ouch/master/install.sh | sh
 ```
+
+Or with `wget`.
+
+```sh
+wget https://raw.githubusercontent.com/ouch-org/ouch/master/install.sh -O - | sh
+```
+
+The script will download the latest binary and copy it to `/usr/bin`.
 
 ### Installing from source code
 
