@@ -1,7 +1,7 @@
 on: [push, pull_request]
 
-
 name: build-and-test
+
 
 jobs:
   aarch64-glibc:
@@ -19,7 +19,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install binutils-aarch64-linux-gnu
-      
+
       - uses: actions-rs/cargo@v1
         with:
           use-cross: true
@@ -32,15 +32,16 @@ jobs:
           use-cross: true
           command: test
           args: --release --target=aarch64-unknown-linux-gnu
-          
+
       - name: Strip binary
         run: aarch64-linux-gnu-strip target/aarch64-unknown-linux-gnu/release/ouch
-          
+
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
           name: 'ouch-aarch64-linux-gnu'
           path: target/aarch64-unknown-linux-gnu/release/ouch
+
 
   armv7-glibc:
     name: Ubuntu 18.04 (for ARMv7 - glibc)
@@ -57,7 +58,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install binutils-arm-none-eabi
-      
+
       - uses: actions-rs/cargo@v1
         with:
           use-cross: true
@@ -70,18 +71,19 @@ jobs:
           use-cross: true
           command: test
           args: --target=armv7-unknown-linux-gnueabihf
-          
+
       - name: Strip binary
         run: arm-none-eabi-strip target/armv7-unknown-linux-gnueabihf/release/ouch
-          
+
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
           name: 'ouch-armv7-linux-gnueabihf'
           path: target/armv7-unknown-linux-gnueabihf/release/ouch
-          
+
+
   x86_64_musl:
-    name: Ubuntu 20.04
+    name: Ubuntu 20.04 (musl)
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -102,6 +104,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install musl-tools
+
       - name: Run cargo build
         uses: actions-rs/cargo@v1
         with:
@@ -123,7 +126,7 @@ jobs:
           name: 'ouch-x86_64-linux-musl'
           path: target/x86_64-unknown-linux-musl/release/ouch
 
-          
+
   x86_64_glibc:
     name: Ubuntu 18.04 (glibc)
     runs-on: ubuntu-18.04
@@ -140,7 +143,7 @@ jobs:
         with:
           toolchain: stable
           override: true
-          
+
       - name: Run cargo build
         uses: actions-rs/cargo@v1
         with:
@@ -162,8 +165,9 @@ jobs:
           name: 'ouch-x86_64-linux-gnu'
           path: target/release/ouch
 
-  macos:
-    name: macOS
+
+  x86_64_macos:
+    name: macOS (x86_64)
     runs-on: macos-latest
     strategy:
       matrix:
@@ -176,14 +180,15 @@ jobs:
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: ${{ matrix.rust }}
+          toolchain: stable
+          target: x86_64-apple-darwin
           override: true
 
       - name: Run cargo build
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release
+          args: --release --target x86_64-apple-darwin
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
@@ -197,6 +202,45 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: 'ouch-x86_64-apple-darwin'
+          path: target/release/ouch
+
+
+  aarch64_macos:
+    name: macOS (aarch64)
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        rust:
+          - stable
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: aarch64-apple-darwin
+          override: true
+
+      - name: Run cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --target aarch64-apple-darwin
+
+      - name: Run cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+
+      - name: Strip binary
+        run: strip target/release/ouch
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: 'ouch-aarch64-apple-darwin'
           path: target/release/ouch
 
 
@@ -216,7 +260,6 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           override: true
-          
 
       - name: Run cargo build
         uses: actions-rs/cargo@v1

@@ -4,7 +4,7 @@
 VERSION="0.1.6"
 
 DOWNLOAD_LOCATION="/tmp/ouch-binary"
-INSTALLATION_LOCATION="/usr/bin/ouch"
+INSTALLATION_LOCATION="/usr/local/bin/ouch"
 REPO_URL="https://github.com/ouch-org/ouch"
 
 # Panics script if anything fails
