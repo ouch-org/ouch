@@ -196,7 +196,7 @@ jobs:
           command: test
 
       - name: Strip binary
-        run: strip target/release/ouch
+        run: strip target/x86_64-apple-darwin/release/ouch
 
       - name: Upload binary
         uses: actions/upload-artifact@v2
@@ -235,7 +235,7 @@ jobs:
           command: test
 
       - name: Strip binary
-        run: strip target/release/ouch
+        run: strip target/aarch64-apple-darwin/release/ouch
 
       - name: Upload binary
         uses: actions/upload-artifact@v2
