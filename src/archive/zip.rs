@@ -12,6 +12,8 @@ use crate::{
     utils::{self, Bytes},
 };
 
+use self::utf8::get_invalid_utf8_paths;
+
 pub fn unpack_archive<R>(mut archive: ZipArchive<R>, into: &Path, flags: &oof::Flags) -> crate::Result<Vec<PathBuf>>
 where
     R: Read + Seek,
@@ -53,7 +55,7 @@ where
         #[cfg(unix)]
         __unix_set_permissions(&file_path, &file)?;
 
-        let file_path = fs::canonicalize(file_path.clone())?;
+        let file_path = fs::canonicalize(&file_path)?;
         unpacked_files.push(file_path);
     }
 
@@ -68,16 +70,11 @@ where
     let options = zip::write::FileOptions::default();
 
     // Vec of any filename that failed the UTF-8 check
-    let invalid_unicode_filenames: Vec<PathBuf> = input_filenames
-        .iter()
-        .map(|path| (path, path.to_str()))
-        .filter(|(_, x)| x.is_none())
-        .map(|(a, _)| a.to_path_buf())
-        .collect();
+    let invalid_unicode_filenames = get_invalid_utf8_paths(input_filenames);
 
-    if !invalid_unicode_filenames.is_empty() {
+    if let Some(filenames) = invalid_unicode_filenames {
         // TODO: make this an error variant
-        panic!("invalid unicode filenames found, cannot be supported by Zip:\n {:#?}", invalid_unicode_filenames);
+        panic!("invalid unicode filenames found, cannot be supported by Zip:\n {:#?}", filenames);
     }
 
     for filename in input_filenames {
@@ -95,7 +92,7 @@ where
             }
 
             writer.start_file(path.to_str().unwrap().to_owned(), options)?;
-            
+
             // TODO: better error messages
             let file_bytes = fs::read(entry.path())?;
             writer.write_all(&*file_bytes)?;
@@ -124,4 +121,37 @@ fn __unix_set_permissions(file_path: &Path, file: &ZipFile) -> crate::Result<()>
     }
 
     Ok(())
+}
+
+mod utf8 {
+
+    use std::path::{Path, PathBuf};
+
+    // Sad double reference in order to make `filter` happy in `get_invalid_utf8_paths`
+    #[cfg(unix)]
+    fn is_invalid_utf8(path: &&Path) -> bool {
+        use std::os::unix::prelude::OsStrExt;
+        use std::str;
+
+        // str::from_utf8 does not make any allocations
+        let bytes = path.as_os_str().as_bytes();
+        let is_invalid = str::from_utf8(bytes).is_err();
+
+        is_invalid
+    }
+
+    #[cfg(not(unix))]
+    fn is_invalid_utf8(path: &&Path) -> bool {
+        path.to_str().is_none()
+    }
+
+    pub fn get_invalid_utf8_paths(paths: &[PathBuf]) -> Option<Vec<PathBuf>> {
+        let mut invalid_paths = paths.iter().map(PathBuf::as_path).filter(is_invalid_utf8).peekable();
+
+        let a_path_is_invalid = invalid_paths.peek().is_some();
+
+        let clone_paths = || invalid_paths.map(ToOwned::to_owned).collect();
+
+        a_path_is_invalid.then(clone_paths)
+    }
 }
