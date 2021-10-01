@@ -51,7 +51,7 @@ where
         }
 
         #[cfg(unix)]
-        __unix_set_permissions(&file_path, &file);
+        __unix_set_permissions(&file_path, &file)?;
 
         let file_path = fs::canonicalize(file_path.clone())?;
         unpacked_files.push(file_path);
@@ -76,6 +76,7 @@ where
         .collect();
 
     if !invalid_unicode_filenames.is_empty() {
+        // TODO: make this an error variant
         panic!("invalid unicode filenames found, cannot be supported by Zip:\n {:#?}", invalid_unicode_filenames);
     }
 
@@ -87,15 +88,14 @@ where
 
         for entry in WalkDir::new(filename) {
             let entry = entry?;
-            let path = &entry.path();
+            let path = entry.path();
 
-            println!("Compressing '{}'.", utils::to_utf(path));
             if path.is_dir() {
                 continue;
             }
 
             writer.start_file(path.to_str().unwrap().to_owned(), options)?;
-            // TODO: check if isn't there a function that already does this for us......
+            
             // TODO: better error messages
             let file_bytes = fs::read(entry.path())?;
             writer.write_all(&*file_bytes)?;
@@ -116,10 +116,12 @@ fn check_for_comments(file: &ZipFile) {
 }
 
 #[cfg(unix)]
-fn __unix_set_permissions(file_path: &Path, file: &ZipFile) {
+fn __unix_set_permissions(file_path: &Path, file: &ZipFile) -> crate::Result<()> {
     use std::os::unix::fs::PermissionsExt;
 
     if let Some(mode) = file.unix_mode() {
-        fs::set_permissions(&file_path, fs::Permissions::from_mode(mode)).unwrap();
+        fs::set_permissions(file_path, fs::Permissions::from_mode(mode))?;
     }
+
+    Ok(())
 }
