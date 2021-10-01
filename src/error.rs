@@ -9,9 +9,6 @@ use crate::{oof, utils::colors::*};
 pub enum Error {
     UnknownExtensionError(String),
     MissingExtensionError(PathBuf),
-    // TODO: get rid of this error variant
-    InvalidUnicode,
-    InvalidInput,
     IoError { reason: String },
     FileNotFound(PathBuf),
     AlreadyExists,
