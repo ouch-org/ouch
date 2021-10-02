@@ -205,45 +205,6 @@ jobs:
           path: target/release/ouch
 
 
-  aarch64_macos:
-    name: macOS (aarch64)
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        rust:
-          - stable
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
-
-      - name: Install toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: aarch64-apple-darwin
-          override: true
-
-      - name: Run cargo build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release --target aarch64-apple-darwin
-
-      - name: Run cargo test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-
-      - name: Strip binary
-        run: strip target/aarch64-apple-darwin/release/ouch
-
-      - name: Upload binary
-        uses: actions/upload-artifact@v2
-        with:
-          name: 'ouch-aarch64-apple-darwin'
-          path: target/release/ouch
-
-
   windows-msvc:
     name: Windows Server (MSVC)
     runs-on: windows-latest
