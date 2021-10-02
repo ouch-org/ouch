@@ -51,7 +51,9 @@ where
             let path = entry.path();
 
             println!("Compressing '{}'.", utils::to_utf(path));
-            if !path.is_dir() {
+            if path.is_dir() {
+                builder.append_dir(path, path)?;
+            } else {
                 let mut file = fs::File::open(path)?;
                 builder.append_file(path, &mut file)?;
             }

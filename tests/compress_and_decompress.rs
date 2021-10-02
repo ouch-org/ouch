@@ -1,3 +1,5 @@
+mod utils;
+
 use std::{
     env, fs,
     io::prelude::*,
@@ -6,6 +8,7 @@ use std::{
 
 use ouch::{cli::Command, commands::run, oof};
 use rand::{rngs::SmallRng, RngCore, SeedableRng};
+use utils::*;
 
 #[test]
 /// Tests each format that supports multiple files with random input.
@@ -92,16 +95,6 @@ fn create_files(at: &Path, contents: &[FileContent]) -> Vec<PathBuf> {
             path
         })
         .collect()
-}
-
-fn compress_files(at: &Path, paths_to_compress: &[PathBuf], format: &str) -> PathBuf {
-    let archive_path = String::from("archive.") + format;
-    let archive_path = at.join(archive_path);
-
-    let command = Command::Compress { files: paths_to_compress.to_vec(), output_path: archive_path.to_path_buf() };
-    run(command, &oof::Flags::default()).expect("Failed to compress test dummy files");
-
-    archive_path
 }
 
 fn extract_files(archive_path: &Path) -> Vec<PathBuf> {
