@@ -5,7 +5,12 @@ use std::{env, path::PathBuf};
 use utils::*;
 
 #[test]
-fn test_compress_decompress_with_empty_dir() {
+fn test_each_format() {
+    test_compress_decompress_with_empty_dir("tar");
+    test_compress_decompress_with_empty_dir("zip");
+}
+
+fn test_compress_decompress_with_empty_dir(format: &str) {
     // System temporary directory depends on the platform, for linux it's /tmp
     let system_tmp = env::temp_dir();
 
@@ -18,8 +23,6 @@ fn test_compress_decompress_with_empty_dir() {
     let empty_dir_path: PathBuf = create_empty_dir(&testing_dir_path, "dummy_empty_dir_name");
 
     let mut file_paths: Vec<PathBuf> = vec![empty_dir_path];
-
-    let format = "zip";
 
     let compressed_archive_path: PathBuf = compress_files(&testing_dir_path, &file_paths, &format);
 
