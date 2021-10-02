@@ -88,14 +88,16 @@ where
             let path = entry.path();
 
             if path.is_dir() {
-                continue;
+                if dir_is_empty(path)? {
+                    writer.add_directory(path.to_str().unwrap().to_owned(), options)?;
+                }
+                // If a dir has files, the files are responsible for creating them.
+            } else {
+                writer.start_file(path.to_str().unwrap().to_owned(), options)?;
+                // TODO: better error messages
+                let file_bytes = fs::read(entry.path())?;
+                writer.write_all(&*file_bytes)?;
             }
-
-            writer.start_file(path.to_str().unwrap().to_owned(), options)?;
-
-            // TODO: better error messages
-            let file_bytes = fs::read(entry.path())?;
-            writer.write_all(&*file_bytes)?;
         }
 
         env::set_current_dir(previous_location)?;
@@ -110,6 +112,10 @@ fn check_for_comments(file: &ZipFile) {
     if !comment.is_empty() {
         info!("Found comment in {}: {}", file.name(), comment);
     }
+}
+
+fn dir_is_empty(dir_path: &Path) -> crate::Result<bool> {
+    Ok(dir_path.read_dir()?.next().is_none())
 }
 
 #[cfg(unix)]
