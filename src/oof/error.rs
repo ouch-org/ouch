@@ -1,3 +1,5 @@
+//! Errors related to argparsing.
+
 use std::{error, ffi::OsString, fmt};
 
 use super::Flag;

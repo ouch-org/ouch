@@ -1,6 +1,8 @@
+//! Our representation of all the supported compression formats.
+
 use std::{fmt, path::Path};
 
-use CompressionFormat::*;
+use self::CompressionFormat::*;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 /// Accepted extensions for input and output

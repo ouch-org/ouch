@@ -1,3 +1,7 @@
+//! CLI argparser configuration, command detection and input treatment.
+//!
+//! NOTE: the argparser implementation itself is not in this file.
+
 use std::{
     env,
     ffi::OsString,

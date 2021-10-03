@@ -1,3 +1,7 @@
+//! Core of the crate, where the `compress_files` and `decompress_file` functions are implemented
+//!
+//! Also, where correctly call functions based on the detected `Command`.
+
 use std::{
     fs,
     io::{self, BufReader, BufWriter, Read, Write},

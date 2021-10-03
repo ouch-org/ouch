@@ -1,3 +1,5 @@
+//! Files in common between one or more integration tests
+
 #![allow(dead_code)]
 
 use std::{

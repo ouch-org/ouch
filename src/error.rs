@@ -1,3 +1,11 @@
+//! Error type definitions.
+//!
+//! All the unexpected user-side errors should be treated in this file, that does not include
+//! errors made by devs in our implementation.
+//!
+//! TODO: wrap `FinalError` in a variant to keep all `FinalError::display_and_crash()` function
+//! calls inside of this module.
+
 use std::{
     fmt::{self, Display},
     path::{Path, PathBuf},

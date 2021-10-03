@@ -1,3 +1,8 @@
+//! Pretty (and colored) dialog for asking [Y/n] for the end user.
+//!
+//! Example:
+//!     "Do you want to overwrite 'archive.targz'? [Y/n]"
+
 use std::{
     borrow::Cow,
     io::{self, Write},
@@ -38,7 +43,7 @@ impl<'a> Confirmation<'a> {
             match trimmed_answer.to_ascii_lowercase().as_ref() {
                 "y" | "yes" => return Ok(true),
                 "n" | "no" => return Ok(false),
-                _ => {}
+                _ => continue, // Try again
             }
         }
     }

@@ -2,7 +2,6 @@ use crate::NO_COLOR_IS_SET;
 
 #[macro_export]
 macro_rules! info {
-
     ($writer:expr, $($arg:tt)*) => {
         use crate::macros::_info_helper;
         _info_helper();

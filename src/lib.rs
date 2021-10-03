@@ -1,3 +1,9 @@
+//! This library is meant to be published, just used internally by our binary crate at `main.rs`.
+//!
+//! A module shall be public only if:
+//! 1. It's required by `main.rs`, or
+//! 2. It's required by some integration tests at tests/ folder.
+
 // Public modules
 pub mod cli;
 pub mod commands;
