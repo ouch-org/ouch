@@ -21,7 +21,7 @@ pub use error::{Error, Result};
 
 use lazy_static::lazy_static;
 
-pub const EXIT_FAILURE: i32 = 127;
+pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;
 
 const VERSION: &str = "0.1.6";
 

@@ -17,6 +17,7 @@ lazy_static = "1.4.0"
 walkdir     = "2.3.2"
 strsim      = "0.10.0"
 bzip2       = "0.4.3"
+libc        = "0.2.103"
 tar         = "0.4.37"
 xz2         = "0.1.6"
 zip         = { version =  "0.5.13", default-features = false, features = ["deflate-miniz"] }
