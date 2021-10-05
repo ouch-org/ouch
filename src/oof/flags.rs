@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::{HashMap, HashSet},
     ffi::{OsStr, OsString},
 };
 
@@ -47,8 +47,8 @@ impl Flag {
 
 #[derive(Default, PartialEq, Eq, Debug)]
 pub struct Flags {
-    pub boolean_flags: BTreeSet<&'static str>,
-    pub argument_flags: BTreeMap<&'static str, OsString>,
+    pub boolean_flags: HashSet<&'static str>,
+    pub argument_flags: HashMap<&'static str, OsString>,
 }
 
 impl Flags {
