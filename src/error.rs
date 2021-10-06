@@ -30,11 +30,12 @@ pub enum Error {
     MissingArgumentsForDecompression,
     CompressionTypo,
     WalkdirError { reason: String },
+    Custom { reason: FinalError },
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Default)]
+#[derive(Debug, Default, PartialEq)]
 pub struct FinalError {
     title: String,
     details: Vec<String>,
@@ -79,13 +80,8 @@ impl FinalError {
         self
     }
 
-    pub fn to_owned(&mut self) -> Self {
+    pub fn into_owned(&mut self) -> Self {
         std::mem::take(self)
-    }
-
-    pub fn display_and_crash(&self) -> ! {
-        eprintln!("{}", self);
-        std::process::exit(crate::EXIT_FAILURE)
     }
 }
 
@@ -97,7 +93,7 @@ impl fmt::Display for Error {
                     .detail("Ouch could not detect the compression format")
                     .hint("Use a supported format extension, like '.zip' or '.tar.gz'")
                     .hint("Check https://github.com/vrmiguel/ouch for a full list of supported formats")
-                    .to_owned();
+                    .into_owned();
 
                 error
             }
@@ -115,7 +111,7 @@ impl fmt::Display for Error {
                 let error = FinalError::with_title("It seems you're trying to compress the root folder.")
                     .detail("This is unadvisable since ouch does compressions in-memory.")
                     .hint("Use a more appropriate tool for this, such as rsync.")
-                    .to_owned();
+                    .into_owned();
 
                 error
             }
@@ -127,7 +123,7 @@ impl fmt::Display for Error {
                     .hint("  - The output argument.")
                     .hint("")
                     .hint("Example: `ouch compress image.png img.zip`")
-                    .to_owned();
+                    .into_owned();
 
                 error
             }
@@ -138,7 +134,7 @@ impl fmt::Display for Error {
                     .hint("  - At least one input argument.")
                     .hint("")
                     .hint("Example: `ouch decompress imgs.tar.gz`")
-                    .to_owned();
+                    .into_owned();
 
                 error
             }
@@ -148,7 +144,7 @@ impl fmt::Display for Error {
                     .detail("It's probably our fault")
                     .detail("Please help us improve by reporting the issue at:")
                     .detail(format!("    {}https://github.com/vrmiguel/ouch/issues ", cyan()))
-                    .to_owned();
+                    .into_owned();
 
                 error
             }
@@ -156,13 +152,19 @@ impl fmt::Display for Error {
             Error::IoError { reason } => FinalError::with_title(reason),
             Error::CompressionTypo => FinalError::with_title("Possible typo detected")
                 .hint(format!("Did you mean '{}ouch compress{}'?", magenta(), reset()))
-                .to_owned(),
+                .into_owned(),
             _err => {
                 todo!();
             }
         };
 
         write!(f, "{}", err)
+    }
+}
+
+impl Error {
+    pub fn with_reason(reason: FinalError) -> Self {
+        Self::Custom { reason }
     }
 }
 
