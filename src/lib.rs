@@ -29,7 +29,7 @@ lazy_static! {
     static ref NO_COLOR_IS_SET: bool = {
         use std::env;
 
-        env::var("NO_COLOR").is_ok()
+        env::var("NO_COLOR").is_ok() || atty::isnt(atty::Stream::Stdout) || atty::isnt(atty::Stream::Stderr)
     };
 }
 
