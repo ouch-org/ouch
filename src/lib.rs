@@ -23,7 +23,7 @@ use lazy_static::lazy_static;
 
 pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;
 
-const VERSION: &str = "0.1.6";
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 lazy_static! {
     static ref NO_COLOR_IS_SET: bool = {

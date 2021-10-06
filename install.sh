@@ -1,7 +1,7 @@
 #! /usr/bin/sh
 
 # Needs to be updated each version bump
-VERSION="0.1.6"
+VERSION="0.2.0"
 
 DOWNLOAD_LOCATION="/tmp/ouch-binary"
 INSTALLATION_LOCATION="/usr/local/bin/ouch"
