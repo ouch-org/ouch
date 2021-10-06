@@ -21,6 +21,7 @@ fn test_each_format() {
     test_compressing_and_decompressing_archive("tar.xz");
     test_compressing_and_decompressing_archive("tar.lz");
     test_compressing_and_decompressing_archive("tar.lzma");
+    test_compressing_and_decompressing_archive("tar.zst");
     test_compressing_and_decompressing_archive("zip");
     test_compressing_and_decompressing_archive("zip.gz");
     test_compressing_and_decompressing_archive("zip.bz");
@@ -31,7 +32,7 @@ fn test_each_format() {
 
     // Why not
     test_compressing_and_decompressing_archive(
-        "tar.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.lz.lz.lz.lz.lz.lz.lz.lz.lz.lz.bz.bz.bz.bz.bz.bz.bz",
+        "tar.gz.gz.gz.gz.gz.gz.gz.gz.zst.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.lz.lz.lz.lz.lz.lz.lz.lz.lz.lz.bz.bz.bz.bz.bz.bz.bz",
     );
 }
 

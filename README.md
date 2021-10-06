@@ -105,8 +105,8 @@ For compiling, check [the wiki guide](https://github.com/ouch-org/ouch/wiki/Comp
 
 |               | .tar | .zip | .bz, .bz2 | .gz | .xz, .lz, .lzma | .zst |
 |:-------------:|:----:|:----:|:---------:| --- |:---------------:| --- |
-| Decompression | ✓   | ✓   | ✓         | ✓  |   ✓            | ✗  |
-|  Compression  | ✓   | ✓   | ✓         | ✓  |   ✓            | ✗  |
+| Decompression | ✓   | ✓   | ✓         | ✓  |   ✓            | ✓  |
+|  Compression  | ✓   | ✓   | ✓         | ✓  |   ✓            | ✓  |
 
 Note that formats can be chained:
 - `.tar.gz`
