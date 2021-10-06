@@ -91,7 +91,7 @@ pub mod colors {
 #[allow(dead_code, non_upper_case_globals)]
 #[cfg(not(target_family = "unix"))]
 pub mod colors {
-    pub fn empty() -> &'static str {
+    pub const fn empty() -> &'static str {
         ""
     }
     pub const reset: fn() -> &'static str = empty;
