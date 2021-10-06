@@ -35,37 +35,20 @@ lazy_static! {
 
 fn help_command() {
     use utils::colors::*;
-    /*
-    ouch - Obvious Unified Compressed files Helper
-
-    USAGE:
-        ouch <files...>                        Decompresses files.
-
-        ouch compress <files...> OUTPUT.EXT    Compresses files into OUTPUT.EXT,
-                                               where EXT must be a supported format.
-
-    FLAGS:
-        -h, --help    Display this help information.
-        -y, --yes     Skip overwrite questions.
-        -n, --no      Skip overwrite questions.
-        --version     Display version information.
-
-    SPECIFIC FLAGS:
-        -o, --output FOLDER_PATH    When decompressing, to decompress files to
-                                    another folder.
-
-    Visit https://github.com/vrmiguel/ouch for more usage examples.
-    */
 
     println!(
         "\
 {cyan}ouch{reset} - Obvious Unified Compression files Helper
 
 {cyan}USAGE:{reset}
-    {green}ouch {magenta}<files...>{reset}                        Decompresses files.
+    {green}ouch decompress {magenta}<files...>{reset}             Decompresses files.
 
     {green}ouch compress {magenta}<files...> OUTPUT.EXT{reset}    Compresses files into {magenta}OUTPUT.EXT{reset},
                                            where {magenta}EXT{reset} must be a supported format.
+
+{cyan}ALIASES:{reset}
+    {green}d    decompress {reset}
+    {green}c    compress {reset}
 
 {cyan}FLAGS:{reset}
     {yellow}-h{white}, {yellow}--help{reset}    Display this help information.
@@ -77,7 +60,7 @@ fn help_command() {
     {yellow}-o{reset}, {yellow}--output{reset} FOLDER_PATH    When decompressing, to decompress files to
                                 another folder.
 
-Visit https://github.com/vrmiguel/ouch for more usage examples.",
+Visit https://github.com/ouch-org/ouch for more usage examples.",
         magenta = magenta(),
         white = white(),
         green = green(),
