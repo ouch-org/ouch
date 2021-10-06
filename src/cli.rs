@@ -154,9 +154,9 @@ mod tests {
 
     use super::*;
 
-    fn gen_args(text: &str) -> Vec<OsString> {
+    fn gen_args<T: From<OsString>>(text: &str) -> Vec<T> {
         let args = text.split_whitespace();
-        args.map(OsString::from).collect()
+        args.map(OsString::from).map(T::from).collect()
     }
 
     fn test_cli(args: &str) -> crate::Result<ParsedArgs> {
@@ -172,19 +172,19 @@ mod tests {
         assert_eq!(test_cli("--version").unwrap().flags, oof::Flags::default());
         assert_eq!(
             test_cli("decompress foo.zip bar.zip").unwrap().command,
-            Command::Decompress { files: vec!["foo.zip".into(), "bar.zip".into()], output_folder: None }
+            Command::Decompress { files: gen_args("foo.zip bar.zip"), output_folder: None }
         );
         assert_eq!(
             test_cli("d foo.zip bar.zip").unwrap().command,
-            Command::Decompress { files: vec!["foo.zip".into(), "bar.zip".into()], output_folder: None }
+            Command::Decompress { files: gen_args("foo.zip bar.zip"), output_folder: None }
         );
         assert_eq!(
             test_cli("compress foo bar baz.zip").unwrap().command,
-            Command::Compress { files: vec!["foo".into(), "bar".into()], output_path: "baz.zip".into() }
+            Command::Compress { files: gen_args("foo bar"), output_path: "baz.zip".into() }
         );
         assert_eq!(
             test_cli("c foo bar baz.zip").unwrap().command,
-            Command::Compress { files: vec!["foo".into(), "bar".into()], output_path: "baz.zip".into() }
+            Command::Compress { files: gen_args("foo bar"), output_path: "baz.zip".into() }
         );
         assert_eq!(test_cli("compress").unwrap_err(), Error::MissingArgumentsForCompression);
         // assert_eq!(test_cli("decompress").unwrap_err(), Error::MissingArgumentsForCompression); // TODO
