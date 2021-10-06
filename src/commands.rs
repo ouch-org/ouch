@@ -22,6 +22,9 @@ use crate::{
     utils::to_utf,
 };
 
+// Used in BufReader and BufWriter to perform less syscalls
+const BUFFER_CAPACITY: usize = 1024 * 64;
+
 pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
     match command {
         Command::Compress { files, output_path } => {
@@ -150,7 +153,7 @@ fn compress_files(
     output_file: fs::File,
     _flags: &oof::Flags,
 ) -> crate::Result<()> {
-    let file_writer = BufWriter::new(output_file);
+    let file_writer = BufWriter::with_capacity(BUFFER_CAPACITY, output_file);
 
     if formats.len() == 1 {
         let build_archive_from_paths = match formats[0] {
@@ -247,7 +250,7 @@ fn decompress_file(
     }
 
     // Will be used in decoder chaining
-    let reader = BufReader::new(reader);
+    let reader = BufReader::with_capacity(BUFFER_CAPACITY, reader);
     let mut reader: Box<dyn Read> = Box::new(reader);
 
     // Grab previous decoder and wrap it inside of a new one
