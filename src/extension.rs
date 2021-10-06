@@ -11,6 +11,7 @@ pub enum CompressionFormat {
     Bzip, // .bz
     Lzma, // .lzma
     Tar,  // .tar (technically not a compression extension, but will do for now)
+    Zstd, // .zst
     Zip,  // .zip
 }
 
@@ -22,6 +23,7 @@ impl fmt::Display for CompressionFormat {
             match self {
                 Gzip => ".gz",
                 Bzip => ".bz",
+                Zstd => ".zst",
                 Lzma => ".lz",
                 Tar => ".tar",
                 Zip => ".zip",
@@ -49,6 +51,7 @@ pub fn separate_known_extensions_from_name(mut path: &Path) -> (&Path, Vec<Compr
             _ if extension == "bz" => Bzip,
             _ if extension == "gz" || extension == "bz2" => Gzip,
             _ if extension == "xz" || extension == "lzma" || extension == "lz" => Lzma,
+            _ if extension == "zst" => Zstd,
             _ => break,
         };
 

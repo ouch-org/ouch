@@ -170,6 +170,13 @@ fn compress_files(
                 Gzip => Box::new(flate2::write::GzEncoder::new(encoder, Default::default())),
                 Bzip => Box::new(bzip2::write::BzEncoder::new(encoder, Default::default())),
                 Lzma => Box::new(xz2::write::XzEncoder::new(encoder, 6)),
+                Zstd => {
+                    let zstd_encoder = zstd::stream::write::Encoder::new(encoder, Default::default());
+                    // Safety:
+                    //     Encoder::new() can only fail if `level` is invalid, but Default::default()
+                    //     is guaranteed to be valid
+                    Box::new(zstd_encoder.unwrap().auto_finish())
+                }
                 _ => unreachable!(),
             };
             encoder
@@ -180,7 +187,7 @@ fn compress_files(
         }
 
         match formats[0] {
-            Gzip | Bzip | Lzma => {
+            Gzip | Bzip | Lzma | Zstd => {
                 writer = chain_writer_encoder(&formats[0], writer);
                 let mut reader = fs::File::open(&files[0]).unwrap();
                 io::copy(&mut reader, &mut writer)?;
@@ -251,23 +258,24 @@ fn decompress_file(
     let mut reader: Box<dyn Read> = Box::new(reader);
 
     // Grab previous decoder and wrap it inside of a new one
-    let chain_reader_decoder = |format: &CompressionFormat, decoder: Box<dyn Read>| {
+    let chain_reader_decoder = |format: &CompressionFormat, decoder: Box<dyn Read>| -> crate::Result<Box<dyn Read>> {
         let decoder: Box<dyn Read> = match format {
             Gzip => Box::new(flate2::read::GzDecoder::new(decoder)),
             Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
             Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
+            Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
             _ => unreachable!(),
         };
-        decoder
+        Ok(decoder)
     };
 
     for format in formats.iter().skip(1).rev() {
-        reader = chain_reader_decoder(format, reader);
+        reader = chain_reader_decoder(format, reader)?;
     }
 
     match formats[0] {
-        Gzip | Bzip | Lzma => {
-            reader = chain_reader_decoder(&formats[0], reader);
+        Gzip | Bzip | Lzma | Zstd => {
+            reader = chain_reader_decoder(&formats[0], reader)?;
 
             // TODO: improve error treatment
             let mut writer = fs::File::create(&output_path)?;
