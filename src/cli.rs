@@ -125,7 +125,7 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
                     return Err(Error::CompressionTypo);
                 }
             } else {
-                todo!("Complain that no decompression arguments were given.");
+                return Err(Error::MissingArgumentsForDecompression);
             }
 
             // Parse flags

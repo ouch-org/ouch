@@ -27,6 +27,7 @@ pub enum Error {
     OofError(oof::OofError),
     CompressingRootFolder,
     MissingArgumentsForCompression,
+    MissingArgumentsForDecompression,
     CompressionTypo,
     WalkdirError { reason: String },
 }
@@ -126,6 +127,17 @@ impl fmt::Display for Error {
                     .hint("  - The output argument.")
                     .hint("")
                     .hint("Example: `ouch compress image.png img.zip`")
+                    .to_owned();
+
+                error
+            }
+            Error::MissingArgumentsForDecompression => {
+                let error = FinalError::with_title("Could not decompress")
+                    .detail("The compress command requires at least one argument")
+                    .hint("You must provide:")
+                    .hint("  - At least one input argument.")
+                    .hint("")
+                    .hint("Example: `ouch decompress imgs.tar.gz`")
                     .to_owned();
 
                 error
