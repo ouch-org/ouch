@@ -98,7 +98,7 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
         return Ok(ParsedArgs { command: Command::ShowVersion, flags: oof::Flags::default() });
     }
 
-    let subcommands = &["c", "compress"];
+    let subcommands = &["c", "compress", "d", "decompress"];
     let mut flags_info = vec![flag!('y', "yes"), flag!('n', "no")];
 
     let parsed_args = match oof::pop_subcommand(&mut args, subcommands) {
@@ -117,8 +117,7 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
             let command = Command::Compress { files, output_path };
             ParsedArgs { command, flags }
         }
-        // Defaults to decompression when there is no subcommand
-        None => {
+        Some(&"d") | Some(&"decompress") => {
             flags_info.push(arg_flag!('o', "output"));
 
             if let Some(first_arg) = args.first() {
@@ -139,6 +138,10 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
 
             let command = Command::Decompress { files, output_folder };
             ParsedArgs { command, flags }
+        }
+        // Defaults to help when there is no subcommand
+        None => {
+            return Ok(ParsedArgs { command: Command::ShowHelp, flags: oof::Flags::default() });
         }
         _ => unreachable!("You should match each subcommand passed."),
     };
@@ -163,18 +166,28 @@ mod tests {
 
     #[test]
     fn test_cli_commands() {
+        assert_eq!(test_cli("").unwrap().command, Command::ShowHelp);
         assert_eq!(test_cli("--help").unwrap().command, Command::ShowHelp);
         assert_eq!(test_cli("--version").unwrap().command, Command::ShowVersion);
         assert_eq!(test_cli("--version").unwrap().flags, oof::Flags::default());
         assert_eq!(
-            test_cli("foo.zip bar.zip").unwrap().command,
+            test_cli("decompress foo.zip bar.zip").unwrap().command,
+            Command::Decompress { files: vec!["foo.zip".into(), "bar.zip".into()], output_folder: None }
+        );
+        assert_eq!(
+            test_cli("d foo.zip bar.zip").unwrap().command,
             Command::Decompress { files: vec!["foo.zip".into(), "bar.zip".into()], output_folder: None }
         );
         assert_eq!(
             test_cli("compress foo bar baz.zip").unwrap().command,
             Command::Compress { files: vec!["foo".into(), "bar".into()], output_path: "baz.zip".into() }
         );
+        assert_eq!(
+            test_cli("c foo bar baz.zip").unwrap().command,
+            Command::Compress { files: vec!["foo".into(), "bar".into()], output_path: "baz.zip".into() }
+        );
         assert_eq!(test_cli("compress").unwrap_err(), Error::MissingArgumentsForCompression);
+        // assert_eq!(test_cli("decompress").unwrap_err(), Error::MissingArgumentsForCompression); // TODO
     }
 
     #[test]
@@ -184,7 +197,7 @@ mod tests {
         assert_eq!(test_cli("--version").unwrap().flags, oof::Flags::default());
 
         assert_eq!(
-            test_cli("foo --yes bar --output folder").unwrap().flags,
+            test_cli("decompress foo --yes bar --output folder").unwrap().flags,
             oof::Flags {
                 boolean_flags: vec!["yes"].into_iter().collect(),
                 argument_flags: vec![("output", OsString::from("folder"))].into_iter().collect(),

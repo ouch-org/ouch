@@ -28,17 +28,20 @@ Run `ouch` and pass compressed files as arguments.
 
 ```sh
 # Decompress 'a.zip'
-ouch a.zip
+ouch decompress a.zip
+
+# Also works with the short version
+ouch d a.zip
 
 # Decompress multiple files
-ouch a.zip b.tar.gz
+ouch decompress a.zip b.tar.gz
 ```
 
 You can redirect the decompression results to a folder with the `-o/--output` flag.
 
 ```sh
 # Create 'pictures' folder and decompress inside of it
-ouch a.zip -o pictures
+ouch decompress a.zip -o pictures
 ```
 
 ### Compressing
@@ -50,6 +53,9 @@ Accepts multiple files and folders, the **last** argument shall be the **output 
 ```sh
 # Compress four files into 'archive.zip'
 ouch compress 1 2 3 4 archive.zip
+
+# Also works with the short version
+ouch c 1 2 3 4 archive.zip
 
 # Compress folder and video into 'videos.tar.gz'
 ouch compress videos/ meme.mp4 videos.tar.gz
