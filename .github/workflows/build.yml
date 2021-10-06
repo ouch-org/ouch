@@ -188,7 +188,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release --target x86_64-apple-darwin
+          args: --release
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
@@ -196,7 +196,7 @@ jobs:
           command: test
 
       - name: Strip binary
-        run: strip target/x86_64-apple-darwin/release/ouch
+        run: strip target/release/ouch
 
       - name: Upload binary
         uses: actions/upload-artifact@v2
