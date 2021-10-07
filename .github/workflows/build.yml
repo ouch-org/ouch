@@ -24,23 +24,23 @@ jobs:
         with:
           use-cross: true
           command: build
-          args: --release --target=aarch64-unknown-linux-gnu
+          args: --target=aarch64-unknown-linux-gnu
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
         with:
           use-cross: true
           command: test
-          args: --release --target=aarch64-unknown-linux-gnu
+          args: --target=aarch64-unknown-linux-gnu
 
       - name: Strip binary
         run: aarch64-linux-gnu-strip target/aarch64-unknown-linux-gnu/release/ouch
 
-      - name: Upload binary
-        uses: actions/upload-artifact@v2
-        with:
-          name: 'ouch-aarch64-linux-gnu'
-          path: target/aarch64-unknown-linux-gnu/release/ouch
+      # - name: Upload binary
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: 'ouch-aarch64-linux-gnu'
+      #     path: target/aarch64-unknown-linux-gnu/release/ouch
 
 
   armv7-glibc:
@@ -63,7 +63,7 @@ jobs:
         with:
           use-cross: true
           command: build
-          args: --release --target=armv7-unknown-linux-gnueabihf
+          args: --target=armv7-unknown-linux-gnueabihf
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
@@ -75,11 +75,11 @@ jobs:
       - name: Strip binary
         run: arm-none-eabi-strip target/armv7-unknown-linux-gnueabihf/release/ouch
 
-      - name: Upload binary
-        uses: actions/upload-artifact@v2
-        with:
-          name: 'ouch-armv7-linux-gnueabihf'
-          path: target/armv7-unknown-linux-gnueabihf/release/ouch
+      # - name: Upload binary
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: 'ouch-armv7-linux-gnueabihf'
+      #     path: target/armv7-unknown-linux-gnueabihf/release/ouch
 
 
   x86_64_musl:
@@ -148,22 +148,20 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --release
 
       - name: Strip binary
         run: strip target/release/ouch
 
-      - name: Upload binary
-        uses: actions/upload-artifact@v2
-        with:
-          name: 'ouch-x86_64-linux-gnu'
-          path: target/release/ouch
+      # - name: Upload binary
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: 'ouch-x86_64-linux-gnu'
+      #     path: target/release/ouch
 
 
   x86_64_macos:
@@ -262,16 +260,16 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release --target x86_64-pc-windows-gnu
+          args: --target x86_64-pc-windows-gnu
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --release --target x86_64-pc-windows-gnu
+          args: --target x86_64-pc-windows-gnu
 
-      - name: Upload binary
-        uses: actions/upload-artifact@v2
-        with:
-          name: 'ouch-x86_64-pc-windows-gnu'
-          path: target\x86_64-pc-windows-gnu\release\ouch.exe
+      # - name: Upload binary
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: 'ouch-x86_64-pc-windows-gnu'
+      #     path: target\x86_64-pc-windows-gnu\release\ouch.exe
