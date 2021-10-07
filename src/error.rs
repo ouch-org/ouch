@@ -70,18 +70,14 @@ impl FinalError {
         Self { title: title.to_string(), details: vec![], hints: vec![] }
     }
 
-    pub fn detail(&mut self, detail: impl ToString) -> &mut Self {
+    pub fn detail(mut self, detail: impl ToString) -> Self {
         self.details.push(detail.to_string());
         self
     }
 
-    pub fn hint(&mut self, hint: impl ToString) -> &mut Self {
+    pub fn hint(mut self, hint: impl ToString) -> Self {
         self.hints.push(hint.to_string());
         self
-    }
-
-    pub fn into_owned(&mut self) -> Self {
-        std::mem::take(self)
     }
 }
 
@@ -92,8 +88,7 @@ impl fmt::Display for Error {
                 let error = FinalError::with_title(format!("Cannot compress to {:?}", filename))
                     .detail("Ouch could not detect the compression format")
                     .hint("Use a supported format extension, like '.zip' or '.tar.gz'")
-                    .hint("Check https://github.com/vrmiguel/ouch for a full list of supported formats")
-                    .into_owned();
+                    .hint("Check https://github.com/vrmiguel/ouch for a full list of supported formats");
 
                 error
             }
@@ -110,8 +105,7 @@ impl fmt::Display for Error {
             Error::CompressingRootFolder => {
                 let error = FinalError::with_title("It seems you're trying to compress the root folder.")
                     .detail("This is unadvisable since ouch does compressions in-memory.")
-                    .hint("Use a more appropriate tool for this, such as rsync.")
-                    .into_owned();
+                    .hint("Use a more appropriate tool for this, such as rsync.");
 
                 error
             }
@@ -122,8 +116,7 @@ impl fmt::Display for Error {
                     .hint("  - At least one input argument.")
                     .hint("  - The output argument.")
                     .hint("")
-                    .hint("Example: `ouch compress image.png img.zip`")
-                    .into_owned();
+                    .hint("Example: `ouch compress image.png img.zip`");
 
                 error
             }
@@ -133,8 +126,7 @@ impl fmt::Display for Error {
                     .hint("You must provide:")
                     .hint("  - At least one input argument.")
                     .hint("")
-                    .hint("Example: `ouch decompress imgs.tar.gz`")
-                    .into_owned();
+                    .hint("Example: `ouch decompress imgs.tar.gz`");
 
                 error
             }
@@ -143,16 +135,17 @@ impl fmt::Display for Error {
                     .detail("This should not have happened")
                     .detail("It's probably our fault")
                     .detail("Please help us improve by reporting the issue at:")
-                    .detail(format!("    {}https://github.com/vrmiguel/ouch/issues ", cyan()))
-                    .into_owned();
+                    .detail(format!("    {}https://github.com/vrmiguel/ouch/issues ", cyan()));
 
                 error
             }
             Error::OofError(err) => FinalError::with_title(err),
             Error::IoError { reason } => FinalError::with_title(reason),
-            Error::CompressionTypo => FinalError::with_title("Possible typo detected")
-                .hint(format!("Did you mean '{}ouch compress{}'?", magenta(), reset()))
-                .into_owned(),
+            Error::CompressionTypo => FinalError::with_title("Possible typo detected").hint(format!(
+                "Did you mean '{}ouch compress{}'?",
+                magenta(),
+                reset()
+            )),
             _err => {
                 todo!();
             }
@@ -200,5 +193,11 @@ impl From<walkdir::Error> for Error {
 impl From<oof::OofError> for Error {
     fn from(err: oof::OofError) -> Self {
         Self::OofError(err)
+    }
+}
+
+impl From<FinalError> for Error {
+    fn from(err: FinalError) -> Self {
+        Self::Custom { reason: err }
     }
 }
