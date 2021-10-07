@@ -36,11 +36,11 @@ jobs:
       - name: Strip binary
         run: aarch64-linux-gnu-strip target/aarch64-unknown-linux-gnu/release/ouch
 
-      - name: Upload binary
-        uses: actions/upload-artifact@v2
-        with:
-          name: 'ouch-aarch64-linux-gnu'
-          path: target/aarch64-unknown-linux-gnu/release/ouch
+      # - name: Upload binary
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: 'ouch-aarch64-linux-gnu'
+      #     path: target/aarch64-unknown-linux-gnu/release/ouch
 
 
   armv7-glibc:
@@ -75,11 +75,11 @@ jobs:
       - name: Strip binary
         run: arm-none-eabi-strip target/armv7-unknown-linux-gnueabihf/release/ouch
 
-      - name: Upload binary
-        uses: actions/upload-artifact@v2
-        with:
-          name: 'ouch-armv7-linux-gnueabihf'
-          path: target/armv7-unknown-linux-gnueabihf/release/ouch
+      # - name: Upload binary
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: 'ouch-armv7-linux-gnueabihf'
+      #     path: target/armv7-unknown-linux-gnueabihf/release/ouch
 
 
   x86_64_musl:
@@ -159,11 +159,11 @@ jobs:
       - name: Strip binary
         run: strip target/release/ouch
 
-      - name: Upload binary
-        uses: actions/upload-artifact@v2
-        with:
-          name: 'ouch-x86_64-linux-gnu'
-          path: target/release/ouch
+      # - name: Upload binary
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: 'ouch-x86_64-linux-gnu'
+      #     path: target/release/ouch
 
 
   x86_64_macos:
@@ -270,8 +270,8 @@ jobs:
           command: test
           args: --release --target x86_64-pc-windows-gnu
 
-      - name: Upload binary
-        uses: actions/upload-artifact@v2
-        with:
-          name: 'ouch-x86_64-pc-windows-gnu'
-          path: target\x86_64-pc-windows-gnu\release\ouch.exe
+      # - name: Upload binary
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: 'ouch-x86_64-pc-windows-gnu'
+      #     path: target\x86_64-pc-windows-gnu\release\ouch.exe
