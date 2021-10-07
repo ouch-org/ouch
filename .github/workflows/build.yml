@@ -45,6 +45,7 @@ jobs:
 
   armv7-glibc:
     name: Ubuntu 18.04 (for ARMv7 - glibc)
+    continue-on-error: true
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
@@ -128,8 +129,8 @@ jobs:
 
 
   x86_64_glibc:
-    name: Ubuntu 18.04 (glibc)
-    runs-on: ubuntu-18.04
+    name: Ubuntu 20.04 (glibc)
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         rust:
