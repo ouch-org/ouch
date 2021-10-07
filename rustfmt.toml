@@ -6,3 +6,6 @@ reorder_imports = true
 reorder_modules = true
 use_try_shorthand = true
 use_small_heuristics = "Max"
+
+unstable_features = true
+force_multiline_blocks = true
