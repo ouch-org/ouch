@@ -35,7 +35,7 @@ pub enum Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct FinalError {
     title: String,
     details: Vec<String>,
@@ -153,9 +153,12 @@ impl fmt::Display for Error {
             Error::CompressionTypo => FinalError::with_title("Possible typo detected")
                 .hint(format!("Did you mean '{}ouch compress{}'?", magenta(), reset()))
                 .into_owned(),
-            _err => {
-                todo!();
-            }
+            Error::UnknownExtensionError(_) => todo!(),
+            Error::AlreadyExists => todo!(),
+            Error::InvalidZipArchive(_) => todo!(),
+            Error::PermissionDenied => todo!(),
+            Error::UnsupportedZipArchive(_) => todo!(),
+            Error::Custom { reason } => reason.clone(),
         };
 
         write!(f, "{}", err)

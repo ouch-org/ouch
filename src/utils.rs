@@ -1,11 +1,18 @@
 use std::{
     cmp, env,
     ffi::OsStr,
-    fs,
+    fs::{self, ReadDir},
     path::{Path, PathBuf},
 };
 
 use crate::{dialogs::Confirmation, info, oof};
+
+/// Checks if the given path represents an empty directory.
+pub fn dir_is_empty(dir_path: &Path) -> bool {
+    let is_empty = |mut rd: ReadDir| rd.next().is_none();
+
+    dir_path.read_dir().ok().map(is_empty).unwrap_or_default()
+}
 
 pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
     if !path.exists() {
