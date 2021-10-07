@@ -52,7 +52,8 @@ where
             let entry = entry?;
             let path = entry.path();
 
-            println!("Compressing '{}'.", utils::to_utf(path));
+            info!("Compressing '{}'.", utils::to_utf(path));
+
             if path.is_dir() {
                 builder.append_dir(path, path)?;
             } else {

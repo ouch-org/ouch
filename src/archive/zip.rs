@@ -90,6 +90,8 @@ where
             let entry = entry?;
             let path = entry.path();
 
+            info!("Compressing '{}'.", utils::to_utf(path));
+
             if path.is_dir() {
                 if dir_is_empty(path)? {
                     writer.add_directory(path.to_str().unwrap().to_owned(), options)?;
