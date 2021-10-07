@@ -24,14 +24,14 @@ jobs:
         with:
           use-cross: true
           command: build
-          args: --release --target=aarch64-unknown-linux-gnu
+          args: --target=aarch64-unknown-linux-gnu
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
         with:
           use-cross: true
           command: test
-          args: --release --target=aarch64-unknown-linux-gnu
+          args: --target=aarch64-unknown-linux-gnu
 
       - name: Strip binary
         run: aarch64-linux-gnu-strip target/aarch64-unknown-linux-gnu/release/ouch
@@ -63,7 +63,7 @@ jobs:
         with:
           use-cross: true
           command: build
-          args: --release --target=armv7-unknown-linux-gnueabihf
+          args: --target=armv7-unknown-linux-gnueabihf
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
@@ -148,13 +148,11 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --release
 
       - name: Strip binary
         run: strip target/release/ouch
@@ -262,13 +260,13 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release --target x86_64-pc-windows-gnu
+          args: --target x86_64-pc-windows-gnu
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --release --target x86_64-pc-windows-gnu
+          args: --target x86_64-pc-windows-gnu
 
       # - name: Upload binary
       #   uses: actions/upload-artifact@v2
