@@ -4,11 +4,56 @@ use std::{
     env, fs,
     io::prelude::*,
     path::{Path, PathBuf},
+    time::Duration,
 };
 
 use ouch::{cli::Command, commands::run, oof};
 use rand::{rngs::SmallRng, RngCore, SeedableRng};
+use tempfile::NamedTempFile;
 use utils::*;
+
+#[test]
+/// Makes sure that the files ouch produces are what they claim to be, checking their
+/// types through MIME sniffing.
+fn sanity_check_through_mime() {
+    // Somehow this test causes test failures when run in parallel with test_each_format
+    // This is a temporary hack that should allow the tests to pass while this bug isn't solved.
+    std::thread::sleep(Duration::from_millis(100));
+
+    let temp_dir = tempfile::tempdir().expect("to build a temporary directory");
+
+    let mut test_file = NamedTempFile::new_in(temp_dir.path()).expect("to be able to build a temporary file");
+
+    let bytes = generate_random_file_content(&mut SmallRng::from_entropy());
+    test_file.write_all(&bytes).expect("to successfully write bytes to the file");
+
+    let formats = ["tar", "zip", "tar.gz", "tar.bz", "tar.bz2", "tar.lzma", "tar.xz", "tar.zst"];
+
+    let expected_mimes = [
+        "application/x-tar",
+        "application/zip",
+        "application/gzip",
+        "application/x-bzip2",
+        "application/x-bzip2",
+        "application/x-xz",
+        "application/x-xz",
+        "application/zstd",
+    ];
+
+    assert_eq!(formats.len(), expected_mimes.len());
+
+    for (format, expected_mime) in formats.iter().zip(expected_mimes.iter()) {
+        let temp_dir_path = temp_dir.path();
+        let paths_to_compress = &[test_file.path().into()];
+
+        let compressed_file_path = compress_files(temp_dir_path, paths_to_compress, format);
+
+        let sniffed =
+            infer::get_from_path(compressed_file_path).expect("the file to be read").expect("the MIME to be found");
+
+        assert_eq!(&sniffed.mime_type(), expected_mime);
+    }
+}
 
 #[test]
 /// Tests each format that supports multiple files with random input.

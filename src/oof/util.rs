@@ -13,3 +13,21 @@ pub fn trim_single_hyphen(flag_text: &str) -> &str {
     chars.next(); // Skipping 1 char
     chars.as_str()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::trim_double_hyphen;
+    use super::trim_single_hyphen;
+
+    #[test]
+    fn _trim_double_hyphen() {
+        assert_eq!(trim_double_hyphen("--flag"), "flag");
+        assert_eq!(trim_double_hyphen("--verbose"), "verbose");
+        assert_eq!(trim_double_hyphen("--help"), "help");
+    }
+
+    fn _trim_single_hyphen() {
+        assert_eq!(trim_single_hyphen("-vv"), "vv");
+        assert_eq!(trim_single_hyphen("-h"), "h");
+    }
+}

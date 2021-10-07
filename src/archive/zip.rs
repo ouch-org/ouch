@@ -1,3 +1,5 @@
+//! Contains Zip-specific building and unpacking functions
+
 use std::{
     env, fs,
     io::{self, prelude::*},
@@ -14,6 +16,7 @@ use crate::{
 
 use self::utf8::get_invalid_utf8_paths;
 
+/// Unpacks the archive given by `archive` into the folder given by `into`.
 pub fn unpack_archive<R>(mut archive: ZipArchive<R>, into: &Path, flags: &oof::Flags) -> crate::Result<Vec<PathBuf>>
 where
     R: Read + Seek,

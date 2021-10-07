@@ -1,3 +1,5 @@
+//! Contains Tar-specific building and unpacking functions
+
 use std::{
     env, fs,
     io::prelude::*,

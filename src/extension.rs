@@ -48,8 +48,8 @@ pub fn separate_known_extensions_from_name(mut path: &Path) -> (&Path, Vec<Compr
         let extension = match () {
             _ if extension == "tar" => Tar,
             _ if extension == "zip" => Zip,
-            _ if extension == "bz" => Bzip,
-            _ if extension == "gz" || extension == "bz2" => Gzip,
+            _ if extension == "bz" || extension == "bz2" => Bzip,
+            _ if extension == "gz" => Gzip,
             _ if extension == "xz" || extension == "lzma" || extension == "lz" => Lzma,
             _ if extension == "zst" => Zstd,
             _ => break,
