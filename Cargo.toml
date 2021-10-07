@@ -23,7 +23,19 @@ tar         = "0.4.37"
 xz2         = "0.1.6"
 zip         = { version =  "0.5.13", default-features = false, features = ["deflate-miniz"] }
 flate2      = { version = "1.0.22", default-features = false, features = ["zlib"] }
+
+[target.'cfg(all(target_family = "unix", target_arch = "x86_64"))'.dependencies]
 zstd        = { version = "0.9.0", default-features = false, features = ["thin"] }
+
+[target.'cfg(any(target_arch = "arm", target_arch = "aarch64"))'.dependencies]
+zstd        = { version = "0.9.0" }
+
+[target.'cfg(all(target_family = "windows", target_arch = "x86_64"))'.dependencies]
+zstd        = { version = "0.9.0" }
+
+[target.'cfg(target_family = "x86-64")'.dependencies]
+
+[target.'cfg(all(target_arch = "x86-64", not(target_os = "windows")))'.dependencies]
 
 [dev-dependencies]
 tempfile = "3.2.0"
