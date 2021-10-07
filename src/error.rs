@@ -43,7 +43,7 @@ pub struct FinalError {
 }
 
 impl Display for FinalError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // Title
         writeln!(f, "{}[ERROR]{} {}", red(), reset(), self.title)?;
 
@@ -79,73 +79,69 @@ impl FinalError {
         self.hints.push(hint.to_string());
         self
     }
+
+    // // In case we want to use mutable references in the future
+    // pub fn detail_ref(&mut self, detail: impl ToString) -> Self;
+    // pub fn hint_ref(&mut self, detail: impl ToString) -> Self;
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let err = match self {
             Error::MissingExtensionError(filename) => {
-                let error = FinalError::with_title(format!("Cannot compress to {:?}", filename))
+                FinalError::with_title(f!("Cannot compress to {:?}", filename))
                     .detail("Ouch could not detect the compression format")
                     .hint("Use a supported format extension, like '.zip' or '.tar.gz'")
-                    .hint("Check https://github.com/vrmiguel/ouch for a full list of supported formats");
-
-                error
+                    .hint("Check https://github.com/vrmiguel/ouch for a full list of supported formats")
             }
             Error::WalkdirError { reason } => FinalError::with_title(reason),
             Error::FileNotFound(file) => {
                 let error = if file == Path::new("") {
                     FinalError::with_title("file not found!")
                 } else {
-                    FinalError::with_title(format!("file {:?} not found!", file))
+                    FinalError::with_title(f!("file {:?} not found!", file))
                 };
 
                 error
             }
             Error::CompressingRootFolder => {
-                let error = FinalError::with_title("It seems you're trying to compress the root folder.")
+                FinalError::with_title("It seems you're trying to compress the root folder.")
                     .detail("This is unadvisable since ouch does compressions in-memory.")
-                    .hint("Use a more appropriate tool for this, such as rsync.");
-
-                error
+                    .hint("Use a more appropriate tool for this, such as rsync.")
             }
             Error::MissingArgumentsForCompression => {
-                let error = FinalError::with_title("Could not compress")
+                FinalError::with_title("Could not compress")
                     .detail("The compress command requires at least 2 arguments")
                     .hint("You must provide:")
                     .hint("  - At least one input argument.")
                     .hint("  - The output argument.")
                     .hint("")
-                    .hint("Example: `ouch compress image.png img.zip`");
-
-                error
+                    .hint("Example: `ouch compress image.png img.zip`")
             }
             Error::MissingArgumentsForDecompression => {
-                let error = FinalError::with_title("Could not decompress")
+                FinalError::with_title("Could not decompress")
                     .detail("The compress command requires at least one argument")
                     .hint("You must provide:")
                     .hint("  - At least one input argument.")
                     .hint("")
-                    .hint("Example: `ouch decompress imgs.tar.gz`");
-
-                error
+                    .hint("Example: `ouch decompress imgs.tar.gz`")
             }
             Error::InternalError => {
-                let error = FinalError::with_title("InternalError :(")
+                FinalError::with_title("InternalError :(")
                     .detail("This should not have happened")
                     .detail("It's probably our fault")
                     .detail("Please help us improve by reporting the issue at:")
-                    .detail(format!("    {}https://github.com/vrmiguel/ouch/issues ", cyan()));
-
-                error
+                    .detail(f!("    {}https://github.com/vrmiguel/ouch/issues ", cyan()))
             }
             Error::OofError(err) => FinalError::with_title(err),
             Error::IoError { reason } => FinalError::with_title(reason),
-            Error::CompressionTypo => FinalError::with_title("Possible typo detected").hint(format!(
-                "Did you mean '{}ouch compress{}'?",
-                magenta(),
-                reset()
-            )),
+            Error::CompressionTypo => {
+                FinalError::with_title("Possible typo detected").hint(f!(
+                    "Did you mean '{}ouch compress{}'?",
+                    magenta(),
+                    reset()
+                ))
+            }
             _err => {
                 todo!();
             }

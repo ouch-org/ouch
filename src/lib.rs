@@ -4,6 +4,9 @@
 //! 1. It's required by `main.rs`, or
 //! 2. It's required by some integration tests at tests/ folder.
 
+#[macro_use]
+mod macros;
+
 // Public modules
 pub mod cli;
 pub mod commands;
@@ -14,7 +17,6 @@ pub mod archive;
 mod dialogs;
 mod error;
 mod extension;
-mod macros;
 mod utils;
 
 pub use error::{Error, Result};

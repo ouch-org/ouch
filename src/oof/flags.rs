@@ -26,7 +26,7 @@ pub struct Flag {
 }
 
 impl std::fmt::Display for Flag {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self.short {
             Some(short_flag) => write!(f, "-{}/--{}", short_flag, self.long),
             None => write!(f, "--{}", self.long),

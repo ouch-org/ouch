@@ -33,13 +33,13 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
             let formats = extension::extensions_from_path(&output_path);
 
             if formats.is_empty() {
-                let reason = FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))
+                let reason = FinalError::with_title(f!("Cannot compress to '{}'.", to_utf(&output_path)))
                     .detail("You shall supply the compression format via the extension.")
                     .hint("Try adding something like .tar.gz or .zip to the output file.")
                     .hint("")
                     .hint("Examples:")
-                    .hint(format!("  ouch compress ... {}.tar.gz", to_utf(&output_path)))
-                    .hint(format!("  ouch compress ... {}.zip", to_utf(&output_path)));
+                    .hint(f!("  ouch compress ... {}.tar.gz", to_utf(&output_path)))
+                    .hint(f!("  ouch compress ... {}.zip", to_utf(&output_path)));
 
                 return Err(Error::with_reason(reason));
             }
@@ -61,23 +61,23 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                 let mut suggested_output_path = output_path.clone();
                 suggested_output_path.replace_range(empty_range, ".tar");
 
-                let reason = FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))
+                let reason = FinalError::with_title(f!("Cannot compress to '{}'.", to_utf(&output_path)))
                     .detail("You are trying to compress multiple files.")
-                    .detail(format!("The compression format '{}' cannot receive multiple files.", &formats[0]))
+                    .detail(f!("The compression format '{}' cannot receive multiple files.", &formats[0]))
                     .detail("The only supported formats that archive files into an archive are .tar and .zip.")
-                    .hint(format!("Try inserting '.tar' or '.zip' before '{}'.", &formats[0]))
-                    .hint(format!("From: {}", output_path))
-                    .hint(format!(" To : {}", suggested_output_path));
+                    .hint(f!("Try inserting '.tar' or '.zip' before '{}'.", &formats[0]))
+                    .hint(f!("From: {}", output_path))
+                    .hint(f!(" To : {}", suggested_output_path));
 
                 return Err(Error::with_reason(reason));
             }
 
             if let Some(format) = formats.iter().skip(1).position(|format| matches!(format, Tar | Zip)) {
-                let reason = FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))
-                    .detail(format!("Found the format '{}' in an incorrect position.", format))
-                    .detail(format!("{} can only be used at the start of the file extension.", format))
-                    .hint(format!("If you wish to compress multiple files, start the extension with {}.", format))
-                    .hint(format!("Otherwise, remove {} from '{}'.", format, to_utf(&output_path)));
+                let reason = FinalError::with_title(f!("Cannot compress to '{}'.", to_utf(&output_path)))
+                    .detail(f!("Found the format '{}' in an incorrect position.", format))
+                    .detail(f!("{} can only be used at the start of the file extension.", format))
+                    .hint(f!("If you wish to compress multiple files, start the extension with {}.", format))
+                    .hint(f!("Otherwise, remove {} from '{}'.", format, to_utf(&output_path)));
 
                 return Err(Error::with_reason(reason));
             }
@@ -88,12 +88,11 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
             }
 
             let output_file = fs::File::create(&output_path).map_err(|err| {
-                FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))
-                    .detail(format!("Could not open file '{}' for writing.", to_utf(&output_path)))
-                    .detail(format!("Error: {}.", err))
+                FinalError::with_title(f!("Cannot compress to '{}'.", to_utf(&output_path)))
+                    .detail(f!("Could not open file '{}' for writing.", to_utf(&output_path)))
+                    .detail(f!("Error: {}.", err))
             })?;
 
-            // let output_file = fs::File::create(&output_path)?;
             let compress_result = compress_files(files, formats, output_file, flags);
 
             // If any error occurred, delete incomplete file

@@ -1,5 +1,13 @@
 use crate::NO_COLOR_IS_SET;
 
+// f!() is an alias to f!()
+#[macro_export]
+macro_rules! f {
+    { $($tokens:tt)* } => {
+        format!( $($tokens)* )
+    };
+}
+
 #[macro_export]
 macro_rules! info {
     ($writer:expr, $($arg:tt)*) => {

@@ -47,7 +47,7 @@ pub fn user_wants_to_overwrite(path: &Path, flags: &oof::Flags) -> crate::Result
 }
 
 pub fn to_utf(os_str: impl AsRef<OsStr>) -> String {
-    let text = format!("{:?}", os_str.as_ref());
+    let text = f!("{:?}", os_str.as_ref());
     text.trim_matches('"').to_string()
 }
 
@@ -114,7 +114,7 @@ impl Bytes {
 }
 
 impl std::fmt::Display for Bytes {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let num = self.bytes;
         debug_assert!(num >= 0.0);
         if num < 1_f64 {
@@ -135,7 +135,7 @@ mod tests {
     #[test]
     fn test_pretty_bytes_formatting() {
         fn format_bytes(bytes: u64) -> String {
-            format!("{}", Bytes::new(bytes))
+            f!("{}", Bytes::new(bytes))
         }
         let b = 1;
         let kb = b * 1000;
