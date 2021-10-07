@@ -21,6 +21,7 @@ pub use error::{Error, Result};
 
 use lazy_static::lazy_static;
 
+/// The status code ouch has when an error is encountered
 pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
