@@ -65,7 +65,7 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                 let reason = FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))
                     .detail("You are trying to compress multiple files.")
                     .detail(format!("The compression format '{}' cannot receive multiple files.", &formats[0]))
-                    .detail("The only supported formats that bundle files into an archive are .tar and .zip.")
+                    .detail("The only supported formats that archive files into an archive are .tar and .zip.")
                     .hint(format!("Try inserting '.tar' or '.zip' before '{}'.", &formats[0]))
                     .hint(format!("From: {}", output_path))
                     .hint(format!(" To : {}", suggested_output_path))
@@ -255,7 +255,7 @@ fn decompress_file(
         utils::create_dir_if_non_existent(output_folder)?;
         let zip_archive = zip::ZipArchive::new(reader)?;
         let _files = crate::archive::zip::unpack_archive(zip_archive, output_folder, flags)?;
-        info!("Successfully uncompressed bundle in '{}'.", to_utf(output_folder));
+        info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
         return Ok(());
     }
 
@@ -287,12 +287,12 @@ fn decompress_file(
             let mut writer = fs::File::create(&output_path)?;
 
             io::copy(&mut reader, &mut writer)?;
-            info!("Successfully uncompressed bundle in '{}'.", to_utf(output_path));
+            info!("Successfully uncompressed archive in '{}'.", to_utf(output_path));
         }
         Tar => {
             utils::create_dir_if_non_existent(output_folder)?;
             let _ = crate::archive::tar::unpack_archive(reader, output_folder, flags)?;
-            info!("Successfully uncompressed bundle in '{}'.", to_utf(output_folder));
+            info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
         }
         Zip => {
             utils::create_dir_if_non_existent(output_folder)?;
@@ -310,7 +310,7 @@ fn decompress_file(
 
             let _ = crate::archive::zip::unpack_archive(zip_archive, output_folder, flags)?;
 
-            info!("Successfully uncompressed bundle in '{}'.", to_utf(output_folder));
+            info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
         }
     }
 
