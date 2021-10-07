@@ -11,7 +11,7 @@ use zip::{self, read::ZipFile, ZipArchive};
 
 use crate::{
     info, oof,
-    utils::{self, Bytes},
+    utils::{self, dir_is_empty, Bytes},
 };
 
 use self::utf8::get_invalid_utf8_paths;
@@ -93,7 +93,7 @@ where
             info!("Compressing '{}'.", utils::to_utf(path));
 
             if path.is_dir() {
-                if dir_is_empty(path)? {
+                if dir_is_empty(path) {
                     writer.add_directory(path.to_str().unwrap().to_owned(), options)?;
                 }
                 // If a dir has files, the files are responsible for creating them.
@@ -117,10 +117,6 @@ fn check_for_comments(file: &ZipFile) {
     if !comment.is_empty() {
         info!("Found comment in {}: {}", file.name(), comment);
     }
-}
-
-fn dir_is_empty(dir_path: &Path) -> crate::Result<bool> {
-    Ok(dir_path.read_dir()?.next().is_none())
 }
 
 #[cfg(unix)]

@@ -18,13 +18,24 @@ use crate::{
         self,
         CompressionFormat::{self, *},
     },
-    info, oof, utils,
+    info, oof,
     utils::to_utf,
+    utils::{self, dir_is_empty},
     Error,
 };
 
 // Used in BufReader and BufWriter to perform less syscalls
 const BUFFER_CAPACITY: usize = 1024 * 64;
+
+fn represents_several_files(files: &[PathBuf]) -> bool {
+    let is_non_empty_dir = |path: &PathBuf| {
+        let is_non_empty = || !dir_is_empty(&path);
+
+        path.is_dir().then(is_non_empty).unwrap_or_default()
+    };
+
+    files.iter().any(is_non_empty_dir) || files.len() > 1
+}
 
 pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
     match command {
@@ -45,7 +56,7 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                 return Err(Error::with_reason(reason));
             }
 
-            if matches!(&formats[0], Bzip | Gzip | Lzma) && files.len() > 1 {
+            if matches!(&formats[0], Bzip | Gzip | Lzma) && represents_several_files(&files) {
                 // This piece of code creates a sugestion for compressing multiple files
                 // It says:
                 // Change from file.bz.xz
@@ -205,7 +216,7 @@ fn compress_files(
             Zip => {
                 eprintln!("{yellow}Warning:{reset}", yellow = colors::yellow(), reset = colors::reset());
                 eprintln!("\tCompressing .zip entirely in memory.");
-                eprintln!("\tIf the file is too big, your pc might freeze!");
+                eprintln!("\tIf the file is too big, your PC might freeze!");
                 eprintln!(
                     "\tThis is a limitation for formats like '{}'.",
                     formats.iter().map(|format| format.to_string()).collect::<String>()
