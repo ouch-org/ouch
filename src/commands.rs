@@ -3,11 +3,11 @@
 //! Also, where correctly call functions based on the detected `Command`.
 
 use std::{
-    fs,
     io::{self, BufReader, BufWriter, Read, Write},
     path::{Path, PathBuf},
 };
 
+use fs_err as fs;
 use utils::colors;
 
 use crate::{
@@ -29,7 +29,7 @@ const BUFFER_CAPACITY: usize = 1024 * 64;
 
 fn represents_several_files(files: &[PathBuf]) -> bool {
     let is_non_empty_dir = |path: &PathBuf| {
-        let is_non_empty = || !dir_is_empty(&path);
+        let is_non_empty = || !dir_is_empty(path);
 
         path.is_dir().then(is_non_empty).unwrap_or_default()
     };

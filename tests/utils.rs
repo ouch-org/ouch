@@ -2,15 +2,15 @@
 
 #![allow(dead_code)]
 
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
+use fs_err as fs;
 use ouch::{cli::Command, commands::run, oof};
+use rand::{distributions::Alphanumeric, prelude::SmallRng, Rng, SeedableRng};
 
 pub fn create_empty_dir(at: &Path, filename: &str) -> PathBuf {
     let dirname = Path::new(filename);
+
     let full_path = at.join(dirname);
 
     fs::create_dir(&full_path).expect("Failed to create an empty directory");
@@ -19,7 +19,11 @@ pub fn create_empty_dir(at: &Path, filename: &str) -> PathBuf {
 }
 
 pub fn compress_files(at: &Path, paths_to_compress: &[PathBuf], format: &str) -> PathBuf {
-    let archive_path = String::from("archive.") + format;
+    let rng = SmallRng::from_entropy();
+
+    let s: String = rng.sample_iter(&Alphanumeric).take(7).map(char::from).collect();
+
+    let archive_path = format!("archive{}{}", s, format);
     let archive_path = at.join(archive_path);
 
     let command = Command::Compress { files: paths_to_compress.to_vec(), output_path: archive_path.to_path_buf() };

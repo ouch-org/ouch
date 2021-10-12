@@ -13,6 +13,7 @@ description = "A command-line utility for easily compressing and decompressing f
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+fs-err      = "2.6.0"
 atty        = "0.2.14"
 lazy_static = "1.4.0"
 walkdir     = "2.3.2"

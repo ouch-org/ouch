@@ -9,6 +9,8 @@ use std::{
     vec::Vec,
 };
 
+use fs_err as fs;
+
 use strsim::normalized_damerau_levenshtein;
 
 use crate::{arg_flag, flag, oof, Error};
@@ -73,7 +75,7 @@ fn is_typo(path: impl AsRef<Path>) -> bool {
 }
 
 fn canonicalize(path: impl AsRef<Path>) -> crate::Result<PathBuf> {
-    match std::fs::canonicalize(&path.as_ref()) {
+    match fs::canonicalize(&path.as_ref()) {
         Ok(abs_path) => Ok(abs_path),
         Err(io_err) => {
             if !path.as_ref().exists() {

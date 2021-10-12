@@ -1,9 +1,11 @@
 use std::{
     cmp, env,
     ffi::OsStr,
-    fs::{self, ReadDir},
+    fs::ReadDir,
     path::{Path, PathBuf},
 };
+
+use fs_err as fs;
 
 use crate::{dialogs::Confirmation, info, oof};
 

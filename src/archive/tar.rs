@@ -1,7 +1,8 @@
 //! Contains Tar-specific building and unpacking functions
 
 use std::{
-    env, fs,
+    env,
+    fs::File,
     io::prelude::*,
     path::{Path, PathBuf},
 };
@@ -57,7 +58,7 @@ where
             if path.is_dir() {
                 builder.append_dir(path, path)?;
             } else {
-                let mut file = fs::File::open(path)?;
+                let mut file = File::open(path)?;
                 builder.append_file(path, &mut file)?;
             }
         }
