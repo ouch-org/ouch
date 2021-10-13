@@ -29,7 +29,7 @@ const BUFFER_CAPACITY: usize = 1024 * 64;
 
 fn represents_several_files(files: &[PathBuf]) -> bool {
     let is_non_empty_dir = |path: &PathBuf| {
-        let is_non_empty = || !dir_is_empty(&path);
+        let is_non_empty = || !dir_is_empty(path);
 
         path.is_dir().then(is_non_empty).unwrap_or_default()
     };
@@ -51,7 +51,7 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                     .hint("Examples:")
                     .hint(format!("  ouch compress ... {}.tar.gz", to_utf(&output_path)))
                     .hint(format!("  ouch compress ... {}.zip", to_utf(&output_path)))
-                    .into_owned();
+                    .clone();
 
                 return Err(Error::with_reason(reason));
             }
@@ -80,7 +80,7 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                     .hint(format!("Try inserting '.tar' or '.zip' before '{}'.", &formats[0]))
                     .hint(format!("From: {}", output_path))
                     .hint(format!(" To : {}", suggested_output_path))
-                    .into_owned();
+                    .clone();
 
                 return Err(Error::with_reason(reason));
             }
@@ -91,7 +91,7 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                     .detail(format!("{} can only be used at the start of the file extension.", format))
                     .hint(format!("If you wish to compress multiple files, start the extension with {}.", format))
                     .hint(format!("Otherwise, remove {} from '{}'.", format, to_utf(&output_path)))
-                    .into_owned();
+                    .clone();
 
                 return Err(Error::with_reason(reason));
             }
