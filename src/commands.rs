@@ -163,11 +163,23 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
 
 fn compress_files(
     files: Vec<PathBuf>,
-    formats: Vec<CompressionFormat>,
+    mut formats: Vec<CompressionFormat>,
     output_file: fs::File,
     _flags: &oof::Flags,
 ) -> crate::Result<()> {
     let file_writer = BufWriter::with_capacity(BUFFER_CAPACITY, output_file);
+
+    if files.len() == 1 {
+        // It's possible the file is already partially compressed so we don't want to compress it again
+        // `ouch compress file.tar.gz file.tar.gz.xz` should produce `file.tar.gz.xz` and not `file.tar.gz.tar.gz.xz`
+        let cur_extensions = extension::extensions_from_path(&files[0]);
+
+        // If the input is a subset at the start of `formats` then remove the extensions
+        if cur_extensions.len() < formats.len() && cur_extensions.iter().zip(&formats).all(|(inp, out)| inp == out) {
+            let drain_iter = formats.drain(..cur_extensions.len());
+            drop(drain_iter); // Remove the extensions from `formats`
+        }
+    }
 
     if let [Tar | Tgz | Zip] = *formats.as_slice() {
         match formats[0] {
