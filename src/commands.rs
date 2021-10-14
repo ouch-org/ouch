@@ -176,10 +176,9 @@ fn compress_files(
                 bufwriter.flush()?;
             }
             Tgz => {
-                let mut bufwriter = archive::tar::build_archive_from_paths(
-                    &files,
-                    flate2::write::GzEncoder::new(file_writer, Default::default()),
-                )?;
+                // Wrap it into an gz_decoder, and pass to the tar archive builder
+                let gz_decoder = flate2::write::GzEncoder::new(file_writer, Default::default());
+                let mut bufwriter = archive::tar::build_archive_from_paths(&files, gz_decoder)?;
                 bufwriter.flush()?;
             }
             Zip => {
@@ -224,10 +223,9 @@ fn compress_files(
                 writer.flush()?;
             }
             Tgz => {
-                let mut writer = archive::tar::build_archive_from_paths(
-                    &files,
-                    flate2::write::GzEncoder::new(writer, Default::default()),
-                )?;
+                // Wrap it into an gz_decoder, and pass to the tar archive builder
+                let gz_decoder = flate2::write::GzEncoder::new(writer, Default::default());
+                let mut writer = archive::tar::build_archive_from_paths(&files, gz_decoder)?;
                 writer.flush()?;
             }
             Zip => {
@@ -324,7 +322,8 @@ fn decompress_file(
         }
         Tgz => {
             utils::create_dir_if_non_existent(output_folder)?;
-            let _ = crate::archive::tar::unpack_archive(chain_reader_decoder(&Gzip, reader)?, output_folder, flags)?;
+            let reader = chain_reader_decoder(&Gzip, reader)?;
+            let _ = crate::archive::tar::unpack_archive(reader, output_folder, flags)?;
             info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
         }
         Zip => {
