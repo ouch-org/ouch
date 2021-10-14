@@ -103,7 +103,7 @@ For compiling, check [the wiki guide](https://github.com/ouch-org/ouch/wiki/Comp
 
 ## Supported formats
 
-|               | .tar | .zip | .bz, .bz2 | .gz | .xz, .lz, .lzma | .zst |
+|               | .tar, .tgz | .zip | .bz, .bz2 | .gz | .xz, .lz, .lzma | .zst |
 |:-------------:|:----:|:----:|:---------:| --- |:---------------:| --- |
 | Decompression | ✓   | ✓   | ✓         | ✓  |   ✓            | ✓  |
 |  Compression  | ✓   | ✓   | ✓         | ✓  |   ✓            | ✓  |

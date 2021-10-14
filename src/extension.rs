@@ -1,6 +1,6 @@
 //! Our representation of all the supported compression formats.
 
-use std::{fmt, path::Path};
+use std::{ffi::OsStr, fmt, path::Path};
 
 use self::CompressionFormat::*;
 
@@ -11,6 +11,7 @@ pub enum CompressionFormat {
     Bzip, // .bz
     Lzma, // .lzma
     Tar,  // .tar (technically not a compression extension, but will do for now)
+    Tgz,  // .tgz
     Zstd, // .zst
     Zip,  // .zip
 }
@@ -26,6 +27,7 @@ impl fmt::Display for CompressionFormat {
                 Zstd => ".zst",
                 Lzma => ".lz",
                 Tar => ".tar",
+                Tgz => ".tgz",
                 Zip => ".zip",
             }
         )
@@ -44,18 +46,17 @@ pub fn separate_known_extensions_from_name(mut path: &Path) -> (&Path, Vec<Compr
     let mut extensions = vec![];
 
     // While there is known extensions at the tail, grab them
-    while let Some(extension) = path.extension() {
-        let extension = match () {
-            _ if extension == "tar" => Tar,
-            _ if extension == "zip" => Zip,
-            _ if extension == "bz" || extension == "bz2" => Bzip,
-            _ if extension == "gz" => Gzip,
-            _ if extension == "xz" || extension == "lzma" || extension == "lz" => Lzma,
-            _ if extension == "zst" => Zstd,
+    while let Some(extension) = path.extension().and_then(OsStr::to_str) {
+        extensions.push(match extension {
+            "tar" => Tar,
+            "tgz" => Tgz,
+            "zip" => Zip,
+            "bz" | "bz2" => Bzip,
+            "gz" => Gzip,
+            "xz" | "lzma" | "lz" => Lzma,
+            "zst" => Zstd,
             _ => break,
-        };
-
-        extensions.push(extension);
+        });
 
         // Update for the next iteration
         path = if let Some(stem) = path.file_stem() { Path::new(stem) } else { Path::new("") };
