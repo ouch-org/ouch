@@ -79,10 +79,6 @@ impl FinalError {
         self.hints.push(hint.to_string());
         self
     }
-
-    pub fn into_owned(&mut self) -> Self {
-        std::mem::take(self)
-    }
 }
 
 impl fmt::Display for Error {
@@ -93,7 +89,7 @@ impl fmt::Display for Error {
                     .detail("Ouch could not detect the compression format")
                     .hint("Use a supported format extension, like '.zip' or '.tar.gz'")
                     .hint("Check https://github.com/vrmiguel/ouch for a full list of supported formats")
-                    .into_owned();
+                    .clone();
 
                 error
             }
@@ -111,7 +107,7 @@ impl fmt::Display for Error {
                 let error = FinalError::with_title("It seems you're trying to compress the root folder.")
                     .detail("This is unadvisable since ouch does compressions in-memory.")
                     .hint("Use a more appropriate tool for this, such as rsync.")
-                    .into_owned();
+                    .clone();
 
                 error
             }
@@ -123,7 +119,7 @@ impl fmt::Display for Error {
                     .hint("  - The output argument.")
                     .hint("")
                     .hint("Example: `ouch compress image.png img.zip`")
-                    .into_owned();
+                    .clone();
 
                 error
             }
@@ -134,7 +130,7 @@ impl fmt::Display for Error {
                     .hint("  - At least one input argument.")
                     .hint("")
                     .hint("Example: `ouch decompress imgs.tar.gz`")
-                    .into_owned();
+                    .clone();
 
                 error
             }
@@ -144,7 +140,7 @@ impl fmt::Display for Error {
                     .detail("It's probably our fault")
                     .detail("Please help us improve by reporting the issue at:")
                     .detail(format!("    {}https://github.com/vrmiguel/ouch/issues ", cyan()))
-                    .into_owned();
+                    .clone();
 
                 error
             }
@@ -152,7 +148,7 @@ impl fmt::Display for Error {
             Error::IoError { reason } => FinalError::with_title(reason),
             Error::CompressionTypo => FinalError::with_title("Possible typo detected")
                 .hint(format!("Did you mean '{}ouch compress{}'?", magenta(), reset()))
-                .into_owned(),
+                .clone(),
             Error::UnknownExtensionError(_) => todo!(),
             Error::AlreadyExists => todo!(),
             Error::InvalidZipArchive(_) => todo!(),

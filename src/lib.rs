@@ -24,7 +24,7 @@ use lazy_static::lazy_static;
 /// The status code ouch has when an error is encountered
 pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;
 
-const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 lazy_static! {
     static ref NO_COLOR_IS_SET: bool = {
