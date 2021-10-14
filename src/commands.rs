@@ -85,15 +85,15 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                 return Err(Error::with_reason(reason));
             }
 
-            if let Some(format) = formats.iter().skip(1).position(|format| matches!(format, Tar | Zip)) {
+            if let Some(format) = formats.iter().skip(1).find(|format| matches!(format, Tar | Zip)) {
                 let reason = FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))
                     .detail(format!("Found the format '{}' in an incorrect position.", format))
-                    .detail(format!("{} can only be used at the start of the file extension.", format))
-                    .hint(format!("If you wish to compress multiple files, start the extension with {}.", format))
-                    .hint(format!("Otherwise, remove {} from '{}'.", format, to_utf(&output_path)))
+                    .detail(format!("'{}' can only be used at the start of the file extension.", format))
+                    .hint(format!("If you wish to compress multiple files, start the extension with '{}'.", format))
+                    .hint(format!("Otherwise, remove the last '{}' from '{}'.", format, to_utf(&output_path)))
                     .clone();
 
-                return Err(Error::with_reason(reason));
+              return Err(Error::with_reason(reason));
             }
 
             if output_path.exists() && !utils::user_wants_to_overwrite(&output_path, flags)? {
