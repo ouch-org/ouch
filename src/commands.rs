@@ -29,7 +29,7 @@ const BUFFER_CAPACITY: usize = 1024 * 64;
 
 fn represents_several_files(files: &[PathBuf]) -> bool {
     let is_non_empty_dir = |path: &PathBuf| {
-        let is_non_empty = || !dir_is_empty(&path);
+        let is_non_empty = || !dir_is_empty(path);
 
         path.is_dir().then(is_non_empty).unwrap_or_default()
     };
@@ -51,7 +51,7 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                     .hint("Examples:")
                     .hint(format!("  ouch compress ... {}.tar.gz", to_utf(&output_path)))
                     .hint(format!("  ouch compress ... {}.zip", to_utf(&output_path)))
-                    .into_owned();
+                    .clone();
 
                 return Err(Error::with_reason(reason));
             }
@@ -80,7 +80,7 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                     .hint(format!("Try inserting '.tar' or '.zip' before '{}'.", &formats[0]))
                     .hint(format!("From: {}", output_path))
                     .hint(format!(" To : {}", suggested_output_path))
-                    .into_owned();
+                    .clone();
 
                 return Err(Error::with_reason(reason));
             }
@@ -91,9 +91,9 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                     .detail(format!("'{}' can only be used at the start of the file extension.", format))
                     .hint(format!("If you wish to compress multiple files, start the extension with '{}'.", format))
                     .hint(format!("Otherwise, remove the last '{}' from '{}'.", format, to_utf(&output_path)))
-                    .into_owned();
+                    .clone();
 
-                return Err(Error::with_reason(reason));
+              return Err(Error::with_reason(reason));
             }
 
             if output_path.exists() && !utils::user_wants_to_overwrite(&output_path, flags)? {
@@ -170,14 +170,23 @@ fn compress_files(
     let file_writer = BufWriter::with_capacity(BUFFER_CAPACITY, output_file);
 
     if formats.len() == 1 {
-        let build_archive_from_paths = match formats[0] {
-            Tar => archive::tar::build_archive_from_paths,
-            Zip => archive::zip::build_archive_from_paths,
+        match formats[0] {
+            Tar => {
+                let mut bufwriter = archive::tar::build_archive_from_paths(&files, file_writer)?;
+                bufwriter.flush()?;
+            }
+            Tgz => {
+                // Wrap it into an gz_decoder, and pass to the tar archive builder
+                let gz_decoder = flate2::write::GzEncoder::new(file_writer, Default::default());
+                let mut bufwriter = archive::tar::build_archive_from_paths(&files, gz_decoder)?;
+                bufwriter.flush()?;
+            }
+            Zip => {
+                let mut bufwriter = archive::zip::build_archive_from_paths(&files, file_writer)?;
+                bufwriter.flush()?;
+            }
             _ => unreachable!(),
         };
-
-        let mut bufwriter = build_archive_from_paths(&files, file_writer)?;
-        bufwriter.flush()?;
     } else {
         let mut writer: Box<dyn Write> = Box::new(file_writer);
 
@@ -211,6 +220,12 @@ fn compress_files(
             }
             Tar => {
                 let mut writer = archive::tar::build_archive_from_paths(&files, writer)?;
+                writer.flush()?;
+            }
+            Tgz => {
+                // Wrap it into an gz_decoder, and pass to the tar archive builder
+                let gz_decoder = flate2::write::GzEncoder::new(writer, Default::default());
+                let mut writer = archive::tar::build_archive_from_paths(&files, gz_decoder)?;
                 writer.flush()?;
             }
             Zip => {
@@ -302,6 +317,12 @@ fn decompress_file(
         }
         Tar => {
             utils::create_dir_if_non_existent(output_folder)?;
+            let _ = crate::archive::tar::unpack_archive(reader, output_folder, flags)?;
+            info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
+        }
+        Tgz => {
+            utils::create_dir_if_non_existent(output_folder)?;
+            let reader = chain_reader_decoder(&Gzip, reader)?;
             let _ = crate::archive::tar::unpack_archive(reader, output_folder, flags)?;
             info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
         }
