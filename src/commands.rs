@@ -305,6 +305,8 @@ fn decompress_file(
         reader = chain_reader_decoder(format, reader)?;
     }
 
+    utils::create_dir_if_non_existent(output_folder)?;
+
     match formats[0] {
         Gzip | Bzip | Lzma | Zstd => {
             reader = chain_reader_decoder(&formats[0], reader)?;
@@ -316,19 +318,15 @@ fn decompress_file(
             info!("Successfully uncompressed archive in '{}'.", to_utf(output_path));
         }
         Tar => {
-            utils::create_dir_if_non_existent(output_folder)?;
             let _ = crate::archive::tar::unpack_archive(reader, output_folder, flags)?;
             info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
         }
         Tgz => {
-            utils::create_dir_if_non_existent(output_folder)?;
             let reader = chain_reader_decoder(&Gzip, reader)?;
             let _ = crate::archive::tar::unpack_archive(reader, output_folder, flags)?;
             info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
         }
         Zip => {
-            utils::create_dir_if_non_existent(output_folder)?;
-
             eprintln!("Compressing first into .zip.");
             eprintln!("Warning: .zip archives with extra extensions have a downside.");
             eprintln!(
