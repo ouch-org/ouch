@@ -114,6 +114,11 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                     && input_extensions.len() < formats.len()
                     && input_extensions.iter().zip(&formats).all(|(inp, out)| inp == out)
                 {
+                    info!(
+                        "Partial compression detected. Compressing {} into {}",
+                        to_utf(files[0].as_path().file_name().unwrap()),
+                        to_utf(&output_path)
+                    );
                     let drain_iter = formats.drain(..input_extensions.len());
                     drop(drain_iter); // Remove the extensions from `formats`
                 }
