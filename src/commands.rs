@@ -103,7 +103,7 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
 
             let output_file = fs::File::create(&output_path)?;
 
-            if files.len() == 1 {
+            if !represents_several_files(&files) {
                 // It's possible the file is already partially compressed so we don't want to compress it again
                 // `ouch compress file.tar.gz file.tar.gz.xz` should produce `file.tar.gz.xz` and not `file.tar.gz.tar.gz.xz`
                 let input_extensions = extension::extensions_from_path(&files[0]);
