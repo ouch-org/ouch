@@ -93,7 +93,7 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                     .hint(format!("Otherwise, remove the last '{}' from '{}'.", format, to_utf(&output_path)))
                     .clone();
 
-              return Err(Error::with_reason(reason));
+                return Err(Error::with_reason(reason));
             }
 
             if output_path.exists() && !utils::user_wants_to_overwrite(&output_path, flags)? {
@@ -169,7 +169,7 @@ fn compress_files(
 ) -> crate::Result<()> {
     let file_writer = BufWriter::with_capacity(BUFFER_CAPACITY, output_file);
 
-    if formats.len() == 1 {
+    if let [Tar | Tgz | Zip] = *formats.as_slice() {
         match formats[0] {
             Tar => {
                 let mut bufwriter = archive::tar::build_archive_from_paths(&files, file_writer)?;
