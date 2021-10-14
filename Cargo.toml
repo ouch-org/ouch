@@ -14,6 +14,7 @@ description = "A command-line utility for easily compressing and decompressing f
 
 [dependencies]
 atty        = "0.2.14"
+fs-err      = "2.6.0"
 lazy_static = "1.4.0"
 walkdir     = "2.3.2"
 strsim      = "0.10.0"

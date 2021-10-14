@@ -1,17 +1,19 @@
 //! Contains Tar-specific building and unpacking functions
 
 use std::{
-    env, fs,
+    env,
     io::prelude::*,
     path::{Path, PathBuf},
 };
 
+use fs_err as fs;
 use tar;
 use walkdir::WalkDir;
 
 use crate::{
+    error::FinalError,
     info, oof,
-    utils::{self, Bytes},
+    utils::{self, to_utf, Bytes},
 };
 
 pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, flags: &oof::Flags) -> crate::Result<Vec<PathBuf>> {
@@ -58,7 +60,18 @@ where
                 builder.append_dir(path, path)?;
             } else {
                 let mut file = fs::File::open(path)?;
-                builder.append_file(path, &mut file)?;
+                dbg!(&path);
+                dbg!(&file);
+                dbg!(&entry);
+                dbg!(&previous_location);
+                dbg!(&filename);
+
+                // builder.append_file(path, file.file_mut())?;
+                builder.append_file(path, file.file_mut()).map_err(|err| {
+                    FinalError::with_title(format!("Could not create archive '{}'", to_utf(path.clone()))) // output_path == writer? da
+                        .detail(format!("Unexpected error while trying to read file '{}'", to_utf(output_path)))
+                        .detail(format!("Error: {}.", err))
+                })?;
             }
         }
         env::set_current_dir(previous_location)?;

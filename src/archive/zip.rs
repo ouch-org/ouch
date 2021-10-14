@@ -1,10 +1,12 @@
 //! Contains Zip-specific building and unpacking functions
 
 use std::{
-    env, fs,
+    env,
     io::{self, prelude::*},
     path::{Path, PathBuf},
 };
+
+use fs_err as fs;
 
 use walkdir::WalkDir;
 use zip::{self, read::ZipFile, ZipArchive};
@@ -121,10 +123,11 @@ fn check_for_comments(file: &ZipFile) {
 
 #[cfg(unix)]
 fn __unix_set_permissions(file_path: &Path, file: &ZipFile) -> crate::Result<()> {
+    use std::fs::Permissions;
     use std::os::unix::fs::PermissionsExt;
 
     if let Some(mode) = file.unix_mode() {
-        fs::set_permissions(file_path, fs::Permissions::from_mode(mode))?;
+        fs::set_permissions(file_path, Permissions::from_mode(mode))?;
     }
 
     Ok(())

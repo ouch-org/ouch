@@ -3,11 +3,11 @@
 //! Also, where correctly call functions based on the detected `Command`.
 
 use std::{
-    fs,
     io::{self, BufReader, BufWriter, Read, Write},
     path::{Path, PathBuf},
 };
 
+use fs_err as fs;
 use utils::colors;
 
 use crate::{

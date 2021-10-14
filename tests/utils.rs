@@ -2,10 +2,9 @@
 
 #![allow(dead_code)]
 
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
+
+use fs_err as fs;
 
 use ouch::{cli::Command, commands::run, oof};
 

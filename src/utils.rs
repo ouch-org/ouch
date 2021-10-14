@@ -1,15 +1,16 @@
 use std::{
     cmp, env,
     ffi::OsStr,
-    fs::{self, ReadDir},
     path::{Path, PathBuf},
 };
+
+use fs_err as fs;
 
 use crate::{dialogs::Confirmation, info, oof};
 
 /// Checks if the given path represents an empty directory.
 pub fn dir_is_empty(dir_path: &Path) -> bool {
-    let is_empty = |mut rd: ReadDir| rd.next().is_none();
+    let is_empty = |mut rd: std::fs::ReadDir| rd.next().is_none();
 
     dir_path.read_dir().ok().map(is_empty).unwrap_or_default()
 }
