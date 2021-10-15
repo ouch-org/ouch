@@ -103,31 +103,39 @@ impl fmt::Display for Error {
                     .detail("This is unadvisable since ouch does compressions in-memory.")
                     .hint("Use a more appropriate tool for this, such as rsync.")
             }
-            Error::MissingArgumentsForCompression => FinalError::with_title("Could not compress")
-                .detail("The compress command requires at least 2 arguments")
-                .hint("You must provide:")
-                .hint("  - At least one input argument.")
-                .hint("  - The output argument.")
-                .hint("")
-                .hint("Example: `ouch compress image.png img.zip`"),
-            Error::MissingArgumentsForDecompression => FinalError::with_title("Could not decompress")
-                .detail("The compress command requires at least one argument")
-                .hint("You must provide:")
-                .hint("  - At least one input argument.")
-                .hint("")
-                .hint("Example: `ouch decompress imgs.tar.gz`"),
-            Error::InternalError => FinalError::with_title("InternalError :(")
-                .detail("This should not have happened")
-                .detail("It's probably our fault")
-                .detail("Please help us improve by reporting the issue at:")
-                .detail(format!("    {}https://github.com/vrmiguel/ouch/issues ", cyan())),
+            Error::MissingArgumentsForCompression => {
+                FinalError::with_title("Could not compress")
+                    .detail("The compress command requires at least 2 arguments")
+                    .hint("You must provide:")
+                    .hint("  - At least one input argument.")
+                    .hint("  - The output argument.")
+                    .hint("")
+                    .hint("Example: `ouch compress image.png img.zip`")
+            }
+            Error::MissingArgumentsForDecompression => {
+                FinalError::with_title("Could not decompress")
+                    .detail("The compress command requires at least one argument")
+                    .hint("You must provide:")
+                    .hint("  - At least one input argument.")
+                    .hint("")
+                    .hint("Example: `ouch decompress imgs.tar.gz`")
+            }
+            Error::InternalError => {
+                FinalError::with_title("InternalError :(")
+                    .detail("This should not have happened")
+                    .detail("It's probably our fault")
+                    .detail("Please help us improve by reporting the issue at:")
+                    .detail(format!("    {}https://github.com/vrmiguel/ouch/issues ", cyan()))
+            }
             Error::OofError(err) => FinalError::with_title(err),
             Error::IoError { reason } => FinalError::with_title(reason),
-            Error::CompressionTypo => FinalError::with_title("Possible typo detected").hint(format!(
-                "Did you mean '{}ouch compress{}'?",
-                magenta(),
-                reset()
-            )),
+            Error::CompressionTypo => {
+                FinalError::with_title("Possible typo detected").hint(format!(
+                    "Did you mean '{}ouch compress{}'?",
+                    magenta(),
+                    reset()
+                ))
+            }
             Error::UnknownExtensionError(_) => todo!(),
             Error::AlreadyExists => todo!(),
             Error::InvalidZipArchive(_) => todo!(),
