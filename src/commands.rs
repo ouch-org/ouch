@@ -50,8 +50,7 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                     .hint("")
                     .hint("Examples:")
                     .hint(format!("  ouch compress ... {}.tar.gz", to_utf(&output_path)))
-                    .hint(format!("  ouch compress ... {}.zip", to_utf(&output_path)))
-                    .clone();
+                    .hint(format!("  ouch compress ... {}.zip", to_utf(&output_path)));
 
                 return Err(Error::with_reason(reason));
             }
@@ -79,8 +78,7 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                     .detail("The only supported formats that archive files into an archive are .tar and .zip.")
                     .hint(format!("Try inserting '.tar' or '.zip' before '{}'.", &formats[0]))
                     .hint(format!("From: {}", output_path))
-                    .hint(format!(" To : {}", suggested_output_path))
-                    .clone();
+                    .hint(format!(" To : {}", suggested_output_path));
 
                 return Err(Error::with_reason(reason));
             }
@@ -90,8 +88,7 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                     .detail(format!("Found the format '{}' in an incorrect position.", format))
                     .detail(format!("'{}' can only be used at the start of the file extension.", format))
                     .hint(format!("If you wish to compress multiple files, start the extension with '{}'.", format))
-                    .hint(format!("Otherwise, remove the last '{}' from '{}'.", format, to_utf(&output_path)))
-                    .clone();
+                    .hint(format!("Otherwise, remove the last '{}' from '{}'.", format, to_utf(&output_path)));
 
                 return Err(Error::with_reason(reason));
             }

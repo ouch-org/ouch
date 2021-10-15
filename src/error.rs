@@ -70,12 +70,12 @@ impl FinalError {
         Self { title: title.to_string(), details: vec![], hints: vec![] }
     }
 
-    pub fn detail(&mut self, detail: impl ToString) -> &mut Self {
+    pub fn detail(mut self, detail: impl ToString) -> Self {
         self.details.push(detail.to_string());
         self
     }
 
-    pub fn hint(&mut self, hint: impl ToString) -> &mut Self {
+    pub fn hint(mut self, hint: impl ToString) -> Self {
         self.hints.push(hint.to_string());
         self
     }
@@ -85,70 +85,54 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let err = match self {
             Error::MissingExtensionError(filename) => {
-                let error = FinalError::with_title(format!("Cannot compress to {:?}", filename))
+                FinalError::with_title(format!("Cannot compress to {:?}", filename))
                     .detail("Ouch could not detect the compression format")
                     .hint("Use a supported format extension, like '.zip' or '.tar.gz'")
                     .hint("Check https://github.com/vrmiguel/ouch for a full list of supported formats")
-                    .clone();
-
-                error
             }
             Error::WalkdirError { reason } => FinalError::with_title(reason),
             Error::FileNotFound(file) => {
-                let error = if file == Path::new("") {
+                if file == Path::new("") {
                     FinalError::with_title("file not found!")
                 } else {
                     FinalError::with_title(format!("file {:?} not found!", file))
-                };
-
-                error
+                }
             }
             Error::CompressingRootFolder => {
-                let error = FinalError::with_title("It seems you're trying to compress the root folder.")
+                FinalError::with_title("It seems you're trying to compress the root folder.")
                     .detail("This is unadvisable since ouch does compressions in-memory.")
                     .hint("Use a more appropriate tool for this, such as rsync.")
-                    .clone();
-
-                error
             }
             Error::MissingArgumentsForCompression => {
-                let error = FinalError::with_title("Could not compress")
+                FinalError::with_title("Could not compress")
                     .detail("The compress command requires at least 2 arguments")
                     .hint("You must provide:")
                     .hint("  - At least one input argument.")
                     .hint("  - The output argument.")
                     .hint("")
                     .hint("Example: `ouch compress image.png img.zip`")
-                    .clone();
-
-                error
             }
             Error::MissingArgumentsForDecompression => {
-                let error = FinalError::with_title("Could not decompress")
+                FinalError::with_title("Could not decompress")
                     .detail("The compress command requires at least one argument")
                     .hint("You must provide:")
                     .hint("  - At least one input argument.")
                     .hint("")
                     .hint("Example: `ouch decompress imgs.tar.gz`")
-                    .clone();
-
-                error
             }
             Error::InternalError => {
-                let error = FinalError::with_title("InternalError :(")
+                FinalError::with_title("InternalError :(")
                     .detail("This should not have happened")
                     .detail("It's probably our fault")
                     .detail("Please help us improve by reporting the issue at:")
                     .detail(format!("    {}https://github.com/vrmiguel/ouch/issues ", *CYAN))
-                    .clone();
-
-                error
             }
             Error::OofError(err) => FinalError::with_title(err),
             Error::IoError { reason } => FinalError::with_title(reason),
-            Error::CompressionTypo => FinalError::with_title("Possible typo detected")
-                .hint(format!("Did you mean '{}ouch compress{}'?", *MAGENTA, *RESET))
-                .clone(),
+            Error::CompressionTypo => {
+                FinalError::with_title("Possible typo detected")
+                    .hint(format!("Did you mean '{}ouch compress{}'?", *MAGENTA, *RESET))
+            }
             Error::UnknownExtensionError(_) => todo!(),
             Error::AlreadyExists => todo!(),
             Error::InvalidZipArchive(_) => todo!(),
