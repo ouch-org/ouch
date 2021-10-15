@@ -11,7 +11,7 @@ use std::{
 
 use strsim::normalized_damerau_levenshtein;
 
-use crate::{arg_flag, flag, oof, Error};
+use crate::{arg_flag, error::FinalError, flag, oof, Error};
 
 #[derive(PartialEq, Eq, Debug)]
 pub enum Command {
@@ -47,7 +47,13 @@ pub fn parse_args() -> crate::Result<ParsedArgs> {
     }
 
     if parsed_args.flags.is_present("yes") && parsed_args.flags.is_present("no") {
-        todo!("conflicting flags, better error message.");
+        return Err(Error::Custom {
+            reason: FinalError::with_title("Conflicted flags detected.")
+                .detail("You can't use both --yes and --no at the same time.")
+                .hint("Use --yes if you want to positively skip overwrite questions")
+                .hint("Use --no if you want to negatively skip overwrite questions")
+                .hint("Don't use either if you want to be asked each time"),
+        });
     }
 
     Ok(parsed_args)
