@@ -41,7 +41,7 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
     match command {
         Command::Compress { files, output_path } => {
             // Formats from path extension, like "file.tar.gz.xz" -> vec![Tar, Gzip, Lzma]
-            let formats = extension::extensions_from_path(&output_path);
+            let mut formats = extension::extensions_from_path(&output_path);
 
             if formats.is_empty() {
                 let reason = FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))
@@ -56,7 +56,7 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
             }
 
             if matches!(&formats[0], Bzip | Gzip | Lzma) && represents_several_files(&files) {
-                // This piece of code creates a sugestion for compressing multiple files
+                // This piece of code creates a suggestion for compressing multiple files
                 // It says:
                 // Change from file.bz.xz
                 // To          file.tar.bz.xz
@@ -99,6 +99,32 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
             }
 
             let output_file = fs::File::create(&output_path)?;
+
+            if !represents_several_files(&files) {
+                // It's possible the file is already partially compressed so we don't want to compress it again
+                // `ouch compress file.tar.gz file.tar.gz.xz` should produce `file.tar.gz.xz` and not `file.tar.gz.tar.gz.xz`
+                let input_extensions = extension::extensions_from_path(&files[0]);
+
+                // If the input is a sublist at the start of `formats` then remove the extensions
+                // Note: If input_extensions is empty this counts as true
+                if !input_extensions.is_empty()
+                    && input_extensions.len() < formats.len()
+                    && input_extensions.iter().zip(&formats).all(|(inp, out)| inp == out)
+                {
+                    // Safety:
+                    //   We checked above that input_extensions isn't empty, so files[0] has a extension.
+                    //
+                    //   Path::extension says: "if there is no file_name, then there is no extension".
+                    //   Using DeMorgan's law: "if there is    extension, then there is    file_name".
+                    info!(
+                        "Partial compression detected. Compressing {} into {}",
+                        to_utf(files[0].as_path().file_name().unwrap()),
+                        to_utf(&output_path)
+                    );
+                    let drain_iter = formats.drain(..input_extensions.len());
+                    drop(drain_iter); // Remove the extensions from `formats`
+                }
+            }
             let compress_result = compress_files(files, formats, output_file, flags);
 
             // If any error occurred, delete incomplete file
