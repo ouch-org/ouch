@@ -106,10 +106,10 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                 // Print an extra alert message pointing out that we left a possibly
                 // CORRUPTED FILE at `output_path`
                 if let Err(err) = fs::remove_file(&output_path) {
-                    eprintln!("{red}FATAL ERROR:\n", red = colors::red());
+                    eprintln!("{red}FATAL ERROR:\n", red = *colors::RED);
                     eprintln!("  Please manually delete '{}'.", to_utf(&output_path));
                     eprintln!("  Compression failed and we could not delete '{}'.", to_utf(&output_path),);
-                    eprintln!("  Error:{reset} {}{red}.{reset}\n", err, reset = colors::reset(), red = colors::red());
+                    eprintln!("  Error:{reset} {}{red}.{reset}\n", err, reset = *colors::RESET, red = *colors::RED);
                 }
             } else {
                 info!("Successfully compressed '{}'.", to_utf(output_path));
@@ -226,7 +226,7 @@ fn compress_files(
                 writer.flush()?;
             }
             Zip => {
-                eprintln!("{yellow}Warning:{reset}", yellow = colors::yellow(), reset = colors::reset());
+                eprintln!("{yellow}Warning:{reset}", yellow = *colors::YELLOW, reset = *colors::RESET);
                 eprintln!("\tCompressing .zip entirely in memory.");
                 eprintln!("\tIf the file is too big, your PC might freeze!");
                 eprintln!(
@@ -302,6 +302,8 @@ fn decompress_file(
         reader = chain_reader_decoder(format, reader)?;
     }
 
+    utils::create_dir_if_non_existent(output_folder)?;
+
     match formats[0] {
         Gzip | Bzip | Lzma | Zstd => {
             reader = chain_reader_decoder(&formats[0], reader)?;
@@ -313,19 +315,15 @@ fn decompress_file(
             info!("Successfully uncompressed archive in '{}'.", to_utf(output_path));
         }
         Tar => {
-            utils::create_dir_if_non_existent(output_folder)?;
             let _ = crate::archive::tar::unpack_archive(reader, output_folder, flags)?;
             info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
         }
         Tgz => {
-            utils::create_dir_if_non_existent(output_folder)?;
             let reader = chain_reader_decoder(&Gzip, reader)?;
             let _ = crate::archive::tar::unpack_archive(reader, output_folder, flags)?;
             info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
         }
         Zip => {
-            utils::create_dir_if_non_existent(output_folder)?;
-
             eprintln!("Compressing first into .zip.");
             eprintln!("Warning: .zip archives with extra extensions have a downside.");
             eprintln!(
