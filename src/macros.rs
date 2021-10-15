@@ -1,5 +1,3 @@
-use crate::NO_COLOR_IS_SET;
-
 #[macro_export]
 macro_rules! info {
     ($writer:expr, $($arg:tt)*) => {
@@ -14,11 +12,7 @@ macro_rules! info {
 }
 
 pub fn _info_helper() {
-    use crate::utils::colors::{reset, yellow};
+    use crate::utils::colors::{RESET, YELLOW};
 
-    if *NO_COLOR_IS_SET {
-        print!("[INFO] ");
-    } else {
-        print!("{}[INFO]{} ", yellow(), reset());
-    }
+    print!("{}[INFO]{} ", *YELLOW, *RESET);
 }

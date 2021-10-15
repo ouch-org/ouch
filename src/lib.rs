@@ -19,20 +19,10 @@ mod utils;
 
 pub use error::{Error, Result};
 
-use lazy_static::lazy_static;
-
 /// The status code ouch has when an error is encountered
 pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
-
-lazy_static! {
-    static ref NO_COLOR_IS_SET: bool = {
-        use std::env;
-
-        env::var("NO_COLOR").is_ok() || atty::isnt(atty::Stream::Stdout) || atty::isnt(atty::Stream::Stderr)
-    };
-}
 
 fn help_command() {
     use utils::colors::*;
@@ -62,17 +52,17 @@ fn help_command() {
                                 another folder.
 
 Visit https://github.com/ouch-org/ouch for more usage examples.",
-        magenta = magenta(),
-        white = white(),
-        green = green(),
-        yellow = yellow(),
-        reset = reset(),
-        cyan = cyan()
+        magenta = *MAGENTA,
+        white = *WHITE,
+        green = *GREEN,
+        yellow = *YELLOW,
+        reset = *RESET,
+        cyan = *CYAN
     );
 }
 
 #[inline]
 fn version_command() {
     use utils::colors::*;
-    println!("{green}ouch{reset} {}", crate::VERSION, green = green(), reset = reset());
+    println!("{green}ouch{reset} {}", crate::VERSION, green = *GREEN, reset = *RESET);
 }

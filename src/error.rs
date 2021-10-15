@@ -45,11 +45,11 @@ pub struct FinalError {
 impl Display for FinalError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Title
-        writeln!(f, "{}[ERROR]{} {}", red(), reset(), self.title)?;
+        writeln!(f, "{}[ERROR]{} {}", *RED, *RESET, self.title)?;
 
         // Details
         for detail in &self.details {
-            writeln!(f, " {}-{} {}", white(), yellow(), detail)?;
+            writeln!(f, " {}-{} {}", *WHITE, *YELLOW, detail)?;
         }
 
         // Hints
@@ -57,11 +57,11 @@ impl Display for FinalError {
             // Separate by one blank line.
             writeln!(f)?;
             for hint in &self.hints {
-                writeln!(f, "{}hint:{} {}", green(), reset(), hint)?;
+                writeln!(f, "{}hint:{} {}", *GREEN, *RESET, hint)?;
             }
         }
 
-        write!(f, "{}", reset())
+        write!(f, "{}", *RESET)
     }
 }
 
@@ -139,7 +139,7 @@ impl fmt::Display for Error {
                     .detail("This should not have happened")
                     .detail("It's probably our fault")
                     .detail("Please help us improve by reporting the issue at:")
-                    .detail(format!("    {}https://github.com/vrmiguel/ouch/issues ", cyan()))
+                    .detail(format!("    {}https://github.com/vrmiguel/ouch/issues ", *CYAN))
                     .clone();
 
                 error
@@ -147,7 +147,7 @@ impl fmt::Display for Error {
             Error::OofError(err) => FinalError::with_title(err),
             Error::IoError { reason } => FinalError::with_title(reason),
             Error::CompressionTypo => FinalError::with_title("Possible typo detected")
-                .hint(format!("Did you mean '{}ouch compress{}'?", magenta(), reset()))
+                .hint(format!("Did you mean '{}ouch compress{}'?", *MAGENTA, *RESET))
                 .clone(),
             Error::UnknownExtensionError(_) => todo!(),
             Error::AlreadyExists => todo!(),
