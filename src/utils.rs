@@ -64,52 +64,31 @@ pub struct Bytes {
 
 /// Module with a list of bright colors.
 #[allow(dead_code)]
-#[cfg(target_family = "unix")]
 pub mod colors {
-    pub const fn reset() -> &'static str {
-        "\u{1b}[39m"
+    use once_cell::sync::Lazy;
+
+    static NO_COLOR_IS_SET: Lazy<bool> = Lazy::new(|| {
+        std::env::var_os("NO_COLOR").is_some() || atty::isnt(atty::Stream::Stdout) || atty::isnt(atty::Stream::Stderr)
+    });
+
+    macro_rules! color {
+        ($name:ident = $value:literal) => {
+            #[cfg(target_family = "unix")]
+            pub static $name: Lazy<&str> = Lazy::new(|| if *NO_COLOR_IS_SET { "" } else { $value });
+            #[cfg(not(target_family = "unix"))]
+            pub static $name: &&str = &"";
+        };
     }
-    pub const fn black() -> &'static str {
-        "\u{1b}[38;5;8m"
-    }
-    pub const fn blue() -> &'static str {
-        "\u{1b}[38;5;12m"
-    }
-    pub const fn cyan() -> &'static str {
-        "\u{1b}[38;5;14m"
-    }
-    pub const fn green() -> &'static str {
-        "\u{1b}[38;5;10m"
-    }
-    pub const fn magenta() -> &'static str {
-        "\u{1b}[38;5;13m"
-    }
-    pub const fn red() -> &'static str {
-        "\u{1b}[38;5;9m"
-    }
-    pub const fn white() -> &'static str {
-        "\u{1b}[38;5;15m"
-    }
-    pub const fn yellow() -> &'static str {
-        "\u{1b}[38;5;11m"
-    }
-}
-// Windows does not support ANSI escape codes
-#[allow(dead_code, non_upper_case_globals)]
-#[cfg(not(target_family = "unix"))]
-pub mod colors {
-    pub const fn empty() -> &'static str {
-        ""
-    }
-    pub const reset: fn() -> &'static str = empty;
-    pub const black: fn() -> &'static str = empty;
-    pub const blue: fn() -> &'static str = empty;
-    pub const cyan: fn() -> &'static str = empty;
-    pub const green: fn() -> &'static str = empty;
-    pub const magenta: fn() -> &'static str = empty;
-    pub const red: fn() -> &'static str = empty;
-    pub const white: fn() -> &'static str = empty;
-    pub const yellow: fn() -> &'static str = empty;
+
+    color!(RESET = "\u{1b}[39m");
+    color!(BLACK = "\u{1b}[38;5;8m");
+    color!(BLUE = "\u{1b}[38;5;12m");
+    color!(CYAN = "\u{1b}[38;5;14m");
+    color!(GREEN = "\u{1b}[38;5;10m");
+    color!(MAGENTA = "\u{1b}[38;5;13m");
+    color!(RED = "\u{1b}[38;5;9m");
+    color!(WHITE = "\u{1b}[38;5;15m");
+    color!(YELLOW = "\u{1b}[38;5;11m");
 }
 
 impl Bytes {

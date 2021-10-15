@@ -109,10 +109,10 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                 // Print an extra alert message pointing out that we left a possibly
                 // CORRUPTED FILE at `output_path`
                 if let Err(err) = fs::remove_file(&output_path) {
-                    eprintln!("{red}FATAL ERROR:\n", red = colors::red());
+                    eprintln!("{red}FATAL ERROR:\n", red = *colors::RED);
                     eprintln!("  Please manually delete '{}'.", to_utf(&output_path));
                     eprintln!("  Compression failed and we could not delete '{}'.", to_utf(&output_path),);
-                    eprintln!("  Error:{reset} {}{red}.{reset}\n", err, reset = colors::reset(), red = colors::red());
+                    eprintln!("  Error:{reset} {}{red}.{reset}\n", err, reset = *colors::RESET, red = *colors::RED);
                 }
             } else {
                 info!("Successfully compressed '{}'.", to_utf(output_path));
@@ -229,7 +229,7 @@ fn compress_files(
                 writer.flush()?;
             }
             Zip => {
-                eprintln!("{yellow}Warning:{reset}", yellow = colors::yellow(), reset = colors::reset());
+                eprintln!("{yellow}Warning:{reset}", yellow = *colors::YELLOW, reset = *colors::RESET);
                 eprintln!("\tCompressing .zip entirely in memory.");
                 eprintln!("\tIf the file is too big, your PC might freeze!");
                 eprintln!(
