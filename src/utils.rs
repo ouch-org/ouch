@@ -67,14 +67,14 @@ pub struct Bytes {
 pub mod colors {
     use once_cell::sync::Lazy;
 
-    static NO_COLOR_IS_SET: Lazy<bool> = Lazy::new(|| {
+    static DISABLE_COLORED_TEXT: Lazy<bool> = Lazy::new(|| {
         std::env::var_os("NO_COLOR").is_some() || atty::isnt(atty::Stream::Stdout) || atty::isnt(atty::Stream::Stderr)
     });
 
     macro_rules! color {
         ($name:ident = $value:literal) => {
             #[cfg(target_family = "unix")]
-            pub static $name: Lazy<&str> = Lazy::new(|| if *NO_COLOR_IS_SET { "" } else { $value });
+            pub static $name: Lazy<&str> = Lazy::new(|| if *DISABLE_COLORED_TEXT { "" } else { $value });
             #[cfg(not(target_family = "unix"))]
             pub static $name: &&str = &"";
         };
