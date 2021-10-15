@@ -114,6 +114,11 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                     && input_extensions.len() < formats.len()
                     && input_extensions.iter().zip(&formats).all(|(inp, out)| inp == out)
                 {
+                    // Safety:
+                    //   We checked above that input_extensions isn't empty, so files[0] has a extension.
+                    //
+                    //   Path::extension says: "if there is no file_name, then there is no extension".
+                    //   Using DeMorgan's law: "if there is    extension, then there is    file_name".
                     info!(
                         "Partial compression detected. Compressing {} into {}",
                         to_utf(files[0].as_path().file_name().unwrap()),
