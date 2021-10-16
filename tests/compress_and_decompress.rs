@@ -103,9 +103,9 @@ fn test_compressing_and_decompressing_archive(format: &str) {
         (0..quantity_of_files).map(|_| generate_random_file_content(&mut rng)).collect();
 
     // Create them
-    let mut file_paths = create_files(&testing_dir_path, &contents_of_files);
+    let mut file_paths = create_files(testing_dir_path, &contents_of_files);
     // Compress them
-    let compressed_archive_path = compress_files(&testing_dir_path, &file_paths, &format);
+    let compressed_archive_path = compress_files(testing_dir_path, &file_paths, format);
     // Decompress them
     let mut extracted_paths = extract_files(&compressed_archive_path);
 

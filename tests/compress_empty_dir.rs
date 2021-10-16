@@ -20,11 +20,11 @@ fn test_compress_decompress_with_empty_dir(format: &str) {
 
     let testing_dir_path = testing_dir.path();
 
-    let empty_dir_path: PathBuf = create_empty_dir(&testing_dir_path, "dummy_empty_dir_name");
+    let empty_dir_path: PathBuf = create_empty_dir(testing_dir_path, "dummy_empty_dir_name");
 
     let mut file_paths: Vec<PathBuf> = vec![empty_dir_path];
 
-    let compressed_archive_path: PathBuf = compress_files(&testing_dir_path, &file_paths, &format);
+    let compressed_archive_path: PathBuf = compress_files(testing_dir_path, &file_paths, format);
 
     let mut extracted_paths = extract_files(&compressed_archive_path);
 

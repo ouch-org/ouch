@@ -22,7 +22,7 @@ pub fn compress_files(at: &Path, paths_to_compress: &[PathBuf], format: &str) ->
     let archive_path = String::from("archive.") + format;
     let archive_path = at.join(archive_path);
 
-    let command = Command::Compress { files: paths_to_compress.to_vec(), output_path: archive_path.to_path_buf() };
+    let command = Command::Compress { files: paths_to_compress.to_vec(), output_path: archive_path.clone() };
     run(command, &oof::Flags::default()).expect("Failed to compress test dummy files");
 
     archive_path
