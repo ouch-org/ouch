@@ -246,10 +246,24 @@ fn compress_files(
                 writer.flush()?;
             }
             Tgz => {
-                // Wrap it into an gz_decoder, and pass to the tar archive builder
-                let gz_decoder = flate2::write::GzEncoder::new(writer, Default::default());
-                let mut writer = archive::tar::build_archive_from_paths(&files, gz_decoder)?;
-                writer.flush()?;
+                let encoder = flate2::write::GzEncoder::new(writer, Default::default());
+                let writer = archive::tar::build_archive_from_paths(&files, encoder)?;
+                writer.finish()?.flush()?;
+            }
+            Tbz => {
+                let encoder = bzip2::write::BzEncoder::new(writer, Default::default());
+                let writer = archive::tar::build_archive_from_paths(&files, encoder)?;
+                writer.finish()?.flush()?;
+            }
+            Tlzma => {
+                let encoder = xz2::write::XzEncoder::new(writer, 6);
+                let writer = archive::tar::build_archive_from_paths(&files, encoder)?;
+                writer.finish()?.flush()?;
+            }
+            Tzst => {
+                let encoder = zstd::stream::write::Encoder::new(writer, Default::default())?;
+                let writer = archive::tar::build_archive_from_paths(&files, encoder)?;
+                writer.finish()?.flush()?;
             }
             Zip => {
                 eprintln!("{yellow}Warning:{reset}", yellow = *colors::YELLOW, reset = *colors::RESET);
@@ -346,6 +360,21 @@ fn decompress_file(
         }
         Tgz => {
             let reader = chain_reader_decoder(&Gzip, reader)?;
+            let _ = crate::archive::tar::unpack_archive(reader, output_folder, flags)?;
+            info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
+        }
+        Tbz => {
+            let reader = chain_reader_decoder(&Bzip, reader)?;
+            let _ = crate::archive::tar::unpack_archive(reader, output_folder, flags)?;
+            info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
+        }
+        Tlzma => {
+            let reader = chain_reader_decoder(&Lzma, reader)?;
+            let _ = crate::archive::tar::unpack_archive(reader, output_folder, flags)?;
+            info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
+        }
+        Tzst => {
+            let reader = chain_reader_decoder(&Zstd, reader)?;
             let _ = crate::archive::tar::unpack_archive(reader, output_folder, flags)?;
             info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
         }
