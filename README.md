@@ -78,9 +78,11 @@ For compiling, check the [wiki guide](https://github.com/ouch-org/ouch/wiki/Comp
 
 ## Supported formats
 
-| Format        | .tar, .tgz | .zip | .bz, .bz2 | .gz | .xz, .lz, .lzma | .zst |
+| Format        | .tar | .zip | .bz, .bz2 | .gz | .xz, .lz, .lzma | .zst |
 |:-------------:|:----:|:----:|:---------:| --- |:---------------:| --- |
 | Supported | ✓   | ✓   | ✓         | ✓  |   ✓            | ✓  |
+
+And the aliases: `tgz`, `tbz`, `tbz2`, `txz`, `tlz`, `tlzma`, `tzst`.
 
 Formats can be chained (`ouch` keeps it _fast_):
 - `.gz.xz.bz.zst`
