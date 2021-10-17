@@ -27,13 +27,22 @@ fn sanity_check_through_mime() {
     let bytes = generate_random_file_content(&mut SmallRng::from_entropy());
     test_file.write_all(&bytes).expect("to successfully write bytes to the file");
 
-    let formats = ["tar", "zip", "tar.gz", "tgz", "tar.bz", "tar.bz2", "tar.lzma", "tar.xz", "tar.zst"];
+    let formats = [
+        "tar", "zip", "tar.gz", "tgz", "tbz", "tbz2", "txz", "tlz", "tlzma", "tzst", "tar.bz", "tar.bz2", "tar.lzma",
+        "tar.xz", "tar.zst",
+    ];
 
     let expected_mimes = [
         "application/x-tar",
         "application/zip",
         "application/gzip",
         "application/gzip",
+        "application/x-bzip2",
+        "application/x-bzip2",
+        "application/x-xz",
+        "application/x-xz",
+        "application/x-xz",
+        "application/zstd",
         "application/x-bzip2",
         "application/x-bzip2",
         "application/x-xz",
@@ -69,6 +78,12 @@ fn test_each_format() {
     test_compressing_and_decompressing_archive("tar.lzma");
     test_compressing_and_decompressing_archive("tar.zst");
     test_compressing_and_decompressing_archive("tgz");
+    test_compressing_and_decompressing_archive("tbz");
+    test_compressing_and_decompressing_archive("tbz2");
+    test_compressing_and_decompressing_archive("txz");
+    test_compressing_and_decompressing_archive("tlz");
+    test_compressing_and_decompressing_archive("tlzma");
+    test_compressing_and_decompressing_archive("tzst");
     test_compressing_and_decompressing_archive("zip");
     test_compressing_and_decompressing_archive("zip.gz");
     test_compressing_and_decompressing_archive("zip.bz");

@@ -7,13 +7,16 @@ use self::CompressionFormat::*;
 #[derive(Clone, PartialEq, Eq, Debug)]
 /// Accepted extensions for input and output
 pub enum CompressionFormat {
-    Gzip, // .gz
-    Bzip, // .bz
-    Lzma, // .lzma
-    Tar,  // .tar (technically not a compression extension, but will do for now)
-    Tgz,  // .tgz
-    Zstd, // .zst
-    Zip,  // .zip
+    Gzip,  // .gz
+    Bzip,  // .bz
+    Lzma,  // .lzma
+    Tar,   // .tar (technically not a compression extension, but will do for now)
+    Tgz,   // .tgz
+    Tbz,   // .tbz
+    Tlzma, // .tlzma
+    Tzst,  // .tzst
+    Zstd,  // .zst
+    Zip,   // .zip
 }
 
 impl fmt::Display for CompressionFormat {
@@ -28,6 +31,9 @@ impl fmt::Display for CompressionFormat {
                 Lzma => ".lz",
                 Tar => ".tar",
                 Tgz => ".tgz",
+                Tbz => ".tbz",
+                Tlzma => ".tlz",
+                Tzst => ".tzst",
                 Zip => ".zip",
             }
         )
@@ -50,6 +56,9 @@ pub fn separate_known_extensions_from_name(mut path: &Path) -> (&Path, Vec<Compr
         extensions.push(match extension {
             "tar" => Tar,
             "tgz" => Tgz,
+            "tbz" | "tbz2" => Tbz,
+            "txz" | "tlz" | "tlzma" => Tlzma,
+            "tzst" => Tzst,
             "zip" => Zip,
             "bz" | "bz2" => Bzip,
             "gz" => Gzip,
