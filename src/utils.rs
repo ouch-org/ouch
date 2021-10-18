@@ -11,7 +11,7 @@ use crate::{dialogs::Confirmation, info, oof};
 pub fn dir_is_empty(dir_path: &Path) -> bool {
     let is_empty = |mut rd: ReadDir| rd.next().is_none();
 
-    dir_path.read_dir().ok().map(is_empty).unwrap_or_default()
+    dir_path.read_dir().map(is_empty).unwrap_or_default()
 }
 
 pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
@@ -45,12 +45,7 @@ pub fn user_wants_to_overwrite(path: &Path, flags: &oof::Flags) -> crate::Result
         _ => {}
     }
 
-    let file_path_str = to_utf(path);
-
-    const OVERWRITE_CONFIRMATION_QUESTION: Confirmation =
-        Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE"));
-
-    OVERWRITE_CONFIRMATION_QUESTION.ask(Some(&file_path_str))
+    Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE")).ask(Some(&to_utf(path)))
 }
 
 pub fn to_utf(os_str: impl AsRef<OsStr>) -> String {

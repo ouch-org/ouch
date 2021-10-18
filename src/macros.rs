@@ -1,13 +1,8 @@
 #[macro_export]
 macro_rules! info {
-    ($writer:expr, $($arg:tt)*) => {
-        use crate::macros::_info_helper;
-        _info_helper();
-        println!($writer, $($arg)*);
-    };
-    ($writer:expr) => {
-        _info_helper();
-        println!($writer);
+    ($($arg:tt)*) => {
+        $crate::macros::_info_helper();
+        println!($($arg)*);
     };
 }
 
