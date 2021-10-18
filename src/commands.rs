@@ -66,7 +66,12 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
 
                 // Breaks if Lzma is .lz or .lzma and not .xz
                 // Or if Bzip is .bz2 and not .bz
-                let extensions_start_position = output_path.rfind(&extensions_text).unwrap();
+                let extensions_start_position = output_path.rfind(&extensions_text).ok_or_else(|| {
+                    Error::UnknownExtensionError(format!(
+                        "Cannot compress to the following destination: {}",
+                        output_path
+                    ))
+                })?;
                 let pos = extensions_start_position;
                 let empty_range = pos..pos;
                 let mut suggested_output_path = output_path.clone();

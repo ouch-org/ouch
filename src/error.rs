@@ -133,7 +133,12 @@ impl fmt::Display for Error {
                 FinalError::with_title("Possible typo detected")
                     .hint(format!("Did you mean '{}ouch compress{}'?", *MAGENTA, *RESET))
             }
-            Error::UnknownExtensionError(_) => todo!(),
+            Error::UnknownExtensionError(reason) => {
+                FinalError::with_title("Unknown extension").detail(reason).hint(
+                    "Try to use one of the following extension: 
+            .gz, .bz, .lzma, .tar, .tgz, .tbz, .tlzma, tzst, .zst, .zip",
+                )
+            }
             Error::AlreadyExists => todo!(),
             Error::InvalidZipArchive(_) => todo!(),
             Error::PermissionDenied => todo!(),
