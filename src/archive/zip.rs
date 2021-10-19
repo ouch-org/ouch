@@ -3,7 +3,7 @@
 use std::{
     env, fs,
     io::{self, prelude::*},
-    path::Component::CurDir,
+    path::Component,
     path::{Path, PathBuf},
 };
 
@@ -48,7 +48,7 @@ where
                         fs::create_dir_all(&path)?;
                     }
                 }
-                let file_path = file_path.strip_prefix(CurDir).unwrap_or_else(|_| file_path.as_path());
+                let file_path = file_path.strip_prefix(Component::CurDir).unwrap_or_else(|_| file_path.as_path());
 
                 info!("{:?} extracted. ({})", file_path.display(), Bytes::new(file.size()));
 
