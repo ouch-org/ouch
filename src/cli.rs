@@ -1,17 +1,16 @@
 //! CLI arg parser configuration, command detection and input treatment.
 
 use std::{
-    env,
     path::{Path, PathBuf},
     vec::Vec,
 };
 
-use clap::{crate_authors, crate_description, crate_name, crate_version, Parser, ValueHint};
+use clap::{Parser, ValueHint};
 
 use crate::Error;
 
 #[derive(Parser, Debug)]
-#[clap(name = crate_name!(), version = crate_version!(), author = crate_authors!(), about = crate_description!())]
+#[clap(version, author, about)]
 pub struct Opts {
     /// Skip overwrite questions positively.
     #[clap(short, long, conflicts_with = "no")]
