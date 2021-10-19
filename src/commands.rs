@@ -67,10 +67,18 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                 // Breaks if Lzma is .lz or .lzma and not .xz
                 // Or if Bzip is .bz2 and not .bz
                 let extensions_start_position = output_path.rfind(&extensions_text).ok_or_else(|| {
-                    Error::UnknownExtensionError(format!(
-                        "Cannot compress to the following destination: {}",
-                        output_path
-                    ))
+                    // unwrap ok since the missing of extension already managed
+                    let desination_name = output_path.split('.').next().unwrap();
+                    Error::with_reason(
+                        FinalError::with_title("Unknwon extension")
+                            .detail(format!("Cannot compress to the following destination: {}", &output_path))
+                            .hint("Try using one the following extensions:")
+                            .hint("  .gz, .bz, .zst, .lz, .tar, .tgz, .tbz, .tlz, .tzst, .zip")
+                            .hint("")
+                            .hint("Examples:")
+                            .hint(format!("  ouch compress ... {}.tar.gz", desination_name))
+                            .hint(format!("  ouch compress ... {}.zip", desination_name)),
+                    )
                 })?;
                 let pos = extensions_start_position;
                 let empty_range = pos..pos;
