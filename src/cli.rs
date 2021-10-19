@@ -10,7 +10,7 @@ use clap::{Parser, ValueHint};
 use crate::Error;
 
 #[derive(Parser, Debug)]
-#[clap(version, author, about)]
+#[clap(version, about)]
 pub struct Opts {
     /// Skip overwrite questions positively.
     #[clap(short, long, conflicts_with = "no")]
