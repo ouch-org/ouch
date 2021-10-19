@@ -60,6 +60,8 @@ ouch compress * everything.tar.gz.xz.bz.zst.gz.gz.gz.gz.gz
 
 ## Installation
 
+[![Packaging status](https://repology.org/badge/vertical-allrepos/ouch.svg)](https://repology.org/project/ouch/versions)
+
 ### Downloading the latest binary
 
 Compiled for `x86_64` on _Linux_, _Mac OS_ and _Windows_, run with `curl` or `wget`.
