@@ -10,14 +10,18 @@ use walkdir::WalkDir;
 use zip::{self, read::ZipFile, ZipArchive};
 
 use crate::{
-    info, oof,
+    info,
     utils::{self, dir_is_empty, Bytes},
 };
 
 use self::utf8::get_invalid_utf8_paths;
 
 /// Unpacks the archive given by `archive` into the folder given by `into`.
-pub fn unpack_archive<R>(mut archive: ZipArchive<R>, into: &Path, flags: &oof::Flags) -> crate::Result<Vec<PathBuf>>
+pub fn unpack_archive<R>(
+    mut archive: ZipArchive<R>,
+    into: &Path,
+    skip_questions_positively: Option<bool>,
+) -> crate::Result<Vec<PathBuf>>
 where
     R: Read + Seek,
 {
@@ -30,7 +34,7 @@ where
         };
 
         let file_path = into.join(file_path);
-        if file_path.exists() && !utils::user_wants_to_overwrite(&file_path, flags)? {
+        if file_path.exists() && !utils::user_wants_to_overwrite(&file_path, skip_questions_positively)? {
             continue;
         }
 

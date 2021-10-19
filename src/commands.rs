@@ -12,13 +12,13 @@ use utils::colors;
 
 use crate::{
     archive,
-    cli::Command,
+    cli::{Opts, Subcommand},
     error::FinalError,
     extension::{
         self,
         CompressionFormat::{self, *},
     },
-    info, oof,
+    info,
     utils::to_utf,
     utils::{self, dir_is_empty},
     Error,
@@ -37,9 +37,9 @@ fn represents_several_files(files: &[PathBuf]) -> bool {
     files.iter().any(is_non_empty_dir) || files.len() > 1
 }
 
-pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
-    match command {
-        Command::Compress { files, output_path } => {
+pub fn run(args: Opts, skip_questions_positively: Option<bool>) -> crate::Result<()> {
+    match args.cmd {
+        Subcommand::Compress { files, output: output_path } => {
             // Formats from path extension, like "file.tar.gz.xz" -> vec![Tar, Gzip, Lzma]
             let mut formats = extension::extensions_from_path(&output_path);
 
@@ -93,7 +93,7 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                 return Err(Error::with_reason(reason));
             }
 
-            if output_path.exists() && !utils::user_wants_to_overwrite(&output_path, flags)? {
+            if output_path.exists() && !utils::user_wants_to_overwrite(&output_path, skip_questions_positively)? {
                 // User does not want to overwrite this file
                 return Ok(());
             }
@@ -125,7 +125,7 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
                     drop(drain_iter); // Remove the extensions from `formats`
                 }
             }
-            let compress_result = compress_files(files, formats, output_file, flags);
+            let compress_result = compress_files(files, formats, output_file);
 
             // If any error occurred, delete incomplete file
             if compress_result.is_err() {
@@ -143,7 +143,7 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
 
             compress_result?;
         }
-        Command::Decompress { files, output_folder } => {
+        Subcommand::Decompress { files, output: output_folder } => {
             let mut output_paths = vec![];
             let mut formats = vec![];
 
@@ -175,21 +175,14 @@ pub fn run(command: Command, flags: &oof::Flags) -> crate::Result<()> {
             let output_folder = output_folder.as_ref().map(|path| path.as_ref());
 
             for ((input_path, formats), file_name) in files.iter().zip(formats).zip(output_paths) {
-                decompress_file(input_path, formats, output_folder, file_name, flags)?;
+                decompress_file(input_path, formats, output_folder, file_name, skip_questions_positively)?;
             }
         }
-        Command::ShowHelp => crate::help_command(),
-        Command::ShowVersion => crate::version_command(),
     }
     Ok(())
 }
 
-fn compress_files(
-    files: Vec<PathBuf>,
-    formats: Vec<CompressionFormat>,
-    output_file: fs::File,
-    _flags: &oof::Flags,
-) -> crate::Result<()> {
+fn compress_files(files: Vec<PathBuf>, formats: Vec<CompressionFormat>, output_file: fs::File) -> crate::Result<()> {
     let file_writer = BufWriter::with_capacity(BUFFER_CAPACITY, output_file);
 
     if let [Tar | Tgz | Zip] = *formats.as_slice() {
@@ -295,7 +288,7 @@ fn decompress_file(
     formats: Vec<extension::CompressionFormat>,
     output_folder: Option<&Path>,
     file_name: &Path,
-    flags: &oof::Flags,
+    skip_questions_positively: Option<bool>,
 ) -> crate::Result<()> {
     // TODO: improve error message
     let reader = fs::File::open(&input_file_path)?;
@@ -317,7 +310,7 @@ fn decompress_file(
     if let [Zip] = *formats.as_slice() {
         utils::create_dir_if_non_existent(output_folder)?;
         let zip_archive = zip::ZipArchive::new(reader)?;
-        let _files = crate::archive::zip::unpack_archive(zip_archive, output_folder, flags)?;
+        let _files = crate::archive::zip::unpack_archive(zip_archive, output_folder, skip_questions_positively)?;
         info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
         return Ok(());
     }
@@ -355,27 +348,27 @@ fn decompress_file(
             info!("Successfully uncompressed archive in '{}'.", to_utf(output_path));
         }
         Tar => {
-            let _ = crate::archive::tar::unpack_archive(reader, output_folder, flags)?;
+            let _ = crate::archive::tar::unpack_archive(reader, output_folder, skip_questions_positively)?;
             info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
         }
         Tgz => {
             let reader = chain_reader_decoder(&Gzip, reader)?;
-            let _ = crate::archive::tar::unpack_archive(reader, output_folder, flags)?;
+            let _ = crate::archive::tar::unpack_archive(reader, output_folder, skip_questions_positively)?;
             info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
         }
         Tbz => {
             let reader = chain_reader_decoder(&Bzip, reader)?;
-            let _ = crate::archive::tar::unpack_archive(reader, output_folder, flags)?;
+            let _ = crate::archive::tar::unpack_archive(reader, output_folder, skip_questions_positively)?;
             info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
         }
         Tlzma => {
             let reader = chain_reader_decoder(&Lzma, reader)?;
-            let _ = crate::archive::tar::unpack_archive(reader, output_folder, flags)?;
+            let _ = crate::archive::tar::unpack_archive(reader, output_folder, skip_questions_positively)?;
             info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
         }
         Tzst => {
             let reader = chain_reader_decoder(&Zstd, reader)?;
-            let _ = crate::archive::tar::unpack_archive(reader, output_folder, flags)?;
+            let _ = crate::archive::tar::unpack_archive(reader, output_folder, skip_questions_positively)?;
             info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
         }
         Zip => {
@@ -390,7 +383,7 @@ fn decompress_file(
             io::copy(&mut reader, &mut vec)?;
             let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
 
-            let _ = crate::archive::zip::unpack_archive(zip_archive, output_folder, flags)?;
+            let _ = crate::archive::zip::unpack_archive(zip_archive, output_folder, skip_questions_positively)?;
 
             info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
         }
