@@ -94,5 +94,5 @@ Formats can be chained (`ouch` keeps it _fast_):
 `ouch` is 100% made out of voluntary work, any small contribution is welcome!
 
 - Open an issue.
-- Open a pr.
+- Open a pull request.
 - Share it to a friend!
