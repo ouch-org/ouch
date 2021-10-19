@@ -2,6 +2,7 @@ use std::{
     cmp, env,
     ffi::OsStr,
     fs::{self, ReadDir},
+    path::Component,
     path::{Path, PathBuf},
 };
 
@@ -45,6 +46,7 @@ pub fn user_wants_to_overwrite(path: &Path, flags: &oof::Flags) -> crate::Result
         _ => {}
     }
 
+    let path = path.strip_prefix(Component::CurDir).unwrap_or_else(|_| path);
     Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE")).ask(Some(&to_utf(path)))
 }
 
