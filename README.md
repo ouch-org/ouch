@@ -85,10 +85,11 @@ For compiling, check the [wiki guide](https://github.com/ouch-org/ouch/wiki/Comp
 And the aliases: `tgz`, `tbz`, `tbz2`, `txz`, `tlz`, `tlzma`, `tzst`.
 
 Formats can be chained (`ouch` keeps it _fast_):
+
 - `.gz.xz.bz.zst`
 - `.tar.gz.xz.bz.zst`
 - `.tar.gz.gz.gz.gz.xz.xz.xz.xz.bz.bz.bz.bz.zst.zst.zst.zst`
-- 
+
 ## Contributing
 
 `ouch` is 100% made out of voluntary work, any small contribution is welcome!
