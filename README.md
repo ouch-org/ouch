@@ -66,8 +66,8 @@ Compiled for `x86_64` on _Linux_, _Mac OS_ and _Windows_, run with `curl` or `wg
 
 | Method    | Command                                                                            |
 |:---------:|:-----------------------------------------------------------------------------------|
-| **curl**  | `curl -s https://raw.githubusercontent.com/ouch-org/ouch/master/install.sh | sh`   |
-| **wget**  | `wget https://raw.githubusercontent.com/ouch-org/ouch/master/install.sh -O - | sh` |
+| **curl**  | `curl -s https://raw.githubusercontent.com/ouch-org/ouch/master/install.sh \| sh`   |
+| **wget**  | `wget https://raw.githubusercontent.com/ouch-org/ouch/master/install.sh -O - \| sh` |
 
 
 The script will download the [latest binary](https://github.com/ouch-org/ouch/releases) and copy it to `/usr/bin`.
