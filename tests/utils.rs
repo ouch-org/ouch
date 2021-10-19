@@ -7,7 +7,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use ouch::{cli::Command, commands::run, oof};
+use ouch::{
+    cli::{Opts, Subcommand},
+    commands::run,
+};
 
 pub fn create_empty_dir(at: &Path, filename: &str) -> PathBuf {
     let dirname = Path::new(filename);
@@ -22,8 +25,12 @@ pub fn compress_files(at: &Path, paths_to_compress: &[PathBuf], format: &str) ->
     let archive_path = String::from("archive.") + format;
     let archive_path = at.join(archive_path);
 
-    let command = Command::Compress { files: paths_to_compress.to_vec(), output_path: archive_path.clone() };
-    run(command, &oof::Flags::default()).expect("Failed to compress test dummy files");
+    let command = Opts {
+        yes: false,
+        no: false,
+        cmd: Subcommand::Compress { files: paths_to_compress.to_vec(), output: archive_path.clone() },
+    };
+    run(command, None).expect("Failed to compress test dummy files");
 
     archive_path
 }
@@ -40,11 +47,15 @@ pub fn extract_files(archive_path: &Path) -> Vec<PathBuf> {
     // Add the suffix "results"
     extraction_output_folder.push("extraction_results");
 
-    let command = Command::Decompress {
-        files: vec![archive_path.to_owned()],
-        output_folder: Some(extraction_output_folder.clone()),
+    let command = Opts {
+        yes: false,
+        no: false,
+        cmd: Subcommand::Decompress {
+            files: vec![archive_path.to_owned()],
+            output: Some(extraction_output_folder.clone()),
+        },
     };
-    run(command, &oof::Flags::default()).expect("Failed to extract");
+    run(command, None).expect("Failed to extract");
 
     fs::read_dir(extraction_output_folder).unwrap().map(Result::unwrap).map(|entry| entry.path()).collect()
 }
