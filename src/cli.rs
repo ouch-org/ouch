@@ -5,50 +5,9 @@ use std::{
     vec::Vec,
 };
 
-use clap::{Parser, ValueHint};
+use clap::Parser;
 
-use crate::Error;
-
-#[derive(Parser, Debug)]
-#[clap(version, about)]
-pub struct Opts {
-    /// Skip overwrite questions positively.
-    #[clap(short, long, conflicts_with = "no")]
-    pub yes: bool,
-
-    /// Skip overwrite questions negatively.
-    #[clap(short, long)]
-    pub no: bool,
-
-    #[clap(subcommand)]
-    pub cmd: Subcommand,
-}
-
-#[derive(Parser, PartialEq, Eq, Debug)]
-pub enum Subcommand {
-    /// Compress files.    Alias: c
-    #[clap(alias = "c")]
-    Compress {
-        /// Files to be compressed
-        #[clap(required = true, min_values = 1)]
-        files: Vec<PathBuf>,
-
-        /// The resulting file. Its extensions specify how the files will be compressed and they need to be supported
-        #[clap(required = true, value_hint = ValueHint::FilePath)]
-        output: PathBuf,
-    },
-    /// Compress files.    Alias: d
-    #[clap(alias = "d")]
-    Decompress {
-        /// Files to be decompressed
-        #[clap(required = true, min_values = 1)]
-        files: Vec<PathBuf>,
-
-        /// Decompress files in a directory other than the current
-        #[clap(short, long, value_hint = ValueHint::DirPath)]
-        output: Option<PathBuf>,
-    },
-}
+use crate::{Error, Opts, Subcommand};
 
 impl Opts {
     /// A helper method that calls `clap::Parser::parse` and then translates relative paths to absolute.

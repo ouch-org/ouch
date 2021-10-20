@@ -12,7 +12,6 @@ use utils::colors;
 
 use crate::{
     archive,
-    cli::{Opts, Subcommand},
     error::FinalError,
     extension::{
         self,
@@ -22,7 +21,7 @@ use crate::{
     utils::nice_directory_display,
     utils::to_utf,
     utils::{self, dir_is_empty},
-    Error,
+    Error, Opts, Subcommand,
 };
 
 // Used in BufReader and BufWriter to perform less syscalls

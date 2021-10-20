@@ -7,10 +7,7 @@ use std::{
     time::Duration,
 };
 
-use ouch::{
-    cli::{Opts, Subcommand},
-    commands::run,
-};
+use ouch::{commands::run, Opts, Subcommand};
 use rand::{rngs::SmallRng, RngCore, SeedableRng};
 use tempfile::NamedTempFile;
 use utils::*;
