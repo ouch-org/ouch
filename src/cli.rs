@@ -124,7 +124,7 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
             ParsedArgs { command, flags }
         }
         Some(&"d") | Some(&"decompress") => {
-            flags_info.push(arg_flag!('o', "output"));
+            flags_info.push(arg_flag!('d', "dir"));
 
             if let Some(first_arg) = args.first() {
                 if is_typo(first_arg) {
@@ -138,7 +138,7 @@ pub fn parse_args_from(mut args: Vec<OsString>) -> crate::Result<ParsedArgs> {
             let (files, flags) = oof::filter_flags(args, &flags_info)?;
             let files = files.into_iter().map(PathBuf::from).collect();
 
-            let output_folder = flags.arg("output").map(PathBuf::from);
+            let output_folder = flags.arg("dir").map(PathBuf::from);
 
             // TODO: ensure all files are decompressible
 
@@ -203,10 +203,10 @@ mod tests {
         assert_eq!(test_cli("--version").unwrap().flags, oof::Flags::default());
 
         assert_eq!(
-            test_cli("decompress foo --yes bar --output folder").unwrap().flags,
+            test_cli("decompress foo --yes bar --dir folder").unwrap().flags,
             oof::Flags {
                 boolean_flags: vec!["yes"].into_iter().collect(),
-                argument_flags: vec![("output", OsString::from("folder"))].into_iter().collect(),
+                argument_flags: vec![("dir", OsString::from("folder"))].into_iter().collect(),
             }
         );
     }

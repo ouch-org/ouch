@@ -48,7 +48,7 @@ fn help_command() {
     {yellow}--version{reset}     Display version information.
 
 {cyan}SPECIFIC FLAGS:{reset}
-    {yellow}-o{reset}, {yellow}--output{reset} FOLDER_PATH    When decompressing, to decompress files to
+    {yellow}-d{reset}, {yellow}--dir{reset} FOLDER_PATH    When decompressing, to decompress files to
                                 another folder.
 
 Visit https://github.com/ouch-org/ouch for more usage examples.",

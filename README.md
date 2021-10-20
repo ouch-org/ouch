@@ -34,11 +34,11 @@ ouch decompress a.zip b.tar.gz c.tar
 ouch d a.zip
 ```
 
-You can redirect the decompression results to another folder with the `-o/--output` flag.
+You can redirect the decompression results to another folder with the `-d/--dir` flag.
 
 ```sh
 # Decompress 'summer_vacation.zip' inside of new folder 'pictures'
-ouch decompress summer_vacation.zip -o pictures
+ouch decompress summer_vacation.zip -d pictures
 ```
 
 ### Compressing
