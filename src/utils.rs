@@ -2,6 +2,7 @@ use std::{
     cmp, env,
     ffi::OsStr,
     fs::{self, ReadDir},
+    path::Component,
     path::{Path, PathBuf},
 };
 
@@ -22,6 +23,13 @@ pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
     Ok(())
 }
 
+pub fn strip_cur_dir(source_path: &Path) -> PathBuf {
+    source_path
+        .strip_prefix(Component::CurDir)
+        .map(|path| path.to_path_buf())
+        .unwrap_or_else(|_| source_path.to_path_buf())
+}
+
 /// Changes the process' current directory to the directory that contains the
 /// file pointed to by `filename` and returns the directory that the process
 /// was in before this function was called.
@@ -39,13 +47,27 @@ pub fn user_wants_to_overwrite(path: &Path, skip_questions_positively: Option<bo
     match skip_questions_positively {
         Some(true) => Ok(true),
         Some(false) => Ok(false),
-        None => Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE")).ask(Some(&to_utf(path))),
+        None => {
+            let path = to_utf(strip_cur_dir(path));
+            let path = Some(path.as_str());
+            let placeholder = Some("FILE");
+            Confirmation::new("Do you want to overwrite 'FILE'?", placeholder).ask(path)
+        }
     }
 }
 
 pub fn to_utf(os_str: impl AsRef<OsStr>) -> String {
     let text = format!("{:?}", os_str.as_ref());
     text.trim_matches('"').to_string()
+}
+
+pub fn nice_directory_display(os_str: impl AsRef<OsStr>) -> String {
+    let text = to_utf(os_str);
+    if text == "." {
+        "current directory".to_string()
+    } else {
+        format!("'{}'", text)
+    }
 }
 
 pub struct Bytes {

@@ -16,6 +16,7 @@
 2. Automatic format detection.
 3. Same syntax, various formats.
 4. Encoding and decoding streams, it's fast. <!-- We should post benchmarks in our wiki and link them here -->
+5. No runtime dependencies (for _Linux x86_64_).
 
 ## Usage
 
@@ -59,6 +60,8 @@ ouch compress * everything.tar.gz.xz.bz.zst.gz.gz.gz.gz.gz
 `ouch` checks for the extensions of the **output file** to decide which formats should be used.
 
 ## Installation
+
+[![Packaging status](https://repology.org/badge/vertical-allrepos/ouch.svg)](https://repology.org/project/ouch/versions)
 
 ### Downloading the latest binary
 
