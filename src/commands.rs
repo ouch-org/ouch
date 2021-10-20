@@ -318,7 +318,7 @@ fn decompress_file(
         utils::create_dir_if_non_existent(output_folder)?;
         let zip_archive = zip::ZipArchive::new(reader)?;
         let _files = crate::archive::zip::unpack_archive(zip_archive, output_folder, flags)?;
-        info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
+        info!("Successfully decompressed archive in '{}'.", to_utf(output_folder));
         return Ok(());
     }
 
@@ -352,31 +352,31 @@ fn decompress_file(
             let mut writer = fs::File::create(&output_path)?;
 
             io::copy(&mut reader, &mut writer)?;
-            info!("Successfully uncompressed archive in '{}'.", to_utf(output_path));
+            info!("Successfully decompressed archive in '{}'.", to_utf(output_path));
         }
         Tar => {
             let _ = crate::archive::tar::unpack_archive(reader, output_folder, flags)?;
-            info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
+            info!("Successfully decompressed archive in '{}'.", to_utf(output_folder));
         }
         Tgz => {
             let reader = chain_reader_decoder(&Gzip, reader)?;
             let _ = crate::archive::tar::unpack_archive(reader, output_folder, flags)?;
-            info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
+            info!("Successfully decompressed archive in '{}'.", to_utf(output_folder));
         }
         Tbz => {
             let reader = chain_reader_decoder(&Bzip, reader)?;
             let _ = crate::archive::tar::unpack_archive(reader, output_folder, flags)?;
-            info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
+            info!("Successfully decompressed archive in '{}'.", to_utf(output_folder));
         }
         Tlzma => {
             let reader = chain_reader_decoder(&Lzma, reader)?;
             let _ = crate::archive::tar::unpack_archive(reader, output_folder, flags)?;
-            info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
+            info!("Successfully decompressed archive in '{}'.", to_utf(output_folder));
         }
         Tzst => {
             let reader = chain_reader_decoder(&Zstd, reader)?;
             let _ = crate::archive::tar::unpack_archive(reader, output_folder, flags)?;
-            info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
+            info!("Successfully decompressed archive in '{}'.", to_utf(output_folder));
         }
         Zip => {
             eprintln!("Compressing first into .zip.");
@@ -392,7 +392,7 @@ fn decompress_file(
 
             let _ = crate::archive::zip::unpack_archive(zip_archive, output_folder, flags)?;
 
-            info!("Successfully uncompressed archive in '{}'.", to_utf(output_folder));
+            info!("Successfully decompressed archive in '{}'.", to_utf(output_folder));
         }
     }
 
