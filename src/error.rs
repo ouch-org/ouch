@@ -11,7 +11,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{oof, utils::colors::*};
+use crate::utils::colors::*;
 
 #[derive(Debug, PartialEq)]
 pub enum Error {
@@ -24,7 +24,6 @@ pub enum Error {
     PermissionDenied,
     UnsupportedZipArchive(&'static str),
     InternalError,
-    OofError(oof::OofError),
     CompressingRootFolder,
     MissingArgumentsForCompression,
     MissingArgumentsForDecompression,
@@ -127,7 +126,6 @@ impl fmt::Display for Error {
                     .detail("Please help us improve by reporting the issue at:")
                     .detail(format!("    {}https://github.com/vrmiguel/ouch/issues ", *CYAN))
             }
-            Error::OofError(err) => FinalError::with_title(err),
             Error::IoError { reason } => FinalError::with_title(reason),
             Error::CompressionTypo => {
                 FinalError::with_title("Possible typo detected")
@@ -177,11 +175,5 @@ impl From<zip::result::ZipError> for Error {
 impl From<walkdir::Error> for Error {
     fn from(err: walkdir::Error) -> Self {
         Self::WalkdirError { reason: err.to_string() }
-    }
-}
-
-impl From<oof::OofError> for Error {
-    fn from(err: oof::OofError) -> Self {
-        Self::OofError(err)
     }
 }

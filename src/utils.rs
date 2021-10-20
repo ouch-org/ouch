@@ -6,7 +6,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{dialogs::Confirmation, info, oof};
+use crate::{dialogs::Confirmation, info};
 
 /// Checks if the given path represents an empty directory.
 pub fn dir_is_empty(dir_path: &Path) -> bool {
@@ -43,18 +43,17 @@ pub fn cd_into_same_dir_as(filename: &Path) -> crate::Result<PathBuf> {
     Ok(previous_location)
 }
 
-pub fn user_wants_to_overwrite(path: &Path, flags: &oof::Flags) -> crate::Result<bool> {
-    match (flags.is_present("yes"), flags.is_present("no")) {
-        (true, true) => {
-            unreachable!("This should've been cutted out in the ~/src/cli.rs filter flags function.")
+pub fn user_wants_to_overwrite(path: &Path, skip_questions_positively: Option<bool>) -> crate::Result<bool> {
+    match skip_questions_positively {
+        Some(true) => Ok(true),
+        Some(false) => Ok(false),
+        None => {
+            let path = to_utf(strip_cur_dir(path));
+            let path = Some(path.as_str());
+            let placeholder = Some("FILE");
+            Confirmation::new("Do you want to overwrite 'FILE'?", placeholder).ask(path)
         }
-        (true, _) => return Ok(true),
-        (_, true) => return Ok(false),
-        _ => {}
     }
-
-    let path = strip_cur_dir(path);
-    Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE")).ask(Some(&to_utf(path)))
 }
 
 pub fn to_utf(os_str: impl AsRef<OsStr>) -> String {
