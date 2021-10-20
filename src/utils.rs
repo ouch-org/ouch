@@ -55,6 +55,15 @@ pub fn to_utf(os_str: impl AsRef<OsStr>) -> String {
     text.trim_matches('"').to_string()
 }
 
+pub fn nice_directory_display(os_str: impl AsRef<OsStr>) -> String {
+    let text = to_utf(os_str);
+    if text == "." {
+        "current directory".to_string()
+    } else {
+        format!("'{}'", text)
+    }
+}
+
 pub struct Bytes {
     bytes: f64,
 }
