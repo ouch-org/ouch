@@ -3,7 +3,6 @@
 use std::{
     env, fs,
     io::{self, prelude::*},
-    path::Component,
     path::{Path, PathBuf},
 };
 
@@ -12,7 +11,7 @@ use zip::{self, read::ZipFile, ZipArchive};
 
 use crate::{
     info, oof,
-    utils::{self, dir_is_empty, Bytes},
+    utils::{self, dir_is_empty, strip_cur_dir, Bytes},
 };
 
 use self::utf8::get_invalid_utf8_paths;
@@ -48,7 +47,7 @@ where
                         fs::create_dir_all(&path)?;
                     }
                 }
-                let file_path = file_path.strip_prefix(Component::CurDir).unwrap_or_else(|_| file_path.as_path());
+                let file_path = strip_cur_dir(file_path.as_path());
 
                 info!("{:?} extracted. ({})", file_path.display(), Bytes::new(file.size()));
 

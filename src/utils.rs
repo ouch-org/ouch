@@ -23,6 +23,13 @@ pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
     Ok(())
 }
 
+pub fn strip_cur_dir(source_path: &Path) -> PathBuf {
+    source_path
+        .strip_prefix(Component::CurDir)
+        .map(|path| path.to_path_buf())
+        .unwrap_or_else(|_| source_path.to_path_buf())
+}
+
 /// Changes the process' current directory to the directory that contains the
 /// file pointed to by `filename` and returns the directory that the process
 /// was in before this function was called.
@@ -46,7 +53,7 @@ pub fn user_wants_to_overwrite(path: &Path, flags: &oof::Flags) -> crate::Result
         _ => {}
     }
 
-    let path = path.strip_prefix(Component::CurDir).unwrap_or_else(|_| path);
+    let path = strip_cur_dir(path);
     Confirmation::new("Do you want to overwrite 'FILE'?", Some("FILE")).ask(Some(&to_utf(path)))
 }
 
