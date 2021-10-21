@@ -19,6 +19,12 @@ pub enum CompressionFormat {
     Zip,   // .zip
 }
 
+impl CompressionFormat {
+    pub fn is_archive_format(&self) -> bool {
+        matches!(self, Tar | Tgz | Tbz | Tlzma | Tzst | Zstd | Zip)
+    }
+}
+
 impl fmt::Display for CompressionFormat {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
