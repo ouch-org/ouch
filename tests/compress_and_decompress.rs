@@ -32,7 +32,7 @@ fn sanity_check_through_mime() {
 
     let formats = [
         "tar", "zip", "tar.gz", "tgz", "tbz", "tbz2", "txz", "tlz", "tlzma", "tzst", "tar.bz", "tar.bz2", "tar.lzma",
-        "tar.xz", "tar.zst",
+        "tar.xz", "zst",
     ];
 
     let expected_mimes = [
@@ -79,7 +79,6 @@ fn test_each_format() {
     test_compressing_and_decompressing_archive("tar.xz");
     test_compressing_and_decompressing_archive("tar.lz");
     test_compressing_and_decompressing_archive("tar.lzma");
-    test_compressing_and_decompressing_archive("tar.zst");
     test_compressing_and_decompressing_archive("tgz");
     test_compressing_and_decompressing_archive("tbz");
     test_compressing_and_decompressing_archive("tbz2");
@@ -97,7 +96,7 @@ fn test_each_format() {
 
     // Why not
     test_compressing_and_decompressing_archive(
-        "tar.gz.gz.gz.gz.gz.gz.gz.gz.zst.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.lz.lz.lz.lz.lz.lz.lz.lz.lz.lz.bz.bz.bz.bz.bz.bz.bz",
+        "tar.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.gz.lz.lz.lz.lz.lz.lz.lz.lz.lz.lz.bz.bz.bz.bz.bz.bz.bz",
     );
 }
 
