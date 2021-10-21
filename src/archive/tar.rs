@@ -11,13 +11,13 @@ use walkdir::WalkDir;
 
 use crate::{
     info,
-    utils::{self, Bytes},
+    utils::{self, Bytes, QuestionPolicy},
 };
 
 pub fn unpack_archive(
     reader: Box<dyn Read>,
     output_folder: &Path,
-    skip_questions_positively: Option<bool>,
+    question_policy: QuestionPolicy,
 ) -> crate::Result<Vec<PathBuf>> {
     let mut archive = tar::Archive::new(reader);
 
@@ -26,7 +26,7 @@ pub fn unpack_archive(
         let mut file = file?;
 
         let file_path = output_folder.join(file.path()?);
-        if file_path.exists() && !utils::user_wants_to_overwrite(&file_path, skip_questions_positively)? {
+        if file_path.exists() && !utils::user_wants_to_overwrite(&file_path, question_policy)? {
             continue;
         }
 

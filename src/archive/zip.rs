@@ -11,7 +11,7 @@ use zip::{self, read::ZipFile, ZipArchive};
 
 use crate::{
     info,
-    utils::{self, dir_is_empty,strip_cur_dir, Bytes},
+    utils::{self, dir_is_empty, strip_cur_dir, Bytes, QuestionPolicy},
 };
 
 use self::utf8::get_invalid_utf8_paths;
@@ -20,7 +20,7 @@ use self::utf8::get_invalid_utf8_paths;
 pub fn unpack_archive<R>(
     mut archive: ZipArchive<R>,
     into: &Path,
-    skip_questions_positively: Option<bool>,
+    question_policy: QuestionPolicy,
 ) -> crate::Result<Vec<PathBuf>>
 where
     R: Read + Seek,
@@ -34,7 +34,7 @@ where
         };
 
         let file_path = into.join(file_path);
-        if file_path.exists() && !utils::user_wants_to_overwrite(&file_path, skip_questions_positively)? {
+        if file_path.exists() && !utils::user_wants_to_overwrite(&file_path, question_policy)? {
             continue;
         }
 

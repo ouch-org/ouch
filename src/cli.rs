@@ -7,6 +7,7 @@ use std::{
 
 use clap::{Parser, ValueHint};
 
+pub use crate::utils::QuestionPolicy;
 use crate::Error;
 
 #[derive(Parser, Debug)]
@@ -53,18 +54,18 @@ pub enum Subcommand {
 impl Opts {
     /// A helper method that calls `clap::Parser::parse` and then translates relative paths to absolute.
     /// Also determines if the user wants to skip questions or not
-    pub fn parse_args() -> crate::Result<(Self, Option<bool>)> {
+    pub fn parse_args() -> crate::Result<(Self, QuestionPolicy)> {
         let mut opts: Self = Self::parse();
 
         let (Subcommand::Compress { files, .. } | Subcommand::Decompress { files, .. }) = &mut opts.cmd;
         *files = canonicalize_files(files)?;
 
         let skip_questions_positively = if opts.yes {
-            Some(true)
+            QuestionPolicy::AlwaysYes
         } else if opts.no {
-            Some(false)
+            QuestionPolicy::AlwaysNo
         } else {
-            None
+            QuestionPolicy::Ask
         };
 
         Ok((opts, skip_questions_positively))

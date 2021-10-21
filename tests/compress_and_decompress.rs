@@ -8,7 +8,7 @@ use std::{
 };
 
 use ouch::{
-    cli::{Opts, Subcommand},
+    cli::{Opts, QuestionPolicy, Subcommand},
     commands::run,
 };
 use rand::{rngs::SmallRng, RngCore, SeedableRng};
@@ -183,7 +183,7 @@ fn extract_files(archive_path: &Path) -> Vec<PathBuf> {
             output: Some(extraction_output_folder.clone()),
         },
     };
-    run(command, None).expect("Failed to extract");
+    run(command, QuestionPolicy::Ask).expect("Failed to extract");
 
     fs::read_dir(extraction_output_folder).unwrap().map(Result::unwrap).map(|entry| entry.path()).collect()
 }
