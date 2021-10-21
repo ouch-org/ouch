@@ -7,7 +7,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use ouch::{commands::run, Opts, Subcommand};
+use ouch::{cli::QuestionPolicy, commands::run, Opts, Subcommand};
 
 pub fn create_empty_dir(at: &Path, filename: &str) -> PathBuf {
     let dirname = Path::new(filename);
@@ -27,7 +27,7 @@ pub fn compress_files(at: &Path, paths_to_compress: &[PathBuf], format: &str) ->
         no: false,
         cmd: Subcommand::Compress { files: paths_to_compress.to_vec(), output: archive_path.clone() },
     };
-    run(command, None).expect("Failed to compress test dummy files");
+    run(command, QuestionPolicy::Ask).expect("Failed to compress test dummy files");
 
     archive_path
 }
@@ -52,7 +52,7 @@ pub fn extract_files(archive_path: &Path) -> Vec<PathBuf> {
             output: Some(extraction_output_folder.clone()),
         },
     };
-    run(command, None).expect("Failed to extract");
+    run(command, QuestionPolicy::Ask).expect("Failed to extract");
 
     fs::read_dir(extraction_output_folder).unwrap().map(Result::unwrap).map(|entry| entry.path()).collect()
 }

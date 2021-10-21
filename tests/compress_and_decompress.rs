@@ -7,7 +7,7 @@ use std::{
     time::Duration,
 };
 
-use ouch::{commands::run, Opts, Subcommand};
+use ouch::{cli::QuestionPolicy, commands::run, Opts, Subcommand};
 use rand::{rngs::SmallRng, RngCore, SeedableRng};
 use tempfile::NamedTempFile;
 use utils::*;
@@ -180,7 +180,7 @@ fn extract_files(archive_path: &Path) -> Vec<PathBuf> {
             output: Some(extraction_output_folder.clone()),
         },
     };
-    run(command, None).expect("Failed to extract");
+    run(command, QuestionPolicy::Ask).expect("Failed to extract");
 
     fs::read_dir(extraction_output_folder).unwrap().map(Result::unwrap).map(|entry| entry.path()).collect()
 }
