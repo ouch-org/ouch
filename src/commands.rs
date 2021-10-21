@@ -56,7 +56,9 @@ pub fn run(args: Opts, skip_questions_positively: Option<bool>) -> crate::Result
                 return Err(Error::with_reason(reason));
             }
 
-            if matches!(&formats[0], Bzip | Gzip | Lzma) && represents_several_files(&files) {
+            if !formats.get(0).map(CompressionFormat::is_archive_format).unwrap_or(false)
+                && represents_several_files(&files)
+            {
                 // This piece of code creates a suggestion for compressing multiple files
                 // It says:
                 // Change from file.bz.xz
@@ -84,7 +86,7 @@ pub fn run(args: Opts, skip_questions_positively: Option<bool>) -> crate::Result
                 return Err(Error::with_reason(reason));
             }
 
-            if let Some(format) = formats.iter().skip(1).find(|format| matches!(format, Tar | Zip)) {
+            if let Some(format) = formats.iter().skip(1).find(|format| format.is_archive_format()) {
                 let reason = FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))
                     .detail(format!("Found the format '{}' in an incorrect position.", format))
                     .detail(format!("'{}' can only be used at the start of the file extension.", format))
