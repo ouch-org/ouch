@@ -43,11 +43,11 @@ pub fn cd_into_same_dir_as(filename: &Path) -> crate::Result<PathBuf> {
     Ok(previous_location)
 }
 
-pub fn user_wants_to_overwrite(path: &Path, skip_questions_positively: Option<bool>) -> crate::Result<bool> {
-    match skip_questions_positively {
-        Some(true) => Ok(true),
-        Some(false) => Ok(false),
-        None => {
+pub fn user_wants_to_overwrite(path: &Path, question_policy: QuestionPolicy) -> crate::Result<bool> {
+    match question_policy {
+        QuestionPolicy::AlwaysYes => Ok(true),
+        QuestionPolicy::AlwaysNo => Ok(false),
+        QuestionPolicy::Ask => {
             let path = to_utf(strip_cur_dir(path));
             let path = Some(path.as_str());
             let placeholder = Some("FILE");
@@ -124,6 +124,17 @@ impl std::fmt::Display for Bytes {
         write!(f, "{:.2} ", num / delimiter.powi(exponent))?;
         write!(f, "{}B", Bytes::UNIT_PREFIXES[exponent as usize])
     }
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+/// How overwrite questions should be handled
+pub enum QuestionPolicy {
+    /// Ask ever time
+    Ask,
+    /// Skip overwrite questions positively
+    AlwaysYes,
+    /// Skip overwrite questions negatively
+    AlwaysNo,
 }
 
 #[cfg(test)]
