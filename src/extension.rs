@@ -21,7 +21,7 @@ pub enum CompressionFormat {
 
 impl CompressionFormat {
     pub fn is_archive_format(&self) -> bool {
-        matches!(self, Tar | Tgz | Tbz | Tlzma | Tzst | Zstd | Zip)
+        matches!(self, Tar | Tgz | Tbz | Tlzma | Tzst | Zip)
     }
 }
 
