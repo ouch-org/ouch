@@ -7,8 +7,7 @@ use std::{
 
 use clap::Parser;
 
-pub use crate::utils::QuestionPolicy;
-use crate::{Error, Opts, Subcommand};
+use crate::{Error, Opts, QuestionPolicy, Subcommand};
 
 impl Opts {
     /// A helper method that calls `clap::Parser::parse` and then translates relative paths to absolute.

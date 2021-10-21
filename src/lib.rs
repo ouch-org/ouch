@@ -19,6 +19,7 @@ mod utils;
 
 pub use error::{Error, Result};
 pub use opts::{Opts, Subcommand};
+pub use utils::QuestionPolicy;
 
 /// The status code ouch has when an error is encountered
 pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;

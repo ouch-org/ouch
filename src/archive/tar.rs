@@ -11,7 +11,8 @@ use walkdir::WalkDir;
 
 use crate::{
     info,
-    utils::{self, Bytes, QuestionPolicy},
+    utils::{self, Bytes},
+    QuestionPolicy,
 };
 
 pub fn unpack_archive(

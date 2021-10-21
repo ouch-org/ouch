@@ -7,7 +7,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use ouch::{cli::QuestionPolicy, commands::run, Opts, Subcommand};
+use ouch::{commands::run, Opts, QuestionPolicy, Subcommand};
 
 pub fn create_empty_dir(at: &Path, filename: &str) -> PathBuf {
     let dirname = Path::new(filename);
