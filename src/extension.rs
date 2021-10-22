@@ -51,17 +51,17 @@ pub fn separate_known_extensions_from_name(mut path: &Path) -> (&Path, Vec<Compr
 
     // While there is known extensions at the tail, grab them
     while let Some(extension) = path.extension().and_then(OsStr::to_str) {
-        extensions.push(match extension {
-            "tar" => Tar,
-            // "tgz" => Tgz,
-            // "tbz" | "tbz2" => Tbz,
-            // "txz" | "tlz" | "tlzma" => Tlzma,
-            // "tzst" => Tzst,
-            "zip" => Zip,
-            "bz" | "bz2" => Bzip,
-            "gz" => Gzip,
-            "xz" | "lzma" | "lz" => Lzma,
-            "zst" => Zstd,
+        extensions.append(&mut match extension {
+            "tar" => vec![Tar],
+            "tgz" => vec![Gzip, Tar],
+            "tbz" | "tbz2" => vec![Bzip, Tar],
+            "txz" | "tlz" | "tlzma" => vec![Lzma, Tar],
+            "tzst" => vec![Zstd, Tar],
+            "zip" => vec![Zip],
+            "bz" | "bz2" => vec![Bzip],
+            "gz" => vec![Gzip],
+            "xz" | "lzma" | "lz" => vec![Lzma],
+            "zst" => vec![Zstd],
             _ => break,
         });
 
