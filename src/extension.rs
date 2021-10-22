@@ -7,12 +7,12 @@ use self::CompressionFormat::*;
 #[derive(Clone, PartialEq, Eq, Debug)]
 /// Accepted extensions for input and output
 pub enum CompressionFormat {
-    Gzip,  // .gz
-    Bzip,  // .bz
-    Lzma,  // .lzma
-    Tar,   // .tar (technically not a compression extension, but will do for now)
-    Zstd,  // .zst
-    Zip,   // .zip
+    Gzip, // .gz
+    Bzip, // .bz
+    Lzma, // .lzma
+    Tar,  // .tar (technically not a compression extension, but will do for now)
+    Zstd, // .zst
+    Zip,  // .zip
 }
 
 impl CompressionFormat {
