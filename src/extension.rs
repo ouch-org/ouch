@@ -11,17 +11,13 @@ pub enum CompressionFormat {
     Bzip,  // .bz
     Lzma,  // .lzma
     Tar,   // .tar (technically not a compression extension, but will do for now)
-    Tgz,   // .tgz
-    Tbz,   // .tbz
-    Tlzma, // .tlzma
-    Tzst,  // .tzst
     Zstd,  // .zst
     Zip,   // .zip
 }
 
 impl CompressionFormat {
     pub fn is_archive_format(&self) -> bool {
-        matches!(self, Tar | Tgz | Tbz | Tlzma | Tzst | Zip)
+        matches!(self, Tar | Zip)
     }
 }
 
@@ -36,10 +32,6 @@ impl fmt::Display for CompressionFormat {
                 Zstd => ".zst",
                 Lzma => ".lz",
                 Tar => ".tar",
-                Tgz => ".tgz",
-                Tbz => ".tbz",
-                Tlzma => ".tlz",
-                Tzst => ".tzst",
                 Zip => ".zip",
             }
         )
@@ -61,10 +53,10 @@ pub fn separate_known_extensions_from_name(mut path: &Path) -> (&Path, Vec<Compr
     while let Some(extension) = path.extension().and_then(OsStr::to_str) {
         extensions.push(match extension {
             "tar" => Tar,
-            "tgz" => Tgz,
-            "tbz" | "tbz2" => Tbz,
-            "txz" | "tlz" | "tlzma" => Tlzma,
-            "tzst" => Tzst,
+            // "tgz" => Tgz,
+            // "tbz" | "tbz2" => Tbz,
+            // "txz" | "tlz" | "tlzma" => Tlzma,
+            // "tzst" => Tzst,
             "zip" => Zip,
             "bz" | "bz2" => Bzip,
             "gz" => Gzip,

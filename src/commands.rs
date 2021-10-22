@@ -222,26 +222,6 @@ fn compress_files(files: Vec<PathBuf>, formats: Vec<CompressionFormat>, output_f
             let mut writer = archive::tar::build_archive_from_paths(&files, writer)?;
             writer.flush()?;
         }
-        Tgz => {
-            let encoder = flate2::write::GzEncoder::new(writer, Default::default());
-            let writer = archive::tar::build_archive_from_paths(&files, encoder)?;
-            writer.finish()?.flush()?;
-        }
-        Tbz => {
-            let encoder = bzip2::write::BzEncoder::new(writer, Default::default());
-            let writer = archive::tar::build_archive_from_paths(&files, encoder)?;
-            writer.finish()?.flush()?;
-        }
-        Tlzma => {
-            let encoder = xz2::write::XzEncoder::new(writer, 6);
-            let writer = archive::tar::build_archive_from_paths(&files, encoder)?;
-            writer.finish()?.flush()?;
-        }
-        Tzst => {
-            let encoder = zstd::stream::write::Encoder::new(writer, Default::default())?;
-            let writer = archive::tar::build_archive_from_paths(&files, encoder)?;
-            writer.finish()?.flush()?;
-        }
         Zip => {
             eprintln!("{yellow}Warning:{reset}", yellow = *colors::YELLOW, reset = *colors::RESET);
             eprintln!("\tCompressing .zip entirely in memory.");
@@ -331,26 +311,6 @@ fn decompress_file(
             info!("Successfully decompressed archive in {}.", nice_directory_display(output_path));
         }
         Tar => {
-            let _ = crate::archive::tar::unpack_archive(reader, output_folder, skip_questions_positively)?;
-            info!("Successfully decompressed archive in {}.", nice_directory_display(output_folder));
-        }
-        Tgz => {
-            let reader = chain_reader_decoder(&Gzip, reader)?;
-            let _ = crate::archive::tar::unpack_archive(reader, output_folder, skip_questions_positively)?;
-            info!("Successfully decompressed archive in {}.", nice_directory_display(output_folder));
-        }
-        Tbz => {
-            let reader = chain_reader_decoder(&Bzip, reader)?;
-            let _ = crate::archive::tar::unpack_archive(reader, output_folder, skip_questions_positively)?;
-            info!("Successfully decompressed archive in {}.", nice_directory_display(output_folder));
-        }
-        Tlzma => {
-            let reader = chain_reader_decoder(&Lzma, reader)?;
-            let _ = crate::archive::tar::unpack_archive(reader, output_folder, skip_questions_positively)?;
-            info!("Successfully decompressed archive in {}.", nice_directory_display(output_folder));
-        }
-        Tzst => {
-            let reader = chain_reader_decoder(&Zstd, reader)?;
             let _ = crate::archive::tar::unpack_archive(reader, output_folder, skip_questions_positively)?;
             info!("Successfully decompressed archive in {}.", nice_directory_display(output_folder));
         }
