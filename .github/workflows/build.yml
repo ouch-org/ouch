@@ -276,10 +276,8 @@ jobs:
       #     path: target\x86_64-pc-windows-gnu\release\ouch.exe
 
   fmt:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+    name: Check sourcecode format
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout sources
@@ -293,12 +291,6 @@ jobs:
           target: x86_64-unknown-linux-musl
           components: rustfmt
           override: true
-
-      - name: Run cargo build
-        uses: actions-rs/cargo@v1
-        if: ${{ matrix.os=='windows-latest' }}
-        with:
-          command: build
 
       - name: Check format with cargo fmt
         uses: actions-rs/cargo@v1
