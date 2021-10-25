@@ -294,6 +294,12 @@ jobs:
           components: rustfmt
           override: true
 
+      - name: Run cargo build
+        uses: actions-rs/cargo@v1
+        if: ${{ matrix.os=='windows-latest' }}
+        with:
+          command: build
+
       - name: Check format with cargo fmt
         uses: actions-rs/cargo@v1
         with:
