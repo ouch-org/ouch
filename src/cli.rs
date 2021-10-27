@@ -10,6 +10,7 @@ use clap::{Parser, ValueHint};
 pub use crate::utils::QuestionPolicy;
 use crate::Error;
 
+/// Command line options
 #[derive(Parser, Debug)]
 #[clap(version, about)]
 pub struct Opts {
@@ -21,10 +22,12 @@ pub struct Opts {
     #[clap(short, long)]
     pub no: bool,
 
+    /// Action to take
     #[clap(subcommand)]
     pub cmd: Subcommand,
 }
 
+/// Actions to take
 #[derive(Parser, PartialEq, Eq, Debug)]
 pub enum Subcommand {
     /// Compress files.    Alias: c
@@ -38,7 +41,7 @@ pub enum Subcommand {
         #[clap(required = true, value_hint = ValueHint::FilePath)]
         output: PathBuf,
     },
-    /// Compress files.    Alias: d
+    /// Decompress files.    Alias: d
     #[clap(alias = "d")]
     Decompress {
         /// Files to be decompressed

@@ -4,12 +4,14 @@
 //! 1. It's required by `main.rs`, or
 //! 2. It's required by some integration tests at tests/ folder.
 
+#![warn(missing_docs)]
+
 // Public modules
+pub mod archive;
 pub mod cli;
 pub mod commands;
 
 // Private modules
-pub mod archive;
 mod dialogs;
 mod error;
 mod extension;

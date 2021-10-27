@@ -14,6 +14,7 @@ use crate::{
     utils::{self, Bytes, QuestionPolicy},
 };
 
+/// Unpacks the archive given by `archive` into the folder given by `into`.
 pub fn unpack_archive(
     reader: Box<dyn Read>,
     output_folder: &Path,
@@ -40,6 +41,7 @@ pub fn unpack_archive(
     Ok(files_unpacked)
 }
 
+/// Compresses the archives given by `input_filenames` into the file given previously to `writer`.
 pub fn build_archive_from_paths<W>(input_filenames: &[PathBuf], writer: W) -> crate::Result<W>
 where
     W: Write,

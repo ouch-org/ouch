@@ -6,6 +6,8 @@
 //! TODO: wrap `FinalError` in a variant to keep all `FinalError::display_and_crash()` function
 //! calls inside of this module.
 
+#![allow(missing_docs)]
+
 use std::{
     fmt::{self, Display},
     path::{Path, PathBuf},
@@ -13,6 +15,7 @@ use std::{
 
 use crate::utils::colors::*;
 
+/// Custom Ouch Errors
 #[derive(Debug, PartialEq)]
 pub enum Error {
     UnknownExtensionError(String),
