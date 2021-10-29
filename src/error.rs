@@ -21,7 +21,7 @@ pub enum Error {
     FileNotFound(PathBuf),
     AlreadyExists,
     InvalidZipArchive(&'static str),
-    PermissionDenied,
+    PermissionDenied { error_title: String },
     UnsupportedZipArchive(&'static str),
     InternalError,
     OofError(oof::OofError),
@@ -156,7 +156,9 @@ impl fmt::Display for Error {
             Error::UnknownExtensionError(_) => todo!(),
             Error::AlreadyExists => todo!(),
             Error::InvalidZipArchive(_) => todo!(),
-            Error::PermissionDenied => todo!(),
+            Error::PermissionDenied { error_title } => {
+                FinalError::with_title(error_title).detail("Permission denied").to_owned()
+            }
             Error::UnsupportedZipArchive(_) => todo!(),
             Error::Custom { reason } => reason.clone(),
         };
@@ -174,8 +176,8 @@ impl Error {
 impl From<std::io::Error> for Error {
     fn from(err: std::io::Error) -> Self {
         match err.kind() {
-            std::io::ErrorKind::NotFound => panic!("{}", err),
-            std::io::ErrorKind::PermissionDenied => Self::PermissionDenied,
+            std::io::ErrorKind::NotFound => todo!(),
+            std::io::ErrorKind::PermissionDenied => Self::PermissionDenied { error_title: err.to_string() },
             std::io::ErrorKind::AlreadyExists => Self::AlreadyExists,
             _other => Self::IoError { reason: err.to_string() },
         }
