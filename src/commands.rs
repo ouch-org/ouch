@@ -346,31 +346,25 @@ fn decompress_file(
             let mut writer = fs::File::create(&output_path)?;
 
             io::copy(&mut reader, &mut writer)?;
-            info!("Successfully decompressed archive in {}.", nice_directory_display(output_path));
         }
         Tar => {
             let _ = crate::archive::tar::unpack_archive(reader, output_folder, question_policy)?;
-            info!("Successfully decompressed archive in {}.", nice_directory_display(output_folder));
         }
         Tgz => {
             let reader = chain_reader_decoder(&Gzip, reader)?;
             let _ = crate::archive::tar::unpack_archive(reader, output_folder, question_policy)?;
-            info!("Successfully decompressed archive in {}.", nice_directory_display(output_folder));
         }
         Tbz => {
             let reader = chain_reader_decoder(&Bzip, reader)?;
             let _ = crate::archive::tar::unpack_archive(reader, output_folder, question_policy)?;
-            info!("Successfully decompressed archive in {}.", nice_directory_display(output_folder));
         }
         Tlzma => {
             let reader = chain_reader_decoder(&Lzma, reader)?;
             let _ = crate::archive::tar::unpack_archive(reader, output_folder, question_policy)?;
-            info!("Successfully decompressed archive in {}.", nice_directory_display(output_folder));
         }
         Tzst => {
             let reader = chain_reader_decoder(&Zstd, reader)?;
             let _ = crate::archive::tar::unpack_archive(reader, output_folder, question_policy)?;
-            info!("Successfully decompressed archive in {}.", nice_directory_display(output_folder));
         }
         Zip => {
             eprintln!("Compressing first into .zip.");
@@ -385,10 +379,10 @@ fn decompress_file(
             let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
 
             let _ = crate::archive::zip::unpack_archive(zip_archive, output_folder, question_policy)?;
-
-            info!("Successfully decompressed archive in {}.", nice_directory_display(output_folder));
         }
     }
+
+    info!("Successfully decompressed archive in {}.", nice_directory_display(output_folder));
 
     Ok(())
 }
