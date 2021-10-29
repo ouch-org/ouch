@@ -205,3 +205,9 @@ impl From<oof::OofError> for Error {
         Self::OofError(err)
     }
 }
+
+impl From<FinalError> for Error {
+    fn from(err: FinalError) -> Self {
+        Self::Custom { reason: err }
+    }
+}
