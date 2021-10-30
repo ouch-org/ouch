@@ -9,7 +9,10 @@ use std::{
 
 use fs_err as fs;
 
-use ouch::{cli::Command, commands::run, oof};
+use ouch::{
+    cli::{Opts, QuestionPolicy, Subcommand},
+    commands::run,
+};
 use rand::{rngs::SmallRng, RngCore, SeedableRng};
 use tempfile::NamedTempFile;
 use utils::*;
@@ -29,12 +32,22 @@ fn sanity_check_through_mime() {
     let bytes = generate_random_file_content(&mut SmallRng::from_entropy());
     test_file.write_all(&bytes).expect("to successfully write bytes to the file");
 
-    let formats = ["tar", "zip", "tar.gz", "tar.bz", "tar.bz2", "tar.lzma", "tar.xz", "tar.zst"];
+    let formats = [
+        "tar", "zip", "tar.gz", "tgz", "tbz", "tbz2", "txz", "tlz", "tlzma", "tzst", "tar.bz", "tar.bz2", "tar.lzma",
+        "tar.xz", "tar.zst",
+    ];
 
     let expected_mimes = [
         "application/x-tar",
         "application/zip",
         "application/gzip",
+        "application/gzip",
+        "application/x-bzip2",
+        "application/x-bzip2",
+        "application/x-xz",
+        "application/x-xz",
+        "application/x-xz",
+        "application/zstd",
         "application/x-bzip2",
         "application/x-bzip2",
         "application/x-xz",
@@ -69,6 +82,13 @@ fn test_each_format() {
     test_compressing_and_decompressing_archive("tar.lz");
     test_compressing_and_decompressing_archive("tar.lzma");
     test_compressing_and_decompressing_archive("tar.zst");
+    test_compressing_and_decompressing_archive("tgz");
+    test_compressing_and_decompressing_archive("tbz");
+    test_compressing_and_decompressing_archive("tbz2");
+    test_compressing_and_decompressing_archive("txz");
+    test_compressing_and_decompressing_archive("tlz");
+    test_compressing_and_decompressing_archive("tlzma");
+    test_compressing_and_decompressing_archive("tzst");
     test_compressing_and_decompressing_archive("zip");
     test_compressing_and_decompressing_archive("zip.gz");
     test_compressing_and_decompressing_archive("zip.bz");
@@ -103,9 +123,9 @@ fn test_compressing_and_decompressing_archive(format: &str) {
         (0..quantity_of_files).map(|_| generate_random_file_content(&mut rng)).collect();
 
     // Create them
-    let mut file_paths = create_files(&testing_dir_path, &contents_of_files);
+    let mut file_paths = create_files(testing_dir_path, &contents_of_files);
     // Compress them
-    let compressed_archive_path = compress_files(&testing_dir_path, &file_paths, &format);
+    let compressed_archive_path = compress_files(testing_dir_path, &file_paths, format);
     // Decompress them
     let mut extracted_paths = extract_files(&compressed_archive_path);
 
@@ -157,11 +177,15 @@ fn extract_files(archive_path: &Path) -> Vec<PathBuf> {
     // Add the suffix "results"
     extraction_output_folder.push("extraction_results");
 
-    let command = Command::Decompress {
-        files: vec![archive_path.to_owned()],
-        output_folder: Some(extraction_output_folder.clone()),
+    let command = Opts {
+        yes: false,
+        no: false,
+        cmd: Subcommand::Decompress {
+            files: vec![archive_path.to_owned()],
+            output: Some(extraction_output_folder.clone()),
+        },
     };
-    run(command, &oof::Flags::default()).expect("Failed to extract");
+    run(command, QuestionPolicy::Ask).expect("Failed to extract");
 
     fs::read_dir(extraction_output_folder).unwrap().map(Result::unwrap).map(|entry| entry.path()).collect()
 }

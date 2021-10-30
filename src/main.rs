@@ -1,7 +1,4 @@
-use ouch::{
-    cli::{parse_args, ParsedArgs},
-    commands, Result,
-};
+use ouch::{cli::Opts, commands, Result};
 
 fn main() {
     if let Err(err) = run() {
@@ -10,7 +7,7 @@ fn main() {
     }
 }
 
-fn run() -> crate::Result<()> {
-    let ParsedArgs { command, flags } = parse_args()?;
-    commands::run(command, &flags)
+fn run() -> Result<()> {
+    let (args, skip_questions_positively) = Opts::parse_args()?;
+    commands::run(args, skip_questions_positively)
 }
