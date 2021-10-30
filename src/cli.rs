@@ -6,6 +6,7 @@ use std::{
 };
 
 use clap::Parser;
+use fs_err as fs;
 
 use crate::{Error, Opts, QuestionPolicy, Subcommand};
 
@@ -31,7 +32,7 @@ impl Opts {
 }
 
 fn canonicalize(path: impl AsRef<Path>) -> crate::Result<PathBuf> {
-    match std::fs::canonicalize(&path.as_ref()) {
+    match fs::canonicalize(&path.as_ref()) {
         Ok(abs_path) => Ok(abs_path),
         Err(io_err) => {
             if !path.as_ref().exists() {

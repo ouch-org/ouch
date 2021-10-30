@@ -1,15 +1,17 @@
 //! Contains Tar-specific building and unpacking functions
 
 use std::{
-    env, fs,
+    env,
     io::prelude::*,
     path::{Path, PathBuf},
 };
 
+use fs_err as fs;
 use tar;
 use walkdir::WalkDir;
 
 use crate::{
+    error::FinalError,
     info,
     utils::{self, Bytes},
     QuestionPolicy,
@@ -63,7 +65,12 @@ where
                 builder.append_dir(path, path)?;
             } else {
                 let mut file = fs::File::open(path)?;
-                builder.append_file(path, &mut file)?;
+                builder.append_file(path, file.file_mut()).map_err(|err| {
+                    FinalError::with_title("Could not create archive")
+                        .detail("Unexpected error while trying to read file")
+                        .detail(format!("Error: {}.", err))
+                        .into_owned()
+                })?;
             }
         }
         env::set_current_dir(previous_location)?;

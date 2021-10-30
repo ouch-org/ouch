@@ -1,13 +1,15 @@
 mod utils;
 
 use std::{
-    env, fs,
+    env,
     io::prelude::*,
     path::{Path, PathBuf},
     time::Duration,
 };
 
 use ouch::{commands::run, Opts, QuestionPolicy, Subcommand};
+
+use fs_err as fs;
 use rand::{rngs::SmallRng, RngCore, SeedableRng};
 use tempfile::NamedTempFile;
 use utils::*;

@@ -292,3 +292,26 @@ jobs:
       #   with:
       #     name: 'ouch-x86_64-pc-windows-gnu'
       #     path: target\x86_64-pc-windows-gnu\release\ouch.exe
+
+  fmt:
+    name: Check sourcecode format
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          target: x86_64-unknown-linux-musl
+          components: rustfmt
+          override: true
+
+      - name: Check format with cargo fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check 
