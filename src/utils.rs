@@ -1,3 +1,5 @@
+//! Utils used on ouch.
+
 use std::{
     cmp, env,
     ffi::OsStr,
@@ -15,6 +17,7 @@ pub fn dir_is_empty(dir_path: &Path) -> bool {
     dir_path.read_dir().map(is_empty).unwrap_or_default()
 }
 
+/// Creates the dir if non existent.
 pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
     if !path.exists() {
         fs::create_dir_all(path)?;
@@ -23,6 +26,9 @@ pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
     Ok(())
 }
 
+/// Removes the current dir from the beginning of a path
+/// normally used for presentation sake.
+/// If this function fails, it will return source path as a PathBuf.
 pub fn strip_cur_dir(source_path: &Path) -> PathBuf {
     source_path
         .strip_prefix(Component::CurDir)
@@ -43,6 +49,8 @@ pub fn cd_into_same_dir_as(filename: &Path) -> crate::Result<PathBuf> {
     Ok(previous_location)
 }
 
+/// Centralizes the decision of overwriting a file or not,
+/// whether the user has already passed a question_policy or not.
 pub fn user_wants_to_overwrite(path: &Path, question_policy: QuestionPolicy) -> crate::Result<bool> {
     match question_policy {
         QuestionPolicy::AlwaysYes => Ok(true),
@@ -56,11 +64,13 @@ pub fn user_wants_to_overwrite(path: &Path, question_policy: QuestionPolicy) -> 
     }
 }
 
+/// Converts an OsStr to utf8.
 pub fn to_utf(os_str: impl AsRef<OsStr>) -> String {
     let text = format!("{:?}", os_str.as_ref());
     text.trim_matches('"').to_string()
 }
 
+/// Treats weird paths for better user messages.
 pub fn nice_directory_display(os_str: impl AsRef<OsStr>) -> String {
     let text = to_utf(os_str);
     if text == "." {
@@ -70,6 +80,7 @@ pub fn nice_directory_display(os_str: impl AsRef<OsStr>) -> String {
     }
 }
 
+/// Struct used to overload functionality onto Byte presentation.
 pub struct Bytes {
     bytes: f64,
 }
@@ -86,6 +97,7 @@ pub mod colors {
     macro_rules! color {
         ($name:ident = $value:literal) => {
             #[cfg(target_family = "unix")]
+            /// Inserts color onto text based on configuration
             pub static $name: Lazy<&str> = Lazy::new(|| if *DISABLE_COLORED_TEXT { "" } else { $value });
             #[cfg(not(target_family = "unix"))]
             pub static $name: &&str = &"";
@@ -106,6 +118,7 @@ pub mod colors {
 impl Bytes {
     const UNIT_PREFIXES: [&'static str; 6] = ["", "k", "M", "G", "T", "P"];
 
+    /// New Byte structure
     pub fn new(bytes: u64) -> Self {
         Self { bytes: bytes as f64 }
     }
@@ -129,7 +142,7 @@ impl std::fmt::Display for Bytes {
 #[derive(Debug, PartialEq, Clone, Copy)]
 /// How overwrite questions should be handled
 pub enum QuestionPolicy {
-    /// Ask ever time
+    /// Ask everytime
     Ask,
     /// Skip overwrite questions positively
     AlwaysYes,

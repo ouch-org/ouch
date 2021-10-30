@@ -10,13 +10,11 @@
 pub mod archive;
 pub mod cli;
 pub mod commands;
-
-// Private modules
-mod dialogs;
-mod error;
-mod extension;
-mod macros;
-mod utils;
+pub mod dialogs;
+pub mod error;
+pub mod extension;
+pub mod macros;
+pub mod utils;
 
 pub use error::{Error, Result};
 

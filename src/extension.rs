@@ -4,6 +4,7 @@ use std::{ffi::OsStr, fmt, path::Path};
 
 use self::CompressionFormat::*;
 
+#[allow(missing_docs)]
 #[derive(Clone, PartialEq, Eq, Debug)]
 /// Accepted extensions for input and output
 pub enum CompressionFormat {
@@ -40,6 +41,19 @@ impl fmt::Display for CompressionFormat {
     }
 }
 
+// use crate::extension::CompressionFormat::*;
+//
+
+/// Extracts extensions from a path,
+/// return both the remaining path and the list of extension objects
+///
+/// ```rust
+/// use ouch::extension::{separate_known_extensions_from_name, CompressionFormat};
+/// use std::path::Path;
+///
+/// let mut path = Path::new("bolovo.tar.gz");
+/// assert_eq!(separate_known_extensions_from_name(&path), (Path::new("bolovo"), vec![CompressionFormat::Tar, CompressionFormat::Gzip]));
+/// ```
 pub fn separate_known_extensions_from_name(mut path: &Path) -> (&Path, Vec<CompressionFormat>) {
     // // TODO: check for file names with the name of an extension
     // // TODO2: warn the user that currently .tar.gz is a .gz file named .tar
@@ -76,6 +90,15 @@ pub fn separate_known_extensions_from_name(mut path: &Path) -> (&Path, Vec<Compr
     (path, extensions)
 }
 
+/// Extracts extensions from a path, return only the list of extension objects
+///
+/// ```rust
+/// use ouch::extension::{extensions_from_path, CompressionFormat};
+/// use std::path::Path;
+///
+/// let mut path = Path::new("bolovo.tar.gz");
+/// assert_eq!(extensions_from_path(&path), vec![CompressionFormat::Tar, CompressionFormat::Gzip]);
+/// ```
 pub fn extensions_from_path(path: &Path) -> Vec<CompressionFormat> {
     let (_, extensions) = separate_known_extensions_from_name(path);
     extensions

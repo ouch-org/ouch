@@ -12,15 +12,22 @@ use crate::utils::colors;
 
 /// Represents a confirmation dialog
 pub struct Confirmation<'a> {
+    /// Represents the message to the displayed
+    /// e.g.: "Do you want to overwrite 'FILE'?"
     pub prompt: &'a str,
+
+    /// Represents a placeholder to be changed at runtime
+    /// e.g.: Some("FILE")
     pub placeholder: Option<&'a str>,
 }
 
 impl<'a> Confirmation<'a> {
+    /// New Confirmation
     pub const fn new(prompt: &'a str, pattern: Option<&'a str>) -> Self {
         Self { prompt, placeholder: pattern }
     }
 
+    /// Creates user message and receives a boolean input to be used on the program
     pub fn ask(&self, substitute: Option<&'a str>) -> crate::Result<bool> {
         let message = match (self.placeholder, substitute) {
             (None, _) => Cow::Borrowed(self.prompt),
