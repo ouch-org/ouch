@@ -6,6 +6,7 @@ use std::{
 };
 
 use clap::{Parser, ValueHint};
+use fs_err as fs;
 
 pub use crate::utils::QuestionPolicy;
 use crate::Error;
@@ -73,7 +74,7 @@ impl Opts {
 }
 
 fn canonicalize(path: impl AsRef<Path>) -> crate::Result<PathBuf> {
-    match std::fs::canonicalize(&path.as_ref()) {
+    match fs::canonicalize(&path.as_ref()) {
         Ok(abs_path) => Ok(abs_path),
         Err(io_err) => {
             if !path.as_ref().exists() {

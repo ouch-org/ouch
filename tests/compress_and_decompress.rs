@@ -1,11 +1,13 @@
 mod utils;
 
 use std::{
-    env, fs,
+    env,
     io::prelude::*,
     path::{Path, PathBuf},
     time::Duration,
 };
+
+use fs_err as fs;
 
 use ouch::{
     cli::{Opts, QuestionPolicy, Subcommand},
