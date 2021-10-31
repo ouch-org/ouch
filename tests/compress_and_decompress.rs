@@ -182,7 +182,7 @@ fn extract_files(archive_path: &Path) -> Vec<PathBuf> {
         no: false,
         cmd: Subcommand::Decompress {
             files: vec![archive_path.to_owned()],
-            output: Some(extraction_output_folder.clone()),
+            output_dir: Some(extraction_output_folder.clone()),
         },
     };
     run(command, QuestionPolicy::Ask).expect("Failed to extract");

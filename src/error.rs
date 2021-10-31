@@ -138,9 +138,7 @@ impl fmt::Display for Error {
             Error::UnknownExtensionError(_) => todo!(),
             Error::AlreadyExists => todo!(),
             Error::InvalidZipArchive(_) => todo!(),
-            Error::PermissionDenied { error_title } => {
-                FinalError::with_title(error_title).detail("Permission denied").to_owned()
-            }
+            Error::PermissionDenied { error_title } => FinalError::with_title(error_title).detail("Permission denied"),
             Error::UnsupportedZipArchive(_) => todo!(),
             Error::Custom { reason } => reason.clone(),
         };
