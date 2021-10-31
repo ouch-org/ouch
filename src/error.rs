@@ -21,7 +21,7 @@ pub enum Error {
     FileNotFound(PathBuf),
     AlreadyExists,
     InvalidZipArchive(&'static str),
-    PermissionDenied,
+    PermissionDenied { error_title: String },
     UnsupportedZipArchive(&'static str),
     InternalError,
     CompressingRootFolder,
@@ -77,6 +77,10 @@ impl FinalError {
     pub fn hint(mut self, hint: impl ToString) -> Self {
         self.hints.push(hint.to_string());
         self
+    }
+
+    pub fn into_owned(&mut self) -> Self {
+        std::mem::take(self)
     }
 }
 
@@ -134,7 +138,7 @@ impl fmt::Display for Error {
             Error::UnknownExtensionError(_) => todo!(),
             Error::AlreadyExists => todo!(),
             Error::InvalidZipArchive(_) => todo!(),
-            Error::PermissionDenied => todo!(),
+            Error::PermissionDenied { error_title } => FinalError::with_title(error_title).detail("Permission denied"),
             Error::UnsupportedZipArchive(_) => todo!(),
             Error::Custom { reason } => reason.clone(),
         };
@@ -152,8 +156,8 @@ impl Error {
 impl From<std::io::Error> for Error {
     fn from(err: std::io::Error) -> Self {
         match err.kind() {
-            std::io::ErrorKind::NotFound => panic!("{}", err),
-            std::io::ErrorKind::PermissionDenied => Self::PermissionDenied,
+            std::io::ErrorKind::NotFound => todo!(),
+            std::io::ErrorKind::PermissionDenied => Self::PermissionDenied { error_title: err.to_string() },
             std::io::ErrorKind::AlreadyExists => Self::AlreadyExists,
             _other => Self::IoError { reason: err.to_string() },
         }
@@ -175,5 +179,11 @@ impl From<zip::result::ZipError> for Error {
 impl From<walkdir::Error> for Error {
     fn from(err: walkdir::Error) -> Self {
         Self::WalkdirError { reason: err.to_string() }
+    }
+}
+
+impl From<FinalError> for Error {
+    fn from(err: FinalError) -> Self {
+        Self::Custom { reason: err }
     }
 }

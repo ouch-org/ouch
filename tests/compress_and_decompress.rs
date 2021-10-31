@@ -1,16 +1,15 @@
 mod utils;
 
 use std::{
-    env, fs,
+    env,
     io::prelude::*,
     path::{Path, PathBuf},
     time::Duration,
 };
 
-use ouch::{
-    cli::{Opts, QuestionPolicy, Subcommand},
-    commands::run,
-};
+use ouch::{commands::run, Opts, QuestionPolicy, Subcommand};
+
+use fs_err as fs;
 use rand::{rngs::SmallRng, RngCore, SeedableRng};
 use tempfile::NamedTempFile;
 use utils::*;
@@ -180,7 +179,7 @@ fn extract_files(archive_path: &Path) -> Vec<PathBuf> {
         no: false,
         cmd: Subcommand::Decompress {
             files: vec![archive_path.to_owned()],
-            output: Some(extraction_output_folder.clone()),
+            output_dir: Some(extraction_output_folder.clone()),
         },
     };
     run(command, QuestionPolicy::Ask).expect("Failed to extract");
