@@ -1,4 +1,3 @@
-//! CLI configuration step, uses definitions from `opts.rs`, also used to treat some inputs.
 use clap::{Parser, ValueHint};
 
 use std::path::PathBuf;
