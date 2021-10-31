@@ -209,7 +209,10 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
 
             let list_options = ListOptions { tree };
 
-            for (archive_path, formats) in files.iter().zip(formats) {
+            for (i, (archive_path, formats)) in files.iter().zip(formats).enumerate() {
+                if i > 0 {
+                    println!();
+                }
                 list_archive_contents(archive_path, formats, list_options)?;
             }
         }
@@ -425,7 +428,7 @@ fn list_archive_contents(
     if let [Zip] = *formats.as_slice() {
         let zip_archive = zip::ZipArchive::new(reader)?;
         let files = crate::archive::zip::list_archive(zip_archive)?;
-        list::list_files(files, list_options);
+        list::list_files(archive_path, files, list_options);
         return Ok(());
     }
 
@@ -483,6 +486,6 @@ fn list_archive_contents(
             panic!("Not an archive! This should never happen, if it does, something is wrong with `CompressionFormat::is_archive()`. Please report this error!");
         }
     };
-    list::list_files(files, list_options);
+    list::list_files(archive_path, files, list_options);
     Ok(())
 }
