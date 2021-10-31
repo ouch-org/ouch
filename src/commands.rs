@@ -56,7 +56,9 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                 return Err(Error::with_reason(reason));
             }
 
-            if matches!(&formats[0], Bzip | Gzip | Lzma) && represents_several_files(&files) {
+            if !formats.get(0).map(CompressionFormat::is_archive_format).unwrap_or(false)
+                && represents_several_files(&files)
+            {
                 // This piece of code creates a suggestion for compressing multiple files
                 // It says:
                 // Change from file.bz.xz
@@ -84,7 +86,7 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                 return Err(Error::with_reason(reason));
             }
 
-            if let Some(format) = formats.iter().skip(1).find(|format| matches!(format, Tar | Zip)) {
+            if let Some(format) = formats.iter().skip(1).find(|format| format.is_archive_format()) {
                 let reason = FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))
                     .detail(format!("Found the format '{}' in an incorrect position.", format))
                     .detail(format!("'{}' can only be used at the start of the file extension.", format))
@@ -186,94 +188,74 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
 fn compress_files(files: Vec<PathBuf>, formats: Vec<CompressionFormat>, output_file: fs::File) -> crate::Result<()> {
     let file_writer = BufWriter::with_capacity(BUFFER_CAPACITY, output_file);
 
-    if let [Tar | Tgz | Zip] = *formats.as_slice() {
-        match formats[0] {
-            Tar => {
-                let mut bufwriter = archive::tar::build_archive_from_paths(&files, file_writer)?;
-                bufwriter.flush()?;
-            }
-            Tgz => {
-                // Wrap it into an gz_decoder, and pass to the tar archive builder
-                let gz_decoder = flate2::write::GzEncoder::new(file_writer, Default::default());
-                let mut bufwriter = archive::tar::build_archive_from_paths(&files, gz_decoder)?;
-                bufwriter.flush()?;
-            }
-            Zip => {
-                let mut bufwriter = archive::zip::build_archive_from_paths(&files, file_writer)?;
-                bufwriter.flush()?;
+    let mut writer: Box<dyn Write> = Box::new(file_writer);
+
+    // Grab previous encoder and wrap it inside of a new one
+    let chain_writer_encoder = |format: &CompressionFormat, encoder: Box<dyn Write>| {
+        let encoder: Box<dyn Write> = match format {
+            Gzip => Box::new(flate2::write::GzEncoder::new(encoder, Default::default())),
+            Bzip => Box::new(bzip2::write::BzEncoder::new(encoder, Default::default())),
+            Lzma => Box::new(xz2::write::XzEncoder::new(encoder, 6)),
+            Zstd => {
+                let zstd_encoder = zstd::stream::write::Encoder::new(encoder, Default::default());
+                // Safety:
+                //     Encoder::new() can only fail if `level` is invalid, but Default::default()
+                //     is guaranteed to be valid
+                Box::new(zstd_encoder.unwrap().auto_finish())
             }
             _ => unreachable!(),
         };
-    } else {
-        let mut writer: Box<dyn Write> = Box::new(file_writer);
+        encoder
+    };
 
-        // Grab previous encoder and wrap it inside of a new one
-        let chain_writer_encoder = |format: &CompressionFormat, encoder: Box<dyn Write>| {
-            let encoder: Box<dyn Write> = match format {
-                Gzip => Box::new(flate2::write::GzEncoder::new(encoder, Default::default())),
-                Bzip => Box::new(bzip2::write::BzEncoder::new(encoder, Default::default())),
-                Lzma => Box::new(xz2::write::XzEncoder::new(encoder, 6)),
-                Zstd => {
-                    let zstd_encoder = zstd::stream::write::Encoder::new(encoder, Default::default());
-                    // Safety:
-                    //     Encoder::new() can only fail if `level` is invalid, but Default::default()
-                    //     is guaranteed to be valid
-                    Box::new(zstd_encoder.unwrap().auto_finish())
-                }
-                _ => unreachable!(),
-            };
-            encoder
-        };
+    for format in formats.iter().skip(1).rev() {
+        writer = chain_writer_encoder(format, writer);
+    }
 
-        for format in formats.iter().skip(1).rev() {
-            writer = chain_writer_encoder(format, writer);
+    match formats[0] {
+        Gzip | Bzip | Lzma | Zstd => {
+            writer = chain_writer_encoder(&formats[0], writer);
+            let mut reader = fs::File::open(&files[0]).unwrap();
+            io::copy(&mut reader, &mut writer)?;
         }
+        Tar => {
+            let mut writer = archive::tar::build_archive_from_paths(&files, writer)?;
+            writer.flush()?;
+        }
+        Tgz => {
+            let encoder = flate2::write::GzEncoder::new(writer, Default::default());
+            let writer = archive::tar::build_archive_from_paths(&files, encoder)?;
+            writer.finish()?.flush()?;
+        }
+        Tbz => {
+            let encoder = bzip2::write::BzEncoder::new(writer, Default::default());
+            let writer = archive::tar::build_archive_from_paths(&files, encoder)?;
+            writer.finish()?.flush()?;
+        }
+        Tlzma => {
+            let encoder = xz2::write::XzEncoder::new(writer, 6);
+            let writer = archive::tar::build_archive_from_paths(&files, encoder)?;
+            writer.finish()?.flush()?;
+        }
+        Tzst => {
+            let encoder = zstd::stream::write::Encoder::new(writer, Default::default())?;
+            let writer = archive::tar::build_archive_from_paths(&files, encoder)?;
+            writer.finish()?.flush()?;
+        }
+        Zip => {
+            eprintln!("{yellow}Warning:{reset}", yellow = *colors::YELLOW, reset = *colors::RESET);
+            eprintln!("\tCompressing .zip entirely in memory.");
+            eprintln!("\tIf the file is too big, your PC might freeze!");
+            eprintln!(
+                "\tThis is a limitation for formats like '{}'.",
+                formats.iter().map(|format| format.to_string()).collect::<String>()
+            );
+            eprintln!("\tThe design of .zip makes it impossible to compress via stream.");
 
-        match formats[0] {
-            Gzip | Bzip | Lzma | Zstd => {
-                writer = chain_writer_encoder(&formats[0], writer);
-                let mut reader = fs::File::open(&files[0]).unwrap();
-                io::copy(&mut reader, &mut writer)?;
-            }
-            Tar => {
-                let mut writer = archive::tar::build_archive_from_paths(&files, writer)?;
-                writer.flush()?;
-            }
-            Tgz => {
-                let encoder = flate2::write::GzEncoder::new(writer, Default::default());
-                let writer = archive::tar::build_archive_from_paths(&files, encoder)?;
-                writer.finish()?.flush()?;
-            }
-            Tbz => {
-                let encoder = bzip2::write::BzEncoder::new(writer, Default::default());
-                let writer = archive::tar::build_archive_from_paths(&files, encoder)?;
-                writer.finish()?.flush()?;
-            }
-            Tlzma => {
-                let encoder = xz2::write::XzEncoder::new(writer, 6);
-                let writer = archive::tar::build_archive_from_paths(&files, encoder)?;
-                writer.finish()?.flush()?;
-            }
-            Tzst => {
-                let encoder = zstd::stream::write::Encoder::new(writer, Default::default())?;
-                let writer = archive::tar::build_archive_from_paths(&files, encoder)?;
-                writer.finish()?.flush()?;
-            }
-            Zip => {
-                eprintln!("{yellow}Warning:{reset}", yellow = *colors::YELLOW, reset = *colors::RESET);
-                eprintln!("\tCompressing .zip entirely in memory.");
-                eprintln!("\tIf the file is too big, your PC might freeze!");
-                eprintln!(
-                    "\tThis is a limitation for formats like '{}'.",
-                    formats.iter().map(|format| format.to_string()).collect::<String>()
-                );
-                eprintln!("\tThe design of .zip makes it impossible to compress via stream.");
-
-                let mut vec_buffer = io::Cursor::new(vec![]);
-                archive::zip::build_archive_from_paths(&files, &mut vec_buffer)?;
-                let vec_buffer = vec_buffer.into_inner();
-                io::copy(&mut vec_buffer.as_slice(), &mut writer)?;
-            }
+            let mut vec_buffer = io::Cursor::new(vec![]);
+            archive::zip::build_archive_from_paths(&files, &mut vec_buffer)?;
+            let vec_buffer = vec_buffer.into_inner();
+            io::copy(&mut vec_buffer.as_slice(), &mut writer)?;
         }
     }
 
