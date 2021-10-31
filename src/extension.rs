@@ -4,7 +4,40 @@ use std::{ffi::OsStr, fmt, path::Path};
 
 use self::CompressionFormat::*;
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+/// A wrapper around `CompressionFormat` that allows combinations like `tgz`
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Extension {
+    pub compression_formats: Vec<CompressionFormat>,
+    pub display_text: String,
+}
+
+impl Extension {
+    /// # Panics:
+    ///   Will panic if `formats` is empty
+    pub fn new(formats: impl Into<Vec<CompressionFormat>>, text: impl Into<String>) -> Self {
+        let formats = formats.into();
+        assert!(!formats.is_empty());
+        Self { compression_formats: formats, display_text: text.into() }
+    }
+
+    /// Checks if the first format in `compression_formats` is an archive
+    pub fn is_archive(&self) -> bool {
+        // Safety: we check that `compression_formats` is not empty in `Self::new`
+        self.compression_formats[0].is_archive_format()
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &CompressionFormat> {
+        self.compression_formats.iter()
+    }
+}
+
+impl fmt::Display for Extension {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.display_text)
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 /// Accepted extensions for input and output
 pub enum CompressionFormat {
     Gzip, // .gz
@@ -45,7 +78,7 @@ impl fmt::Display for CompressionFormat {
     }
 }
 
-pub fn separate_known_extensions_from_name(mut path: &Path) -> (&Path, Vec<CompressionFormat>) {
+pub fn separate_known_extensions_from_name(mut path: &Path) -> (&Path, Vec<Extension>) {
     // // TODO: check for file names with the name of an extension
     // // TODO2: warn the user that currently .tar.gz is a .gz file named .tar
     //
@@ -58,17 +91,17 @@ pub fn separate_known_extensions_from_name(mut path: &Path) -> (&Path, Vec<Compr
 
     // While there is known extensions at the tail, grab them
     while let Some(extension) = path.extension().and_then(OsStr::to_str) {
-        extensions.append(&mut match extension {
-            "tar" => vec![Tar],
-            "tgz" => vec![Gzip, Tar],
-            "tbz" | "tbz2" => vec![Bzip, Tar],
-            "txz" | "tlz" | "tlzma" => vec![Lzma, Tar],
-            "tzst" => vec![Zstd, Tar],
-            "zip" => vec![Zip],
-            "bz" | "bz2" => vec![Bzip],
-            "gz" => vec![Gzip],
-            "xz" | "lzma" | "lz" => vec![Lzma],
-            "zst" => vec![Zstd],
+        extensions.push(match extension {
+            "tar" => Extension::new([Tar], extension),
+            "tgz" => Extension::new([Tar, Gzip], extension),
+            "tbz" | "tbz2" => Extension::new([Tar, Bzip], extension),
+            "txz" | "tlz" | "tlzma" => Extension::new([Tar, Lzma], extension),
+            "tzst" => Extension::new([Tar, Zstd], ".tzst"),
+            "zip" => Extension::new([Zip], extension),
+            "bz" | "bz2" => Extension::new([Bzip], extension),
+            "gz" => Extension::new([Gzip], extension),
+            "xz" | "lzma" | "lz" => Extension::new([Lzma], extension),
+            "zst" => Extension::new([Zstd], extension),
             _ => break,
         });
 
@@ -81,7 +114,7 @@ pub fn separate_known_extensions_from_name(mut path: &Path) -> (&Path, Vec<Compr
     (path, extensions)
 }
 
-pub fn extensions_from_path(path: &Path) -> Vec<CompressionFormat> {
+pub fn extensions_from_path(path: &Path) -> Vec<Extension> {
     let (_, extensions) = separate_known_extensions_from_name(path);
     extensions
 }
