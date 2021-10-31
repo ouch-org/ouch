@@ -317,6 +317,8 @@ fn decompress_file(
 
     utils::create_dir_if_non_existent(output_dir)?;
 
+    let files_unpacked;
+
     match formats[0] {
         Gzip | Bzip | Lzma | Zstd => {
             reader = chain_reader_decoder(&formats[0], reader)?;
@@ -325,31 +327,26 @@ fn decompress_file(
             let mut writer = fs::File::create(&output_path)?;
 
             io::copy(&mut reader, &mut writer)?;
-            info!("Successfully decompressed archive in {}.", nice_directory_display(output_path));
+            files_unpacked = vec![output_path];
         }
         Tar => {
-            let _ = crate::archive::tar::unpack_archive(reader, output_dir, question_policy)?;
-            info!("Successfully decompressed archive in {}.", nice_directory_display(output_dir));
+            files_unpacked = crate::archive::tar::unpack_archive(reader, output_dir, question_policy)?;
         }
         Tgz => {
             let reader = chain_reader_decoder(&Gzip, reader)?;
-            let _ = crate::archive::tar::unpack_archive(reader, output_dir, question_policy)?;
-            info!("Successfully decompressed archive in {}.", nice_directory_display(output_dir));
+            files_unpacked = crate::archive::tar::unpack_archive(reader, output_dir, question_policy)?;
         }
         Tbz => {
             let reader = chain_reader_decoder(&Bzip, reader)?;
-            let _ = crate::archive::tar::unpack_archive(reader, output_dir, question_policy)?;
-            info!("Successfully decompressed archive in {}.", nice_directory_display(output_dir));
+            files_unpacked = crate::archive::tar::unpack_archive(reader, output_dir, question_policy)?;
         }
         Tlzma => {
             let reader = chain_reader_decoder(&Lzma, reader)?;
-            let _ = crate::archive::tar::unpack_archive(reader, output_dir, question_policy)?;
-            info!("Successfully decompressed archive in {}.", nice_directory_display(output_dir));
+            files_unpacked = crate::archive::tar::unpack_archive(reader, output_dir, question_policy)?;
         }
         Tzst => {
             let reader = chain_reader_decoder(&Zstd, reader)?;
-            let _ = crate::archive::tar::unpack_archive(reader, output_dir, question_policy)?;
-            info!("Successfully decompressed archive in {}.", nice_directory_display(output_dir));
+            files_unpacked = crate::archive::tar::unpack_archive(reader, output_dir, question_policy)?;
         }
         Zip => {
             eprintln!("Compressing first into .zip.");
@@ -363,11 +360,12 @@ fn decompress_file(
             io::copy(&mut reader, &mut vec)?;
             let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
 
-            let _ = crate::archive::zip::unpack_archive(zip_archive, output_dir, question_policy)?;
-
-            info!("Successfully decompressed archive in {}.", nice_directory_display(output_dir));
+            files_unpacked = crate::archive::zip::unpack_archive(zip_archive, output_dir, question_policy)?;
         }
     }
+
+    info!("Successfully decompressed archive in {}.", nice_directory_display(output_dir));
+    info!("Files unpacked: {}", files_unpacked.len());
 
     Ok(())
 }
