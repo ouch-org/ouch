@@ -12,17 +12,14 @@ use utils::colors;
 
 use crate::{
     archive,
-    cli::{Opts, Subcommand},
     error::FinalError,
     extension::{
         self,
         CompressionFormat::{self, *},
     },
     info,
-    utils::nice_directory_display,
-    utils::to_utf,
-    utils::{self, dir_is_empty, QuestionPolicy},
-    Error,
+    utils::{self, dir_is_empty, nice_directory_display, to_utf},
+    Error, Opts, QuestionPolicy, Subcommand,
 };
 
 // Used in BufReader and BufWriter to perform less syscalls

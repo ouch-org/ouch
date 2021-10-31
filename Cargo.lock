@@ -115,6 +115,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "clap_generate"
+version = "3.0.0-beta.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "097ab5db1c3417442270cd57c8dd39f6c3114d3ce09d595f9efddbb1fcfaa799"
+dependencies = [
+ "clap",
+]
+
+[[package]]
 name = "crc32fast"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -289,6 +298,7 @@ dependencies = [
  "atty",
  "bzip2",
  "clap",
+ "clap_generate",
  "flate2",
  "fs-err",
  "infer",

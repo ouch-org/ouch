@@ -13,7 +13,8 @@ use zip::{self, read::ZipFile, ZipArchive};
 
 use crate::{
     info,
-    utils::{self, dir_is_empty, strip_cur_dir, Bytes, QuestionPolicy},
+    utils::{self, dir_is_empty, strip_cur_dir, Bytes},
+    QuestionPolicy,
 };
 
 use self::utf8::get_invalid_utf8_paths;

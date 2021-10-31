@@ -6,10 +6,7 @@ use std::path::{Path, PathBuf};
 
 use fs_err as fs;
 
-use ouch::{
-    cli::{Opts, QuestionPolicy, Subcommand},
-    commands::run,
-};
+use ouch::{commands::run, Opts, QuestionPolicy, Subcommand};
 
 pub fn create_empty_dir(at: &Path, filename: &str) -> PathBuf {
     let dirname = Path::new(filename);

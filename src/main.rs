@@ -1,4 +1,4 @@
-use ouch::{cli::Opts, commands, Result};
+use ouch::{commands, Opts, Result};
 
 fn main() {
     if let Err(err) = run() {

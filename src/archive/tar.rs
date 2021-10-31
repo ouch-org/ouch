@@ -13,7 +13,8 @@ use walkdir::WalkDir;
 use crate::{
     error::FinalError,
     info,
-    utils::{self, Bytes, QuestionPolicy},
+    utils::{self, Bytes},
+    QuestionPolicy,
 };
 
 pub fn unpack_archive(
