@@ -41,4 +41,15 @@ pub enum Subcommand {
         #[clap(short, long = "dir", value_hint = ValueHint::DirPath)]
         output_dir: Option<PathBuf>,
     },
+    /// List contents.     Alias: l
+    #[clap(alias = "l")]
+    List {
+        /// Archives whose contents should be listed
+        #[clap(required = true, min_values = 1)]
+        archives: Vec<PathBuf>,
+
+        /// Show archive contents as a tree
+        #[clap(short, long)]
+        tree: bool,
+    },
 }

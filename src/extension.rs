@@ -45,6 +45,11 @@ impl fmt::Display for CompressionFormat {
         )
     }
 }
+impl CompressionFormat {
+    pub fn is_archive(&self) -> bool {
+        matches!(self, Tar | Tgz | Tbz | Tlzma | Tzst | Zip)
+    }
+}
 
 pub fn separate_known_extensions_from_name(mut path: &Path) -> (&Path, Vec<CompressionFormat>) {
     // // TODO: check for file names with the name of an extension

@@ -13,6 +13,7 @@ mod cli;
 mod dialogs;
 mod error;
 mod extension;
+mod list;
 mod macros;
 mod opts;
 mod utils;

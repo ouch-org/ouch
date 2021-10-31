@@ -16,7 +16,9 @@ impl Opts {
     pub fn parse_args() -> crate::Result<(Self, QuestionPolicy)> {
         let mut opts: Self = Self::parse();
 
-        let (Subcommand::Compress { files, .. } | Subcommand::Decompress { files, .. }) = &mut opts.cmd;
+        let (Subcommand::Compress { files, .. }
+        | Subcommand::Decompress { files, .. }
+        | Subcommand::List { archives: files, .. }) = &mut opts.cmd;
         *files = canonicalize_files(files)?;
 
         let skip_questions_positively = if opts.yes {

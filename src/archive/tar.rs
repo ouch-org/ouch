@@ -13,6 +13,7 @@ use walkdir::WalkDir;
 use crate::{
     error::FinalError,
     info,
+    list::FileInArchive,
     utils::{self, Bytes},
     QuestionPolicy,
 };
@@ -41,6 +42,18 @@ pub fn unpack_archive(
     }
 
     Ok(files_unpacked)
+}
+pub fn list_archive(reader: Box<dyn Read>) -> crate::Result<Vec<FileInArchive>> {
+    let mut archive = tar::Archive::new(reader);
+
+    let mut files = vec![];
+    for file in archive.entries()? {
+        let file = file?;
+
+        files.push(FileInArchive { path: file.path()?.into_owned() });
+    }
+
+    Ok(files)
 }
 
 pub fn build_archive_from_paths<W>(input_filenames: &[PathBuf], writer: W) -> crate::Result<W>

@@ -18,6 +18,7 @@ use crate::{
         CompressionFormat::{self, *},
     },
     info,
+    list::{self, ListOptions},
     utils::{self, dir_is_empty, nice_directory_display, to_utf},
     Error, Opts, QuestionPolicy, Subcommand,
 };
@@ -176,6 +177,40 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
 
             for ((input_path, formats), file_name) in files.iter().zip(formats).zip(output_paths) {
                 decompress_file(input_path, formats, output_dir, file_name, question_policy)?;
+            }
+        }
+        Subcommand::List { archives: files, tree } => {
+            let mut formats = vec![];
+
+            for path in files.iter() {
+                let (_, file_formats) = extension::separate_known_extensions_from_name(path);
+                formats.push(file_formats);
+            }
+
+            let not_archives: Vec<PathBuf> = files
+                .iter()
+                .zip(&formats)
+                .filter(|(_, formats)| formats.is_empty() || !formats[0].is_archive())
+                .map(|(path, _)| path.clone())
+                .collect();
+
+            // Error
+            if !not_archives.is_empty() {
+                eprintln!("Some file you asked ouch to list the contents of is not an archive.");
+                for file in &not_archives {
+                    eprintln!("Could not list {}.", to_utf(file));
+                }
+                todo!(
+                    "Dev note: add this error variant and pass the Vec to it, all the files \
+                     lacking extension shall be shown: {:#?}.",
+                    not_archives
+                );
+            }
+
+            let list_options = ListOptions { tree };
+
+            for (archive_path, formats) in files.iter().zip(formats) {
+                list_archive_contents(archive_path, formats, list_options)?;
             }
         }
     }
@@ -367,5 +402,87 @@ fn decompress_file(
     info!("Successfully decompressed archive in {}.", nice_directory_display(output_dir));
     info!("Files unpacked: {}", files_unpacked.len());
 
+    Ok(())
+}
+
+// File at input_file_path is opened for reading, example: "archive.tar.gz"
+// formats contains each format necessary for decompression, example: [Gz, Tar] (in decompression order)
+fn list_archive_contents(
+    archive_path: &Path,
+    formats: Vec<CompressionFormat>,
+    list_options: ListOptions,
+) -> crate::Result<()> {
+    // TODO: improve error message
+    let reader = fs::File::open(&archive_path)?;
+
+    // Zip archives are special, because they require io::Seek, so it requires it's logic separated
+    // from decoder chaining.
+    //
+    // This is the only case where we can read and unpack it directly, without having to do
+    // in-memory decompression/copying first.
+    //
+    // Any other Zip decompression done can take up the whole RAM and freeze ouch.
+    if let [Zip] = *formats.as_slice() {
+        let zip_archive = zip::ZipArchive::new(reader)?;
+        let files = crate::archive::zip::list_archive(zip_archive)?;
+        list::list_files(files, list_options);
+        return Ok(());
+    }
+
+    // Will be used in decoder chaining
+    let reader = BufReader::with_capacity(BUFFER_CAPACITY, reader);
+    let mut reader: Box<dyn Read> = Box::new(reader);
+
+    // Grab previous decoder and wrap it inside of a new one
+    let chain_reader_decoder = |format: &CompressionFormat, decoder: Box<dyn Read>| -> crate::Result<Box<dyn Read>> {
+        let decoder: Box<dyn Read> = match format {
+            Gzip => Box::new(flate2::read::GzDecoder::new(decoder)),
+            Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
+            Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
+            Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
+            _ => unreachable!(),
+        };
+        Ok(decoder)
+    };
+
+    for format in formats.iter().skip(1).rev() {
+        reader = chain_reader_decoder(format, reader)?;
+    }
+
+    let files = match formats[0] {
+        Tar => crate::archive::tar::list_archive(reader)?,
+        Tgz => {
+            let reader = chain_reader_decoder(&Gzip, reader)?;
+            crate::archive::tar::list_archive(reader)?
+        }
+        Tbz => {
+            let reader = chain_reader_decoder(&Bzip, reader)?;
+            crate::archive::tar::list_archive(reader)?
+        }
+        Tlzma => {
+            let reader = chain_reader_decoder(&Lzma, reader)?;
+            crate::archive::tar::list_archive(reader)?
+        }
+        Tzst => {
+            let reader = chain_reader_decoder(&Zstd, reader)?;
+            crate::archive::tar::list_archive(reader)?
+        }
+        Zip => {
+            eprintln!("Listing files from zip archive.");
+            eprintln!("Warning: .zip archives with extra extensions have a downside.");
+            eprintln!("The only way is loading everything into the RAM while compressing, and then reading the archive contents.");
+            eprintln!("this means that by compressing .zip with extra compression formats, you can run out of RAM if the file is too large!");
+
+            let mut vec = vec![];
+            io::copy(&mut reader, &mut vec)?;
+            let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
+
+            crate::archive::zip::list_archive(zip_archive)?
+        }
+        Gzip | Bzip | Lzma | Zstd => {
+            panic!("Not an archive! This should never happen, if it does, something is wrong with `CompressionFormat::is_archive()`. Please report this error!");
+        }
+    };
+    list::list_files(files, list_options);
     Ok(())
 }
