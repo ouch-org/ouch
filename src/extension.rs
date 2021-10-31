@@ -21,6 +21,7 @@ pub enum CompressionFormat {
 }
 
 impl CompressionFormat {
+    /// Currently supported archive formats are .tar (and aliases to it) and .zip
     pub fn is_archive_format(&self) -> bool {
         matches!(self, Tar | Tgz | Tbz | Tlzma | Tzst | Zip)
     }

@@ -6,13 +6,15 @@
 
 #![warn(missing_docs)]
 
+// Macros should be declared before
+pub mod macros;
+
 pub mod archive;
 pub mod cli;
 pub mod commands;
 pub mod dialogs;
 pub mod error;
 pub mod extension;
-pub mod macros;
 pub mod opts;
 pub mod utils;
 
