@@ -6,7 +6,6 @@
 
 #![warn(missing_docs)]
 
-// Public modules
 pub mod archive;
 pub mod cli;
 pub mod commands;
@@ -14,9 +13,12 @@ pub mod dialogs;
 pub mod error;
 pub mod extension;
 pub mod macros;
+pub mod opts;
 pub mod utils;
 
 pub use error::{Error, Result};
+pub use opts::{Opts, Subcommand};
+pub use utils::QuestionPolicy;
 
 /// The status code ouch has when an error is encountered
 pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;

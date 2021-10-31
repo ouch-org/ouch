@@ -2,15 +2,11 @@
 
 #![allow(dead_code)]
 
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
-use ouch::{
-    cli::{Opts, QuestionPolicy, Subcommand},
-    commands::run,
-};
+use fs_err as fs;
+
+use ouch::{commands::run, Opts, QuestionPolicy, Subcommand};
 
 pub fn create_empty_dir(at: &Path, filename: &str) -> PathBuf {
     let dirname = Path::new(filename);
@@ -52,7 +48,7 @@ pub fn extract_files(archive_path: &Path) -> Vec<PathBuf> {
         no: false,
         cmd: Subcommand::Decompress {
             files: vec![archive_path.to_owned()],
-            output: Some(extraction_output_folder.clone()),
+            output_dir: Some(extraction_output_folder.clone()),
         },
     };
     run(command, QuestionPolicy::Ask).expect("Failed to extract");

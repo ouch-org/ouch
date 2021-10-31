@@ -104,19 +104,26 @@ jobs:
       - name: Install dependencies for musl libc
         run: |
           sudo apt-get update
-          sudo apt-get install musl-tools
+          sudo apt-get install help2man musl-tools
 
       - name: Run cargo build
         uses: actions-rs/cargo@v1
         with:
           command: build
           args: --release --target x86_64-unknown-linux-musl
+        env:
+          GEN_COMPLETIONS: 1
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
         with:
           command: test
           args: --target x86_64-unknown-linux-musl
+
+      - name: Build man page and find completions
+        run: |
+          help2man target/x86_64-unknown-linux-musl/release/ouch > ouch.1
+          cp -r target/x86_64-unknown-linux-musl/release/build/ouch-*/out/completions .
 
       - name: Strip binary
         run: strip target/x86_64-unknown-linux-musl/release/ouch
@@ -127,6 +134,17 @@ jobs:
           name: 'ouch-x86_64-linux-musl'
           path: target/x86_64-unknown-linux-musl/release/ouch
 
+      - name: Upload completions
+        uses: actions/upload-artifact@v2
+        with:
+          name: completions
+          path: completions
+
+      - name: Upload man page
+        uses: actions/upload-artifact@v2
+        with:
+          name: ouch.1
+          path: ouch.1
 
   x86_64_glibc:
     name: Ubuntu 20.04 (glibc)
@@ -274,3 +292,26 @@ jobs:
       #   with:
       #     name: 'ouch-x86_64-pc-windows-gnu'
       #     path: target\x86_64-pc-windows-gnu\release\ouch.exe
+
+  fmt:
+    name: Check sourcecode format
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          target: x86_64-unknown-linux-musl
+          components: rustfmt
+          override: true
+
+      - name: Check format with cargo fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check 
