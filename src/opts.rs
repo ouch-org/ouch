@@ -2,6 +2,7 @@ use clap::{Parser, ValueHint};
 
 use std::path::PathBuf;
 
+/// Command line options
 #[derive(Parser, Debug)]
 #[clap(version, about)]
 pub struct Opts {
@@ -13,10 +14,12 @@ pub struct Opts {
     #[clap(short, long)]
     pub no: bool,
 
+    /// Action to take
     #[clap(subcommand)]
     pub cmd: Subcommand,
 }
 
+/// Actions to take
 #[derive(Parser, PartialEq, Eq, Debug)]
 pub enum Subcommand {
     /// Compress files.    Alias: c

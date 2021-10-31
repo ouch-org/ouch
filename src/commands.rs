@@ -35,6 +35,8 @@ fn represents_several_files(files: &[PathBuf]) -> bool {
     files.iter().any(is_non_empty_dir) || files.len() > 1
 }
 
+/// Entrypoint of ouch, receives cli options and matches Subcommand
+/// to decide current operation
 pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
     match args.cmd {
         Subcommand::Compress { files, output: output_path } => {
@@ -182,6 +184,11 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
     Ok(())
 }
 
+// Compress files into an `output_file`
+//
+// files are the list of paths to be compressed: ["dir/file1.txt", "dir/file2.txt"]
+// formats contains each format necessary for compression, example: [Tar, Gz] (in compression order)
+// output_file is the resulting compressed file name, example: "compressed.tar.gz"
 fn compress_files(files: Vec<PathBuf>, formats: Vec<CompressionFormat>, output_file: fs::File) -> crate::Result<()> {
     let file_writer = BufWriter::with_capacity(BUFFER_CAPACITY, output_file);
 
@@ -259,6 +266,8 @@ fn compress_files(files: Vec<PathBuf>, formats: Vec<CompressionFormat>, output_f
     Ok(())
 }
 
+// Decompress a file
+//
 // File at input_file_path is opened for reading, example: "archive.tar.gz"
 // formats contains each format necessary for decompression, example: [Gz, Tar] (in decompression order)
 // output_dir it's where the file will be decompressed to

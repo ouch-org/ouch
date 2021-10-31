@@ -1,4 +1,6 @@
-//! CLI arg parser configuration, command detection and input treatment.
+//! CLI configuration step, uses definitions from `opts.rs`.
+//!
+//! Also used to treat some inputs.
 
 use std::{
     path::{Path, PathBuf},

@@ -73,6 +73,7 @@ where
     Ok(unpacked_files)
 }
 
+/// Compresses the archives given by `input_filenames` into the file given previously to `writer`.
 pub fn build_archive_from_paths<W>(input_filenames: &[PathBuf], writer: W) -> crate::Result<W>
 where
     W: Write + Seek,

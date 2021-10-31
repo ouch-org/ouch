@@ -4,18 +4,21 @@
 //! 1. It's required by `main.rs`, or
 //! 2. It's required by some integration tests at tests/ folder.
 
-// Public modules
-pub mod archive;
-pub mod commands;
+#![warn(missing_docs)]
 
-// Private modules
-mod cli;
-mod dialogs;
-mod error;
-mod extension;
-mod macros;
-mod opts;
-mod utils;
+// Macros should be declared before
+pub mod macros;
+
+pub mod archive;
+pub mod cli;
+pub mod commands;
+pub mod dialogs;
+pub mod error;
+pub mod extension;
+pub mod utils;
+
+/// CLI configuration step, uses definitions from `opts.rs`, also used to treat some inputs.
+pub mod opts;
 
 pub use error::{Error, Result};
 pub use opts::{Opts, Subcommand};
