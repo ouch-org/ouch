@@ -192,7 +192,7 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
             let not_archives: Vec<PathBuf> = files
                 .iter()
                 .zip(&formats)
-                .filter(|(_, formats)| formats.is_empty() || !formats[0].is_archive())
+                .filter(|(_, formats)| formats.is_empty() || !formats[0].is_archive_format())
                 .map(|(path, _)| path.clone())
                 .collect();
 

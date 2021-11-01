@@ -47,11 +47,6 @@ impl fmt::Display for CompressionFormat {
         )
     }
 }
-impl CompressionFormat {
-    pub fn is_archive(&self) -> bool {
-        matches!(self, Tar | Tgz | Tbz | Tlzma | Tzst | Zip)
-    }
-}
 
 // use crate::extension::CompressionFormat::*;
 //

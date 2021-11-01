@@ -44,6 +44,8 @@ pub fn unpack_archive(
 
     Ok(files_unpacked)
 }
+
+/// List contents of `archive`, returning a vector of archive entries
 pub fn list_archive(reader: Box<dyn Read>) -> crate::Result<Vec<FileInArchive>> {
     let mut archive = tar::Archive::new(reader);
 
