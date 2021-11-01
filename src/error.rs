@@ -6,6 +6,8 @@
 //! TODO: wrap `FinalError` in a variant to keep all `FinalError::display_and_crash()` function
 //! calls inside of this module.
 
+#![allow(missing_docs)]
+
 use std::{
     fmt::{self, Display},
     path::{Path, PathBuf},
@@ -13,6 +15,7 @@ use std::{
 
 use crate::utils::colors::*;
 
+/// Custom Ouch Errors
 #[derive(Debug, PartialEq)]
 pub enum Error {
     UnknownExtensionError(String),
@@ -91,7 +94,7 @@ impl fmt::Display for Error {
                 FinalError::with_title(format!("Cannot compress to {:?}", filename))
                     .detail("Ouch could not detect the compression format")
                     .hint("Use a supported format extension, like '.zip' or '.tar.gz'")
-                    .hint("Check https://github.com/vrmiguel/ouch for a full list of supported formats")
+                    .hint("Check https://github.com/ouch-org/ouch for a full list of supported formats")
             }
             Error::WalkdirError { reason } => FinalError::with_title(reason),
             Error::FileNotFound(file) => {
@@ -128,7 +131,7 @@ impl fmt::Display for Error {
                     .detail("This should not have happened")
                     .detail("It's probably our fault")
                     .detail("Please help us improve by reporting the issue at:")
-                    .detail(format!("    {}https://github.com/vrmiguel/ouch/issues ", *CYAN))
+                    .detail(format!("    {}https://github.com/ouch-org/ouch/issues ", *CYAN))
             }
             Error::IoError { reason } => FinalError::with_title(reason),
             Error::CompressionTypo => {

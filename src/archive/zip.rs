@@ -74,6 +74,7 @@ where
     Ok(unpacked_files)
 }
 
+/// List contents of `archive`, returning a vector of archive entries
 pub fn list_archive<R>(mut archive: ZipArchive<R>) -> crate::Result<Vec<FileInArchive>>
 where
     R: Read + Seek,
@@ -93,6 +94,7 @@ where
     Ok(files)
 }
 
+/// Compresses the archives given by `input_filenames` into the file given previously to `writer`.
 pub fn build_archive_from_paths<W>(input_filenames: &[PathBuf], writer: W) -> crate::Result<W>
 where
     W: Write + Seek,
