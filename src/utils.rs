@@ -102,6 +102,9 @@ pub mod colors {
     color!(RED = "\u{1b}[38;5;9m");
     color!(WHITE = "\u{1b}[38;5;15m");
     color!(YELLOW = "\u{1b}[38;5;11m");
+    color!(STYLE_BOLD = "\u{1b}[1m");
+    color!(STYLE_RESET = "\u{1b}[0m");
+    color!(ALL_RESET = "\u{1b}[0;39m");
 }
 
 impl Bytes {

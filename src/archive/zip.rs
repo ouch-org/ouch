@@ -81,11 +81,14 @@ where
     let mut files = vec![];
     for idx in 0..archive.len() {
         let file = archive.by_index(idx)?;
+
         let path = match file.enclosed_name() {
             Some(path) => path.to_owned(),
             None => continue,
         };
-        files.push(FileInArchive { path });
+        let is_dir = file.is_dir();
+
+        files.push(FileInArchive { path, is_dir });
     }
     Ok(files)
 }

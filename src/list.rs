@@ -15,6 +15,9 @@ pub struct ListOptions {
 pub struct FileInArchive {
     /// The file path
     pub path: PathBuf,
+
+    /// Whether this file is a directory
+    pub is_dir: bool,
 }
 
 /// Actually print the files
@@ -24,9 +27,25 @@ pub fn list_files(archive: &Path, files: Vec<FileInArchive>, list_options: ListO
         let tree: Tree = files.into_iter().collect();
         tree.print();
     } else {
-        for file in files {
-            println!("{}", file.path.display());
+        for FileInArchive { path, is_dir } in files {
+            print_entry(path.display(), is_dir);
         }
+    }
+}
+
+fn print_entry(name: impl std::fmt::Display, is_dir: bool) {
+    use crate::utils::colors::*;
+
+    if is_dir {
+        // if colors are deactivated, print final / to mark directories
+        if BLUE.is_empty() {
+            println!("{}/", name);
+        } else {
+            println!("{}{}{}{}", *BLUE, *STYLE_BOLD, name, *ALL_RESET);
+        }
+    } else {
+        // not a dir -> just print the file name
+        println!("{}", name);
     }
 }
 
@@ -99,11 +118,13 @@ mod tree {
                 false => TREE_FINAL_BRANCH,
             };
 
-            if let Some(_file) = &self.file {
-                println!("{}{}{}", prefix, final_part, name);
-            } else {
-                println!("{}{}[{}]", prefix, final_part, name);
-            }
+            print!("{}{}", prefix, final_part);
+            let is_dir = match self.file {
+                Some(FileInArchive { is_dir, .. }) => is_dir,
+                None => true,
+            };
+            super::print_file(name, is_dir);
+
             // Construct prefix for children, adding either a line if this isn't
             // the last entry in the parent dir or empty space if it is.
             prefix.push_str(match last {
