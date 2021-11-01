@@ -33,6 +33,8 @@ pub fn list_files(archive: &Path, files: Vec<FileInArchive>, list_options: ListO
     }
 }
 
+/// Print an entry and highlight directories, either by coloring them
+/// if that's supported or by adding a trailing /
 fn print_entry(name: impl std::fmt::Display, is_dir: bool) {
     use crate::utils::colors::*;
 
@@ -49,6 +51,10 @@ fn print_entry(name: impl std::fmt::Display, is_dir: bool) {
     }
 }
 
+/// Since archives store files as a list of entries -> without direct
+/// directory structure (the directories are however part of the name),
+/// we have to construct the tree structure ourselves to be able to
+/// display them as a tree
 mod tree {
     use super::FileInArchive;
     use linked_hash_map::LinkedHashMap;
@@ -56,11 +62,7 @@ mod tree {
     use std::iter::FromIterator;
     use std::path;
 
-    const TREE_PREFIX_EMPTY: &str = "   ";
-    const TREE_PREFIX_LINE: &str = "│  ";
-    const TREE_FINAL_BRANCH: &str = "├── ";
-    const TREE_FINAL_LAST: &str = "└── ";
-
+    /// Directory tree
     #[derive(Debug, Default)]
     pub struct Tree {
         file: Option<FileInArchive>,
@@ -114,8 +116,8 @@ mod tree {
             // If there are no further elements in the parent directory, add
             // "└── " to the prefix, otherwise add "├── "
             let final_part = match last {
-                true => TREE_FINAL_LAST,
-                false => TREE_FINAL_BRANCH,
+                true => draw::FINAL_LAST,
+                false => draw::FINAL_BRANCH,
             };
 
             print!("{}{}", prefix, final_part);
@@ -123,13 +125,13 @@ mod tree {
                 Some(FileInArchive { is_dir, .. }) => is_dir,
                 None => true,
             };
-            super::print_file(name, is_dir);
+            super::print_entry(name, is_dir);
 
             // Construct prefix for children, adding either a line if this isn't
             // the last entry in the parent dir or empty space if it is.
             prefix.push_str(match last {
-                true => TREE_PREFIX_EMPTY,
-                false => TREE_PREFIX_LINE,
+                true => draw::PREFIX_EMPTY,
+                false => draw::PREFIX_LINE,
             });
             // Recursively print all children
             for (i, (name, subtree)) in self.children.iter().enumerate() {
@@ -146,5 +148,27 @@ mod tree {
             }
             tree
         }
+    }
+
+    /// Constants containing the visual parts of which the displayed tree
+    /// is constructed.
+    ///
+    /// They fall into 2 categories: the `PREFIX_*` parts form the first
+    /// `depth - 1` parts while the `FINAL_*` parts form the last part,
+    /// right before the entry itself
+    ///
+    /// `PREFIX_EMPTY`: the corresponding dir is the last entry in its parent dir
+    /// `PREFIX_LINE`: there are other entries after the corresponding dir
+    /// `FINAL_LAST`: this entry is the last entry in its parent dir
+    /// `FINAL_BRANCH`: there are other entries after this entry
+    mod draw {
+        /// the corresponding dir is the last entry in its parent dir
+        pub const PREFIX_EMPTY: &str = "   ";
+        /// there are other entries after the corresponding dir
+        pub const PREFIX_LINE: &str = "│  ";
+        /// this entry is the last entry in its parent dir
+        pub const FINAL_LAST: &str = "└── ";
+        /// there are other entries after this entry
+        pub const FINAL_BRANCH: &str = "├── ";
     }
 }
