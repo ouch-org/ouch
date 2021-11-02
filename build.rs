@@ -1,7 +1,7 @@
+use std::{env, fs::create_dir_all, path::Path};
+
 use clap::{ArgEnum, IntoApp};
 use clap_generate::{generate_to, Shell};
-
-use std::{env, fs::create_dir_all, path::Path};
 
 include!("src/opts.rs");
 

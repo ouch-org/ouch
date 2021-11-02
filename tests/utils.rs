@@ -5,7 +5,6 @@
 use std::path::{Path, PathBuf};
 
 use fs_err as fs;
-
 use ouch::{commands::run, Opts, QuestionPolicy, Subcommand};
 
 pub fn create_empty_dir(at: &Path, filename: &str) -> PathBuf {

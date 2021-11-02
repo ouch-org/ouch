@@ -7,9 +7,8 @@ use std::{
     time::Duration,
 };
 
-use ouch::{commands::run, Opts, QuestionPolicy, Subcommand};
-
 use fs_err as fs;
+use ouch::{commands::run, Opts, QuestionPolicy, Subcommand};
 use rand::{rngs::SmallRng, RngCore, SeedableRng};
 use tempfile::NamedTempFile;
 use utils::*;
