@@ -48,10 +48,7 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                     .detail("You shall supply the compression format")
                     .hint("Try adding supported extensions (see --help):")
                     .hint(format!("  ouch compress <FILES>... {}.tar.gz", to_utf(&output_path)))
-                    .hint(format!("  ouch compress <FILES>... {}.zip", to_utf(&output_path)))
-                    .hint("")
-                    .hint("Alternatively, you can overwrite this option by using the '--format' flag:")
-                    .hint(format!("  ouch compress <FILES>... {} --format tar.gz", to_utf(&output_path)));
+                    .hint(format!("  ouch compress <FILES>... {}.zip", to_utf(&output_path)));
 
                 return Err(error.into());
             }
@@ -184,10 +181,7 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                     ))
                     .detail("Decompression formats are detected automatically by the file extension")
                     .hint("Provide a file with a supported extension:")
-                    .hint("  ouch decompress example.tar.gz")
-                    .hint("")
-                    .hint("Or overwrite this option with the '--format' flag:")
-                    .hint(format!("  ouch decompress {} --format tar.gz", to_utf(&files_missing_format[0])));
+                    .hint("  ouch decompress example.tar.gz");
 
                 return Err(error.into());
             }
