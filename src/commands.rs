@@ -279,7 +279,7 @@ fn compress_files(files: Vec<PathBuf>, formats: Vec<Extension>, output_file: fs:
                 //     is guaranteed to be valid
                 Box::new(zstd_encoder.unwrap().auto_finish())
             }
-            _ => unreachable!(),
+            Tar | Zip => unreachable!(),
         };
         encoder
     };
@@ -368,7 +368,7 @@ fn decompress_file(
             Lz4 => Box::new(lz4_flex::frame::FrameDecoder::new(decoder)),
             Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
             Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
-            _ => unreachable!(),
+            Tar | Zip => unreachable!(),
         };
         Ok(decoder)
     };
@@ -456,7 +456,7 @@ fn list_archive_contents(
             Lz4 => Box::new(lz4_flex::frame::FrameDecoder::new(decoder)),
             Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
             Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
-            _ => unreachable!(),
+            Tar | Zip => unreachable!(),
         };
         Ok(decoder)
     };

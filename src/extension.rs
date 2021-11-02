@@ -150,7 +150,7 @@ mod tests {
         use CompressionFormat::*;
         let path = Path::new("bolovo.tar.gz");
 
-        let extensions: Vec<Extension> = extensions_from_path(&path);
+        let extensions: Vec<Extension> = extensions_from_path(path);
         let formats: Vec<&CompressionFormat> = extensions.iter().flat_map(Extension::iter).collect::<Vec<_>>();
 
         assert_eq!(formats, vec![&Tar, &Gzip]);
