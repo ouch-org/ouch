@@ -16,6 +16,7 @@ use crate::{
     extension::{
         self,
         CompressionFormat::{self, *},
+        Extension,
     },
     info,
     utils::{self, dir_is_empty, nice_directory_display, to_utf},
@@ -55,9 +56,7 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                 return Err(Error::with_reason(reason));
             }
 
-            if !formats.get(0).map(CompressionFormat::is_archive_format).unwrap_or(false)
-                && represents_several_files(&files)
-            {
+            if !formats.get(0).map(Extension::is_archive).unwrap_or(false) && represents_several_files(&files) {
                 // This piece of code creates a suggestion for compressing multiple files
                 // It says:
                 // Change from file.bz.xz
@@ -85,7 +84,7 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                 return Err(Error::with_reason(reason));
             }
 
-            if let Some(format) = formats.iter().skip(1).find(|format| format.is_archive_format()) {
+            if let Some(format) = formats.iter().skip(1).find(|format| format.is_archive()) {
                 let reason = FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))
                     .detail(format!("Found the format '{}' in an incorrect position.", format))
                     .detail(format!("'{}' can only be used at the start of the file extension.", format))
@@ -107,12 +106,28 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                 // `ouch compress file.tar.gz file.tar.gz.xz` should produce `file.tar.gz.xz` and not `file.tar.gz.tar.gz.xz`
                 let input_extensions = extension::extensions_from_path(&files[0]);
 
+                // We calculate the formats that are left if we filter out a sublist at the start of what we have that's the same as the input formats
+                let mut new_formats = Vec::with_capacity(formats.len());
+                for (inp_ext, out_ext) in input_extensions.iter().zip(&formats) {
+                    if inp_ext.compression_formats == out_ext.compression_formats {
+                        new_formats.push(out_ext.clone());
+                    } else if inp_ext
+                        .compression_formats
+                        .iter()
+                        .zip(&out_ext.compression_formats)
+                        .all(|(inp, out)| inp == out)
+                    {
+                        let new_ext = Extension::new(
+                            &out_ext.compression_formats[..inp_ext.compression_formats.len()],
+                            &out_ext.display_text,
+                        );
+                        new_formats.push(new_ext);
+                        break;
+                    }
+                }
                 // If the input is a sublist at the start of `formats` then remove the extensions
-                // Note: If input_extensions is empty this counts as true
-                if !input_extensions.is_empty()
-                    && input_extensions.len() < formats.len()
-                    && input_extensions.iter().zip(&formats).all(|(inp, out)| inp == out)
-                {
+                // Note: If input_extensions is empty then it will make `formats` empty too, which we don't want
+                if !input_extensions.is_empty() && new_formats != formats {
                     // Safety:
                     //   We checked above that input_extensions isn't empty, so files[0] has a extension.
                     //
@@ -123,8 +138,7 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                         to_utf(files[0].as_path().file_name().unwrap()),
                         to_utf(&output_path)
                     );
-                    let drain_iter = formats.drain(..input_extensions.len());
-                    drop(drain_iter); // Remove the extensions from `formats`
+                    formats = new_formats;
                 }
             }
             let compress_result = compress_files(files, formats, output_file);
@@ -189,7 +203,7 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
 // files are the list of paths to be compressed: ["dir/file1.txt", "dir/file2.txt"]
 // formats contains each format necessary for compression, example: [Tar, Gz] (in compression order)
 // output_file is the resulting compressed file name, example: "compressed.tar.gz"
-fn compress_files(files: Vec<PathBuf>, formats: Vec<CompressionFormat>, output_file: fs::File) -> crate::Result<()> {
+fn compress_files(files: Vec<PathBuf>, formats: Vec<Extension>, output_file: fs::File) -> crate::Result<()> {
     let file_writer = BufWriter::with_capacity(BUFFER_CAPACITY, output_file);
 
     let mut writer: Box<dyn Write> = Box::new(file_writer);
@@ -212,39 +226,19 @@ fn compress_files(files: Vec<PathBuf>, formats: Vec<CompressionFormat>, output_f
         encoder
     };
 
-    for format in formats.iter().skip(1).rev() {
+    for format in formats.iter().flat_map(Extension::iter).skip(1).collect::<Vec<_>>().iter().rev() {
         writer = chain_writer_encoder(format, writer);
     }
 
-    match formats[0] {
+    match formats[0].compression_formats[0] {
         Gzip | Bzip | Lzma | Zstd => {
-            writer = chain_writer_encoder(&formats[0], writer);
+            writer = chain_writer_encoder(&formats[0].compression_formats[0], writer);
             let mut reader = fs::File::open(&files[0]).unwrap();
             io::copy(&mut reader, &mut writer)?;
         }
         Tar => {
             let mut writer = archive::tar::build_archive_from_paths(&files, writer)?;
             writer.flush()?;
-        }
-        Tgz => {
-            let encoder = flate2::write::GzEncoder::new(writer, Default::default());
-            let writer = archive::tar::build_archive_from_paths(&files, encoder)?;
-            writer.finish()?.flush()?;
-        }
-        Tbz => {
-            let encoder = bzip2::write::BzEncoder::new(writer, Default::default());
-            let writer = archive::tar::build_archive_from_paths(&files, encoder)?;
-            writer.finish()?.flush()?;
-        }
-        Tlzma => {
-            let encoder = xz2::write::XzEncoder::new(writer, 6);
-            let writer = archive::tar::build_archive_from_paths(&files, encoder)?;
-            writer.finish()?.flush()?;
-        }
-        Tzst => {
-            let encoder = zstd::stream::write::Encoder::new(writer, Default::default())?;
-            let writer = archive::tar::build_archive_from_paths(&files, encoder)?;
-            writer.finish()?.flush()?;
         }
         Zip => {
             eprintln!("{yellow}Warning:{reset}", yellow = *colors::YELLOW, reset = *colors::RESET);
@@ -274,7 +268,7 @@ fn compress_files(files: Vec<PathBuf>, formats: Vec<CompressionFormat>, output_f
 // file_name is only used when extracting single file formats, no archive formats like .tar or .zip
 fn decompress_file(
     input_file_path: &Path,
-    formats: Vec<extension::CompressionFormat>,
+    formats: Vec<Extension>,
     output_dir: Option<&Path>,
     file_name: &Path,
     question_policy: QuestionPolicy,
@@ -296,7 +290,7 @@ fn decompress_file(
     // in-memory decompression/copying first.
     //
     // Any other Zip decompression done can take up the whole RAM and freeze ouch.
-    if let [Zip] = *formats.as_slice() {
+    if formats.len() == 1 && *formats[0].compression_formats.as_slice() == [Zip] {
         utils::create_dir_if_non_existent(output_dir)?;
         let zip_archive = zip::ZipArchive::new(reader)?;
         let _files = crate::archive::zip::unpack_archive(zip_archive, output_dir, question_policy)?;
@@ -320,7 +314,7 @@ fn decompress_file(
         Ok(decoder)
     };
 
-    for format in formats.iter().skip(1).rev() {
+    for format in formats.iter().flat_map(Extension::iter).skip(1).collect::<Vec<_>>().iter().rev() {
         reader = chain_reader_decoder(format, reader)?;
     }
 
@@ -328,9 +322,9 @@ fn decompress_file(
 
     let files_unpacked;
 
-    match formats[0] {
+    match formats[0].compression_formats[0] {
         Gzip | Bzip | Lzma | Zstd => {
-            reader = chain_reader_decoder(&formats[0], reader)?;
+            reader = chain_reader_decoder(&formats[0].compression_formats[0], reader)?;
 
             // TODO: improve error treatment
             let mut writer = fs::File::create(&output_path)?;
@@ -339,22 +333,6 @@ fn decompress_file(
             files_unpacked = vec![output_path];
         }
         Tar => {
-            files_unpacked = crate::archive::tar::unpack_archive(reader, output_dir, question_policy)?;
-        }
-        Tgz => {
-            let reader = chain_reader_decoder(&Gzip, reader)?;
-            files_unpacked = crate::archive::tar::unpack_archive(reader, output_dir, question_policy)?;
-        }
-        Tbz => {
-            let reader = chain_reader_decoder(&Bzip, reader)?;
-            files_unpacked = crate::archive::tar::unpack_archive(reader, output_dir, question_policy)?;
-        }
-        Tlzma => {
-            let reader = chain_reader_decoder(&Lzma, reader)?;
-            files_unpacked = crate::archive::tar::unpack_archive(reader, output_dir, question_policy)?;
-        }
-        Tzst => {
-            let reader = chain_reader_decoder(&Zstd, reader)?;
             files_unpacked = crate::archive::tar::unpack_archive(reader, output_dir, question_policy)?;
         }
         Zip => {
