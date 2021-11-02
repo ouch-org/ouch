@@ -79,7 +79,7 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                     .detail("The only supported formats that archive files into an archive are .tar and .zip.")
                     .hint(format!("Try inserting '.tar' or '.zip' before '{}'.", &formats[0]))
                     .hint(format!("From: {}", output_path))
-                    .hint(format!(" To : {}", suggested_output_path));
+                    .hint(format!("To:   {}", suggested_output_path));
 
                 return Err(error.into());
             }
