@@ -1,6 +1,7 @@
 //! CLI related functions, uses the clap argparsing definitions from `opts.rs`.
 
 use std::{
+    io,
     path::{Path, PathBuf},
     vec::Vec,
 };
@@ -8,7 +9,7 @@ use std::{
 use clap::Parser;
 use fs_err as fs;
 
-use crate::{Error, Opts, QuestionPolicy, Subcommand};
+use crate::{Opts, QuestionPolicy, Subcommand};
 
 impl Opts {
     /// A helper method that calls `clap::Parser::parse`.
@@ -17,7 +18,7 @@ impl Opts {
     ///   1. Make paths absolute.
     ///   2. Checks the QuestionPolicy.
     pub fn parse_args() -> crate::Result<(Self, QuestionPolicy)> {
-        let mut opts: Self = Self::parse();
+        let mut opts = Self::parse();
 
         let (Subcommand::Compress { files, .. } | Subcommand::Decompress { files, .. }) = &mut opts.cmd;
         *files = canonicalize_files(files)?;
@@ -34,19 +35,6 @@ impl Opts {
     }
 }
 
-fn canonicalize(path: impl AsRef<Path>) -> crate::Result<PathBuf> {
-    match fs::canonicalize(&path.as_ref()) {
-        Ok(abs_path) => Ok(abs_path),
-        Err(io_err) => {
-            if !path.as_ref().exists() {
-                Err(Error::FileNotFound(path.as_ref().into()))
-            } else {
-                Err(io_err.into())
-            }
-        }
-    }
-}
-
-fn canonicalize_files(files: &[impl AsRef<Path>]) -> crate::Result<Vec<PathBuf>> {
-    files.iter().map(canonicalize).collect()
+fn canonicalize_files(files: &[impl AsRef<Path>]) -> io::Result<Vec<PathBuf>> {
+    files.iter().map(fs::canonicalize).collect()
 }
