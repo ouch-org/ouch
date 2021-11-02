@@ -47,9 +47,11 @@ pub enum CompressionFormat {
     Gzip,
     /// .bz .bz2
     Bzip,
+    /// .lz4
+    Lz4,
     /// .xz .lzma .lz
     Lzma,
-    /// tar, tgz, tbz, tbz2, txz, tlz, tlzma, tzst
+    /// tar, tgz, tbz, tbz2, txz, tlz, tlz4, tlzma, tzst
     Tar,
     /// .zst
     Zstd,
@@ -65,6 +67,7 @@ impl CompressionFormat {
             Tar | Zip => true,
             Gzip => false,
             Bzip => false,
+            Lz4 => false,
             Lzma => false,
             Zstd => false,
         }
@@ -80,6 +83,7 @@ impl fmt::Display for CompressionFormat {
                 Gzip => ".gz",
                 Bzip => ".bz",
                 Zstd => ".zst",
+                Lz4 => ".lz4",
                 Lzma => ".lz",
                 Tar => ".tar",
                 Zip => ".zip",
@@ -110,11 +114,13 @@ pub fn separate_known_extensions_from_name(mut path: &Path) -> (&Path, Vec<Exten
             "tar" => Extension::new([Tar], extension),
             "tgz" => Extension::new([Tar, Gzip], extension),
             "tbz" | "tbz2" => Extension::new([Tar, Bzip], extension),
+            "tlz4" => Extension::new([Tar, Lz4], extension),
             "txz" | "tlz" | "tlzma" => Extension::new([Tar, Lzma], extension),
             "tzst" => Extension::new([Tar, Zstd], ".tzst"),
             "zip" => Extension::new([Zip], extension),
             "bz" | "bz2" => Extension::new([Bzip], extension),
             "gz" => Extension::new([Gzip], extension),
+            "lz4" => Extension::new([Lz4], extension),
             "xz" | "lzma" | "lz" => Extension::new([Lzma], extension),
             "zst" => Extension::new([Zstd], extension),
             _ => break,

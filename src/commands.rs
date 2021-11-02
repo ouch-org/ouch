@@ -270,6 +270,7 @@ fn compress_files(files: Vec<PathBuf>, formats: Vec<Extension>, output_file: fs:
         let encoder: Box<dyn Write> = match format {
             Gzip => Box::new(flate2::write::GzEncoder::new(encoder, Default::default())),
             Bzip => Box::new(bzip2::write::BzEncoder::new(encoder, Default::default())),
+            Lz4 => Box::new(lz4_flex::frame::FrameEncoder::new(encoder)),
             Lzma => Box::new(xz2::write::XzEncoder::new(encoder, 6)),
             Zstd => {
                 let zstd_encoder = zstd::stream::write::Encoder::new(encoder, Default::default());
@@ -288,7 +289,7 @@ fn compress_files(files: Vec<PathBuf>, formats: Vec<Extension>, output_file: fs:
     }
 
     match formats[0].compression_formats[0] {
-        Gzip | Bzip | Lzma | Zstd => {
+        Gzip | Bzip | Lz4 | Lzma | Zstd => {
             writer = chain_writer_encoder(&formats[0].compression_formats[0], writer);
             let mut reader = fs::File::open(&files[0]).unwrap();
             io::copy(&mut reader, &mut writer)?;
@@ -364,6 +365,7 @@ fn decompress_file(
         let decoder: Box<dyn Read> = match format {
             Gzip => Box::new(flate2::read::GzDecoder::new(decoder)),
             Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
+            Lz4 => Box::new(lz4_flex::frame::FrameDecoder::new(decoder)),
             Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
             Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
             _ => unreachable!(),
@@ -380,7 +382,7 @@ fn decompress_file(
     let files_unpacked;
 
     match formats[0].compression_formats[0] {
-        Gzip | Bzip | Lzma | Zstd => {
+        Gzip | Bzip | Lz4 | Lzma | Zstd => {
             reader = chain_reader_decoder(&formats[0].compression_formats[0], reader)?;
 
             let writer = utils::create_or_ask_overwrite(&output_path, question_policy)?;
@@ -451,6 +453,7 @@ fn list_archive_contents(
         let decoder: Box<dyn Read> = match format {
             Gzip => Box::new(flate2::read::GzDecoder::new(decoder)),
             Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
+            Lz4 => Box::new(lz4_flex::frame::FrameDecoder::new(decoder)),
             Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
             Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
             _ => unreachable!(),
@@ -476,7 +479,7 @@ fn list_archive_contents(
 
             crate::archive::zip::list_archive(zip_archive)?
         }
-        Gzip | Bzip | Lzma | Zstd => {
+        Gzip | Bzip | Lz4 | Lzma | Zstd => {
             panic!("Not an archive! This should never happen, if it does, something is wrong with `CompressionFormat::is_archive()`. Please report this error!");
         }
     };
