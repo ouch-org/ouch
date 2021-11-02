@@ -45,12 +45,13 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
 
             if formats.is_empty() {
                 let error = FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))
-                    .detail("You shall supply the compression format via the extension.")
-                    .hint("Try adding something like .tar.gz or .zip to the output file.")
+                    .detail("You shall supply the compression format")
+                    .hint("Try adding supported extensions (see --help):")
+                    .hint(format!("  ouch compress <FILES>... {}.tar.gz", to_utf(&output_path)))
+                    .hint(format!("  ouch compress <FILES>... {}.zip", to_utf(&output_path)))
                     .hint("")
-                    .hint("Examples:")
-                    .hint(format!("  ouch compress ... {}.tar.gz", to_utf(&output_path)))
-                    .hint(format!("  ouch compress ... {}.zip", to_utf(&output_path)));
+                    .hint("Alternatively, you can overwrite this option by using the '--format' flag:")
+                    .hint(format!("  ouch compress <FILES>... {} --format tar.gz", to_utf(&output_path)));
 
                 return Err(error.into());
             }
