@@ -1,6 +1,6 @@
 [package]
 name = "ouch"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Vinícius Rodrigues Miguel <vrmiguel99@gmail.com>", "João M. Bezerra <marcospb19@hotmail.com>"]
 edition = "2018"
 readme = "README.md"
