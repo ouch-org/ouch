@@ -1,3 +1,4 @@
+# Stable features
 max_width = 120
 use_field_init_shorthand = true
 newline_style = "Unix"
@@ -6,5 +7,9 @@ reorder_imports = true
 reorder_modules = true
 use_try_shorthand = true
 use_small_heuristics = "Max"
+
+# Unstable features (nightly only)
 unstable_features = true
 force_multiline_blocks = true
+group_imports = "StdExternalCrate"
+imports_granularity = "Crate"

@@ -7,18 +7,16 @@ use std::{
 };
 
 use fs_err as fs;
-
 use walkdir::WalkDir;
 use zip::{self, read::ZipFile, ZipArchive};
 
+use self::utf8::get_invalid_utf8_paths;
 use crate::{
     info,
     list::FileInArchive,
     utils::{self, dir_is_empty, strip_cur_dir, Bytes},
     QuestionPolicy,
 };
-
-use self::utf8::get_invalid_utf8_paths;
 
 /// Unpacks the archive given by `archive` into the folder given by `into`.
 pub fn unpack_archive<R>(
@@ -158,8 +156,7 @@ fn check_for_comments(file: &ZipFile) {
 
 #[cfg(unix)]
 fn __unix_set_permissions(file_path: &Path, file: &ZipFile) -> crate::Result<()> {
-    use std::fs::Permissions;
-    use std::os::unix::fs::PermissionsExt;
+    use std::{fs::Permissions, os::unix::fs::PermissionsExt};
 
     if let Some(mode) = file.unix_mode() {
         fs::set_permissions(file_path, Permissions::from_mode(mode))?;
@@ -175,8 +172,7 @@ mod utf8 {
     // Sad double reference in order to make `filter` happy in `get_invalid_utf8_paths`
     #[cfg(unix)]
     fn is_invalid_utf8(path: &&Path) -> bool {
-        use std::os::unix::prelude::OsStrExt;
-        use std::str;
+        use std::{os::unix::prelude::OsStrExt, str};
 
         // str::from_utf8 does not make any allocations
         let bytes = path.as_os_str().as_bytes();

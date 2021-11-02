@@ -4,8 +4,7 @@ use std::{
     cmp, env,
     ffi::OsStr,
     io,
-    path::Component,
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf},
 };
 
 use fs_err as fs;

@@ -1,7 +1,8 @@
 //! Implementation of the 'list' command, print list of files in an archive
 
-use self::tree::Tree;
 use std::path::{Path, PathBuf};
+
+use self::tree::Tree;
 
 /// Options controlling how archive contents should be listed
 #[derive(Debug, Clone, Copy)]
@@ -56,11 +57,11 @@ fn print_entry(name: impl std::fmt::Display, is_dir: bool) {
 /// we have to construct the tree structure ourselves to be able to
 /// display them as a tree
 mod tree {
-    use super::FileInArchive;
+    use std::{ffi::OsString, iter::FromIterator, path};
+
     use linked_hash_map::LinkedHashMap;
-    use std::ffi::OsString;
-    use std::iter::FromIterator;
-    use std::path;
+
+    use super::FileInArchive;
 
     /// Directory tree
     #[derive(Debug, Default)]
