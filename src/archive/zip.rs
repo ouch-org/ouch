@@ -1,10 +1,12 @@
 //! Contains Zip-specific building and unpacking functions
 
 use std::{
-    env, fs,
+    env,
     io::{self, prelude::*},
     path::{Path, PathBuf},
 };
+
+use fs_err as fs;
 
 use walkdir::WalkDir;
 use zip::{self, read::ZipFile, ZipArchive};
@@ -12,6 +14,7 @@ use zip::{self, read::ZipFile, ZipArchive};
 use crate::{
     info,
     utils::{self, dir_is_empty, strip_cur_dir, Bytes},
+    QuestionPolicy,
 };
 
 use self::utf8::get_invalid_utf8_paths;
@@ -20,7 +23,7 @@ use self::utf8::get_invalid_utf8_paths;
 pub fn unpack_archive<R>(
     mut archive: ZipArchive<R>,
     into: &Path,
-    skip_questions_positively: Option<bool>,
+    question_policy: QuestionPolicy,
 ) -> crate::Result<Vec<PathBuf>>
 where
     R: Read + Seek,
@@ -34,7 +37,7 @@ where
         };
 
         let file_path = into.join(file_path);
-        if file_path.exists() && !utils::user_wants_to_overwrite(&file_path, skip_questions_positively)? {
+        if file_path.exists() && !utils::user_wants_to_overwrite(&file_path, question_policy)? {
             continue;
         }
 
@@ -70,6 +73,7 @@ where
     Ok(unpacked_files)
 }
 
+/// Compresses the archives given by `input_filenames` into the file given previously to `writer`.
 pub fn build_archive_from_paths<W>(input_filenames: &[PathBuf], writer: W) -> crate::Result<W>
 where
     W: Write + Seek,
@@ -126,10 +130,11 @@ fn check_for_comments(file: &ZipFile) {
 
 #[cfg(unix)]
 fn __unix_set_permissions(file_path: &Path, file: &ZipFile) -> crate::Result<()> {
+    use std::fs::Permissions;
     use std::os::unix::fs::PermissionsExt;
 
     if let Some(mode) = file.unix_mode() {
-        fs::set_permissions(file_path, fs::Permissions::from_mode(mode))?;
+        fs::set_permissions(file_path, Permissions::from_mode(mode))?;
     }
 
     Ok(())

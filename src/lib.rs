@@ -4,19 +4,25 @@
 //! 1. It's required by `main.rs`, or
 //! 2. It's required by some integration tests at tests/ folder.
 
-// Public modules
+#![warn(missing_docs)]
+
+// Macros should be declared before
+pub mod macros;
+
+pub mod archive;
 pub mod cli;
 pub mod commands;
+pub mod dialogs;
+pub mod error;
+pub mod extension;
+pub mod utils;
 
-// Private modules
-pub mod archive;
-mod dialogs;
-mod error;
-mod extension;
-mod macros;
-mod utils;
+/// CLI configuration step, uses definitions from `opts.rs`, also used to treat some inputs.
+pub mod opts;
 
 pub use error::{Error, Result};
+pub use opts::{Opts, Subcommand};
+pub use utils::QuestionPolicy;
 
 /// The status code ouch has when an error is encountered
 pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;

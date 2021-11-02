@@ -1,23 +1,27 @@
 //! Contains Tar-specific building and unpacking functions
 
 use std::{
-    env, fs,
+    env,
     io::prelude::*,
     path::{Path, PathBuf},
 };
 
+use fs_err as fs;
 use tar;
 use walkdir::WalkDir;
 
 use crate::{
+    error::FinalError,
     info,
     utils::{self, Bytes},
+    QuestionPolicy,
 };
 
+/// Unpacks the archive given by `archive` into the folder given by `into`.
 pub fn unpack_archive(
     reader: Box<dyn Read>,
     output_folder: &Path,
-    skip_questions_positively: Option<bool>,
+    question_policy: QuestionPolicy,
 ) -> crate::Result<Vec<PathBuf>> {
     let mut archive = tar::Archive::new(reader);
 
@@ -26,7 +30,7 @@ pub fn unpack_archive(
         let mut file = file?;
 
         let file_path = output_folder.join(file.path()?);
-        if file_path.exists() && !utils::user_wants_to_overwrite(&file_path, skip_questions_positively)? {
+        if file_path.exists() && !utils::user_wants_to_overwrite(&file_path, question_policy)? {
             continue;
         }
 
@@ -40,6 +44,7 @@ pub fn unpack_archive(
     Ok(files_unpacked)
 }
 
+/// Compresses the archives given by `input_filenames` into the file given previously to `writer`.
 pub fn build_archive_from_paths<W>(input_filenames: &[PathBuf], writer: W) -> crate::Result<W>
 where
     W: Write,
@@ -62,7 +67,12 @@ where
                 builder.append_dir(path, path)?;
             } else {
                 let mut file = fs::File::open(path)?;
-                builder.append_file(path, &mut file)?;
+                builder.append_file(path, file.file_mut()).map_err(|err| {
+                    FinalError::with_title("Could not create archive")
+                        .detail("Unexpected error while trying to read file")
+                        .detail(format!("Error: {}.", err))
+                        .into_owned()
+                })?;
             }
         }
         env::set_current_dir(previous_location)?;

@@ -3,16 +3,15 @@
 //! Also, where correctly call functions based on the detected `Command`.
 
 use std::{
-    fs,
     io::{self, BufReader, BufWriter, Read, Write},
     path::{Path, PathBuf},
 };
 
+use fs_err as fs;
 use utils::colors;
 
 use crate::{
     archive,
-    cli::{Opts, Subcommand},
     error::FinalError,
     extension::{
         self,
@@ -20,10 +19,8 @@ use crate::{
         Extension,
     },
     info,
-    utils::nice_directory_display,
-    utils::to_utf,
-    utils::{self, dir_is_empty},
-    Error,
+    utils::{self, dir_is_empty, nice_directory_display, to_utf},
+    Error, Opts, QuestionPolicy, Subcommand,
 };
 
 // Used in BufReader and BufWriter to perform less syscalls
@@ -39,7 +36,9 @@ fn represents_several_files(files: &[PathBuf]) -> bool {
     files.iter().any(is_non_empty_dir) || files.len() > 1
 }
 
-pub fn run(args: Opts, skip_questions_positively: Option<bool>) -> crate::Result<()> {
+/// Entrypoint of ouch, receives cli options and matches Subcommand
+/// to decide current operation
+pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
     match args.cmd {
         Subcommand::Compress { files, output: output_path } => {
             // Formats from path extension, like "file.tar.gz.xz" -> vec![Tar, Gzip, Lzma]
@@ -95,7 +94,7 @@ pub fn run(args: Opts, skip_questions_positively: Option<bool>) -> crate::Result
                 return Err(Error::with_reason(reason));
             }
 
-            if output_path.exists() && !utils::user_wants_to_overwrite(&output_path, skip_questions_positively)? {
+            if output_path.exists() && !utils::user_wants_to_overwrite(&output_path, question_policy)? {
                 // User does not want to overwrite this file
                 return Ok(());
             }
@@ -160,7 +159,7 @@ pub fn run(args: Opts, skip_questions_positively: Option<bool>) -> crate::Result
 
             compress_result?;
         }
-        Subcommand::Decompress { files, output: output_folder } => {
+        Subcommand::Decompress { files, output_dir } => {
             let mut output_paths = vec![];
             let mut formats = vec![];
 
@@ -189,16 +188,21 @@ pub fn run(args: Opts, skip_questions_positively: Option<bool>) -> crate::Result
             }
 
             // From Option<PathBuf> to Option<&Path>
-            let output_folder = output_folder.as_ref().map(|path| path.as_ref());
+            let output_dir = output_dir.as_ref().map(|path| path.as_ref());
 
             for ((input_path, formats), file_name) in files.iter().zip(formats).zip(output_paths) {
-                decompress_file(input_path, formats, output_folder, file_name, skip_questions_positively)?;
+                decompress_file(input_path, formats, output_dir, file_name, question_policy)?;
             }
         }
     }
     Ok(())
 }
 
+// Compress files into an `output_file`
+//
+// files are the list of paths to be compressed: ["dir/file1.txt", "dir/file2.txt"]
+// formats contains each format necessary for compression, example: [Tar, Gz] (in compression order)
+// output_file is the resulting compressed file name, example: "compressed.tar.gz"
 fn compress_files(files: Vec<PathBuf>, formats: Vec<Extension>, output_file: fs::File) -> crate::Result<()> {
     let file_writer = BufWriter::with_capacity(BUFFER_CAPACITY, output_file);
 
@@ -256,26 +260,28 @@ fn compress_files(files: Vec<PathBuf>, formats: Vec<Extension>, output_file: fs:
     Ok(())
 }
 
+// Decompress a file
+//
 // File at input_file_path is opened for reading, example: "archive.tar.gz"
 // formats contains each format necessary for decompression, example: [Gz, Tar] (in decompression order)
-// output_folder it's where the file will be decompressed to
+// output_dir it's where the file will be decompressed to
 // file_name is only used when extracting single file formats, no archive formats like .tar or .zip
 fn decompress_file(
     input_file_path: &Path,
     formats: Vec<Extension>,
-    output_folder: Option<&Path>,
+    output_dir: Option<&Path>,
     file_name: &Path,
-    skip_questions_positively: Option<bool>,
+    question_policy: QuestionPolicy,
 ) -> crate::Result<()> {
     // TODO: improve error message
     let reader = fs::File::open(&input_file_path)?;
 
     // Output path is used by single file formats
     let output_path =
-        if let Some(output_folder) = output_folder { output_folder.join(file_name) } else { file_name.to_path_buf() };
+        if let Some(output_dir) = output_dir { output_dir.join(file_name) } else { file_name.to_path_buf() };
 
     // Output folder is used by archive file formats (zip and tar)
-    let output_folder = output_folder.unwrap_or_else(|| Path::new("."));
+    let output_dir = output_dir.unwrap_or_else(|| Path::new("."));
 
     // Zip archives are special, because they require io::Seek, so it requires it's logic separated
     // from decoder chaining.
@@ -285,10 +291,10 @@ fn decompress_file(
     //
     // Any other Zip decompression done can take up the whole RAM and freeze ouch.
     if formats.len() == 1 && *formats[0].compression_formats.as_slice() == [Zip] {
-        utils::create_dir_if_non_existent(output_folder)?;
+        utils::create_dir_if_non_existent(output_dir)?;
         let zip_archive = zip::ZipArchive::new(reader)?;
-        let _files = crate::archive::zip::unpack_archive(zip_archive, output_folder, skip_questions_positively)?;
-        info!("Successfully decompressed archive in {}.", nice_directory_display(output_folder));
+        let _files = crate::archive::zip::unpack_archive(zip_archive, output_dir, question_policy)?;
+        info!("Successfully decompressed archive in {}.", nice_directory_display(output_dir));
         return Ok(());
     }
 
@@ -312,7 +318,9 @@ fn decompress_file(
         reader = chain_reader_decoder(format, reader)?;
     }
 
-    utils::create_dir_if_non_existent(output_folder)?;
+    utils::create_dir_if_non_existent(output_dir)?;
+
+    let files_unpacked;
 
     match formats[0].compression_formats[0] {
         Gzip | Bzip | Lzma | Zstd => {
@@ -322,11 +330,10 @@ fn decompress_file(
             let mut writer = fs::File::create(&output_path)?;
 
             io::copy(&mut reader, &mut writer)?;
-            info!("Successfully decompressed archive in {}.", nice_directory_display(output_path));
+            files_unpacked = vec![output_path];
         }
         Tar => {
-            let _ = crate::archive::tar::unpack_archive(reader, output_folder, skip_questions_positively)?;
-            info!("Successfully decompressed archive in {}.", nice_directory_display(output_folder));
+            files_unpacked = crate::archive::tar::unpack_archive(reader, output_dir, question_policy)?;
         }
         Zip => {
             eprintln!("Compressing first into .zip.");
@@ -340,11 +347,12 @@ fn decompress_file(
             io::copy(&mut reader, &mut vec)?;
             let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
 
-            let _ = crate::archive::zip::unpack_archive(zip_archive, output_folder, skip_questions_positively)?;
-
-            info!("Successfully decompressed archive in {}.", nice_directory_display(output_folder));
+            files_unpacked = crate::archive::zip::unpack_archive(zip_archive, output_dir, question_policy)?;
         }
     }
+
+    info!("Successfully decompressed archive in {}.", nice_directory_display(output_dir));
+    info!("Files unpacked: {}", files_unpacked.len());
 
     Ok(())
 }

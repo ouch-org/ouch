@@ -1,70 +1,32 @@
-//! CLI arg parser configuration, command detection and input treatment.
+//! CLI configuration step, uses definitions from `opts.rs`.
+//!
+//! Also used to treat some inputs.
 
 use std::{
     path::{Path, PathBuf},
     vec::Vec,
 };
 
-use clap::{Parser, ValueHint};
+use clap::Parser;
+use fs_err as fs;
 
-use crate::Error;
-
-#[derive(Parser, Debug)]
-#[clap(version, about)]
-pub struct Opts {
-    /// Skip overwrite questions positively.
-    #[clap(short, long, conflicts_with = "no")]
-    pub yes: bool,
-
-    /// Skip overwrite questions negatively.
-    #[clap(short, long)]
-    pub no: bool,
-
-    #[clap(subcommand)]
-    pub cmd: Subcommand,
-}
-
-#[derive(Parser, PartialEq, Eq, Debug)]
-pub enum Subcommand {
-    /// Compress files.    Alias: c
-    #[clap(alias = "c")]
-    Compress {
-        /// Files to be compressed
-        #[clap(required = true, min_values = 1)]
-        files: Vec<PathBuf>,
-
-        /// The resulting file. Its extensions specify how the files will be compressed and they need to be supported
-        #[clap(required = true, value_hint = ValueHint::FilePath)]
-        output: PathBuf,
-    },
-    /// Compress files.    Alias: d
-    #[clap(alias = "d")]
-    Decompress {
-        /// Files to be decompressed
-        #[clap(required = true, min_values = 1)]
-        files: Vec<PathBuf>,
-
-        /// Decompress files in a directory other than the current
-        #[clap(short, long, value_hint = ValueHint::DirPath)]
-        output: Option<PathBuf>,
-    },
-}
+use crate::{Error, Opts, QuestionPolicy, Subcommand};
 
 impl Opts {
     /// A helper method that calls `clap::Parser::parse` and then translates relative paths to absolute.
     /// Also determines if the user wants to skip questions or not
-    pub fn parse_args() -> crate::Result<(Self, Option<bool>)> {
+    pub fn parse_args() -> crate::Result<(Self, QuestionPolicy)> {
         let mut opts: Self = Self::parse();
 
         let (Subcommand::Compress { files, .. } | Subcommand::Decompress { files, .. }) = &mut opts.cmd;
         *files = canonicalize_files(files)?;
 
         let skip_questions_positively = if opts.yes {
-            Some(true)
+            QuestionPolicy::AlwaysYes
         } else if opts.no {
-            Some(false)
+            QuestionPolicy::AlwaysNo
         } else {
-            None
+            QuestionPolicy::Ask
         };
 
         Ok((opts, skip_questions_positively))
@@ -72,7 +34,7 @@ impl Opts {
 }
 
 fn canonicalize(path: impl AsRef<Path>) -> crate::Result<PathBuf> {
-    match std::fs::canonicalize(&path.as_ref()) {
+    match fs::canonicalize(&path.as_ref()) {
         Ok(abs_path) => Ok(abs_path),
         Err(io_err) => {
             if !path.as_ref().exists() {

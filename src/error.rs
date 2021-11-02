@@ -6,6 +6,8 @@
 //! TODO: wrap `FinalError` in a variant to keep all `FinalError::display_and_crash()` function
 //! calls inside of this module.
 
+#![allow(missing_docs)]
+
 use std::{
     fmt::{self, Display},
     path::{Path, PathBuf},
@@ -13,6 +15,7 @@ use std::{
 
 use crate::utils::colors::*;
 
+/// Custom Ouch Errors
 #[derive(Debug, PartialEq)]
 pub enum Error {
     UnknownExtensionError(String),
@@ -21,7 +24,7 @@ pub enum Error {
     FileNotFound(PathBuf),
     AlreadyExists,
     InvalidZipArchive(&'static str),
-    PermissionDenied,
+    PermissionDenied { error_title: String },
     UnsupportedZipArchive(&'static str),
     InternalError,
     CompressingRootFolder,
@@ -78,6 +81,10 @@ impl FinalError {
         self.hints.push(hint.to_string());
         self
     }
+
+    pub fn into_owned(&mut self) -> Self {
+        std::mem::take(self)
+    }
 }
 
 impl fmt::Display for Error {
@@ -87,7 +94,7 @@ impl fmt::Display for Error {
                 FinalError::with_title(format!("Cannot compress to {:?}", filename))
                     .detail("Ouch could not detect the compression format")
                     .hint("Use a supported format extension, like '.zip' or '.tar.gz'")
-                    .hint("Check https://github.com/vrmiguel/ouch for a full list of supported formats")
+                    .hint("Check https://github.com/ouch-org/ouch for a full list of supported formats")
             }
             Error::WalkdirError { reason } => FinalError::with_title(reason),
             Error::FileNotFound(file) => {
@@ -124,7 +131,7 @@ impl fmt::Display for Error {
                     .detail("This should not have happened")
                     .detail("It's probably our fault")
                     .detail("Please help us improve by reporting the issue at:")
-                    .detail(format!("    {}https://github.com/vrmiguel/ouch/issues ", *CYAN))
+                    .detail(format!("    {}https://github.com/ouch-org/ouch/issues ", *CYAN))
             }
             Error::IoError { reason } => FinalError::with_title(reason),
             Error::CompressionTypo => {
@@ -134,7 +141,7 @@ impl fmt::Display for Error {
             Error::UnknownExtensionError(_) => todo!(),
             Error::AlreadyExists => todo!(),
             Error::InvalidZipArchive(_) => todo!(),
-            Error::PermissionDenied => todo!(),
+            Error::PermissionDenied { error_title } => FinalError::with_title(error_title).detail("Permission denied"),
             Error::UnsupportedZipArchive(_) => todo!(),
             Error::Custom { reason } => reason.clone(),
         };
@@ -152,8 +159,8 @@ impl Error {
 impl From<std::io::Error> for Error {
     fn from(err: std::io::Error) -> Self {
         match err.kind() {
-            std::io::ErrorKind::NotFound => panic!("{}", err),
-            std::io::ErrorKind::PermissionDenied => Self::PermissionDenied,
+            std::io::ErrorKind::NotFound => todo!(),
+            std::io::ErrorKind::PermissionDenied => Self::PermissionDenied { error_title: err.to_string() },
             std::io::ErrorKind::AlreadyExists => Self::AlreadyExists,
             _other => Self::IoError { reason: err.to_string() },
         }
@@ -175,5 +182,11 @@ impl From<zip::result::ZipError> for Error {
 impl From<walkdir::Error> for Error {
     fn from(err: walkdir::Error) -> Self {
         Self::WalkdirError { reason: err.to_string() }
+    }
+}
+
+impl From<FinalError> for Error {
+    fn from(err: FinalError) -> Self {
+        Self::Custom { reason: err }
     }
 }
