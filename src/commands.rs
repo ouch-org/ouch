@@ -20,7 +20,7 @@ use crate::{
     },
     info,
     utils::{self, dir_is_empty, nice_directory_display, to_utf},
-    Error, Opts, QuestionPolicy, Subcommand,
+    Opts, QuestionPolicy, Subcommand,
 };
 
 // Used in BufReader and BufWriter to perform less syscalls
@@ -45,7 +45,7 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
             let mut formats = extension::extensions_from_path(&output_path);
 
             if formats.is_empty() {
-                let reason = FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))
+                let error = FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))
                     .detail("You shall supply the compression format via the extension.")
                     .hint("Try adding something like .tar.gz or .zip to the output file.")
                     .hint("")
@@ -53,7 +53,7 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                     .hint(format!("  ouch compress ... {}.tar.gz", to_utf(&output_path)))
                     .hint(format!("  ouch compress ... {}.zip", to_utf(&output_path)));
 
-                return Err(Error::with_reason(reason));
+                return Err(error.into());
             }
 
             if !formats.get(0).map(Extension::is_archive).unwrap_or(false) && represents_several_files(&files) {
@@ -73,7 +73,7 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                 let mut suggested_output_path = output_path.clone();
                 suggested_output_path.replace_range(empty_range, ".tar");
 
-                let reason = FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))
+                let error = FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))
                     .detail("You are trying to compress multiple files.")
                     .detail(format!("The compression format '{}' cannot receive multiple files.", &formats[0]))
                     .detail("The only supported formats that archive files into an archive are .tar and .zip.")
@@ -81,21 +81,21 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                     .hint(format!("From: {}", output_path))
                     .hint(format!(" To : {}", suggested_output_path));
 
-                return Err(Error::with_reason(reason));
+                return Err(error.into());
             }
 
             if let Some(format) = formats.iter().skip(1).find(|format| format.is_archive()) {
-                let reason = FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))
+                let error = FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))
                     .detail(format!("Found the format '{}' in an incorrect position.", format))
                     .detail(format!("'{}' can only be used at the start of the file extension.", format))
                     .hint(format!("If you wish to compress multiple files, start the extension with '{}'.", format))
                     .hint(format!("Otherwise, remove the last '{}' from '{}'.", format, to_utf(&output_path)));
 
-                return Err(Error::with_reason(reason));
+                return Err(error.into());
             }
 
             if output_path.exists() && !utils::user_wants_to_overwrite(&output_path, question_policy)? {
-                // User does not want to overwrite this file
+                // User does not want to overwrite this file, skip and return without any errors
                 return Ok(());
             }
 

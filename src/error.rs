@@ -175,13 +175,6 @@ impl fmt::Display for Error {
     }
 }
 
-impl Error {
-    /// TO BE REMOVED
-    pub fn with_reason(reason: FinalError) -> Self {
-        Self::Custom { reason }
-    }
-}
-
 impl From<std::io::Error> for Error {
     fn from(err: std::io::Error) -> Self {
         match err.kind() {
