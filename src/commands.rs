@@ -19,7 +19,7 @@ use crate::{
         Extension,
     },
     info,
-    utils::{self, dir_is_empty, nice_directory_display, to_utf},
+    utils::{self, concatenate_list_of_os_str, dir_is_empty, nice_directory_display, to_utf},
     Opts, QuestionPolicy, Subcommand,
 };
 
@@ -36,8 +36,7 @@ fn represents_several_files(files: &[PathBuf]) -> bool {
     files.iter().any(is_non_empty_dir) || files.len() > 1
 }
 
-/// Entrypoint of ouch, receives cli options and matches Subcommand
-/// to decide what to do
+/// Entrypoint of ouch, receives cli options and matches Subcommand to decide what to do
 pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
     match args.cmd {
         Subcommand::Compress { files, output: output_path } => {
@@ -176,15 +175,20 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                 .map(|(input_path, _)| PathBuf::from(input_path))
                 .collect();
 
-            // Error
             if !files_missing_format.is_empty() {
-                eprintln!("Some file you asked ouch to decompress lacks a supported extension.");
-                eprintln!("Could not decompress {}.", to_utf(&files_missing_format[0]));
-                todo!(
-                    "Dev note: add this error variant and pass the Vec to it, all the files \
-                     lacking extension shall be shown: {:#?}.",
-                    files_missing_format
-                );
+                let error = FinalError::with_title("Cannot decompress files without extensions")
+                    .detail(format!(
+                        "Files without supported extensions: {}",
+                        concatenate_list_of_os_str(&files_missing_format)
+                    ))
+                    .detail("Decompression formats are detected automatically by the file extension")
+                    .hint("Provide a file with a supported extension:")
+                    .hint("  ouch decompress example.tar.gz")
+                    .hint("")
+                    .hint("Or overwrite this option with the '--format' flag:")
+                    .hint(format!("  ouch decompress {} --format tar.gz", to_utf(&files_missing_format[0])));
+
+                return Err(error.into());
             }
 
             // From Option<PathBuf> to Option<&Path>

@@ -72,6 +72,21 @@ pub fn to_utf(os_str: impl AsRef<OsStr>) -> String {
     text.trim_matches('"').to_string()
 }
 
+/// Converts a slice of AsRef<OsStr> to comma separated String
+///
+/// Panics if the slice is empty.
+pub fn concatenate_list_of_os_str(os_strs: &[impl AsRef<OsStr>]) -> String {
+    let mut iter = os_strs.iter().map(AsRef::as_ref);
+
+    let mut string = to_utf(iter.next().unwrap()); // May panic
+
+    for os_str in iter {
+        string += ", ";
+        string += &to_utf(os_str);
+    }
+    string
+}
+
 /// Display the directory name, but change to "current directory" when necessary.
 pub fn nice_directory_display(os_str: impl AsRef<OsStr>) -> String {
     let text = to_utf(os_str);
