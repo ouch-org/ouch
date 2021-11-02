@@ -76,12 +76,14 @@ fn test_each_format() {
     test_compressing_and_decompressing_archive("tar.bz2");
     test_compressing_and_decompressing_archive("tar.xz");
     test_compressing_and_decompressing_archive("tar.lz");
+    test_compressing_and_decompressing_archive("tar.lz4");
     test_compressing_and_decompressing_archive("tar.lzma");
     test_compressing_and_decompressing_archive("tar.zst");
     test_compressing_and_decompressing_archive("tgz");
     test_compressing_and_decompressing_archive("tbz");
     test_compressing_and_decompressing_archive("tbz2");
     test_compressing_and_decompressing_archive("txz");
+    test_compressing_and_decompressing_archive("tlz4");
     test_compressing_and_decompressing_archive("tlz");
     test_compressing_and_decompressing_archive("tlzma");
     test_compressing_and_decompressing_archive("tzst");

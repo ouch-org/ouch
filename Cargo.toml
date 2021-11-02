@@ -21,6 +21,7 @@ walkdir     = "2.3.2"
 bzip2       = "0.4.3"
 libc        = "0.2.103"
 tar         = "0.4.37"
+lz4_flex    = "0.9.0"
 xz2         = "0.1.6"
 zip         = { version =  "0.5.13", default-features = false, features = ["deflate-miniz"] }
 flate2      = { version = "1.0.22", default-features = false, features = ["zlib"] }
