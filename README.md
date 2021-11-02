@@ -17,6 +17,7 @@
 3. Same syntax, various formats.
 4. Encoding and decoding streams, it's fast. <!-- We should post benchmarks in our wiki and link them here -->
 5. No runtime dependencies (for _Linux x86_64_).
+6. Listing archive contents with tree formatting (in next release!).
 
 ## Usage
 
