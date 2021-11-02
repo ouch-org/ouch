@@ -13,6 +13,7 @@ use zip::{self, read::ZipFile, ZipArchive};
 
 use crate::{
     info,
+    list::FileInArchive,
     utils::{self, dir_is_empty, strip_cur_dir, Bytes},
     QuestionPolicy,
 };
@@ -78,6 +79,26 @@ where
     }
 
     Ok(unpacked_files)
+}
+
+/// List contents of `archive`, returning a vector of archive entries
+pub fn list_archive<R>(mut archive: ZipArchive<R>) -> crate::Result<Vec<FileInArchive>>
+where
+    R: Read + Seek,
+{
+    let mut files = vec![];
+    for idx in 0..archive.len() {
+        let file = archive.by_index(idx)?;
+
+        let path = match file.enclosed_name() {
+            Some(path) => path.to_owned(),
+            None => continue,
+        };
+        let is_dir = file.is_dir();
+
+        files.push(FileInArchive { path, is_dir });
+    }
+    Ok(files)
 }
 
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.

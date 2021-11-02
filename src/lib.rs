@@ -11,6 +11,7 @@ pub mod commands;
 pub mod dialogs;
 pub mod error;
 pub mod extension;
+pub mod list;
 pub mod utils;
 
 /// CLI argparsing definitions, using `clap`.
