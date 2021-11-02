@@ -20,7 +20,7 @@ use utils::*;
 fn sanity_check_through_mime() {
     // Somehow this test causes test failures when run in parallel with test_each_format
     // This is a temporary hack that should allow the tests to pass while this bug isn't solved.
-    std::thread::sleep(Duration::from_secs(2));
+    std::thread::sleep(Duration::from_secs(10));
 
     let temp_dir = tempfile::tempdir().expect("to build a temporary directory");
 
