@@ -33,7 +33,7 @@ impl<'a> Confirmation<'a> {
     pub fn ask(&self, substitute: Option<&'a str>) -> crate::Result<bool> {
         let message = match (self.placeholder, substitute) {
             (None, _) => Cow::Borrowed(self.prompt),
-            (Some(_), None) => return Err(crate::Error::InternalError),
+            (Some(_), None) => unreachable!("dev error, should be reported, we checked this won't happen"),
             (Some(placeholder), Some(subs)) => Cow::Owned(self.prompt.replace(placeholder, subs)),
         };
 

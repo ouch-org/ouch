@@ -35,8 +35,6 @@ pub enum Error {
     /// TO BE REMOVED
     UnsupportedZipArchive(&'static str),
     /// TO BE REMOVED
-    InternalError,
-    /// TO BE REMOVED
     CompressingRootFolder,
     /// TO BE REMOVED
     MissingArgumentsForCompression,
@@ -150,13 +148,6 @@ impl fmt::Display for Error {
                     .hint("  - At least one input argument.")
                     .hint("")
                     .hint("Example: `ouch decompress imgs.tar.gz`")
-            }
-            Error::InternalError => {
-                FinalError::with_title("InternalError :(")
-                    .detail("This should not have happened")
-                    .detail("It's probably our fault")
-                    .detail("Please help us improve by reporting the issue at:")
-                    .detail(format!("    {}https://github.com/ouch-org/ouch/issues ", *CYAN))
             }
             Error::IoError { reason } => FinalError::with_title(reason),
             Error::CompressionTypo => {
