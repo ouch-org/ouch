@@ -1,8 +1,4 @@
-//! This library is meant to be published, just used internally by our binary crate at `main.rs`.
-//!
-//! A module shall be public only if:
-//! 1. It's required by `main.rs`, or
-//! 2. It's required by some integration tests at tests/ folder.
+//! This library isn't meant to be published, but used internally by our binary crate `main.rs`.
 
 #![warn(missing_docs)]
 
@@ -17,12 +13,12 @@ pub mod error;
 pub mod extension;
 pub mod utils;
 
-/// CLI configuration step, uses definitions from `opts.rs`, also used to treat some inputs.
+/// CLI argparsing definitions, using `clap`.
 pub mod opts;
 
 pub use error::{Error, Result};
 pub use opts::{Opts, Subcommand};
 pub use utils::QuestionPolicy;
 
-/// The status code ouch has when an error is encountered
+/// The status code returned from `ouch` on error
 pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;

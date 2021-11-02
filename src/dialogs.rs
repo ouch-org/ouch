@@ -1,7 +1,7 @@
 //! Pretty (and colored) dialog for asking [Y/n] for the end user.
 //!
 //! Example:
-//!     "Do you want to overwrite 'archive.targz'? [Y/n]"
+//!   "Do you want to overwrite 'archive.tar.gz'? [Y/n]"
 
 use std::{
     borrow::Cow,
@@ -10,19 +10,21 @@ use std::{
 
 use crate::utils::colors;
 
-/// Represents a confirmation dialog
+/// Confirmation dialog for end user with [Y/n] question.
+///
+/// If the placeholder is found in the prompt text, it will be replaced to form the final message.
 pub struct Confirmation<'a> {
-    /// Represents the message to the displayed
+    /// The message to be displayed with the placeholder text in it.
     /// e.g.: "Do you want to overwrite 'FILE'?"
     pub prompt: &'a str,
 
-    /// Represents a placeholder to be changed at runtime
+    /// The placeholder text that will be replaced in the `ask` function:
     /// e.g.: Some("FILE")
     pub placeholder: Option<&'a str>,
 }
 
 impl<'a> Confirmation<'a> {
-    /// New Confirmation
+    /// Creates a new Confirmation.
     pub const fn new(prompt: &'a str, pattern: Option<&'a str>) -> Self {
         Self { prompt, placeholder: pattern }
     }
@@ -35,20 +37,17 @@ impl<'a> Confirmation<'a> {
             (Some(placeholder), Some(subs)) => Cow::Owned(self.prompt.replace(placeholder, subs)),
         };
 
+        // Ask the same question to end while no valid answers are given
         loop {
             print!("{} [{}Y{}/{}n{}] ", message, *colors::GREEN, *colors::RESET, *colors::RED, *colors::RESET);
             io::stdout().flush()?;
 
             let mut answer = String::new();
             io::stdin().read_line(&mut answer)?;
-            let trimmed_answer = answer.trim();
 
-            if trimmed_answer.is_empty() {
-                return Ok(true);
-            }
-
-            match trimmed_answer.to_ascii_lowercase().as_ref() {
-                "y" | "yes" => return Ok(true),
+            answer.make_ascii_lowercase();
+            match answer.trim() {
+                "" | "y" | "yes" => return Ok(true),
                 "n" | "no" => return Ok(false),
                 _ => continue, // Try again
             }

@@ -1,6 +1,6 @@
 //! Macros used on ouch.
 
-/// Macro that prints message in INFO mode
+/// Macro that prints [INFO] messages, wraps [`println`].
 #[macro_export]
 macro_rules! info {
     ($($arg:tt)*) => {
@@ -9,7 +9,7 @@ macro_rules! info {
     };
 }
 
-/// Prints the `[Info]` tag
+/// Helper to display "[INFO]", colored yellow
 pub fn _info_helper() {
     use crate::utils::colors::{RESET, YELLOW};
 

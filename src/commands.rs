@@ -37,7 +37,7 @@ fn represents_several_files(files: &[PathBuf]) -> bool {
 }
 
 /// Entrypoint of ouch, receives cli options and matches Subcommand
-/// to decide current operation
+/// to decide what to do
 pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
     match args.cmd {
         Subcommand::Compress { files, output: output_path } => {

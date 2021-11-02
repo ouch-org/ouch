@@ -1,4 +1,4 @@
-//! Utils used on ouch.
+//! Random stuff used on ouch.
 
 use std::{
     cmp, env,
@@ -11,7 +11,7 @@ use fs_err as fs;
 
 use crate::{dialogs::Confirmation, info};
 
-/// Checks if the given path represents an empty directory.
+/// Checks given path points to an empty directory.
 pub fn dir_is_empty(dir_path: &Path) -> bool {
     let is_empty = |mut rd: std::fs::ReadDir| rd.next().is_none();
 
@@ -37,21 +37,18 @@ pub fn strip_cur_dir(source_path: &Path) -> PathBuf {
         .unwrap_or_else(|_| source_path.to_path_buf())
 }
 
-/// Changes the process' current directory to the directory that contains the
-/// file pointed to by `filename` and returns the directory that the process
-/// was in before this function was called.
+/// Returns current directory, but before change the process' directory to the
+/// one that contains the file pointed to by `filename`.
 pub fn cd_into_same_dir_as(filename: &Path) -> crate::Result<PathBuf> {
     let previous_location = env::current_dir()?;
 
     let parent = filename.parent().ok_or(crate::Error::CompressingRootFolder)?;
-
     env::set_current_dir(parent)?;
 
     Ok(previous_location)
 }
 
-/// Centralizes the decision of overwriting a file or not,
-/// whether the user has already passed a question_policy or not.
+/// Check if QuestionPolicy flags were set, otherwise, ask user if they want to overwrite.
 pub fn user_wants_to_overwrite(path: &Path, question_policy: QuestionPolicy) -> crate::Result<bool> {
     match question_policy {
         QuestionPolicy::AlwaysYes => Ok(true),
@@ -65,13 +62,17 @@ pub fn user_wants_to_overwrite(path: &Path, question_policy: QuestionPolicy) -> 
     }
 }
 
-/// Converts an OsStr to utf8.
+/// Converts an OsStr to utf8 with custom formatting.
+///
+/// This is different from [`Path::display`].
+///
+/// See https://gist.github.com/marcospb19/ebce5572be26397cf08bbd0fd3b65ac1 for a comparison.
 pub fn to_utf(os_str: impl AsRef<OsStr>) -> String {
     let text = format!("{:?}", os_str.as_ref());
     text.trim_matches('"').to_string()
 }
 
-/// Treats weird paths for better user messages.
+/// Display the directory name, but change to "current directory" when necessary.
 pub fn nice_directory_display(os_str: impl AsRef<OsStr>) -> String {
     let text = to_utf(os_str);
     if text == "." {
@@ -79,11 +80,6 @@ pub fn nice_directory_display(os_str: impl AsRef<OsStr>) -> String {
     } else {
         format!("'{}'", text)
     }
-}
-
-/// Struct used to overload functionality onto Byte presentation.
-pub struct Bytes {
-    bytes: f64,
 }
 
 /// Module with a list of bright colors.
@@ -116,10 +112,15 @@ pub mod colors {
     color!(YELLOW = "\u{1b}[38;5;11m");
 }
 
+/// Struct useful to printing bytes as kB, MB, GB, etc.
+pub struct Bytes {
+    bytes: f64,
+}
+
 impl Bytes {
     const UNIT_PREFIXES: [&'static str; 6] = ["", "k", "M", "G", "T", "P"];
 
-    /// New Byte structure
+    /// Create a new Bytes.
     pub fn new(bytes: u64) -> Self {
         Self { bytes: bytes as f64 }
     }
@@ -141,13 +142,13 @@ impl std::fmt::Display for Bytes {
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-/// How overwrite questions should be handled
+/// Determines if overwrite questions should be skipped or asked to the user
 pub enum QuestionPolicy {
-    /// Ask everytime
+    /// Ask the user every time
     Ask,
-    /// Skip overwrite questions positively
+    /// Set by `--yes`, will say 'Y' to all overwrite questions
     AlwaysYes,
-    /// Skip overwrite questions negatively
+    /// Set by `--no`, will say 'N' to all overwrite questions
     AlwaysNo,
 }
 

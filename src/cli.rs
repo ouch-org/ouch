@@ -1,6 +1,4 @@
-//! CLI configuration step, uses definitions from `opts.rs`.
-//!
-//! Also used to treat some inputs.
+//! CLI related functions, uses the clap argparsing definitions from `opts.rs`.
 
 use std::{
     path::{Path, PathBuf},
@@ -13,8 +11,11 @@ use fs_err as fs;
 use crate::{Error, Opts, QuestionPolicy, Subcommand};
 
 impl Opts {
-    /// A helper method that calls `clap::Parser::parse` and then translates relative paths to absolute.
-    /// Also determines if the user wants to skip questions or not
+    /// A helper method that calls `clap::Parser::parse`.
+    ///
+    /// And:
+    ///   1. Make paths absolute.
+    ///   2. Checks the QuestionPolicy.
     pub fn parse_args() -> crate::Result<(Self, QuestionPolicy)> {
         let mut opts: Self = Self::parse();
 

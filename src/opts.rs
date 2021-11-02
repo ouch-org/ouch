@@ -6,41 +6,51 @@ use std::path::PathBuf;
 #[derive(Parser, Debug)]
 #[clap(version, about)]
 pub struct Opts {
-    /// Skip overwrite questions positively.
+    /// Skip [Y/n] questions positively.
     #[clap(short, long, conflicts_with = "no")]
     pub yes: bool,
 
-    /// Skip overwrite questions negatively.
+    /// Skip [Y/n] questions negatively.
     #[clap(short, long)]
     pub no: bool,
 
-    /// Action to take
+    /// Ouch and claps subcommands
     #[clap(subcommand)]
     pub cmd: Subcommand,
 }
 
-/// Actions to take
+// CAREFUL: this docs can accidentally become part of the --help message if they get too long
+// this was tested in clap 3.0.0-beta5.
+/// Repository: https://github.com/ouch-org/ouch
+//
+// Ouch commands:
+// - `compress`
+// - `decompress`
+// - `list`
+//
+// Clap commands:
+//  - `help`
 #[derive(Parser, PartialEq, Eq, Debug)]
 pub enum Subcommand {
-    /// Compress files.    Alias: c
+    /// Compress one or more files into one output file.
     #[clap(alias = "c")]
     Compress {
-        /// Files to be compressed
+        /// Files to be compressed.
         #[clap(required = true, min_values = 1)]
         files: Vec<PathBuf>,
 
-        /// The resulting file. Its extensions specify how the files will be compressed and they need to be supported
+        /// The resulting file. It's extensions can be used to specify the compression formats.
         #[clap(required = true, value_hint = ValueHint::FilePath)]
         output: PathBuf,
     },
-    /// Compress files.    Alias: d
+    /// Decompresses one or more files, optionally into another folder.
     #[clap(alias = "d")]
     Decompress {
-        /// Files to be decompressed
+        /// Files to be decompressed.
         #[clap(required = true, min_values = 1)]
         files: Vec<PathBuf>,
 
-        /// Decompress files in a directory other than the current
+        /// Choose to  files in a directory other than the current
         #[clap(short, long = "dir", value_hint = ValueHint::DirPath)]
         output_dir: Option<PathBuf>,
     },

@@ -7,7 +7,9 @@ use self::CompressionFormat::*;
 /// A wrapper around `CompressionFormat` that allows combinations like `tgz`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Extension {
+    /// One extension like "tgz" can be made of multiple CompressionFormats ([Tar, Gz])
     pub compression_formats: Vec<CompressionFormat>,
+    /// The input text for this extension, like "tgz", "tar" or "xz"
     pub display_text: String,
 }
 
@@ -26,6 +28,7 @@ impl Extension {
         self.compression_formats[0].is_archive_format()
     }
 
+    /// Iteration to inner compression formats, useful for flat_mapping
     pub fn iter(&self) -> impl Iterator<Item = &CompressionFormat> {
         self.compression_formats.iter()
     }
@@ -37,16 +40,21 @@ impl fmt::Display for Extension {
     }
 }
 
-#[allow(missing_docs)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 /// Accepted extensions for input and output
 pub enum CompressionFormat {
-    Gzip, // .gz
-    Bzip, // .bz
-    Lzma, // .lzma
-    Tar,  // .tar (technically not a compression extension, but will do for now)
-    Zstd, // .zst
-    Zip,  // .zip
+    /// .gz
+    Gzip,
+    /// .bz .bz2
+    Bzip,
+    /// .xz .lzma .lz
+    Lzma,
+    /// tar, tgz, tbz, tbz2, txz, tlz, tlzma, tzst
+    Tar,
+    /// .zst
+    Zstd,
+    /// .zip
+    Zip,
 }
 
 impl CompressionFormat {
