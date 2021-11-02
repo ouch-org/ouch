@@ -3,13 +3,35 @@
 use std::{
     cmp, env,
     ffi::OsStr,
+    io,
     path::Component,
     path::{Path, PathBuf},
 };
 
 use fs_err as fs;
 
-use crate::{dialogs::Confirmation, info};
+use crate::{dialogs::Confirmation, info, Error};
+
+/// Create the file if it doesn't exist and if it does then ask to overwrite it.
+/// If the user doesn't want to overwrite then we return [`Ok(None)`]
+pub fn create_or_ask_overwrite(path: &Path, question_policy: QuestionPolicy) -> Result<Option<fs::File>, Error> {
+    match fs::OpenOptions::new().write(true).create_new(true).open(path) {
+        Ok(w) => Ok(Some(w)),
+        Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
+            if user_wants_to_overwrite(path, question_policy)? {
+                if path.is_dir() {
+                    // We can't just use `fs::File::create(&path)` because it would return io::ErrorKind::IsADirectory
+                    // ToDo: Maybe we should emphasise that `path` is a directory and everything inside it will be gone?
+                    fs::remove_dir_all(path)?;
+                }
+                Ok(Some(fs::File::create(path)?))
+            } else {
+                Ok(None)
+            }
+        }
+        Err(e) => Err(Error::from(e)),
+    }
+}
 
 /// Checks if the given path represents an empty directory.
 pub fn dir_is_empty(dir_path: &Path) -> bool {

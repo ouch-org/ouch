@@ -326,22 +326,12 @@ fn decompress_file(
         Gzip | Bzip | Lzma | Zstd => {
             reader = chain_reader_decoder(&formats[0].compression_formats[0], reader)?;
 
-            let mut writer = match fs::OpenOptions::new().write(true).create_new(true).open(&output_path) {
-                Ok(w) => w,
-                Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
-                    if utils::user_wants_to_overwrite(&output_path, question_policy)? {
-                        if output_path.is_dir() {
-                            // We can't just use `fs::File::create(&output_path)` because it would return io::ErrorKind::IsADirectory
-                            // ToDo: Maybe we should emphasise that `output_path` is a directory and everything inside it will be gone?
-                            fs::remove_dir_all(&output_path)?;
-                        }
-                        fs::File::create(&output_path)?
-                    } else {
-                        return Ok(());
-                    }
-                }
-                Err(e) => return Err(Error::from(e)),
-            };
+            let writer = utils::create_or_ask_overwrite(&output_path, question_policy)?;
+            if writer.is_none() {
+                // Means that the user doesn't want to overwrite
+                return Ok(());
+            }
+            let mut writer = writer.unwrap();
 
             io::copy(&mut reader, &mut writer)?;
             files_unpacked = vec![output_path];
