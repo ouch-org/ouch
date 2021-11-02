@@ -34,6 +34,13 @@ pub fn unpack_archive(
             continue;
         }
 
+        if file_path.is_dir() {
+            // We can't just use `fs::File::create(&file_path)` because it would return io::ErrorKind::IsADirectory
+            // ToDo: Maybe we should emphasise that `file_path` is a directory and everything inside it will be gone?
+            fs::remove_dir_all(&file_path)?;
+            fs::File::create(&file_path)?;
+        }
+
         file.unpack_in(output_folder)?;
 
         info!("{:?} extracted. ({})", output_folder.join(file.path()?), Bytes::new(file.size()));

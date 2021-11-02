@@ -41,6 +41,13 @@ where
             continue;
         }
 
+        if file_path.is_dir() {
+            // We can't just use `fs::File::create(&file_path)` because it would return io::ErrorKind::IsADirectory
+            // ToDo: Maybe we should emphasise that `file_path` is a directory and everything inside it will be gone?
+            fs::remove_dir_all(&file_path)?;
+            fs::File::create(&file_path)?;
+        }
+
         check_for_comments(&file);
 
         match (&*file.name()).ends_with('/') {
