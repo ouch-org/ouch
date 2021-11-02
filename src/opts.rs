@@ -51,7 +51,7 @@ pub enum Subcommand {
         files: Vec<PathBuf>,
 
         /// Choose to  files in a directory other than the current
-        #[clap(short, long = "dir", value_hint = ValueHint::DirPath)]
+        #[clap(short = 'd', long = "dir", value_hint = ValueHint::DirPath)]
         output_dir: Option<PathBuf>,
     },
     /// List contents.     Alias: l
