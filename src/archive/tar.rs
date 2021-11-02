@@ -34,6 +34,13 @@ pub fn unpack_archive(
             continue;
         }
 
+        if file_path.is_dir() {
+            // ToDo: Maybe we should emphasise that `file_path` is a directory and everything inside it will be gone?
+            fs::remove_dir_all(&file_path)?;
+        } else if file_path.is_file() {
+            fs::remove_file(&file_path)?;
+        }
+
         file.unpack_in(output_folder)?;
 
         info!("{:?} extracted. ({})", output_folder.join(file.path()?), Bytes::new(file.size()));

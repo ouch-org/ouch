@@ -41,6 +41,13 @@ where
             continue;
         }
 
+        if file_path.is_dir() {
+            // ToDo: Maybe we should emphasise that `file_path` is a directory and everything inside it will be gone?
+            fs::remove_dir_all(&file_path)?;
+        } else if file_path.is_file() {
+            fs::remove_file(&file_path)?;
+        }
+
         check_for_comments(&file);
 
         match (&*file.name()).ends_with('/') {
