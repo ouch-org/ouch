@@ -2,10 +2,7 @@
 //!
 //! All usage errors will pass throught the Error enum, a lot of them in the Error::Custom.
 
-use std::{
-    fmt::{self, Display},
-    path::{Path, PathBuf},
-};
+use std::fmt::{self, Display};
 
 use crate::utils::colors::*;
 
@@ -16,9 +13,9 @@ pub enum Error {
     /// Not every IoError, some of them get filtered by `From<io::Error>` into other variants
     IoError { reason: String },
     /// Detected from io::Error if .kind() is io::ErrorKind::NotFound
-    FileNotFound(PathBuf),
+    NotFound { error_title: String },
     /// NEEDS MORE CONTEXT
-    AlreadyExists,
+    AlreadyExists { error_title: String },
     /// From zip::result::ZipError::InvalidArchive
     InvalidZipArchive(&'static str),
     /// Detected from io::Error if .kind() is io::ErrorKind::PermissionDenied
@@ -93,23 +90,17 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let err = match self {
             Error::WalkdirError { reason } => FinalError::with_title(reason),
-            Error::FileNotFound(file) => {
-                if file == Path::new("") {
-                    FinalError::with_title("file not found!")
-                } else {
-                    FinalError::with_title(format!("file {:?} not found!", file))
-                }
-            }
+            Error::NotFound { error_title } => FinalError::with_title(error_title).detail("File not found"),
             Error::CompressingRootFolder => {
                 FinalError::with_title("It seems you're trying to compress the root folder.")
                     .detail("This is unadvisable since ouch does compressions in-memory.")
                     .hint("Use a more appropriate tool for this, such as rsync.")
             }
             Error::IoError { reason } => FinalError::with_title(reason),
-            Error::AlreadyExists => todo!(),
-            Error::InvalidZipArchive(_) => todo!(),
+            Error::AlreadyExists { error_title } => FinalError::with_title(error_title).detail("File already exists"),
+            Error::InvalidZipArchive(reason) => FinalError::with_title("Invalid zip archive").detail(reason),
             Error::PermissionDenied { error_title } => FinalError::with_title(error_title).detail("Permission denied"),
-            Error::UnsupportedZipArchive(_) => todo!(),
+            Error::UnsupportedZipArchive(reason) => FinalError::with_title("Unsupported zip archive").detail(reason),
             Error::Custom { reason } => reason.clone(),
         };
 
@@ -120,9 +111,9 @@ impl fmt::Display for Error {
 impl From<std::io::Error> for Error {
     fn from(err: std::io::Error) -> Self {
         match err.kind() {
-            std::io::ErrorKind::NotFound => todo!(),
+            std::io::ErrorKind::NotFound => Self::NotFound { error_title: err.to_string() },
             std::io::ErrorKind::PermissionDenied => Self::PermissionDenied { error_title: err.to_string() },
-            std::io::ErrorKind::AlreadyExists => Self::AlreadyExists,
+            std::io::ErrorKind::AlreadyExists => Self::AlreadyExists { error_title: err.to_string() },
             _other => Self::IoError { reason: err.to_string() },
         }
     }
@@ -130,12 +121,16 @@ impl From<std::io::Error> for Error {
 
 impl From<zip::result::ZipError> for Error {
     fn from(err: zip::result::ZipError) -> Self {
-        use zip::result::ZipError::*;
+        use zip::result::ZipError;
         match err {
-            Io(io_err) => Self::from(io_err),
-            InvalidArchive(filename) => Self::InvalidZipArchive(filename),
-            FileNotFound => Self::FileNotFound("".into()),
-            UnsupportedArchive(filename) => Self::UnsupportedZipArchive(filename),
+            ZipError::Io(io_err) => Self::from(io_err),
+            ZipError::InvalidArchive(filename) => Self::InvalidZipArchive(filename),
+            ZipError::FileNotFound => {
+                Self::Custom {
+                    reason: FinalError::with_title("Unexpected error in zip archive").detail("File not found"),
+                }
+            }
+            ZipError::UnsupportedArchive(filename) => Self::UnsupportedZipArchive(filename),
         }
     }
 }
