@@ -1,6 +1,7 @@
 //! Random stuff used on ouch.
 
 use std::{
+    borrow::Cow,
     cmp, env,
     ffi::OsStr,
     io,
@@ -109,12 +110,12 @@ pub fn concatenate_list_of_os_str(os_strs: &[impl AsRef<OsStr>]) -> String {
 }
 
 /// Display the directory name, but change to "current directory" when necessary.
-pub fn nice_directory_display(os_str: impl AsRef<OsStr>) -> String {
-    let text = to_utf(os_str);
-    if text == "." {
-        "current directory".to_string()
+pub fn nice_directory_display(os_str: impl AsRef<OsStr>) -> Cow<'static, str> {
+    if os_str.as_ref() == "." {
+        Cow::Borrowed("current directory")
     } else {
-        format!("'{}'", text)
+        let text = to_utf(os_str);
+        Cow::Owned(format!("'{}'", text))
     }
 }
 
