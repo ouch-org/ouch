@@ -39,7 +39,7 @@ pub enum Subcommand {
         #[clap(required = true, min_values = 1)]
         files: Vec<PathBuf>,
 
-        /// The resulting file. It's extensions can be used to specify the compression formats.
+        /// The resulting file. Its extensions can be used to specify the compression formats.
         #[clap(required = true, value_hint = ValueHint::FilePath)]
         output: PathBuf,
     },
