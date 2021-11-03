@@ -6,6 +6,7 @@ use self::CompressionFormat::*;
 
 /// A wrapper around `CompressionFormat` that allows combinations like `tgz`
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Extension {
     /// One extension like "tgz" can be made of multiple CompressionFormats ([Tar, Gz])
     pub compression_formats: &'static [CompressionFormat],
@@ -35,7 +36,7 @@ impl Extension {
 
 impl fmt::Display for Extension {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.display_text)
+        self.display_text.fmt(f)
     }
 }
 
