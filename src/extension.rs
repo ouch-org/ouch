@@ -8,7 +8,7 @@ use self::CompressionFormat::*;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Extension {
     /// One extension like "tgz" can be made of multiple CompressionFormats ([Tar, Gz])
-    pub compression_formats: Vec<CompressionFormat>,
+    pub compression_formats: &'static [CompressionFormat],
     /// The input text for this extension, like "tgz", "tar" or "xz"
     pub display_text: String,
 }
@@ -16,8 +16,7 @@ pub struct Extension {
 impl Extension {
     /// # Panics:
     ///   Will panic if `formats` is empty
-    pub fn new(formats: impl Into<Vec<CompressionFormat>>, text: impl Into<String>) -> Self {
-        let formats = formats.into();
+    pub fn new(formats: &'static [CompressionFormat], text: impl Into<String>) -> Self {
         assert!(!formats.is_empty());
         Self { compression_formats: formats, display_text: text.into() }
     }
@@ -110,21 +109,24 @@ pub fn separate_known_extensions_from_name(mut path: &Path) -> (&Path, Vec<Exten
 
     // While there is known extensions at the tail, grab them
     while let Some(extension) = path.extension().and_then(OsStr::to_str) {
-        extensions.push(match extension {
-            "tar" => Extension::new([Tar], extension),
-            "tgz" => Extension::new([Tar, Gzip], extension),
-            "tbz" | "tbz2" => Extension::new([Tar, Bzip], extension),
-            "tlz4" => Extension::new([Tar, Lz4], extension),
-            "txz" | "tlz" | "tlzma" => Extension::new([Tar, Lzma], extension),
-            "tzst" => Extension::new([Tar, Zstd], ".tzst"),
-            "zip" => Extension::new([Zip], extension),
-            "bz" | "bz2" => Extension::new([Bzip], extension),
-            "gz" => Extension::new([Gzip], extension),
-            "lz4" => Extension::new([Lz4], extension),
-            "xz" | "lzma" | "lz" => Extension::new([Lzma], extension),
-            "zst" => Extension::new([Zstd], extension),
+        let formats: &[CompressionFormat] = match extension {
+            "tar" => &[Tar],
+            "tgz" => &[Tar, Gzip],
+            "tbz" | "tbz2" => &[Tar, Bzip],
+            "tlz4" => &[Tar, Lz4],
+            "txz" | "tlz" | "tlzma" => &[Tar, Lzma],
+            "tzst" => &[Tar, Zstd],
+            "zip" => &[Zip],
+            "bz" | "bz2" => &[Bzip],
+            "gz" => &[Gzip],
+            "lz4" => &[Lz4],
+            "xz" | "lzma" | "lz" => &[Lzma],
+            "zst" => &[Zstd],
             _ => break,
-        });
+        };
+
+        let extension = Extension::new(formats, extension);
+        extensions.push(extension);
 
         // Update for the next iteration
         path = if let Some(stem) = path.file_stem() { Path::new(stem) } else { Path::new("") };

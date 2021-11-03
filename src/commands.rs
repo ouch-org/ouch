@@ -128,7 +128,7 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                     } else if inp_ext
                         .compression_formats
                         .iter()
-                        .zip(&out_ext.compression_formats)
+                        .zip(out_ext.compression_formats.iter())
                         .all(|(inp, out)| inp == out)
                     {
                         let new_ext = Extension::new(
@@ -348,7 +348,7 @@ fn decompress_file(
     // in-memory decompression/copying first.
     //
     // Any other Zip decompression done can take up the whole RAM and freeze ouch.
-    if formats.len() == 1 && *formats[0].compression_formats.as_slice() == [Zip] {
+    if formats.len() == 1 && *formats[0].compression_formats == [Zip] {
         utils::create_dir_if_non_existent(output_dir)?;
         let zip_archive = zip::ZipArchive::new(reader)?;
         let _files = crate::archive::zip::unpack_archive(zip_archive, output_dir, question_policy)?;
