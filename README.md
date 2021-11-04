@@ -1,12 +1,12 @@
 <p align="center">
   <a href="https://crates.io/crates/ouch">
-    <img src="https://img.shields.io/crates/v/ouch?color=6090FF" alt="Crates.io link">
+    <img src="https://img.shields.io/crates/v/ouch?color=6090FF&style=flat-square" alt="Crates.io link">
   </a>
   <a href="https://docs.rs/ouch">
-    <img src="https://img.shields.io/docsrs/ouch?color=6090FF" alt="Docs.rs link">
+    <img src="https://img.shields.io/docsrs/ouch?color=6090FF&style=flat-square" alt="Docs.rs link">
   </a>
   <a href="https://github.com/ouch/ouch-org/blob/master/LICENSE">
-    <img src="https://img.shields.io/crates/l/ouch?color=6090FF" alt="License">
+    <img src="https://img.shields.io/crates/l/ouch?color=6090FF&style=flat-square" alt="License">
   </a>
 </p>
 
