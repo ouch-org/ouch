@@ -24,19 +24,6 @@ use crate::{
     Opts, QuestionPolicy, Subcommand,
 };
 
-// use crate::{
-//     archive,
-//     error::FinalError,
-//     extension::{
-//         self,
-//         CompressionFormat::{self, *},
-//         Extension,
-//     },
-//     info,
-//     utils::{self, concatenate_list_of_os_str, dir_is_empty, nice_directory_display, to_utf},
-//     Opts, QuestionPolicy, Subcommand,
-// };
-
 // Used in BufReader and BufWriter to perform less syscalls
 const BUFFER_CAPACITY: usize = 1024 * 64;
 
