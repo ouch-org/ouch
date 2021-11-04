@@ -21,7 +21,7 @@
 - [Benchmarks](#benchmarks)
 - [Contributing](#contributing)
 
-## Features
+# Features
 
 1. Easy to use.
 2. Automatic format detection.
@@ -30,9 +30,9 @@
 5. No runtime dependencies (for _Linux x86_64_).
 6. Listing archive contents with tree formatting (in next release!).
 
-## Usage
+# Usage
 
-### Decompressing
+## Decompressing
 
 Use the `decompress` subcommand and pass the files.
 
@@ -54,7 +54,7 @@ The `-d/--dir` flag can be used to redirect decompression results to another dir
 ouch decompress summer_vacation.zip --dir pictures
 ```
 
-### Compressing
+## Compressing
 
 Use the `compress` subcommand, pass the files and the **output file** at the end.
 
@@ -68,11 +68,11 @@ ouch c file.txt file.zip
 
 `ouch` detects the extensions of the **output file** to decide what formats to use.
 
-## Installation
+# Installation
 
 [![Packaging status](https://repology.org/badge/vertical-allrepos/ouch.svg)](https://repology.org/project/ouch/versions)
 
-### Downloading the latest binary
+## Downloading the latest binary
 
 Compiled for `x86_64` on _Linux_, _Mac OS_ and _Windows_, run with `curl` or `wget`.
 
@@ -83,11 +83,11 @@ Compiled for `x86_64` on _Linux_, _Mac OS_ and _Windows_, run with `curl` or `wg
 
 The script will copy the [latest binary](https://github.com/ouch-org/ouch/releases) to `/usr/local/bin`.
 
-### Installing from source code
+## Installing from source code
 
 Check the [wiki guide](https://github.com/ouch-org/ouch/wiki/Compiling-and-installing-from-source-code).
 
-## Supported formats
+# Supported formats
 
 | Format    | `.tar` | `.zip` | `.bz`, `.bz2` | `.gz` | `.lz4` | `.xz`, `.lz`, `.lzma` | `.zst` |
 |:---------:|:------:|:------:|:-------------:|:-----:|:------:|:---------------------:|:------:|
@@ -101,7 +101,7 @@ Formats can be chained (`ouch` keeps it _fast_):
 - `.tar.gz.xz.bz.zst`
 - `.tar.gz.gz.gz.gz.xz.xz.xz.xz.bz.bz.bz.bz.zst.zst.zst.zst`
 
-## Benchmarks
+# Benchmarks
 
 Comparison made decompressing `linux.tar.gz` and measured with
 [`hyperfine`](https://github.com/sharkdp/hyperfine), times are the average.
@@ -119,7 +119,7 @@ Versions used:
 - [`tar`] _1.34_
 - [`bsdtar`] _3.5.2_
 
-## Contributing
+# Contributing
 
 `ouch` is made out of voluntary work, **any** small contribution is welcome!
 
