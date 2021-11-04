@@ -1,6 +1,17 @@
-# Ouch!
+<p align="center">
+  <a href="https://crates.io/crates/ouch">
+    <img src="https://img.shields.io/crates/v/ouch?color=6090FF" alt="Crates.io link">
+  </a>
+  <a href="https://docs.rs/ouch">
+    <img src="https://img.shields.io/docsrs/ouch?color=6090FF" alt="Docs.rs link">
+  </a>
+  <a href="https://github.com/ouch/ouch-org/blob/master/LICENSE">
+    <img src="https://img.shields.io/crates/l/ouch?color=6090FF" alt="License">
+  </a>
+</p>
 
-[![crates.io](https://img.shields.io/crates/v/ouch.svg?style=for-the-badge&logo=rust)](https://crates.io/crates/ouch) [![license](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge&logo=Open-Source-Initiative&logoColor=ffffff)](https://github.com/ouch-org/ouch/blob/main/LICENSE)
+
+# Ouch!
 
 `ouch` stands for **Obvious Unified Compression Helper**, it's a CLI tool to compress and decompress files.
 
