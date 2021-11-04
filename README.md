@@ -47,11 +47,11 @@ ouch decompress a.zip b.tar.gz c.tar
 ouch d a.zip
 ```
 
-You can redirect the decompression results to another folder with the `-d/--dir` flag.
+The `-d/--dir` flag can be used to redirect decompression results to another directory.
 
 ```sh
 # Decompress 'summer_vacation.zip' inside of new folder 'pictures'
-ouch decompress summer_vacation.zip -d pictures
+ouch decompress summer_vacation.zip --dir pictures
 ```
 
 ### Compressing
@@ -69,7 +69,7 @@ ouch c file.txt file.zip
 ouch compress * everything.tar.gz.xz.bz.zst.gz.gz.gz.gz.gz
 ```
 
-`ouch` checks for the extensions of the **output file** to decide which formats should be used.
+`ouch` detects the extensions of the **output file** to decide what formats to use.
 
 ## Installation
 
@@ -84,11 +84,11 @@ Compiled for `x86_64` on _Linux_, _Mac OS_ and _Windows_, run with `curl` or `wg
 | **curl**  | `curl -s https://raw.githubusercontent.com/ouch-org/ouch/master/install.sh \| sh`   |
 | **wget**  | `wget https://raw.githubusercontent.com/ouch-org/ouch/master/install.sh -O - \| sh` |
 
-The script will download the [latest binary](https://github.com/ouch-org/ouch/releases) and copy it to `/usr/bin`.
+The script will copy the [latest binary](https://github.com/ouch-org/ouch/releases) to `/usr/local/bin`.
 
 ### Installing from source code
 
-For compiling, check the [wiki guide](https://github.com/ouch-org/ouch/wiki/Compiling-and-installing-from-source-code).
+Check the [wiki guide](https://github.com/ouch-org/ouch/wiki/Compiling-and-installing-from-source-code).
 
 ## Supported formats
 
@@ -124,7 +124,7 @@ Versions used:
 
 ## Contributing
 
-`ouch` is 100% made out of voluntary work, any small contribution is welcome!
+`ouch` is made out of voluntary work, **any** small contribution is welcome!
 
 - Open an issue.
 - Open a pull request.
