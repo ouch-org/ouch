@@ -34,7 +34,6 @@ clap_generate = "=3.0.0-beta.5"
 
 [dev-dependencies]
 assert_cmd = "2.0.2"
-dir-diff = "0.3.2"
 infer = "0.5.0"
 parse-display = "0.5.3"
 proptest = "1.0.0"

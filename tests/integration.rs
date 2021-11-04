@@ -10,7 +10,7 @@ use rand::{rngs::SmallRng, RngCore, SeedableRng};
 use tempfile::tempdir;
 use test_strategy::{proptest, Arbitrary};
 
-use crate::utils::create_file_random;
+use crate::utils::{assert_same_directory, create_file_random};
 
 #[derive(Arbitrary, Debug, Display)]
 #[display(style = "snake_case")]
@@ -76,7 +76,7 @@ fn single_empty_file(ext: Extension, #[any(size_range(0..8).lift())] exts: Vec<F
     create_file_random(&mut fs::File::create(before_file).unwrap(), &mut SmallRng::from_entropy());
     ouch!("c", before_file, archive);
     ouch!("d", archive, "-d", after);
-    assert!(!dir_diff::is_different(before, after).unwrap());
+    assert_same_directory(before, after, false);
 }
 
 #[proptest(cases = 512)]
@@ -91,7 +91,7 @@ fn single_file(ext: Extension, #[any(size_range(0..8).lift())] exts: Vec<FileExt
     fs::write(before_file, []).unwrap();
     ouch!("c", before_file, archive);
     ouch!("d", archive, "-d", after);
-    assert!(!dir_diff::is_different(before, after).unwrap());
+    assert_same_directory(before, after, false);
 }
 
 #[proptest(cases = 512)]
@@ -105,10 +105,10 @@ fn multiple_files(
     let before = &dir.join("before");
     let before_dir = &before.join("dir");
     fs::create_dir_all(before_dir).unwrap();
-    let archive = &dir.join(format!("archive.{}", merge_extensions(ext, exts)));
+    let archive = &dir.join(format!("archive.{}", merge_extensions(&ext, exts)));
     let after = &dir.join("after");
     create_random_files(before_dir, depth, &mut SmallRng::from_entropy());
     ouch!("c", before_dir, archive);
     ouch!("d", archive, "-d", after);
-    assert!(!dir_diff::is_different(before, after).unwrap());
+    assert_same_directory(before, after, !matches!(ext, DirectoryExtension::Zip));
 }
