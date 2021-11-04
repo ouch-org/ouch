@@ -10,7 +10,6 @@
   </a>
 </p>
 
-
 # Ouch!
 
 `ouch` stands for **Obvious Unified Compression Helper**, it's a CLI tool to compress and decompress files.
@@ -79,11 +78,10 @@ ouch compress * everything.tar.gz.xz.bz.zst.gz.gz.gz.gz.gz
 
 Compiled for `x86_64` on _Linux_, _Mac OS_ and _Windows_, run with `curl` or `wget`.
 
-| Method    | Command                                                                            |
-|:---------:|:-----------------------------------------------------------------------------------|
+| Method    | Command                                                                             |
+|:---------:|:------------------------------------------------------------------------------------|
 | **curl**  | `curl -s https://raw.githubusercontent.com/ouch-org/ouch/master/install.sh \| sh`   |
 | **wget**  | `wget https://raw.githubusercontent.com/ouch-org/ouch/master/install.sh -O - \| sh` |
-
 
 The script will download the [latest binary](https://github.com/ouch-org/ouch/releases) and copy it to `/usr/bin`.
 
@@ -93,9 +91,9 @@ For compiling, check the [wiki guide](https://github.com/ouch-org/ouch/wiki/Comp
 
 ## Supported formats
 
-| Format        | .tar | .zip | .bz, .bz2 | .gz | .lz4 | .xz, .lz, .lzma | .zst |
-|:-------------:|:----:|:----:|:---------:|:---:|:----:|:---------------:|:----:|
-| Supported     | ✓    | ✓    | ✓         | ✓   | ✓    | ✓               | ✓    |
+| Format    | `.tar` | `.zip` | `.bz`, `.bz2` | `.gz` | `.lz4` | `.xz`, `.lz`, `.lzma` | `.zst` |
+|:---------:|:------:|:------:|:-------------:|:-----:|:------:|:---------------------:|:------:|
+| Supported | ✓     | ✓      | ✓            | ✓     | ✓     | ✓                     | ✓     |
 
 And the aliases: `tgz`, `tbz`, `tbz2`, `tlz4`, `txz`, `tlz`, `tlzma`, `tzst`.
 
