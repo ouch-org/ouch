@@ -64,9 +64,6 @@ ouch compress 1 2 3 4 archive.zip
 
 # Short alternative
 ouch c file.txt file.zip
-
-# Compress everything in the current folder again and again
-ouch compress * everything.tar.gz.xz.bz.zst.gz.gz.gz.gz.gz
 ```
 
 `ouch` detects the extensions of the **output file** to decide what formats to use.
