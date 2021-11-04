@@ -18,6 +18,7 @@
 - [Usage](#usage)
 - [Installation](#installation)
 - [Supported Formats](#supported-formats)
+- [Benchmarks](#benchmarks)
 - [Contributing](#contributing)
 
 ## Features
@@ -25,7 +26,7 @@
 1. Easy to use.
 2. Automatic format detection.
 3. Same syntax, various formats.
-4. Encoding and decoding streams, it's fast. <!-- We should post benchmarks in our wiki and link them here -->
+4. Encoding and decoding streams, it's fast.
 5. No runtime dependencies (for _Linux x86_64_).
 6. Listing archive contents with tree formatting (in next release!).
 
@@ -103,6 +104,24 @@ Formats can be chained (`ouch` keeps it _fast_):
 - `.tar.gz.xz.bz.zst`
 - `.tar.gz.gz.gz.gz.xz.xz.xz.xz.bz.bz.bz.bz.zst.zst.zst.zst`
 
+## Benchmarks
+
+Comparison made decompressing `linux.tar.gz` and measured with
+[`hyperfine`](https://github.com/sharkdp/hyperfine), times are the average.
+
+| Tool         | `ouch` | [`tar`] | [`bsdtar`] |
+|:------------:|:------:|:-------:|:----------:|
+| Average time | 911 ms | 1102 ms |   829 ms   |
+
+Note: `ouch` focuses heavily on usage ergonomics and nice error messages, but
+we plan on doing some optimization in the future.
+
+Versions used:
+
+- `ouch` _0.3.1_
+- [`tar`] _1.34_
+- [`bsdtar`] _3.5.2_
+
 ## Contributing
 
 `ouch` is 100% made out of voluntary work, any small contribution is welcome!
@@ -110,3 +129,6 @@ Formats can be chained (`ouch` keeps it _fast_):
 - Open an issue.
 - Open a pull request.
 - Share it to a friend!
+
+[`tar`]: https://www.gnu.org/software/tar/
+[`bsdtar`]: https://www.freebsd.org/cgi/man.cgi?query=bsdtar&sektion=1&format=html
