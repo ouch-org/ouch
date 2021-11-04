@@ -1,68 +1,19 @@
-//! Files in common between one or more integration tests
+use std::io::Write;
 
-#![allow(dead_code)]
+use rand::RngCore;
 
-use std::path::{Path, PathBuf};
-
-use fs_err as fs;
-use ouch::{commands::run, Opts, QuestionPolicy, Subcommand};
-
-pub fn create_empty_dir(at: &Path, filename: &str) -> PathBuf {
-    let dirname = Path::new(filename);
-    let full_path = at.join(dirname);
-
-    fs::create_dir(&full_path).expect("Failed to create an empty directory");
-
-    full_path
-}
-
-pub fn compress_files(at: &Path, paths_to_compress: &[PathBuf], format: &str) -> PathBuf {
-    let archive_path = String::from("archive.") + format;
-    let archive_path = at.join(archive_path);
-
-    let command = Opts {
-        yes: false,
-        no: false,
-        cmd: Subcommand::Compress { files: paths_to_compress.to_vec(), output: archive_path.clone() },
-    };
-    run(command, QuestionPolicy::Ask).expect("Failed to compress test dummy files");
-
-    archive_path
-}
-
-pub fn extract_files(archive_path: &Path) -> Vec<PathBuf> {
-    // We will extract in the same folder as the archive
-    // If the archive is at:
-    //   /tmp/ouch-testing-tar.Rbq4DusBrtF8/archive.tar
-    // Then the extraction_output_folder will be:
-    //   /tmp/ouch-testing-tar.Rbq4DusBrtF8/extraction_results/
-    let mut extraction_output_folder = archive_path.to_path_buf();
-    // Remove the name of the extracted archive
-    assert!(extraction_output_folder.pop());
-    // Add the suffix "results"
-    extraction_output_folder.push("extraction_results");
-
-    let command = Opts {
-        yes: false,
-        no: false,
-        cmd: Subcommand::Decompress {
-            files: vec![archive_path.to_owned()],
-            output_dir: Some(extraction_output_folder.clone()),
-        },
-    };
-    run(command, QuestionPolicy::Ask).expect("Failed to extract");
-
-    fs::read_dir(extraction_output_folder).unwrap().map(Result::unwrap).map(|entry| entry.path()).collect()
-}
-
-pub fn assert_correct_paths(original: &[PathBuf], extracted: &[PathBuf], format: &str) {
-    assert_eq!(
-        original.len(),
-        extracted.len(),
-        "Number of compressed files does not match number of decompressed when testing archive format '{:?}'.",
-        format
-    );
-    for (original, extracted) in original.iter().zip(extracted) {
-        assert_eq!(original.file_name(), extracted.file_name());
+#[macro_export]
+macro_rules! ouch {
+    ($($e:expr),*) => {
+        ::assert_cmd::Command::cargo_bin("ouch")
+            .expect("Failed to find ouch executable")
+            $(.arg($e))*
+            .unwrap();
     }
+}
+
+pub fn create_file_random(file: &mut impl Write, rng: &mut impl RngCore) {
+    let data = &mut Vec::with_capacity((rng.next_u32() % 8192) as usize);
+    rng.fill_bytes(data);
+    file.write_all(data).unwrap();
 }
