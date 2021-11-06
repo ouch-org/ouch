@@ -30,11 +30,8 @@ pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
 /// Removes the current dir from the beginning of a path
 /// normally used for presentation sake.
 /// If this function fails, it will return source path as a PathBuf.
-pub fn strip_cur_dir(source_path: &Path) -> PathBuf {
-    source_path
-        .strip_prefix(Component::CurDir)
-        .map(|path| path.to_path_buf())
-        .unwrap_or_else(|_| source_path.to_path_buf())
+pub fn strip_cur_dir(source_path: &Path) -> &Path {
+    source_path.strip_prefix(Component::CurDir).unwrap_or(source_path)
 }
 
 /// Returns current directory, but before change the process' directory to the
