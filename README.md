@@ -24,9 +24,9 @@
 # Features
 
 1. Easy to use.
-2. Automatic format detection.
-3. Same syntax, various formats.
-4. Encoding and decoding streams, it's fast.
+2. Infers expression formats automatically.
+3. Uses the same usage syntax for all supported formats.
+4. Achieves great performance through encoding and decoding streams.
 5. No runtime dependencies (for _Linux x86_64_).
 6. Listing archive contents with tree formatting (in next release!).
 
@@ -37,10 +37,10 @@
 Use the `decompress` subcommand and pass the files.
 
 ```sh
-# Decompress one
+# Decompress a file
 ouch decompress a.zip
 
-# Decompress multiple
+# Decompress multiple files
 ouch decompress a.zip b.tar.gz c.tar
 
 # Short alternative
@@ -68,6 +68,20 @@ ouch c file.txt file.zip
 
 `ouch` detects the extensions of the **output file** to decide what formats to use.
 
+# Supported formats
+
+| Format    | `.tar` | `.zip` | `.bz`, `.bz2` | `.gz` | `.lz4` | `.xz`, `.lz`, `.lzma` | `.zst` |
+|:---------:|:------:|:------:|:-------------:|:-----:|:------:|:---------------------:|:------:|
+| Supported | ✓     | ✓      | ✓            | ✓     | ✓     | ✓                     | ✓     |
+
+And the aliases: `tgz`, `tbz`, `tbz2`, `tlz4`, `txz`, `tlz`, `tlzma`, `tzst`.
+
+Formats can be chained (`ouch` keeps it _fast_):
+
+- `.gz.xz.bz.zst`
+- `.tar.gz.xz.bz.zst`
+- `.tar.gz.gz.gz.gz.xz.xz.xz.xz.bz.bz.bz.bz.zst.zst.zst.zst`
+
 # Installation
 
 [![Packaging status](https://repology.org/badge/vertical-allrepos/ouch.svg)](https://repology.org/project/ouch/versions)
@@ -87,19 +101,17 @@ The script will copy the [latest binary](https://github.com/ouch-org/ouch/releas
 
 Check the [wiki guide](https://github.com/ouch-org/ouch/wiki/Compiling-and-installing-from-source-code).
 
-# Supported formats
+# Dependencies
 
-| Format    | `.tar` | `.zip` | `.bz`, `.bz2` | `.gz` | `.lz4` | `.xz`, `.lz`, `.lzma` | `.zst` |
-|:---------:|:------:|:------:|:-------------:|:-----:|:------:|:---------------------:|:------:|
-| Supported | ✓     | ✓      | ✓            | ✓     | ✓     | ✓                     | ✓     |
+When built dynamically linked, you'll need these libraries to be available on your system:
 
-And the aliases: `tgz`, `tbz`, `tbz2`, `tlz4`, `txz`, `tlz`, `tlzma`, `tzst`.
+* [liblzma](https://www.7-zip.org/sdk.html)
+* [libbz2](https://www.sourceware.org/bzip2/)
+* [libz](https://www.zlib.net/)
 
-Formats can be chained (`ouch` keeps it _fast_):
+Thankfully these are all very common libraries that _should_ already be available on all mainstream Linux distributions and on macOS.
 
-- `.gz.xz.bz.zst`
-- `.tar.gz.xz.bz.zst`
-- `.tar.gz.gz.gz.gz.xz.xz.xz.xz.bz.bz.bz.bz.zst.zst.zst.zst`
+`ouch` is also easily built with MUSL, in which case it's _statically linked_ and therefore has no runtime dependencies. 
 
 # Benchmarks
 
@@ -121,11 +133,12 @@ Versions used:
 
 # Contributing
 
-`ouch` is made out of voluntary work, **any** small contribution is welcome!
+`ouch` is made out of voluntary work, contributors are very welcome! No contribution is too small and all contributions are valued.
 
-- Open an issue.
+- Open an [issue](https://github.com/ouch-org/ouch/issues).
+- Package it for your favorite distribution or package manager.
 - Open a pull request.
-- Share it to a friend!
+- Share it with a friend!
 
 [`tar`]: https://www.gnu.org/software/tar/
 [`bsdtar`]: https://www.freebsd.org/cgi/man.cgi?query=bsdtar&sektion=1&format=html
