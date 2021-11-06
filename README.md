@@ -97,6 +97,10 @@ Compiled for `x86_64` on _Linux_, _Mac OS_ and _Windows_, run with `curl` or `wg
 
 The script will copy the [latest binary](https://github.com/ouch-org/ouch/releases) to `/usr/local/bin`.
 
+## Minimum Supported Rust Version
+
+`ouch` will always be developed with the latest stable release of the Rust toolchain.
+
 ## Installing from source code
 
 Check the [wiki guide](https://github.com/ouch-org/ouch/wiki/Compiling-and-installing-from-source-code).
