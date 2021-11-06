@@ -130,7 +130,7 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                 // Note: If input_extensions is empty then it will make `formats` empty too, which we don't want
                 if !input_extensions.is_empty() && new_formats != formats {
                     // Safety:
-                    //   We checked above that input_extensions isn't empty, so files[0] has a extension.
+                    //   We checked above that input_extensions isn't empty, so files[0] has an extension.
                     //
                     //   Path::extension says: "if there is no file_name, then there is no extension".
                     //   Using DeMorgan's law: "if there is    extension, then there is    file_name".
