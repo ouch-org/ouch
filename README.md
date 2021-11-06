@@ -12,7 +12,7 @@
 
 # Ouch!
 
-`ouch` stands for **Obvious Unified Compression Helper**, it's a CLI tool to compress and decompress files.
+`ouch` stands for **Obvious Unified Compression Helper** and is a CLI tool to help you compress and decompress files of several formats.
 
 - [Features](#features)
 - [Usage](#usage)
@@ -104,7 +104,7 @@ Formats can be chained (`ouch` keeps it _fast_):
 # Benchmarks
 
 Comparison made decompressing `linux.tar.gz` and measured with
-[`hyperfine`](https://github.com/sharkdp/hyperfine), times are the average.
+[Hyperfine](https://github.com/sharkdp/hyperfine) and the values presented are the average (wall clock) elapsed time.
 
 | Tool         | `ouch` | [`tar`] | [`bsdtar`] |
 |:------------:|:------:|:-------:|:----------:|
