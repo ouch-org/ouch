@@ -15,3 +15,19 @@ pub fn _info_helper() {
 
     print!("{}[INFO]{} ", *YELLOW, *RESET);
 }
+
+/// Macro that prints [WARNING] messages, wraps [`println`].
+#[macro_export]
+macro_rules! warning {
+    ($($arg:tt)*) => {
+        $crate::macros::_warning_helper();
+        println!($($arg)*);
+    };
+}
+
+/// Helper to display "[INFO]", colored yellow
+pub fn _warning_helper() {
+    use crate::utils::colors::{ORANGE, RESET};
+
+    print!("{}[WARNING]{} ", *ORANGE, *RESET);
+}

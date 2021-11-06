@@ -9,7 +9,7 @@ use std::{
 
 use fs_err as fs;
 
-use crate::info;
+use crate::{extension::Extension, info};
 
 /// Checks given path points to an empty directory.
 pub fn dir_is_empty(dir_path: &Path) -> bool {
@@ -80,6 +80,78 @@ pub fn nice_directory_display(os_str: impl AsRef<OsStr>) -> Cow<'static, str> {
     }
 }
 
+/// Try to detect the file extension by looking for known magic strings
+/// Source: https://en.wikipedia.org/wiki/List_of_file_signatures
+pub fn try_infer(path: &Path) -> Option<Extension> {
+    fn is_zip(buf: &[u8]) -> bool {
+        buf.len() > 3
+            && buf[0] == 0x50
+            && buf[1] == 0x4B
+            && (buf[2] == 0x3 || buf[2] == 0x5 || buf[2] == 0x7)
+            && (buf[3] == 0x4 || buf[3] == 0x6 || buf[3] == 0x8)
+    }
+    fn is_tar(buf: &[u8]) -> bool {
+        buf.len() > 261
+            && buf[257] == 0x75
+            && buf[258] == 0x73
+            && buf[259] == 0x74
+            && buf[260] == 0x61
+            && buf[261] == 0x72
+    }
+    fn is_gz(buf: &[u8]) -> bool {
+        buf.len() > 2 && buf[0] == 0x1F && buf[1] == 0x8B && buf[2] == 0x8
+    }
+    fn is_bz2(buf: &[u8]) -> bool {
+        buf.len() > 2 && buf[0] == 0x42 && buf[1] == 0x5A && buf[2] == 0x68
+    }
+    fn is_xz(buf: &[u8]) -> bool {
+        buf.len() > 5
+            && buf[0] == 0xFD
+            && buf[1] == 0x37
+            && buf[2] == 0x7A
+            && buf[3] == 0x58
+            && buf[4] == 0x5A
+            && buf[5] == 0x00
+    }
+    fn is_lz(buf: &[u8]) -> bool {
+        buf.len() > 3 && buf[0] == 0x4C && buf[1] == 0x5A && buf[2] == 0x49 && buf[3] == 0x50
+    }
+    fn is_lz4(buf: &[u8]) -> bool {
+        buf.len() > 3 && buf[0] == 0x04 && buf[1] == 0x22 && buf[2] == 0x4D && buf[3] == 0x18
+    }
+    fn is_zst(buf: &[u8]) -> bool {
+        buf.len() > 3 && buf[0] == 0x28 && buf[1] == 0xB5 && buf[2] == 0x2F && buf[3] == 0xFD
+    }
+
+    let buf = {
+        let mut b = [0; 270];
+        // Reading errors will just make the inferring fail so its safe to ignore
+        let _ = std::fs::File::open(&path).map(|mut f| std::io::Read::read(&mut f, &mut b));
+        b
+    };
+
+    use crate::extension::CompressionFormat::*;
+    if is_zip(&buf) {
+        Some(Extension::new(&[Zip], "zip"))
+    } else if is_tar(&buf) {
+        Some(Extension::new(&[Tar], "tar"))
+    } else if is_gz(&buf) {
+        Some(Extension::new(&[Gzip], "gz"))
+    } else if is_bz2(&buf) {
+        Some(Extension::new(&[Bzip], "bz2"))
+    } else if is_xz(&buf) {
+        Some(Extension::new(&[Lzma], "xz"))
+    } else if is_lz(&buf) {
+        Some(Extension::new(&[Lzma], "lz"))
+    } else if is_lz4(&buf) {
+        Some(Extension::new(&[Lz4], "lz4"))
+    } else if is_zst(&buf) {
+        Some(Extension::new(&[Zstd], "zst"))
+    } else {
+        None
+    }
+}
+
 /// Module with a list of bright colors.
 #[allow(dead_code)]
 pub mod colors {
@@ -108,6 +180,8 @@ pub mod colors {
     color!(RED = "\u{1b}[38;5;9m");
     color!(WHITE = "\u{1b}[38;5;15m");
     color!(YELLOW = "\u{1b}[38;5;11m");
+    // Requires true color support
+    color!(ORANGE = "\u{1b}[38;2;255;165;0m");
     color!(STYLE_BOLD = "\u{1b}[1m");
     color!(STYLE_RESET = "\u{1b}[0m");
     color!(ALL_RESET = "\u{1b}[0;39m");
