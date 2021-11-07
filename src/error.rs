@@ -25,7 +25,7 @@ pub enum Error {
     /// TO BE REMOVED
     CompressingRootFolder,
     /// Specialized walkdir's io::Error wrapper with additional information on the error
-    WalkdirError { reason: String },
+    DirWalkError { reason: String },
     /// Custom and unique errors are reported in this variant
     Custom { reason: FinalError },
 }
@@ -89,7 +89,7 @@ impl FinalError {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let err = match self {
-            Error::WalkdirError { reason } => FinalError::with_title(reason),
+            Error::DirWalkError { reason } => FinalError::with_title(reason),
             Error::NotFound { error_title } => FinalError::with_title(error_title).detail("File not found"),
             Error::CompressingRootFolder => {
                 FinalError::with_title("It seems you're trying to compress the root folder.")
@@ -135,9 +135,9 @@ impl From<zip::result::ZipError> for Error {
     }
 }
 
-impl From<walkdir::Error> for Error {
-    fn from(err: walkdir::Error) -> Self {
-        Self::WalkdirError { reason: err.to_string() }
+impl From<ignore::Error> for Error {
+    fn from(err: ignore::Error) -> Self {
+        Self::DirWalkError { reason: err.to_string() }
     }
 }
 

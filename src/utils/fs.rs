@@ -8,8 +8,17 @@ use std::{
 };
 
 use fs_err as fs;
+use ignore::{Walk, WalkBuilder};
 
 use crate::info;
+
+/// Wrapper over ignore::WalkBuilder
+/// If `read_ignored_files` is true, then we'll only walk through files that are not hidden or
+/// contained in a .gitignore file or in a .git/info/exclude file.
+pub fn walk_dir(path: impl AsRef<Path>, read_ignored_files: bool) -> Walk {
+    let yes = read_ignored_files;
+    WalkBuilder::new(path).hidden(yes).git_ignore(yes).git_exclude(yes).build()
+}
 
 /// Checks given path points to an empty directory.
 pub fn dir_is_empty(dir_path: &Path) -> bool {

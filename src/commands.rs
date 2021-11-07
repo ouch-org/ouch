@@ -40,7 +40,7 @@ fn represents_several_files(files: &[PathBuf]) -> bool {
 /// Entrypoint of ouch, receives cli options and matches Subcommand to decide what to do
 pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
     match args.cmd {
-        Subcommand::Compress { files, output: output_path } => {
+        Subcommand::Compress { files, output: output_path, hidden } => {
             // Formats from path extension, like "file.tar.gz.xz" -> vec![Tar, Gzip, Lzma]
             let mut formats = extension::extensions_from_path(&output_path);
 
@@ -142,7 +142,7 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                     formats = new_formats;
                 }
             }
-            let compress_result = compress_files(files, formats, output_file);
+            let compress_result = compress_files(files, formats, output_file, hidden);
 
             // If any error occurred, delete incomplete file
             if compress_result.is_err() {
@@ -247,7 +247,12 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
 // files are the list of paths to be compressed: ["dir/file1.txt", "dir/file2.txt"]
 // formats contains each format necessary for compression, example: [Tar, Gz] (in compression order)
 // output_file is the resulting compressed file name, example: "compressed.tar.gz"
-fn compress_files(files: Vec<PathBuf>, formats: Vec<Extension>, output_file: fs::File) -> crate::Result<()> {
+fn compress_files(
+    files: Vec<PathBuf>,
+    formats: Vec<Extension>,
+    output_file: fs::File,
+    read_hidden_files: bool,
+) -> crate::Result<()> {
     let file_writer = BufWriter::with_capacity(BUFFER_CAPACITY, output_file);
 
     let mut writer: Box<dyn Write> = Box::new(file_writer);
@@ -282,7 +287,7 @@ fn compress_files(files: Vec<PathBuf>, formats: Vec<Extension>, output_file: fs:
             io::copy(&mut reader, &mut writer)?;
         }
         Tar => {
-            let mut writer = archive::tar::build_archive_from_paths(&files, writer)?;
+            let mut writer = archive::tar::build_archive_from_paths(&files, writer, read_hidden_files)?;
             writer.flush()?;
         }
         Zip => {
@@ -296,7 +301,7 @@ fn compress_files(files: Vec<PathBuf>, formats: Vec<Extension>, output_file: fs:
             eprintln!("\tThe design of .zip makes it impossible to compress via stream.");
 
             let mut vec_buffer = io::Cursor::new(vec![]);
-            archive::zip::build_archive_from_paths(&files, &mut vec_buffer)?;
+            archive::zip::build_archive_from_paths(&files, &mut vec_buffer, read_hidden_files)?;
             let vec_buffer = vec_buffer.into_inner();
             io::copy(&mut vec_buffer.as_slice(), &mut writer)?;
         }

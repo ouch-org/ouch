@@ -23,7 +23,7 @@ pub fn compress_files(at: &Path, paths_to_compress: &[PathBuf], format: &str) ->
     let command = Opts {
         yes: false,
         no: false,
-        cmd: Subcommand::Compress { files: paths_to_compress.to_vec(), output: archive_path.clone() },
+        cmd: Subcommand::Compress { files: paths_to_compress.to_vec(), output: archive_path.clone(), hidden: false },
     };
     run(command, QuestionPolicy::Ask).expect("Failed to compress test dummy files");
 

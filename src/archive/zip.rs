@@ -7,14 +7,13 @@ use std::{
 };
 
 use fs_err as fs;
-use walkdir::WalkDir;
 use zip::{self, read::ZipFile, ZipArchive};
 
 use self::utf8::get_invalid_utf8_paths;
 use crate::{
     info,
     list::FileInArchive,
-    utils::{self, dir_is_empty, strip_cur_dir, Bytes},
+    utils::{self, dir_is_empty, strip_cur_dir, walk_dir, Bytes},
     QuestionPolicy,
 };
 
@@ -100,7 +99,7 @@ where
 }
 
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.
-pub fn build_archive_from_paths<W>(input_filenames: &[PathBuf], writer: W) -> crate::Result<W>
+pub fn build_archive_from_paths<W>(input_filenames: &[PathBuf], writer: W, read_hidden_files: bool) -> crate::Result<W>
 where
     W: Write + Seek,
 {
@@ -121,7 +120,7 @@ where
         // Safe unwrap, input shall be treated before
         let filename = filename.file_name().unwrap();
 
-        for entry in WalkDir::new(filename) {
+        for entry in walk_dir(filename, read_hidden_files) {
             let entry = entry?;
             let path = entry.path();
 

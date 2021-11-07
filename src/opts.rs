@@ -42,6 +42,10 @@ pub enum Subcommand {
         /// The resulting file. Its extensions can be used to specify the compression formats.
         #[clap(required = true, value_hint = ValueHint::FilePath)]
         output: PathBuf,
+
+        /// If set, `ouch` will *not* compress hidden files or files ignored through .gitignore or .ignore
+        #[clap(short = 'H', long)]
+        hidden: bool,
     },
     /// Decompresses one or more files, optionally into another folder.
     #[clap(alias = "d")]
