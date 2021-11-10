@@ -1,4 +1,7 @@
 //! Random and miscellaneous utils used in ouch.
+//!
+//! In here we have the logic for custom formatting, some file and directory utils, and user
+//! stdin interaction helpers.
 
 pub mod colors;
 mod formatting;
