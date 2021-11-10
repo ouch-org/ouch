@@ -126,10 +126,16 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
     }
 
     let buf = {
-        let mut b = [0; 270];
-        // Reading errors will just make the inferring fail so its safe to ignore
-        let _ = std::fs::File::open(&path).map(|mut f| std::io::Read::read(&mut f, &mut b));
-        b
+        let mut buf = [0; 270];
+
+        // Error cause will be ignored, so use std::fs instead of fs_err
+        let result = std::fs::File::open(&path).map(|mut file| file.read(&mut buf));
+
+        // In case of file open or read failure, could not infer a extension
+        if result.is_err() {
+            return None;
+        }
+        buf
     };
 
     use crate::extension::CompressionFormat::*;
