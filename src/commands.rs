@@ -22,7 +22,7 @@ use crate::{
     info,
     list::{self, ListOptions},
     utils::{
-        self, concatenate_list_of_os_str, dir_is_empty, nice_directory_display, to_utf, try_infer_extension,
+        self, concatenate_os_str_list, dir_is_empty, nice_directory_display, to_utf, try_infer_extension,
         user_wants_to_continue_decompressing,
     },
     warning, Opts, QuestionPolicy, Subcommand,
@@ -189,7 +189,7 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                 let error = FinalError::with_title("Cannot decompress files without extensions")
                     .detail(format!(
                         "Files without supported extensions: {}",
-                        concatenate_list_of_os_str(&files_missing_format)
+                        concatenate_os_str_list(&files_missing_format)
                     ))
                     .detail("Decompression formats are detected automatically by the file extension")
                     .hint("Provide a file with a supported extension:")

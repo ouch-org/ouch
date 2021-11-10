@@ -1,4 +1,4 @@
-//! This library isn't meant to be published, but used internally by our binary crate `main.rs`.
+//! This library is just meant to supply needs for the `ouch` binary crate.
 
 #![warn(missing_docs)]
 
@@ -8,7 +8,6 @@ pub mod macros;
 pub mod archive;
 pub mod cli;
 pub mod commands;
-pub mod dialogs;
 pub mod error;
 pub mod extension;
 pub mod list;
