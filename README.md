@@ -24,11 +24,12 @@
 # Features
 
 1. Easy to use.
-2. Infers expression formats automatically.
-3. Uses the same usage syntax for all supported formats.
-4. Achieves great performance through encoding and decoding streams.
+2. Automatic formats detection.
+3. Same usage syntax for all formats.
+4. Uses encoding and decoding streams to improve performance.
 5. No runtime dependencies (for _Linux x86_64_).
-6. Listing archive contents with tree formatting (in next release!).
+6. Can list archive contents with pretty tree formatting.
+7. Shell completions (soon!).
 
 # Usage
 
@@ -59,7 +60,7 @@ ouch decompress summer_vacation.zip --dir pictures
 Use the `compress` subcommand, pass the files and the **output file** at the end.
 
 ```sh
-# Compress four files/folders
+# Compress four files
 ouch compress 1 2 3 4 archive.zip
 
 # Short alternative
@@ -76,11 +77,11 @@ ouch c file.txt file.zip
 
 And the aliases: `tgz`, `tbz`, `tbz2`, `tlz4`, `txz`, `tlz`, `tlzma`, `tzst`.
 
-Formats can be chained (`ouch` keeps it _fast_):
+Formats can be chained:
 
-- `.gz.xz.bz.zst`
-- `.tar.gz.xz.bz.zst`
-- `.tar.gz.gz.gz.gz.xz.xz.xz.xz.bz.bz.bz.bz.zst.zst.zst.zst`
+- `.tar.gz`
+- `.tar.gz.gz.gz.gz`
+- `.tar.gz.gz.gz.gz.zst.xz.bz.lz4`
 
 # Installation
 
@@ -97,21 +98,21 @@ Compiled for `x86_64` on _Linux_, _Mac OS_ and _Windows_, run with `curl` or `wg
 
 The script will copy the [latest binary](https://github.com/ouch-org/ouch/releases) to `/usr/local/bin`.
 
-## Installing from source code
+## Compiling from source code
 
 Check the [wiki guide](https://github.com/ouch-org/ouch/wiki/Compiling-and-installing-from-source-code).
 
 # Dependencies
 
-When built dynamically linked, you'll need these libraries to be available on your system:
+If you installed `ouch` using the download script, you will need no dependencies (static MUSL binary).
+
+Otherwise, you'll need these libraries installed on your system:
 
 * [liblzma](https://www.7-zip.org/sdk.html)
 * [libbz2](https://www.sourceware.org/bzip2/)
 * [libz](https://www.zlib.net/)
 
-Thankfully these are all very common libraries that _should_ already be available on all mainstream Linux distributions and on macOS.
-
-`ouch` is also easily built with MUSL, in which case it's _statically linked_ and therefore has no runtime dependencies. 
+These are available on all mainstream _Linux_ distributions and on _macOS_.
 
 # Benchmarks
 
