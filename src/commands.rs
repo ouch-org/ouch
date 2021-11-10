@@ -4,6 +4,7 @@
 
 use std::{
     io::{self, BufReader, BufWriter, Read, Write},
+    ops::ControlFlow,
     path::{Path, PathBuf},
 };
 
@@ -20,8 +21,11 @@ use crate::{
     },
     info,
     list::{self, ListOptions},
-    utils::{self, concatenate_list_of_os_str, dir_is_empty, nice_directory_display, to_utf},
-    Opts, QuestionPolicy, Subcommand,
+    utils::{
+        self, concatenate_list_of_os_str, dir_is_empty, nice_directory_display, to_utf, try_infer_extension,
+        user_wants_to_continue_decompressing,
+    },
+    warning, Opts, QuestionPolicy, Subcommand,
 };
 
 // Used in BufReader and BufWriter to perform less syscalls
@@ -170,6 +174,10 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                 formats.push(file_formats);
             }
 
+            if let ControlFlow::Break(_) = check_mime_type(&files, &mut formats, question_policy)? {
+                return Ok(());
+            }
+
             let files_missing_format: Vec<PathBuf> = files
                 .iter()
                 .zip(&formats)
@@ -206,6 +214,10 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
             for path in files.iter() {
                 let (_, file_formats) = extension::separate_known_extensions_from_name(path);
                 formats.push(file_formats);
+            }
+
+            if let ControlFlow::Break(_) = check_mime_type(&files, &mut formats, question_policy)? {
+                return Ok(());
             }
 
             let not_archives: Vec<PathBuf> = files
@@ -472,4 +484,44 @@ fn list_archive_contents(
     };
     list::list_files(archive_path, files, list_options);
     Ok(())
+}
+
+fn check_mime_type(
+    files: &[PathBuf],
+    formats: &mut Vec<Vec<Extension>>,
+    question_policy: QuestionPolicy,
+) -> crate::Result<ControlFlow<()>> {
+    for (path, format) in files.iter().zip(formats.iter_mut()) {
+        if format.is_empty() {
+            // File with no extension
+            // Try to detect it automatically and prompt the user about it
+            if let Some(detected_format) = try_infer_extension(path) {
+                info!("Detected file: `{}` extension as `{}`", path.display(), detected_format);
+                if user_wants_to_continue_decompressing(path, question_policy)? {
+                    format.push(detected_format);
+                } else {
+                    return Ok(ControlFlow::Break(()));
+                }
+            }
+        } else if let Some(detected_format) = try_infer_extension(path) {
+            // File ending with extension
+            // Try to detect the extension and warn the user if it differs from the written one
+            let outer_ext = format.iter().next().unwrap();
+            if outer_ext != &detected_format {
+                warning!(
+                    "The file extension: `{}` differ from the detected extension: `{}`",
+                    outer_ext,
+                    detected_format
+                );
+                if !user_wants_to_continue_decompressing(path, question_policy)? {
+                    return Ok(ControlFlow::Break(()));
+                }
+            }
+        } else {
+            // NOTE: If this actually produces no false positives, we can upgrade it in the future
+            // to a warning and ask the user if he wants to continue decompressing.
+            info!("Could not detect the extension of `{}`", path.display());
+        }
+    }
+    Ok(ControlFlow::Continue(()))
 }
