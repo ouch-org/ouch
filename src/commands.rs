@@ -227,17 +227,12 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                 .map(|(path, _)| path.clone())
                 .collect();
 
-            // Error
             if !not_archives.is_empty() {
-                eprintln!("Some file you asked ouch to list the contents of is not an archive.");
-                for file in &not_archives {
-                    eprintln!("Could not list {}.", to_utf(file));
-                }
-                todo!(
-                    "Dev note: add this error variant and pass the Vec to it, all the files \
-                     lacking extension shall be shown: {:#?}.",
-                    not_archives
-                );
+                let error = FinalError::with_title("Cannot list archive contents")
+                    .detail("Only archives can have their contents listed")
+                    .detail(format!("Files are not archives: {}", concatenate_os_str_list(&not_archives)));
+
+                return Err(error.into());
             }
 
             let list_options = ListOptions { tree };
@@ -330,7 +325,6 @@ fn decompress_file(
     file_name: &Path,
     question_policy: QuestionPolicy,
 ) -> crate::Result<()> {
-    // TODO: improve error message
     let reader = fs::File::open(&input_file_path)?;
 
     // Output path is used by single file formats
@@ -426,7 +420,6 @@ fn list_archive_contents(
     formats: Vec<CompressionFormat>,
     list_options: ListOptions,
 ) -> crate::Result<()> {
-    // TODO: improve error message
     let reader = fs::File::open(&archive_path)?;
 
     // Zip archives are special, because they require io::Seek, so it requires it's logic separated
