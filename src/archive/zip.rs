@@ -10,11 +10,14 @@ use fs_err as fs;
 use walkdir::WalkDir;
 use zip::{self, read::ZipFile, ZipArchive};
 
-use self::utf8::get_invalid_utf8_paths;
 use crate::{
+    error::FinalError,
     info,
     list::FileInArchive,
-    utils::{self, dir_is_empty, strip_cur_dir, Bytes},
+    utils::{
+        cd_into_same_dir_as, concatenate_os_str_list, dir_is_empty, get_invalid_utf8_paths, strip_cur_dir, to_utf,
+        user_wants_to_overwrite, Bytes,
+    },
     QuestionPolicy,
 };
 
@@ -36,7 +39,7 @@ where
         };
 
         let file_path = into.join(file_path);
-        if file_path.exists() && !utils::user_wants_to_overwrite(&file_path, question_policy)? {
+        if file_path.exists() && !user_wants_to_overwrite(&file_path, question_policy)? {
             continue;
         }
 
@@ -110,13 +113,16 @@ where
     // Vec of any filename that failed the UTF-8 check
     let invalid_unicode_filenames = get_invalid_utf8_paths(input_filenames);
 
-    if let Some(filenames) = invalid_unicode_filenames {
-        // TODO: make this an error variant
-        panic!("invalid unicode filenames found, cannot be supported by Zip:\n {:#?}", filenames);
+    if !invalid_unicode_filenames.is_empty() {
+        let error = FinalError::with_title("Cannot build zip archive")
+            .detail("Zip archives require files to have valid UTF-8 paths")
+            .detail(format!("Files with invalid paths: {}", concatenate_os_str_list(&invalid_unicode_filenames)));
+
+        return Err(error.into());
     }
 
     for filename in input_filenames {
-        let previous_location = utils::cd_into_same_dir_as(filename)?;
+        let previous_location = cd_into_same_dir_as(filename)?;
 
         // Safe unwrap, input shall be treated before
         let filename = filename.file_name().unwrap();
@@ -125,7 +131,7 @@ where
             let entry = entry?;
             let path = entry.path();
 
-            info!("Compressing '{}'.", utils::to_utf(path));
+            info!("Compressing '{}'.", to_utf(path));
 
             if path.is_dir() {
                 if dir_is_empty(path) {
@@ -134,7 +140,6 @@ where
                 // If a dir has files, the files are responsible for creating them.
             } else {
                 writer.start_file(path.to_str().unwrap().to_owned(), options)?;
-                // TODO: better error messages
                 let file_bytes = fs::read(entry.path())?;
                 writer.write_all(&*file_bytes)?;
             }
@@ -163,36 +168,4 @@ fn __unix_set_permissions(file_path: &Path, file: &ZipFile) -> crate::Result<()>
     }
 
     Ok(())
-}
-
-mod utf8 {
-
-    use std::path::{Path, PathBuf};
-
-    // Sad double reference in order to make `filter` happy in `get_invalid_utf8_paths`
-    #[cfg(unix)]
-    fn is_invalid_utf8(path: &&Path) -> bool {
-        use std::{os::unix::prelude::OsStrExt, str};
-
-        // str::from_utf8 does not make any allocations
-        let bytes = path.as_os_str().as_bytes();
-        let is_invalid = str::from_utf8(bytes).is_err();
-
-        is_invalid
-    }
-
-    #[cfg(not(unix))]
-    fn is_invalid_utf8(path: &&Path) -> bool {
-        path.to_str().is_none()
-    }
-
-    pub fn get_invalid_utf8_paths(paths: &[PathBuf]) -> Option<Vec<PathBuf>> {
-        let mut invalid_paths = paths.iter().map(PathBuf::as_path).filter(is_invalid_utf8).peekable();
-
-        let a_path_is_invalid = invalid_paths.peek().is_some();
-
-        let clone_paths = || invalid_paths.map(ToOwned::to_owned).collect();
-
-        a_path_is_invalid.then(clone_paths)
-    }
 }
