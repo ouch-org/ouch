@@ -12,6 +12,8 @@ use crate::utils::colors::*;
 pub enum Error {
     /// Not every IoError, some of them get filtered by `From<io::Error>` into other variants
     IoError { reason: String },
+    /// From lzzzz::lz4f::Error
+    Lz4Error { reason: String },
     /// Detected from io::Error if .kind() is io::ErrorKind::NotFound
     NotFound { error_title: String },
     /// NEEDS MORE CONTEXT
@@ -97,6 +99,7 @@ impl fmt::Display for Error {
                     .hint("Use a more appropriate tool for this, such as rsync.")
             }
             Error::IoError { reason } => FinalError::with_title(reason),
+            Error::Lz4Error { reason } => FinalError::with_title(reason),
             Error::AlreadyExists { error_title } => FinalError::with_title(error_title).detail("File already exists"),
             Error::InvalidZipArchive(reason) => FinalError::with_title("Invalid zip archive").detail(reason),
             Error::PermissionDenied { error_title } => FinalError::with_title(error_title).detail("Permission denied"),
@@ -116,6 +119,12 @@ impl From<std::io::Error> for Error {
             std::io::ErrorKind::AlreadyExists => Self::AlreadyExists { error_title: err.to_string() },
             _other => Self::IoError { reason: err.to_string() },
         }
+    }
+}
+
+impl From<lzzzz::lz4f::Error> for Error {
+    fn from(err: lzzzz::lz4f::Error) -> Self {
+        Self::Lz4Error { reason: err.to_string() }
     }
 }
 
