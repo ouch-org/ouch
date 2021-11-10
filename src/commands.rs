@@ -137,7 +137,7 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                     //   We checked above that input_extensions isn't empty, so files[0] has an extension.
                     //
                     //   Path::extension says: "if there is no file_name, then there is no extension".
-                    //   Using DeMorgan's law: "if there is    extension, then there is    file_name".
+                    //   Contrapositive statement: "if there is extension, then there is file_name".
                     info!(
                         "Partial compression detected. Compressing {} into {}",
                         to_utf(files[0].as_path().file_name().unwrap()),
