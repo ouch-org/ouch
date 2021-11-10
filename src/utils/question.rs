@@ -1,3 +1,5 @@
+//! Utils related to asking [Y/n] questions to the user.
+
 use std::path::Path;
 
 use fs_err as fs;

@@ -1,39 +1,31 @@
-//! Random filesystem-related stuff used on ouch.
+//! Filesystem utility functions.
 
 use std::{
-    borrow::Cow,
     env,
-    ffi::OsStr,
     fs::ReadDir,
     io::Read,
-    path::{Component, Path, PathBuf},
+    path::{Path, PathBuf},
 };
 
 use fs_err as fs;
 
+use super::to_utf;
 use crate::{extension::Extension, info};
 
-/// Checks given path points to an empty directory.
+/// Checks if given path points to an empty directory.
 pub fn dir_is_empty(dir_path: &Path) -> bool {
     let is_empty = |mut rd: ReadDir| rd.next().is_none();
 
     dir_path.read_dir().map(is_empty).unwrap_or_default()
 }
 
-/// Creates the dir if non existent.
+/// Creates a directory at the path, if there is nothing there.
 pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
     if !path.exists() {
         fs::create_dir_all(path)?;
         info!("directory {} created.", to_utf(path));
     }
     Ok(())
-}
-
-/// Removes the current dir from the beginning of a path
-/// normally used for presentation sake.
-/// If this function fails, it will return source path as a PathBuf.
-pub fn strip_cur_dir(source_path: &Path) -> &Path {
-    source_path.strip_prefix(Component::CurDir).unwrap_or(source_path)
 }
 
 /// Returns current directory, but before change the process' directory to the
@@ -45,41 +37,6 @@ pub fn cd_into_same_dir_as(filename: &Path) -> crate::Result<PathBuf> {
     env::set_current_dir(parent)?;
 
     Ok(previous_location)
-}
-
-/// Converts an OsStr to utf8 with custom formatting.
-///
-/// This is different from [`Path::display`].
-///
-/// See      for a comparison.
-pub fn to_utf(os_str: impl AsRef<OsStr>) -> String {
-    let text = format!("{:?}", os_str.as_ref());
-    text.trim_matches('"').to_string()
-}
-
-/// Converts a slice of AsRef<OsStr> to comma separated String
-///
-/// Panics if the slice is empty.
-pub fn concatenate_list_of_os_str(os_strs: &[impl AsRef<OsStr>]) -> String {
-    let mut iter = os_strs.iter().map(AsRef::as_ref);
-
-    let mut string = to_utf(iter.next().unwrap()); // May panic
-
-    for os_str in iter {
-        string += ", ";
-        string += &to_utf(os_str);
-    }
-    string
-}
-
-/// Display the directory name, but change to "current directory" when necessary.
-pub fn nice_directory_display(os_str: impl AsRef<OsStr>) -> Cow<'static, str> {
-    if os_str.as_ref() == "." {
-        Cow::Borrowed("current directory")
-    } else {
-        let text = to_utf(os_str);
-        Cow::Owned(format!("'{}'", text))
-    }
 }
 
 /// Try to detect the file extension by looking for known magic strings

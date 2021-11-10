@@ -1,4 +1,51 @@
-use std::cmp;
+use std::{
+    borrow::Cow,
+    cmp,
+    ffi::OsStr,
+    path::{Component, Path},
+};
+
+/// Converts an OsStr to utf8 with custom formatting.
+///
+/// This is different from [`Path::display`].
+///
+/// See      for a comparison.
+pub fn to_utf(os_str: impl AsRef<OsStr>) -> String {
+    let text = format!("{:?}", os_str.as_ref());
+    text.trim_matches('"').to_string()
+}
+
+/// Removes the current dir from the beginning of a path
+/// normally used for presentation sake.
+/// If this function fails, it will return source path as a PathBuf.
+pub fn strip_cur_dir(source_path: &Path) -> &Path {
+    source_path.strip_prefix(Component::CurDir).unwrap_or(source_path)
+}
+
+/// Converts a slice of AsRef<OsStr> to comma separated String
+///
+/// Panics if the slice is empty.
+pub fn concatenate_os_str_list(os_strs: &[impl AsRef<OsStr>]) -> String {
+    let mut iter = os_strs.iter().map(AsRef::as_ref);
+
+    let mut string = to_utf(iter.next().unwrap()); // May panic
+
+    for os_str in iter {
+        string += ", ";
+        string += &to_utf(os_str);
+    }
+    string
+}
+
+/// Display the directory name, but change to "current directory" when necessary.
+pub fn nice_directory_display(os_str: impl AsRef<OsStr>) -> Cow<'static, str> {
+    if os_str.as_ref() == "." {
+        Cow::Borrowed("current directory")
+    } else {
+        let text = to_utf(os_str);
+        Cow::Owned(format!("'{}'", text))
+    }
+}
 
 /// Struct useful to printing bytes as kB, MB, GB, etc.
 pub struct Bytes {
