@@ -86,43 +86,30 @@ pub fn nice_directory_display(os_str: impl AsRef<OsStr>) -> Cow<'static, str> {
 /// Source: https://en.wikipedia.org/wiki/List_of_file_signatures
 pub fn try_infer_extension(path: &Path) -> Option<Extension> {
     fn is_zip(buf: &[u8]) -> bool {
-        buf.len() > 3
-            && buf[0] == 0x50
-            && buf[1] == 0x4B
-            && (buf[2] == 0x3 || buf[2] == 0x5 || buf[2] == 0x7)
-            && (buf[3] == 0x4 || buf[3] == 0x6 || buf[3] == 0x8)
+        buf.len() >= 3
+            && buf[..=1] == [0x50, 0x4B]
+            && (buf[2..=3] == [0x3, 0x4] || buf[2..=3] == [0x5, 0x6] || buf[2..=3] == [0x7, 0x8])
     }
     fn is_tar(buf: &[u8]) -> bool {
-        buf.len() > 261
-            && buf[257] == 0x75
-            && buf[258] == 0x73
-            && buf[259] == 0x74
-            && buf[260] == 0x61
-            && buf[261] == 0x72
+        buf.len() > 261 && buf[257..=261] == [0x75, 0x73, 0x74, 0x61, 0x72]
     }
     fn is_gz(buf: &[u8]) -> bool {
-        buf.len() > 2 && buf[0] == 0x1F && buf[1] == 0x8B && buf[2] == 0x8
+        buf.len() > 2 && buf[..=2] == [0x1F, 0x8B, 0x8]
     }
     fn is_bz2(buf: &[u8]) -> bool {
-        buf.len() > 2 && buf[0] == 0x42 && buf[1] == 0x5A && buf[2] == 0x68
+        buf.len() > 2 && buf[..=2] == [0x42, 0x5A, 0x68]
     }
     fn is_xz(buf: &[u8]) -> bool {
-        buf.len() > 5
-            && buf[0] == 0xFD
-            && buf[1] == 0x37
-            && buf[2] == 0x7A
-            && buf[3] == 0x58
-            && buf[4] == 0x5A
-            && buf[5] == 0x00
+        buf.len() > 5 && buf[..=5] == [0xFD, 0x37, 0x7A, 0x58, 0x5A, 0x00]
     }
     fn is_lz(buf: &[u8]) -> bool {
-        buf.len() > 3 && buf[0] == 0x4C && buf[1] == 0x5A && buf[2] == 0x49 && buf[3] == 0x50
+        buf.len() > 3 && buf[..=3] == [0x4C, 0x5A, 0x49, 0x50]
     }
     fn is_lz4(buf: &[u8]) -> bool {
-        buf.len() > 3 && buf[0] == 0x04 && buf[1] == 0x22 && buf[2] == 0x4D && buf[3] == 0x18
+        buf.len() > 3 && buf[..=3] == [0x04, 0x22, 0x4D, 0x18]
     }
     fn is_zst(buf: &[u8]) -> bool {
-        buf.len() > 3 && buf[0] == 0x28 && buf[1] == 0xB5 && buf[2] == 0x2F && buf[3] == 0xFD
+        buf.len() > 3 && buf[..=3] == [0x28, 0xB5, 0x2F, 0xFD]
     }
 
     let buf = {
