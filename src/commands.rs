@@ -253,11 +253,11 @@ fn compress_files(files: Vec<PathBuf>, formats: Vec<Extension>, output_file: fs:
     let mut writer: Box<dyn Write> = Box::new(file_writer);
 
     // Grab previous encoder and wrap it inside of a new one
-    let chain_writer_encoder = |format: &CompressionFormat, encoder: Box<dyn Write>| {
+    let chain_writer_encoder = |format: &CompressionFormat, encoder: Box<dyn Write>| -> crate::Result<Box<dyn Write>> {
         let encoder: Box<dyn Write> = match format {
             Gzip => Box::new(flate2::write::GzEncoder::new(encoder, Default::default())),
             Bzip => Box::new(bzip2::write::BzEncoder::new(encoder, Default::default())),
-            Lz4 => Box::new(lz4_flex::frame::FrameEncoder::new(encoder)),
+            Lz4 => Box::new(lzzzz::lz4f::WriteCompressor::new(encoder, Default::default())?),
             Lzma => Box::new(xz2::write::XzEncoder::new(encoder, 6)),
             Zstd => {
                 let zstd_encoder = zstd::stream::write::Encoder::new(encoder, Default::default());
@@ -268,16 +268,16 @@ fn compress_files(files: Vec<PathBuf>, formats: Vec<Extension>, output_file: fs:
             }
             Tar | Zip => unreachable!(),
         };
-        encoder
+        Ok(encoder)
     };
 
     for format in formats.iter().flat_map(Extension::iter).skip(1).collect::<Vec<_>>().iter().rev() {
-        writer = chain_writer_encoder(format, writer);
+        writer = chain_writer_encoder(format, writer)?;
     }
 
     match formats[0].compression_formats[0] {
         Gzip | Bzip | Lz4 | Lzma | Zstd => {
-            writer = chain_writer_encoder(&formats[0].compression_formats[0], writer);
+            writer = chain_writer_encoder(&formats[0].compression_formats[0], writer)?;
             let mut reader = fs::File::open(&files[0]).unwrap();
             io::copy(&mut reader, &mut writer)?;
         }
@@ -352,7 +352,7 @@ fn decompress_file(
         let decoder: Box<dyn Read> = match format {
             Gzip => Box::new(flate2::read::GzDecoder::new(decoder)),
             Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
-            Lz4 => Box::new(lz4_flex::frame::FrameDecoder::new(decoder)),
+            Lz4 => Box::new(lzzzz::lz4f::ReadDecompressor::new(decoder)?),
             Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
             Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
             Tar | Zip => unreachable!(),
@@ -440,7 +440,7 @@ fn list_archive_contents(
         let decoder: Box<dyn Read> = match format {
             Gzip => Box::new(flate2::read::GzDecoder::new(decoder)),
             Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
-            Lz4 => Box::new(lz4_flex::frame::FrameDecoder::new(decoder)),
+            Lz4 => Box::new(lzzzz::lz4f::ReadDecompressor::new(decoder)?),
             Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
             Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
             Tar | Zip => unreachable!(),

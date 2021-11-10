@@ -33,7 +33,7 @@ enum FileExtension {
     Bz,
     Bz2,
     Gz,
-    // Lz4, // broken
+    Lz4,
     Lz,
     Lzma,
     Xz,
