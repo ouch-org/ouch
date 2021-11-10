@@ -8,7 +8,6 @@ pub mod macros;
 pub mod archive;
 pub mod cli;
 pub mod commands;
-pub mod dialogs;
 pub mod error;
 pub mod extension;
 pub mod list;
