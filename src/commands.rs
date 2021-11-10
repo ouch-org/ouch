@@ -22,7 +22,7 @@ use crate::{
     info,
     list::{self, ListOptions},
     utils::{
-        self, concatenate_list_of_os_str, dir_is_empty, nice_directory_display, to_utf, try_infer,
+        self, concatenate_list_of_os_str, dir_is_empty, nice_directory_display, to_utf, try_infer_extension,
         user_wants_to_continue_decompressing,
     },
     warning, Opts, QuestionPolicy, Subcommand,
@@ -495,7 +495,7 @@ fn check_mime_type(
         if format.is_empty() {
             // File with no extension
             // Try to detect it automatically and prompt the user about it
-            if let Some(detected_format) = try_infer(path) {
+            if let Some(detected_format) = try_infer_extension(path) {
                 info!("Detected file: `{}` extension as `{}`", path.display(), detected_format);
                 if user_wants_to_continue_decompressing(path, question_policy)? {
                     format.push(detected_format);
@@ -503,7 +503,7 @@ fn check_mime_type(
                     return Ok(ControlFlow::Break(()));
                 }
             }
-        } else if let Some(detected_format) = try_infer(path) {
+        } else if let Some(detected_format) = try_infer_extension(path) {
             // File ending with extension
             // Try to detect the extension and warn the user if it differs from the written one
             let outer_ext = format.iter().next().unwrap();

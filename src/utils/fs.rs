@@ -4,6 +4,8 @@ use std::{
     borrow::Cow,
     env,
     ffi::OsStr,
+    fs::ReadDir,
+    io::Read,
     path::{Component, Path, PathBuf},
 };
 
@@ -13,7 +15,7 @@ use crate::{extension::Extension, info};
 
 /// Checks given path points to an empty directory.
 pub fn dir_is_empty(dir_path: &Path) -> bool {
-    let is_empty = |mut rd: std::fs::ReadDir| rd.next().is_none();
+    let is_empty = |mut rd: ReadDir| rd.next().is_none();
 
     dir_path.read_dir().map(is_empty).unwrap_or_default()
 }
@@ -82,7 +84,7 @@ pub fn nice_directory_display(os_str: impl AsRef<OsStr>) -> Cow<'static, str> {
 
 /// Try to detect the file extension by looking for known magic strings
 /// Source: https://en.wikipedia.org/wiki/List_of_file_signatures
-pub fn try_infer(path: &Path) -> Option<Extension> {
+pub fn try_infer_extension(path: &Path) -> Option<Extension> {
     fn is_zip(buf: &[u8]) -> bool {
         buf.len() > 3
             && buf[0] == 0x50
@@ -155,10 +157,12 @@ pub fn try_infer(path: &Path) -> Option<Extension> {
 /// Module with a list of bright colors.
 #[allow(dead_code)]
 pub mod colors {
+    use std::env;
+
     use once_cell::sync::Lazy;
 
     static DISABLE_COLORED_TEXT: Lazy<bool> = Lazy::new(|| {
-        std::env::var_os("NO_COLOR").is_some() || atty::isnt(atty::Stream::Stdout) || atty::isnt(atty::Stream::Stderr)
+        env::var_os("NO_COLOR").is_some() || atty::isnt(atty::Stream::Stdout) || atty::isnt(atty::Stream::Stderr)
     });
 
     macro_rules! color {
