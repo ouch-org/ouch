@@ -170,25 +170,3 @@ fn __unix_set_permissions(file_path: &Path, file: &ZipFile) -> crate::Result<()>
 
     Ok(())
 }
-
-mod utf8 {
-    use std::path::{Path, PathBuf};
-
-    fn is_invalid_utf8(path: &Path) -> bool {
-        #[cfg(unix)]
-        {
-            use std::{os::unix::prelude::OsStrExt, str};
-
-            let bytes = path.as_os_str().as_bytes();
-            str::from_utf8(bytes).is_err()
-        }
-        #[cfg(not(unix))]
-        {
-            path.to_str().is_none()
-        }
-    }
-
-    pub fn get_invalid_utf8_paths(paths: &[PathBuf]) -> Vec<PathBuf> {
-        paths.iter().filter_map(|path| is_invalid_utf8(&path).then(|| path.clone())).collect()
-    }
-}
