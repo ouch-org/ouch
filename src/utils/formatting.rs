@@ -9,7 +9,7 @@ use std::{
 ///
 /// This is different from [`Path::display`].
 ///
-/// See      for a comparison.
+/// See https://gist.github.com/marcospb19/ebce5572be26397cf08bbd0fd3b65ac1 for a comparison.
 pub fn to_utf(os_str: impl AsRef<OsStr>) -> String {
     let text = format!("{:?}", os_str.as_ref());
     text.trim_matches('"').to_string()
