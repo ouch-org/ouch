@@ -10,14 +10,13 @@ use fs_err as fs;
 use walkdir::WalkDir;
 use zip::{self, read::ZipFile, ZipArchive};
 
-use self::utf8::get_invalid_utf8_paths;
 use crate::{
     error::FinalError,
     info,
     list::FileInArchive,
     utils::{
-        cd_into_same_dir_as, concatenate_os_str_list, dir_is_empty, strip_cur_dir, to_utf, user_wants_to_overwrite,
-        Bytes,
+        cd_into_same_dir_as, concatenate_os_str_list, dir_is_empty, get_invalid_utf8_paths, strip_cur_dir, to_utf,
+        user_wants_to_overwrite, Bytes,
     },
     QuestionPolicy,
 };

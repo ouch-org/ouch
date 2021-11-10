@@ -16,23 +16,15 @@ pub use question::{
 pub use utf8::{get_invalid_utf8_paths, is_invalid_utf8};
 
 mod utf8 {
-    use std::path::{Path, PathBuf};
+    use std::{ffi::OsStr, path::PathBuf};
 
-    pub fn is_invalid_utf8(path: &Path) -> bool {
-        #[cfg(unix)]
-        {
-            use std::{os::unix::prelude::OsStrExt, str};
-
-            let bytes = path.as_os_str().as_bytes();
-            str::from_utf8(bytes).is_err()
-        }
-        #[cfg(not(unix))]
-        {
-            path.to_str().is_none()
-        }
+    /// Check, without allocating, if os_str can be converted into &str
+    pub fn is_invalid_utf8(os_str: impl AsRef<OsStr>) -> bool {
+        os_str.as_ref().to_str().is_none()
     }
 
-    pub fn get_invalid_utf8_paths(paths: &[PathBuf]) -> Vec<PathBuf> {
-        paths.iter().filter_map(|path| is_invalid_utf8(&path).then(|| path.clone())).collect()
+    /// Filter out list of paths that are not utf8 valid
+    pub fn get_invalid_utf8_paths(paths: &[PathBuf]) -> Vec<&PathBuf> {
+        paths.iter().filter_map(|path| is_invalid_utf8(path).then(|| path)).collect()
     }
 }
