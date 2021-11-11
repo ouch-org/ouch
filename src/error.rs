@@ -49,11 +49,11 @@ pub struct FinalError {
 impl Display for FinalError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Title
-        writeln!(f, "{}[ERROR]{} {}", *RED, *RESET, self.title)?;
+        write!(f, "{}[ERROR]{} {}", *RED, *RESET, self.title)?;
 
         // Details
         for detail in &self.details {
-            writeln!(f, " {}-{} {}", *WHITE, *YELLOW, detail)?;
+            write!(f, "\n {}-{} {}", *WHITE, *YELLOW, detail)?;
         }
 
         // Hints
@@ -61,7 +61,7 @@ impl Display for FinalError {
             // Separate by one blank line.
             writeln!(f)?;
             for hint in &self.hints {
-                writeln!(f, "{}hint:{} {}", *GREEN, *RESET, hint)?;
+                write!(f, "\n{}hint:{} {}", *GREEN, *RESET, hint)?;
             }
         }
 
