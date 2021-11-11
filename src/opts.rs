@@ -6,6 +6,8 @@ use clap::{Parser, ValueHint};
 /// A command-line utility for easily compressing and decompressing files and directories.
 ///
 /// Supported formats: tar, zip, bz/bz2, gz, lz4, xz/lz/lzma, zst
+///
+/// Repository: https://github.com/ouch-org/ouch
 #[derive(Parser, Debug)]
 #[clap(version)]
 pub struct Opts {
