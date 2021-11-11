@@ -13,20 +13,20 @@ description = "A command-line utility for easily compressing and decompressing f
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap        = "=3.0.0-beta.5" # Keep it pinned while in beta!
-atty        = "0.2.14"
-fs-err      = "2.6.0"
-once_cell   = "1.8.0"
-walkdir     = "2.3.2"
-bzip2       = "0.4.3"
-libc        = "0.2.103"
-tar         = "0.4.37"
-lzzzz       = "0.8.0"
-xz2         = "0.1.6"
-zip         = { version =  "0.5.13", default-features = false, features = ["deflate-miniz"] }
-flate2      = { version = "1.0.22", default-features = false, features = ["zlib"] }
-zstd        = { version = "0.9.0", default-features = false, features = ["thin"] }
+atty = "0.2.14"
+bzip2 = "0.4.3"
+clap = "=3.0.0-beta.5" # Keep it pinned while in beta!
+flate2 = { version = "1.0.22", default-features = false }
+fs-err = "2.6.0"
+libc = "0.2.103"
 linked-hash-map = "0.5.4"
+lzzzz = "0.8.0"
+once_cell = "1.8.0"
+tar = "0.4.37"
+walkdir = "2.3.2"
+xz2 = "0.1.6"
+zip = { version = "0.5.13", default-features = false }
+zstd = { version = "0.9.0", default-features = false }
 
 [build-dependencies]
 clap = "=3.0.0-beta.5"
@@ -40,6 +40,9 @@ proptest = "1.0.0"
 rand = { version = "0.8.3", default-features = false, features = ["small_rng", "std"] }
 tempfile = "3.2.0"
 test-strategy = "0.1.2"
+
+[features]
+default = ["flate2/zlib", "zip/deflate-zlib", "zstd/thin"]
 
 [profile.release]
 lto = true
