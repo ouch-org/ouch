@@ -53,7 +53,7 @@ impl Display for FinalError {
 
         // Details
         for detail in &self.details {
-            write!(f, "\n {}-{} {}", *WHITE, *YELLOW, detail)?;
+            write!(f, "\n - {}{}{}", *YELLOW, detail, *RESET)?;
         }
 
         // Hints
@@ -65,7 +65,7 @@ impl Display for FinalError {
             }
         }
 
-        write!(f, "{}", *RESET)
+        Ok(())
     }
 }
 
