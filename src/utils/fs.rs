@@ -9,14 +9,33 @@ use std::{
 
 use fs_err as fs;
 
-use super::to_utf;
-use crate::{extension::Extension, info};
+use super::{to_utf, user_wants_to_overwrite};
+use crate::{extension::Extension, info, QuestionPolicy};
 
 /// Checks if given path points to an empty directory.
 pub fn dir_is_empty(dir_path: &Path) -> bool {
     let is_empty = |mut rd: ReadDir| rd.next().is_none();
 
     dir_path.read_dir().map(is_empty).unwrap_or_default()
+}
+
+/// Remove `path` asking the user to overwrite if necessary.
+///
+/// * `Ok(true)` means the path is clear,
+/// * `Ok(false)` means the user doesn't want to overwrite
+/// * `Err(_)` is an error
+pub fn clear_path(path: &Path, question_policy: QuestionPolicy) -> crate::Result<bool> {
+    if path.exists() && !user_wants_to_overwrite(path, question_policy)? {
+        return Ok(false);
+    }
+
+    if path.is_dir() {
+        fs::remove_dir_all(path)?;
+    } else if path.is_file() {
+        fs::remove_file(path)?;
+    }
+
+    Ok(true)
 }
 
 /// Creates a directory at the path, if there is nothing there.

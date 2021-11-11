@@ -31,15 +31,9 @@ pub fn unpack_archive(
         let mut file = file?;
 
         let file_path = output_folder.join(file.path()?);
-        if file_path.exists() && !utils::user_wants_to_overwrite(&file_path, question_policy)? {
+        if !utils::clear_path(&file_path, question_policy)? {
+            // User doesn't want to overwrite
             continue;
-        }
-
-        if file_path.is_dir() {
-            // ToDo: Maybe we should emphasise that `file_path` is a directory and everything inside it will be gone?
-            fs::remove_dir_all(&file_path)?;
-        } else if file_path.is_file() {
-            fs::remove_file(&file_path)?;
         }
 
         file.unpack_in(output_folder)?;
