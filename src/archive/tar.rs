@@ -31,7 +31,7 @@ pub fn unpack_archive(
         let mut file = file?;
 
         let file_path = output_folder.join(file.path()?);
-        if utils::clear_path(&file_path, question_policy)?.is_none() {
+        if !utils::clear_path(&file_path, question_policy)? {
             // User doesn't want to overwrite
             continue;
         }

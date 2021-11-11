@@ -39,7 +39,7 @@ where
         };
 
         let file_path = into.join(file_path);
-        if clear_path(&file_path, question_policy)?.is_none() {
+        if !clear_path(&file_path, question_policy)? {
             // User doesn't want to overwrite
             continue;
         }

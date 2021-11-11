@@ -342,7 +342,7 @@ fn decompress_file(
     //
     // Any other Zip decompression done can take up the whole RAM and freeze ouch.
     if formats.len() == 1 && *formats[0].compression_formats == [Zip] {
-        if utils::clear_path(output_dir, question_policy)?.is_none() {
+        if !utils::clear_path(output_dir, question_policy)? {
             // User doesn't want to overwrite
             return Ok(());
         }
@@ -374,7 +374,7 @@ fn decompress_file(
         reader = chain_reader_decoder(format, reader)?;
     }
 
-    if utils::clear_path(&output_path, question_policy)?.is_none() {
+    if !utils::clear_path(&output_path, question_policy)? {
         // User doesn't want to overwrite
         return Ok(());
     }

@@ -19,14 +19,14 @@ pub fn dir_is_empty(dir_path: &Path) -> bool {
     dir_path.read_dir().map(is_empty).unwrap_or_default()
 }
 
-/// Remove `path` asking the user to overwrite if necessary
-/// `Ok(Some(())` means the path is clear,
-/// `Ok(None)` means the user doesn't want to overwrite
-/// `Err(_)` is an error
-// ToDo: Actual type to translate the above might be clearer?
-pub fn clear_path(path: &Path, question_policy: QuestionPolicy) -> crate::Result<Option<()>> {
+/// Remove `path` asking the user to overwrite if necessary.
+///
+/// * `Ok(true)` means the path is clear,
+/// * `Ok(false)` means the user doesn't want to overwrite
+/// * `Err(_)` is an error
+pub fn clear_path(path: &Path, question_policy: QuestionPolicy) -> crate::Result<bool> {
     if path.exists() && !user_wants_to_overwrite(path, question_policy)? {
-        return Ok(None);
+        return Ok(false);
     }
 
     if path.is_dir() {
@@ -35,7 +35,7 @@ pub fn clear_path(path: &Path, question_policy: QuestionPolicy) -> crate::Result
         fs::remove_file(path)?;
     }
 
-    Ok(Some(()))
+    Ok(true)
 }
 
 /// Creates a directory at the path, if there is nothing there.
