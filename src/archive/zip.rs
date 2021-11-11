@@ -15,8 +15,8 @@ use crate::{
     info,
     list::FileInArchive,
     utils::{
-        cd_into_same_dir_as, concatenate_os_str_list, dir_is_empty, get_invalid_utf8_paths, strip_cur_dir, to_utf,
-        user_wants_to_overwrite, Bytes,
+        cd_into_same_dir_as, clear_path, concatenate_os_str_list, dir_is_empty, get_invalid_utf8_paths, strip_cur_dir,
+        to_utf, Bytes,
     },
     QuestionPolicy,
 };
@@ -39,15 +39,9 @@ where
         };
 
         let file_path = into.join(file_path);
-        if file_path.exists() && !user_wants_to_overwrite(&file_path, question_policy)? {
+        if clear_path(&file_path, question_policy)?.is_none() {
+            // User doesn't want to overwrite
             continue;
-        }
-
-        if file_path.is_dir() {
-            // ToDo: Maybe we should emphasise that `file_path` is a directory and everything inside it will be gone?
-            fs::remove_dir_all(&file_path)?;
-        } else if file_path.is_file() {
-            fs::remove_file(&file_path)?;
         }
 
         check_for_comments(&file);
