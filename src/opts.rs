@@ -2,9 +2,12 @@ use std::path::PathBuf;
 
 use clap::{Parser, ValueHint};
 
-/// Command line options
+// Command line options
+/// A command-line utility for easily compressing and decompressing files and directories.
+///
+/// Supported formats: tar, zip, bz/bz2, gz, lz4, xz/lz/lzma, zst
 #[derive(Parser, Debug)]
-#[clap(version, about)]
+#[clap(version)]
 pub struct Opts {
     /// Skip [Y/n] questions positively.
     #[clap(short, long, conflicts_with = "no")]
