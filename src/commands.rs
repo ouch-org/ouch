@@ -312,6 +312,11 @@ fn compress_files(files: Vec<PathBuf>, formats: Vec<Extension>, output_file: fs:
     Ok(())
 }
 
+enum OutputKind {
+    UserSelected(PathBuf),
+    AutoSelected(PathBuf),
+}
+
 // Decompress a file
 //
 // File at input_file_path is opened for reading, example: "archive.tar.gz"
@@ -327,12 +332,14 @@ fn decompress_file(
 ) -> crate::Result<()> {
     let reader = fs::File::open(&input_file_path)?;
 
-    // Output path is used by single file formats
-    let output_path =
+    // Output path used by single file formats
+    let single_file_format_output_path =
         if let Some(output_dir) = output_dir { output_dir.join(file_name) } else { file_name.to_path_buf() };
 
-    // Output folder is used by archive file formats (zip and tar)
-    let output_dir = output_dir.unwrap_or_else(|| Path::new("."));
+    // Output folder used by archive file formats (zip and tar)
+    let archive_output_dir = output_dir
+        .map(|dir| OutputKind::UserSelected(dir.to_path_buf()))
+        .unwrap_or_else(|| OutputKind::AutoSelected(single_file_format_output_path.clone()));
 
     // Zip archives are special, because they require io::Seek, so it requires it's logic separated
     // from decoder chaining.
@@ -342,14 +349,16 @@ fn decompress_file(
     //
     // Any other Zip decompression done can take up the whole RAM and freeze ouch.
     if formats.len() == 1 && *formats[0].compression_formats == [Zip] {
-        if !utils::clear_path(output_dir, question_policy)? {
-            // User doesn't want to overwrite
-            return Ok(());
+        let zip_unpack = move |output_dir: PathBuf| -> crate::Result<Vec<PathBuf>> {
+            let zip_archive = zip::ZipArchive::new(reader)?;
+            crate::archive::zip::unpack_archive(zip_archive, &output_dir, question_policy)
+        };
+
+        if let ControlFlow::Continue((path, _)) =
+            extract_archive_smart(Box::new(zip_unpack), question_policy, &archive_output_dir)?
+        {
+            info!("Successfully decompressed archive in {}.", nice_directory_display(path));
         }
-        utils::create_dir_if_non_existent(output_dir)?;
-        let zip_archive = zip::ZipArchive::new(reader)?;
-        let _files = crate::archive::zip::unpack_archive(zip_archive, output_dir, question_policy)?;
-        info!("Successfully decompressed archive in {}.", nice_directory_display(output_dir));
         return Ok(());
     }
 
@@ -374,19 +383,20 @@ fn decompress_file(
         reader = chain_reader_decoder(format, reader)?;
     }
 
-    if !utils::clear_path(&output_path, question_policy)? {
-        // User doesn't want to overwrite
-        return Ok(());
-    }
-    utils::create_dir_if_non_existent(output_dir)?;
-
     let files_unpacked;
+    let final_output_path;
 
     match formats[0].compression_formats[0] {
         Gzip | Bzip | Lz4 | Lzma | Zstd => {
+            if !utils::clear_path(&single_file_format_output_path, question_policy)? {
+                // User doesn't want to overwrite
+                return Ok(());
+            }
+            utils::create_dir_if_non_existent(&single_file_format_output_path)?;
+
             reader = chain_reader_decoder(&formats[0].compression_formats[0], reader)?;
 
-            let writer = utils::create_or_ask_overwrite(&output_path, question_policy)?;
+            let writer = utils::create_or_ask_overwrite(&single_file_format_output_path, question_policy)?;
             if writer.is_none() {
                 // Means that the user doesn't want to overwrite
                 return Ok(());
@@ -394,10 +404,19 @@ fn decompress_file(
             let mut writer = writer.unwrap();
 
             io::copy(&mut reader, &mut writer)?;
-            files_unpacked = vec![output_path];
+            files_unpacked = vec![single_file_format_output_path.clone()];
+            final_output_path = single_file_format_output_path;
         }
         Tar => {
-            files_unpacked = crate::archive::tar::unpack_archive(reader, output_dir, question_policy)?;
+            let tar_unpack =
+                move |output_dir: PathBuf| crate::archive::tar::unpack_archive(reader, &output_dir, question_policy);
+            match extract_archive_smart(Box::new(tar_unpack), question_policy, &archive_output_dir)? {
+                ControlFlow::Continue((path, files)) => {
+                    files_unpacked = files;
+                    final_output_path = path;
+                }
+                ControlFlow::Break(_) => return Ok(()),
+            }
         }
         Zip => {
             eprintln!("Compressing first into .zip.");
@@ -411,14 +430,96 @@ fn decompress_file(
             io::copy(&mut reader, &mut vec)?;
             let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
 
-            files_unpacked = crate::archive::zip::unpack_archive(zip_archive, output_dir, question_policy)?;
+            let zip_unpack = move |output_dir: PathBuf| {
+                crate::archive::zip::unpack_archive(zip_archive, &output_dir, question_policy)
+            };
+            match extract_archive_smart(Box::new(zip_unpack), question_policy, &archive_output_dir)? {
+                ControlFlow::Continue((path, files)) => {
+                    files_unpacked = files;
+                    final_output_path = path;
+                }
+                ControlFlow::Break(_) => {
+                    return Ok(());
+                }
+            }
         }
     }
 
-    info!("Successfully decompressed archive in {}.", nice_directory_display(output_dir));
+    info!("Successfully decompressed archive in {}.", nice_directory_display(final_output_path));
     info!("Files unpacked: {}", files_unpacked.len());
 
     Ok(())
+}
+
+/// Extract an archive using an unpack function
+/// 1- If the archive has only one element, we extract that to the current directory
+/// 2- If the archive has many elements at its root, we create a directory that contains all of them
+/// Note: If the user has specified an output directory (with --dir), the output elements are
+/// always extracted inside it
+/// Returns - A ControlFlow::Continue with the output path and the elements unpacked
+///         - A ControlFlow::Break if an overwrite was needed and the user declined
+fn extract_archive_smart(
+    unpack_fn: Box<dyn FnOnce(PathBuf) -> crate::Result<Vec<PathBuf>>>,
+    question_policy: QuestionPolicy,
+    output_path: &OutputKind,
+) -> Result<ControlFlow<(), (PathBuf, Vec<PathBuf>)>, crate::Error> {
+    // In both cases we start by creating a temporary directory to hold the elements
+    #[cfg(not(test))]
+    let temp_output_dir_guard = tempfile::tempdir_in(".")?; //XXX: Somehow proptest is taking this path ??
+    #[cfg(test)]
+    let temp_output_dir_guard = tempfile::tempdir()?;
+
+    let temp_output_path = temp_output_dir_guard.path();
+    utils::create_dir_if_non_existent(temp_output_path)?;
+    info!("Created temporary directory {} to hold decompressed elements.", nice_directory_display(temp_output_path));
+
+    // unpack the elements
+    let elements = unpack_fn(temp_output_path.to_path_buf())?;
+
+    let root_contains_only_one_element = fs::read_dir(&temp_output_path)?.count() == 1;
+    if root_contains_only_one_element {
+        // first case: only one element in the archive, we extract it to the current directory
+        let entry = fs::read_dir(&temp_output_path)?.next().unwrap().unwrap();
+        let entry_path = entry.path();
+        let entry_name = entry_path.file_name().unwrap().to_str().unwrap();
+        // Even if this is the case of only one element, if the user did specify a directory it
+        // would be surprising if he doesn't find the extracted files in it
+        // So that's what we do here
+        let new_path = if let OutputKind::UserSelected(path) = output_path {
+            path.join(entry_name)
+        } else {
+            Path::new(".").join(entry_name)
+        };
+
+        if !utils::clear_path(&new_path, question_policy)? {
+            // User doesn't want to overwrite
+            return Ok(ControlFlow::Break(()));
+        }
+        utils::create_dir_if_non_existent(new_path.parent().unwrap())?;
+
+        std::fs::rename(&entry_path, new_path.clone())?;
+        info!("Successfully moved {} to {}.", nice_directory_display(&entry_path), nice_directory_display(&new_path));
+        Ok(ControlFlow::Continue((new_path, elements)))
+    } else {
+        // second case: many element in the archive, we extract them to a directory
+        let output_path = match output_path {
+            OutputKind::UserSelected(path) => path,
+            OutputKind::AutoSelected(path) => path,
+        };
+        if !utils::clear_path(output_path, question_policy)? {
+            // User doesn't want to overwrite
+            return Ok(ControlFlow::Break(()));
+        }
+        utils::create_dir_if_non_existent(output_path)?;
+
+        std::fs::rename(temp_output_path, output_path)?;
+        info!(
+            "Successfully moved {} to {}.",
+            nice_directory_display(&temp_output_path),
+            nice_directory_display(&output_path)
+        );
+        Ok(ControlFlow::Continue((output_path.to_path_buf(), elements)))
+    }
 }
 
 // File at input_file_path is opened for reading, example: "archive.tar.gz"
