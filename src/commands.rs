@@ -44,7 +44,16 @@ fn represents_several_files(files: &[PathBuf]) -> bool {
 /// Entrypoint of ouch, receives cli options and matches Subcommand to decide what to do
 pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
     match args.cmd {
-        Subcommand::Compress { files, output: output_path } => {
+        Subcommand::Compress { mut files, output: output_path } => {
+            // If the output_path file exists and is the same as some of the input files, warn the user and skip those inputs (in order to avoid compression recursion)
+            if output_path.exists() {
+                clean_input_files_if_needed(&mut files, &output_path.canonicalize()?);
+            }
+            // After cleaning, if there are no input files left, exit
+            if files.is_empty() {
+                return Err(FinalError::with_title("No files to compress").into());
+            }
+
             // Formats from path extension, like "file.tar.gz.xz" -> vec![Tar, Gzip, Lzma]
             let mut formats = extension::extensions_from_path(&output_path);
 
@@ -525,4 +534,16 @@ fn check_mime_type(
         }
     }
     Ok(ControlFlow::Continue(()))
+}
+
+fn clean_input_files_if_needed(files: &mut Vec<PathBuf>, output_path: &Path) {
+    let mut idx = 0;
+    while idx < files.len() {
+        if files[idx] == output_path {
+            warning!("The output file and the input file are the same: `{}`, skipping...", output_path.display());
+            files.remove(idx);
+        } else {
+            idx += 1;
+        }
+    }
 }
