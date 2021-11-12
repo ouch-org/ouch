@@ -48,7 +48,7 @@ where
 
         match (&*file.name()).ends_with('/') {
             _is_dir @ true => {
-                println!("File {} extracted to \"{}\"", idx, file_path.display());
+                info!("File {} extracted to \"{}\"", idx, file_path.display());
                 fs::create_dir_all(&file_path)?;
             }
             _is_file @ false => {

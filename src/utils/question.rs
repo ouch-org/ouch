@@ -106,7 +106,11 @@ impl<'a> Confirmation<'a> {
 
         // Ask the same question to end while no valid answers are given
         loop {
-            print!("{} [{}Y{}/{}n{}] ", message, *colors::GREEN, *colors::RESET, *colors::RED, *colors::RESET);
+            if *crate::cli::ACCESSIBLE.get().unwrap() {
+                print!("{} {}yes{}/{}no{}: ", message, *colors::GREEN, *colors::RESET, *colors::RED, *colors::RESET);
+            } else {
+                print!("{} [{}Y{}/{}n{}] ", message, *colors::GREEN, *colors::RESET, *colors::RED, *colors::RESET);
+            }
             io::stdout().flush()?;
 
             let mut answer = String::new();

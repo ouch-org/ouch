@@ -24,12 +24,13 @@
 # Features
 
 1. Easy to use.
-2. Automatic formats detection.
-3. Same usage syntax for all formats.
-4. Uses encoding and decoding streams to improve performance.
-5. No runtime dependencies (for _Linux x86_64_).
-6. Can list archive contents with pretty tree formatting.
-7. Shell completions (soon!).
+2. Accessibility (A11Y) mode via `--accessibility` or env var `ACCESSIBILITY`
+3. Automatic formats detection.
+4. Same usage syntax for all formats.
+5. Uses encoding and decoding streams to improve performance.
+6. No runtime dependencies (for _Linux x86_64_).
+7. Can list archive contents with pretty tree formatting.
+8. Shell completions (soon!).
 
 # Usage
 

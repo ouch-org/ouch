@@ -49,7 +49,11 @@ pub struct FinalError {
 impl Display for FinalError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Title
-        write!(f, "{}[ERROR]{} {}", *RED, *RESET, self.title)?;
+        if *crate::cli::ACCESSIBLE.get().unwrap_or(&false) {
+            write!(f, "{}ERROR{}: {}", *RED, *RESET, self.title)?;
+        } else {
+            write!(f, "{}[ERROR]{} {}", *RED, *RESET, self.title)?;
+        }
 
         // Details
         for detail in &self.details {

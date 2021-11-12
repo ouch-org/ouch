@@ -139,6 +139,7 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                     //   Path::extension says: "if there is no file_name, then there is no extension".
                     //   Contrapositive statement: "if there is extension, then there is file_name".
                     info!(
+                        a11y_show,
                         "Partial compression detected. Compressing {} into {}",
                         to_utf(files[0].as_path().file_name().unwrap()),
                         to_utf(&output_path)
@@ -159,7 +160,7 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                     eprintln!("  Error:{reset} {}{red}.{reset}\n", err, reset = *colors::RESET, red = *colors::RED);
                 }
             } else {
-                info!("Successfully compressed '{}'.", to_utf(output_path));
+                info!(a11y_show, "Successfully compressed '{}'.", to_utf(output_path));
             }
 
             compress_result?;
@@ -349,7 +350,7 @@ fn decompress_file(
         utils::create_dir_if_non_existent(output_dir)?;
         let zip_archive = zip::ZipArchive::new(reader)?;
         let _files = crate::archive::zip::unpack_archive(zip_archive, output_dir, question_policy)?;
-        info!("Successfully decompressed archive in {}.", nice_directory_display(output_dir));
+        info!(a11y_show, "Successfully decompressed archive in {}.", nice_directory_display(output_dir));
         return Ok(());
     }
 
@@ -415,8 +416,8 @@ fn decompress_file(
         }
     }
 
-    info!("Successfully decompressed archive in {}.", nice_directory_display(output_dir));
-    info!("Files unpacked: {}", files_unpacked.len());
+    info!(a11y_show, "Successfully decompressed archive in {}.", nice_directory_display(output_dir));
+    info!(a11y_show, "Files unpacked: {}", files_unpacked.len());
 
     Ok(())
 }
@@ -497,7 +498,7 @@ fn check_mime_type(
             // File with no extension
             // Try to detect it automatically and prompt the user about it
             if let Some(detected_format) = try_infer_extension(path) {
-                info!("Detected file: `{}` extension as `{}`", path.display(), detected_format);
+                info!(a11y_show, "Detected file: `{}` extension as `{}`", path.display(), detected_format);
                 if user_wants_to_continue_decompressing(path, question_policy)? {
                     format.push(detected_format);
                 } else {
@@ -521,7 +522,7 @@ fn check_mime_type(
         } else {
             // NOTE: If this actually produces no false positives, we can upgrade it in the future
             // to a warning and ask the user if he wants to continue decompressing.
-            info!("Could not detect the extension of `{}`", path.display());
+            info!(a11y_show, "Could not detect the extension of `{}`", path.display());
         }
     }
     Ok(ControlFlow::Continue(()))
