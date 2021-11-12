@@ -1,6 +1,6 @@
 //! Macros used on ouch.
 
-/// Macro that prints [INFO] messages, wraps [`println`].
+/// Macro that prints \[INFO\] messages, wraps [`println`].
 #[macro_export]
 macro_rules! info {
     ($($arg:tt)*) => {
@@ -9,14 +9,14 @@ macro_rules! info {
     };
 }
 
-/// Helper to display "[INFO]", colored yellow
+/// Helper to display "\[INFO\]", colored yellow
 pub fn _info_helper() {
     use crate::utils::colors::{RESET, YELLOW};
 
     print!("{}[INFO]{} ", *YELLOW, *RESET);
 }
 
-/// Macro that prints [WARNING] messages, wraps [`println`].
+/// Macro that prints \[WARNING\] messages, wraps [`println`].
 #[macro_export]
 macro_rules! warning {
     ($($arg:tt)*) => {
@@ -25,7 +25,7 @@ macro_rules! warning {
     };
 }
 
-/// Helper to display "[INFO]", colored yellow
+/// Helper to display "\[WARNING\]", colored orange
 pub fn _warning_helper() {
     use crate::utils::colors::{ORANGE, RESET};
 

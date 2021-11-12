@@ -59,7 +59,7 @@ pub fn cd_into_same_dir_as(filename: &Path) -> crate::Result<PathBuf> {
 }
 
 /// Try to detect the file extension by looking for known magic strings
-/// Source: https://en.wikipedia.org/wiki/List_of_file_signatures
+/// Source: <https://en.wikipedia.org/wiki/List_of_file_signatures>
 pub fn try_infer_extension(path: &Path) -> Option<Extension> {
     fn is_zip(buf: &[u8]) -> bool {
         buf.len() >= 3
