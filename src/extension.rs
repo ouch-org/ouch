@@ -5,13 +5,19 @@ use std::{ffi::OsStr, fmt, path::Path};
 use self::CompressionFormat::*;
 
 /// A wrapper around `CompressionFormat` that allows combinations like `tgz`
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Eq)]
 #[non_exhaustive]
 pub struct Extension {
     /// One extension like "tgz" can be made of multiple CompressionFormats ([Tar, Gz])
     pub compression_formats: &'static [CompressionFormat],
     /// The input text for this extension, like "tgz", "tar" or "xz"
     pub display_text: String,
+}
+// The display_text should be ignored when comparing extensions
+impl PartialEq for Extension {
+    fn eq(&self, other: &Self) -> bool {
+        self.compression_formats == other.compression_formats
+    }
 }
 
 impl Extension {
@@ -49,7 +55,7 @@ pub enum CompressionFormat {
     Bzip,
     /// .lz4
     Lz4,
-    /// .xz .lzma .lz
+    /// .xz .lzma
     Lzma,
     /// tar, tgz, tbz, tbz2, txz, tlz, tlz4, tlzma, tzst
     Tar,
@@ -121,7 +127,7 @@ pub fn separate_known_extensions_from_name(mut path: &Path) -> (&Path, Vec<Exten
             "bz" | "bz2" => &[Bzip],
             "gz" => &[Gzip],
             "lz4" => &[Lz4],
-            "xz" | "lzma" | "lz" => &[Lzma],
+            "xz" | "lzma" => &[Lzma],
             "zst" => &[Zstd],
             _ => break,
         };

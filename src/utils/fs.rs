@@ -75,11 +75,8 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
     fn is_bz2(buf: &[u8]) -> bool {
         buf.len() > 2 && buf[..=2] == [0x42, 0x5A, 0x68]
     }
-    fn is_xz(buf: &[u8]) -> bool {
+    fn is_lzma(buf: &[u8]) -> bool {
         buf.len() > 5 && buf[..=5] == [0xFD, 0x37, 0x7A, 0x58, 0x5A, 0x00]
-    }
-    fn is_lz(buf: &[u8]) -> bool {
-        buf.len() > 3 && buf[..=3] == [0x4C, 0x5A, 0x49, 0x50]
     }
     fn is_lz4(buf: &[u8]) -> bool {
         buf.len() > 3 && buf[..=3] == [0x04, 0x22, 0x4D, 0x18]
@@ -110,10 +107,8 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
         Some(Extension::new(&[Gzip], "gz"))
     } else if is_bz2(&buf) {
         Some(Extension::new(&[Bzip], "bz2"))
-    } else if is_xz(&buf) {
-        Some(Extension::new(&[Lzma], "xz"))
-    } else if is_lz(&buf) {
-        Some(Extension::new(&[Lzma], "lz"))
+    } else if is_lzma(&buf) {
+        Some(Extension::new(&[Lzma], "lzma")) // lzma can be `xz` or `lzma`
     } else if is_lz4(&buf) {
         Some(Extension::new(&[Lz4], "lz4"))
     } else if is_zst(&buf) {

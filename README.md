@@ -71,7 +71,7 @@ ouch c file.txt file.zip
 
 # Supported formats
 
-| Format    | `.tar` | `.zip` | `.bz`, `.bz2` | `.gz` | `.lz4` | `.xz`, `.lz`, `.lzma` | `.zst` |
+| Format    | `.tar` | `.zip` | `.bz`, `.bz2` | `.gz` | `.lz4` | `.xz`, `.lzma` | `.zst` |
 |:---------:|:------:|:------:|:-------------:|:-----:|:------:|:---------------------:|:------:|
 | Supported | ✓     | ✓      | ✓            | ✓     | ✓     | ✓                     | ✓     |
 
