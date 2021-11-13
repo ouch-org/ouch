@@ -1,6 +1,10 @@
 //! This library is just meant to supply needs for the `ouch` binary crate.
 
 #![warn(missing_docs)]
+// Bare URLs in doc comments are not a problem since this project is primarily
+// used as a binary. Since `clap` doesn't remove URL markup in it's help output,
+// we don't mark them as URLs. This suppresses the relevant rustdoc warning:
+#![allow(rustdoc::bare_urls)]
 
 // Macros should be declared before
 pub mod macros;

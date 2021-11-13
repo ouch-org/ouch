@@ -38,7 +38,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// Pretty final error message for end users, crashing the program after display.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct FinalError {
-    /// Should be made of just one line, appears after the "[ERROR]" part
+    /// Should be made of just one line, appears after the "\[ERROR\]" part
     title: String,
     /// Shown as a unnumbered list in yellow
     details: Vec<String>,
