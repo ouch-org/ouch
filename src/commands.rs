@@ -47,7 +47,7 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
         Subcommand::Compress { mut files, output: output_path } => {
             // If the output_path file exists and is the same as some of the input files, warn the user and skip those inputs (in order to avoid compression recursion)
             if output_path.exists() {
-                clean_input_files_if_needed(&mut files, &output_path.canonicalize()?);
+                clean_input_files_if_needed(&mut files, &fs::canonicalize(&output_path)?);
             }
             // After cleaning, if there are no input files left, exit
             if files.is_empty() {
