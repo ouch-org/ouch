@@ -507,7 +507,7 @@ fn check_mime_type(
         } else if let Some(detected_format) = try_infer_extension(path) {
             // File ending with extension
             // Try to detect the extension and warn the user if it differs from the written one
-            let outer_ext = format.iter().next().unwrap();
+            let outer_ext = format.iter().next_back().unwrap();
             if outer_ext != &detected_format {
                 warning!(
                     "The file extension: `{}` differ from the detected extension: `{}`",
