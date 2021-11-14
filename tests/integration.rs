@@ -131,11 +131,11 @@ fn test_compress_decompress() {
 
     assert!(ouch_interactive!("c", &i1, &dir.join("o1.tar")).0.wait().unwrap().success());
 
-    let (_ouch, mut sin, sout) = ouch_interactive!("d", &o1);
-    assert_eq!(sout.recv().unwrap(), "Do you want to overwrite 'i1'? [Y/n] ");
+    let (_ouch, mut sin, sout) = ouch_interactive!("d", &o1, "-d", dir);
+    assert_eq!(sout.recv().unwrap(), format!("Do you want to overwrite '{}'? [Y/n] ", i1.display()));
     writeln!(&mut sin, "n").unwrap();
     // This is the actual current behaviour for tar archives, if the user doesn't want to overwrite the file we just skip it
-    assert_eq!(sout.recv().unwrap(), "[INFO] Successfully decompressed archive in current directory.");
+    assert_eq!(sout.recv().unwrap(), format!("[INFO] Successfully decompressed archive in '{}'.", dir.display()));
     assert_eq!(sout.recv().unwrap(), "[INFO] Files unpacked: 0",);
 
     let out = dir.join("out");
