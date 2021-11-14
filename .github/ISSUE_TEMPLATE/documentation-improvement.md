@@ -1,10 +1,6 @@
 ---
 name: Documentation Improvement
-about: Improvements in repository markdown or code docs
-title: '_[DOCS]_ '
+about: Improvements in repository markdown or code documentations
 labels: documentation
-assignees: ''
 
 ---
-
-

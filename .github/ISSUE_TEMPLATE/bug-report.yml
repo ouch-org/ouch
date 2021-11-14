@@ -1,0 +1,40 @@
+name: Bug Report
+description: Report a ouch bug
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for filling a bug report!
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Version of ouch you encountered this error, or git commit hash if you are not using a versioned release
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: Current Behavior
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+
+  - type: textarea
+    id: info
+    attributes:
+      label: Additional Information
+      description: >
+        Additional information that might help us debug this issue,
+        such as the operating system you are using or the files you tried to archive/extract
