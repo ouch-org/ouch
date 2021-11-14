@@ -70,22 +70,22 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
         buf.len() > 261 && buf[257..=261] == [0x75, 0x73, 0x74, 0x61, 0x72]
     }
     fn is_gz(buf: &[u8]) -> bool {
-        buf.len() > 2 && buf[..=2] == [0x1F, 0x8B, 0x8]
+        buf.starts_with(&[0x1F, 0x8B, 0x8])
     }
     fn is_bz2(buf: &[u8]) -> bool {
-        buf.len() > 2 && buf[..=2] == [0x42, 0x5A, 0x68]
+        buf.starts_with(&[0x42, 0x5A, 0x68])
     }
     fn is_xz(buf: &[u8]) -> bool {
-        buf.len() > 5 && buf[..=5] == [0xFD, 0x37, 0x7A, 0x58, 0x5A, 0x00]
+        buf.starts_with(&[0xFD, 0x37, 0x7A, 0x58, 0x5A, 0x00])
     }
     fn is_lz(buf: &[u8]) -> bool {
-        buf.len() > 3 && buf[..=3] == [0x4C, 0x5A, 0x49, 0x50]
+        buf.starts_with(&[0x4C, 0x5A, 0x49, 0x50])
     }
     fn is_lz4(buf: &[u8]) -> bool {
-        buf.len() > 3 && buf[..=3] == [0x04, 0x22, 0x4D, 0x18]
+        buf.starts_with(&[0x04, 0x22, 0x4D, 0x18])
     }
     fn is_zst(buf: &[u8]) -> bool {
-        buf.len() > 3 && buf[..=3] == [0x28, 0xB5, 0x2F, 0xFD]
+        buf.starts_with(&[0x28, 0xB5, 0x2F, 0xFD])
     }
 
     let buf = {
