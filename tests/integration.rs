@@ -34,7 +34,6 @@ enum FileExtension {
     Bz2,
     Gz,
     Lz4,
-    Lz,
     Lzma,
     Xz,
 }
