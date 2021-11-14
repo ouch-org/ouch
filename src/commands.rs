@@ -396,15 +396,15 @@ fn decompress_file(
 
     match formats[0].compression_formats[0] {
         Gzip | Bzip | Lz4 | Lzma | Zstd => {
-            if !utils::clear_path(&single_file_format_output_path, question_policy)? {
-                // User doesn't want to overwrite
+            if let ControlFlow::Break(_) =
+                utils::create_dir_or_ask_overwrite(&single_file_format_output_path, question_policy)?
+            {
                 return Ok(());
-            }
-            utils::create_dir_if_non_existent(&single_file_format_output_path)?;
+            };
 
             reader = chain_reader_decoder(&formats[0].compression_formats[0], reader)?;
 
-            let writer = utils::create_or_ask_overwrite(&single_file_format_output_path, question_policy)?;
+            let writer = utils::create_file_or_ask_overwrite(&single_file_format_output_path, question_policy)?;
             if writer.is_none() {
                 // Means that the user doesn't want to overwrite
                 return Ok(());
@@ -488,32 +488,44 @@ fn extract_archive_smart(
         let entry = fs::read_dir(&temp_output_path)?.next().unwrap().unwrap();
         let entry_path = entry.path();
         let entry_name = entry_path.file_name().unwrap().to_str().unwrap();
-        // Even if this is the case of only one element, if the user did specify a directory it
-        // would be surprising if he doesn't find the extracted files in it
-        // So that's what we do here
-        let new_path = if let OutputKind::UserSelected(path) = output_path {
+        let element_final_path = if let OutputKind::UserSelected(path) = output_path {
+            // Even if this is the case of only one element, if the user did specify a directory it
+            // would be surprising if he doesn't find the extracted files in it
+            // So that's what we do here
             path.join(entry_name)
         } else {
             output_path_parent.join(entry_name)
         };
 
-        if !utils::clear_path(&new_path, question_policy)? {
-            // User doesn't want to overwrite
-            return Ok(ControlFlow::Break(()));
+        // This is the path were the entry will be moved to
+        if element_final_path.is_dir() {
+            // If it is a directory and it already exists, we ask the user if he wants to overwrite
+            if let ControlFlow::Break(_) = utils::create_dir_or_ask_overwrite(&element_final_path, question_policy)? {
+                return Ok(ControlFlow::Break(()));
+            };
+        } else {
+            // If it is a file and it already exists, we ask the user if he wants to overwrite
+            if !utils::clear_path(&element_final_path, question_policy)? {
+                // User doesn't want to overwrite
+                return Ok(ControlFlow::Break(()));
+            }
+            // And we also create the directory where it will be moved to if doesn't exist
+            utils::create_dir_if_non_existent(element_final_path.parent().unwrap())?;
         }
-        utils::create_dir_if_non_existent(new_path.parent().unwrap())?;
 
-        std::fs::rename(&entry_path, new_path.clone())?;
-        info!("Successfully moved {} to {}.", nice_directory_display(&entry_path), nice_directory_display(&new_path));
-        Ok(ControlFlow::Continue((new_path, elements)))
+        std::fs::rename(&entry_path, element_final_path.clone())?;
+        info!(
+            "Successfully moved {} to {}.",
+            nice_directory_display(&entry_path),
+            nice_directory_display(&element_final_path)
+        );
+        Ok(ControlFlow::Continue((element_final_path, elements)))
     } else {
         // second case: many element in the archive, we extract them to a directory
         let output_path = output_path.as_path();
-        if !utils::clear_path(output_path, question_policy)? {
-            // User doesn't want to overwrite
+        if let ControlFlow::Break(_) = utils::create_dir_or_ask_overwrite(output_path, question_policy)? {
             return Ok(ControlFlow::Break(()));
-        }
-        utils::create_dir_if_non_existent(output_path)?;
+        };
 
         std::fs::rename(temp_output_path, output_path)?;
         info!(

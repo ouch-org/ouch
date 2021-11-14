@@ -6,6 +6,7 @@
 use std::{
     borrow::Cow,
     io::{self, Write},
+    ops::ControlFlow,
     path::Path,
 };
 
@@ -44,7 +45,7 @@ pub fn user_wants_to_overwrite(path: &Path, question_policy: QuestionPolicy) -> 
 
 /// Create the file if it doesn't exist and if it does then ask to overwrite it.
 /// If the user doesn't want to overwrite then we return [`Ok(None)`]
-pub fn create_or_ask_overwrite(path: &Path, question_policy: QuestionPolicy) -> Result<Option<fs::File>> {
+pub fn create_file_or_ask_overwrite(path: &Path, question_policy: QuestionPolicy) -> Result<Option<fs::File>> {
     match fs::OpenOptions::new().write(true).create_new(true).open(path) {
         Ok(w) => Ok(Some(w)),
         Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
@@ -61,6 +62,18 @@ pub fn create_or_ask_overwrite(path: &Path, question_policy: QuestionPolicy) -> 
         }
         Err(e) => Err(Error::from(e)),
     }
+}
+
+/// Create the directory if it doesn't exist and if it does then ask to overwrite it.
+/// If the user doesn't want to overwrite then we return [`ControlFlow::Break`]
+pub fn create_dir_or_ask_overwrite(path: &Path, question_policy: QuestionPolicy) -> crate::Result<ControlFlow<(), ()>> {
+    if !super::clear_path(path, question_policy)? {
+        // User doesn't want to overwrite
+        return Ok(ControlFlow::Break(()));
+    }
+    super::create_dir_if_non_existent(path)?;
+
+    Ok(ControlFlow::Continue(()))
 }
 
 /// Check if QuestionPolicy flags were set, otherwise, ask the user if they want to continue decompressing.
