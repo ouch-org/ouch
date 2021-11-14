@@ -203,10 +203,16 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
 
             // The directory that will contain the output files
             // We default to the current directory if the user didn't specify an output directory with --dir
-            let output_dir = output_dir.unwrap_or_else(|| PathBuf::from("."));
-            // NOTE: If the user *did* use --dir and the directory already exists, we will merge the
-            // extracted filed inside it
-            utils::create_dir_if_non_existent(&output_dir)?;
+            let output_dir = if let Some(dir) = output_dir {
+                if !utils::clear_path(&dir, question_policy)? {
+                    // User doesn't want to overwrite
+                    return Ok(());
+                }
+                utils::create_dir_if_non_existent(&dir)?;
+                dir
+            } else {
+                PathBuf::from(".")
+            };
 
             for ((input_path, formats), file_name) in files.iter().zip(formats).zip(output_paths) {
                 let output_file_path = output_dir.join(file_name); // Path used by single file format archives
