@@ -126,25 +126,27 @@ fn test_compress_decompress() {
     let dir = tempdir().unwrap();
     let dir = dir.path();
     let i1 = dir.join("i1");
-    dbg!(&i1);
-    let o1 = dir.join("o1.tar");
     std::fs::write(&i1, "ouch").unwrap();
-
-    assert!(ouch_interactive!("c", &i1, &dir.join("o1.tar")).0.wait().unwrap().success());
-
-    let (_ouch, mut sin, sout) = ouch_interactive!("d", &o1, "-d", dir);
-    assert_eq!(sout.recv().unwrap(), format!("Do you want to overwrite '{}'? [Y/n] ", i1.display()));
-    writeln!(&mut sin, "n").unwrap();
-    // This is the actual current behaviour for tar archives, if the user doesn't want to overwrite the file we just skip it
-    assert_eq!(sout.recv().unwrap(), format!("[INFO] Successfully decompressed archive in '{}'.", dir.display()));
-    assert_eq!(sout.recv().unwrap(), "[INFO] Files unpacked: 0",);
-
+    let o1 = dir.join("o1.tar");
     let out = dir.join("out");
-    let (_ouch, _sin, sout) = ouch_interactive!("d", &o1, "-d", &out);
+    std::fs::create_dir(&out).unwrap();
 
-    assert_eq!(sout.recv().unwrap(), format!("[INFO] directory {} created.", out.display()));
-    assert_eq!(sout.recv().unwrap(), format!("[INFO] \"{}\" extracted. (4.00 B)", out.join("i1").display()));
-    assert_eq!(sout.recv().unwrap(), format!("[INFO] Successfully decompressed archive in '{}'.", out.display()));
-    assert_eq!(sout.recv().unwrap(), "[INFO] Files unpacked: 1");
-    assert_eq!(std::fs::read(&dir.join("out/i1")).unwrap(), b"ouch");
+    {
+        assert!(ouch_interactive!("c", &i1, &dir.join("o1.tar")).0.wait().unwrap().success());
+    }
+    {
+        let (_ouch, mut sin, sout) = ouch_interactive!("d", &o1, "-d", &out);
+        assert_eq!(sout.recv().unwrap(), format!("Do you want to overwrite '{}'? [Y/n] ", out.display()));
+        writeln!(&mut sin, "n").unwrap();
+    }
+    {
+        let (_ouch, mut sin, sout) = ouch_interactive!("d", &o1, "-d", &out);
+        assert_eq!(sout.recv().unwrap(), format!("Do you want to overwrite '{}'? [Y/n] ", out.display()));
+        writeln!(&mut sin, "Y").unwrap();
+        assert_eq!(sout.recv().unwrap(), format!("[INFO] directory {} created.", out.display()));
+        assert_eq!(sout.recv().unwrap(), format!("[INFO] \"{}\" extracted. (4.00 B)", out.join("i1").display()));
+        assert_eq!(sout.recv().unwrap(), format!("[INFO] Successfully decompressed archive in '{}'.", out.display()));
+        assert_eq!(sout.recv().unwrap(), "[INFO] Files unpacked: 1");
+        assert_eq!(std::fs::read(&dir.join("out/i1")).unwrap(), b"ouch");
+    }
 }
