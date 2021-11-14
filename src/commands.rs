@@ -210,11 +210,22 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                 return Err(error.into());
             }
 
-            // From Option<PathBuf> to Option<&Path>
-            let output_dir = output_dir.as_ref().map(|path| path.as_ref());
+            // The directory that will contain the output files
+            // We default to the current directory if the user didn't specify an output directory with --dir
+            let output_dir = if let Some(dir) = output_dir {
+                if !utils::clear_path(&dir, question_policy)? {
+                    // User doesn't want to overwrite
+                    return Ok(());
+                }
+                utils::create_dir_if_non_existent(&dir)?;
+                dir
+            } else {
+                PathBuf::from(".")
+            };
 
             for ((input_path, formats), file_name) in files.iter().zip(formats).zip(output_paths) {
-                decompress_file(input_path, formats, output_dir, file_name, question_policy)?;
+                let output_file_path = output_dir.join(file_name); // Path used by single file format archives
+                decompress_file(input_path, formats, &output_dir, output_file_path, question_policy)?;
             }
         }
         Subcommand::List { archives: files, tree } => {
@@ -325,24 +336,16 @@ fn compress_files(files: Vec<PathBuf>, formats: Vec<Extension>, output_file: fs:
 //
 // File at input_file_path is opened for reading, example: "archive.tar.gz"
 // formats contains each format necessary for decompression, example: [Gz, Tar] (in decompression order)
-// output_dir it's where the file will be decompressed to
-// file_name is only used when extracting single file formats, no archive formats like .tar or .zip
+// output_dir it's where the file will be decompressed to, this function assumes that the directory exists
+// output_file_path is only used when extracting single file formats, not archive formats like .tar or .zip
 fn decompress_file(
     input_file_path: &Path,
     formats: Vec<Extension>,
-    output_dir: Option<&Path>,
-    file_name: &Path,
+    output_dir: &Path,
+    output_file_path: PathBuf,
     question_policy: QuestionPolicy,
 ) -> crate::Result<()> {
     let reader = fs::File::open(&input_file_path)?;
-
-    // Output path is used by single file formats
-    let output_path =
-        if let Some(output_dir) = output_dir { output_dir.join(file_name) } else { file_name.to_path_buf() };
-
-    // Output folder is used by archive file formats (zip and tar)
-    let output_dir = output_dir.unwrap_or_else(|| Path::new("."));
-
     // Zip archives are special, because they require io::Seek, so it requires it's logic separated
     // from decoder chaining.
     //
@@ -351,11 +354,6 @@ fn decompress_file(
     //
     // Any other Zip decompression done can take up the whole RAM and freeze ouch.
     if formats.len() == 1 && *formats[0].compression_formats == [Zip] {
-        if !utils::clear_path(output_dir, question_policy)? {
-            // User doesn't want to overwrite
-            return Ok(());
-        }
-        utils::create_dir_if_non_existent(output_dir)?;
         let zip_archive = zip::ZipArchive::new(reader)?;
         let _files = crate::archive::zip::unpack_archive(zip_archive, output_dir, question_policy)?;
         info!("Successfully decompressed archive in {}.", nice_directory_display(output_dir));
@@ -383,19 +381,12 @@ fn decompress_file(
         reader = chain_reader_decoder(format, reader)?;
     }
 
-    if !utils::clear_path(&output_path, question_policy)? {
-        // User doesn't want to overwrite
-        return Ok(());
-    }
-    utils::create_dir_if_non_existent(output_dir)?;
-
     let files_unpacked;
-
     match formats[0].compression_formats[0] {
         Gzip | Bzip | Lz4 | Lzma | Zstd => {
             reader = chain_reader_decoder(&formats[0].compression_formats[0], reader)?;
 
-            let writer = utils::create_or_ask_overwrite(&output_path, question_policy)?;
+            let writer = utils::create_or_ask_overwrite(&output_file_path, question_policy)?;
             if writer.is_none() {
                 // Means that the user doesn't want to overwrite
                 return Ok(());
@@ -403,7 +394,7 @@ fn decompress_file(
             let mut writer = writer.unwrap();
 
             io::copy(&mut reader, &mut writer)?;
-            files_unpacked = vec![output_path];
+            files_unpacked = vec![output_file_path];
         }
         Tar => {
             files_unpacked = crate::archive::tar::unpack_archive(reader, output_dir, question_policy)?;
