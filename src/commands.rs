@@ -316,6 +316,14 @@ enum OutputKind {
     UserSelected(PathBuf),
     AutoSelected(PathBuf),
 }
+impl OutputKind {
+    fn as_path(&self) -> &Path {
+        match self {
+            Self::UserSelected(path) => path,
+            Self::AutoSelected(path) => path,
+        }
+    }
+}
 
 // Decompress a file
 //
@@ -464,11 +472,9 @@ fn extract_archive_smart(
     output_path: &OutputKind,
 ) -> Result<ControlFlow<(), (PathBuf, Vec<PathBuf>)>, crate::Error> {
     // In both cases we start by creating a temporary directory to hold the elements
-    #[cfg(not(test))]
-    let temp_output_dir_guard = tempfile::tempdir_in(".")?; //XXX: Somehow proptest is taking this path ??
-    #[cfg(test)]
-    let temp_output_dir_guard = tempfile::tempdir()?;
+    let output_path_parent = output_path.as_path().parent().unwrap_or_else(|| Path::new("."));
 
+    let temp_output_dir_guard = tempfile::tempdir_in(output_path_parent)?;
     let temp_output_path = temp_output_dir_guard.path();
     utils::create_dir_if_non_existent(temp_output_path)?;
     info!("Created temporary directory {} to hold decompressed elements.", nice_directory_display(temp_output_path));
@@ -488,7 +494,7 @@ fn extract_archive_smart(
         let new_path = if let OutputKind::UserSelected(path) = output_path {
             path.join(entry_name)
         } else {
-            Path::new(".").join(entry_name)
+            output_path_parent.join(entry_name)
         };
 
         if !utils::clear_path(&new_path, question_policy)? {
@@ -502,10 +508,7 @@ fn extract_archive_smart(
         Ok(ControlFlow::Continue((new_path, elements)))
     } else {
         // second case: many element in the archive, we extract them to a directory
-        let output_path = match output_path {
-            OutputKind::UserSelected(path) => path,
-            OutputKind::AutoSelected(path) => path,
-        };
+        let output_path = output_path.as_path();
         if !utils::clear_path(output_path, question_policy)? {
             // User doesn't want to overwrite
             return Ok(ControlFlow::Break(()));
