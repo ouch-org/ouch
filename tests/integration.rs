@@ -126,6 +126,7 @@ fn test_compress_decompress() {
     let dir = tempdir().unwrap();
     let dir = dir.path();
     let i1 = dir.join("i1");
+    dbg!(&i1);
     let o1 = dir.join("o1.tar");
     std::fs::write(&i1, "ouch").unwrap();
 
