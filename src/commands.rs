@@ -355,7 +355,16 @@ fn decompress_file(
     // Any other Zip decompression done can take up the whole RAM and freeze ouch.
     if formats.len() == 1 && *formats[0].compression_formats == [Zip] {
         let zip_archive = zip::ZipArchive::new(reader)?;
-        let _files = crate::archive::zip::unpack_archive(zip_archive, output_dir, question_policy)?;
+        let _files = if let ControlFlow::Continue(files) = smart_unpack(
+            Box::new(move |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, question_policy)),
+            output_dir,
+            &output_file_path,
+            question_policy,
+        )? {
+            files
+        } else {
+            return Ok(());
+        };
         info!("Successfully decompressed archive in {}.", nice_directory_display(output_dir));
         return Ok(());
     }
@@ -397,7 +406,16 @@ fn decompress_file(
             files_unpacked = vec![output_file_path];
         }
         Tar => {
-            files_unpacked = crate::archive::tar::unpack_archive(reader, output_dir, question_policy)?;
+            files_unpacked = if let ControlFlow::Continue(files) = smart_unpack(
+                Box::new(move |output_dir| crate::archive::tar::unpack_archive(reader, output_dir, question_policy)),
+                output_dir,
+                &output_file_path,
+                question_policy,
+            )? {
+                files
+            } else {
+                return Ok(());
+            };
         }
         Zip => {
             eprintln!("Compressing first into .zip.");
@@ -411,7 +429,18 @@ fn decompress_file(
             io::copy(&mut reader, &mut vec)?;
             let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
 
-            files_unpacked = crate::archive::zip::unpack_archive(zip_archive, output_dir, question_policy)?;
+            files_unpacked = if let ControlFlow::Continue(files) = smart_unpack(
+                Box::new(move |output_dir| {
+                    crate::archive::zip::unpack_archive(zip_archive, output_dir, question_policy)
+                }),
+                output_dir,
+                &output_file_path,
+                question_policy,
+            )? {
+                files
+            } else {
+                return Ok(());
+            };
         }
     }
 
@@ -485,6 +514,56 @@ fn list_archive_contents(
     };
     list::list_files(archive_path, files, list_options);
     Ok(())
+}
+
+/// Unpacks an archive with some heuristics
+/// - If the archive contains only one file, it will be extracted to the `output_dir`
+/// - If the archive contains multiple files, it will be extracted to a subdirectory of the output_dir named after the archive (given by `output_file_path`)
+fn smart_unpack(
+    unpack_fn: Box<dyn FnOnce(&Path) -> crate::Result<Vec<PathBuf>>>,
+    output_dir: &Path,
+    output_file_path: &Path,
+    question_policy: QuestionPolicy,
+) -> crate::Result<ControlFlow<(), Vec<PathBuf>>> {
+    let temp_dir = tempfile::tempdir_in(output_dir)?;
+    let temp_dir_path = temp_dir.path();
+    info!("Created temporary directory {} to hold decompressed elements.", nice_directory_display(temp_dir_path));
+
+    // unpack the files
+    let files = unpack_fn(temp_dir_path)?;
+
+    let root_contains_only_one_element = fs::read_dir(&temp_dir_path)?.count() == 1;
+    if root_contains_only_one_element {
+        // Only one file in the root directory, so we can just move it to the output directory
+        let file = fs::read_dir(&temp_dir_path)?.next().unwrap().unwrap();
+        let file_path = file.path();
+        let file_name = file_path.file_name().unwrap().to_str().unwrap();
+        let correct_path = output_dir.join(file_name);
+        // One case to handle tough is we need to check if a file with the same name already exists
+        if !utils::clear_path(&correct_path, question_policy)? {
+            return Ok(ControlFlow::Break(()));
+        }
+        fs::rename(&file_path, &correct_path)?;
+        info!(
+            "Successfully moved {} to {}.",
+            nice_directory_display(&file_path),
+            nice_directory_display(&correct_path)
+        );
+    } else {
+        // Multiple files in the root directory, so:
+        // Rename  the temporary directory to the archive name, which is output_file_path
+        // One case to handle tough is we need to check if a file with the same name already exists
+        if !utils::clear_path(output_file_path, question_policy)? {
+            return Ok(ControlFlow::Break(()));
+        }
+        fs::rename(&temp_dir_path, &output_file_path)?;
+        info!(
+            "Successfully moved {} to {}.",
+            nice_directory_display(&temp_dir_path),
+            nice_directory_display(&output_file_path)
+        );
+    }
+    Ok(ControlFlow::Continue(files))
 }
 
 fn check_mime_type(
