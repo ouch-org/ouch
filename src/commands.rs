@@ -526,6 +526,7 @@ fn smart_unpack(
     output_file_path: &Path,
     question_policy: QuestionPolicy,
 ) -> crate::Result<ControlFlow<(), Vec<PathBuf>>> {
+    assert!(output_dir.exists());
     let temp_dir = tempfile::tempdir_in(output_dir)?;
     let temp_dir_path = temp_dir.path();
     info!("Created temporary directory {} to hold decompressed elements.", nice_directory_display(temp_dir_path));
