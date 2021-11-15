@@ -136,16 +136,17 @@ fn test_compress_decompress() {
     }
     {
         let (_ouch, mut sin, sout) = ouch_interactive!("d", &o1, "-d", &out);
-        assert_eq!(sout.recv().unwrap(), format!("Do you want to overwrite '{}'? [Y/n] ", out.display()));
+        assert!(sout.recv().unwrap().starts_with("Do you want to overwrite"));
         writeln!(&mut sin, "n").unwrap();
+        assert!(!out.join("i1").exists());
     }
     {
         let (_ouch, mut sin, sout) = ouch_interactive!("d", &o1, "-d", &out);
-        assert_eq!(sout.recv().unwrap(), format!("Do you want to overwrite '{}'? [Y/n] ", out.display()));
+        assert!(sout.recv().unwrap().starts_with("Do you want to overwrite"));
         writeln!(&mut sin, "Y").unwrap();
-        assert_eq!(sout.recv().unwrap(), format!("[INFO] directory {} created.", out.display()));
-        assert_eq!(sout.recv().unwrap(), format!("[INFO] \"{}\" extracted. (4.00 B)", out.join("i1").display()));
-        assert_eq!(sout.recv().unwrap(), format!("[INFO] Successfully decompressed archive in '{}'.", out.display()));
+        assert!(sout.recv().unwrap().ends_with("created."));
+        assert!(sout.recv().unwrap().ends_with("extracted. (4.00 B)"));
+        assert!(sout.recv().unwrap().starts_with("[INFO] Successfully decompressed archive"));
         assert_eq!(sout.recv().unwrap(), "[INFO] Files unpacked: 1");
         assert_eq!(std::fs::read(&dir.join("out/i1")).unwrap(), b"ouch");
     }
