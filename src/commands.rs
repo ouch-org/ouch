@@ -345,6 +345,7 @@ fn decompress_file(
     output_file_path: PathBuf,
     question_policy: QuestionPolicy,
 ) -> crate::Result<()> {
+    assert!(output_dir.exists());
     let reader = fs::File::open(&input_file_path)?;
     // Zip archives are special, because they require io::Seek, so it requires it's logic separated
     // from decoder chaining.
