@@ -356,7 +356,7 @@ fn decompress_file(
     // Any other Zip decompression done can take up the whole RAM and freeze ouch.
     if formats.len() == 1 && *formats[0].compression_formats == [Zip] {
         let zip_archive = zip::ZipArchive::new(reader)?;
-        let _files = if let ControlFlow::Continue(files) = smart_unpack(
+        let files = if let ControlFlow::Continue(files) = smart_unpack(
             Box::new(move |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, question_policy)),
             output_dir,
             &output_file_path,
@@ -367,6 +367,7 @@ fn decompress_file(
             return Ok(());
         };
         info!("Successfully decompressed archive in {}.", nice_directory_display(output_dir));
+        info!("Files unpacked: {}", files.len());
         return Ok(());
     }
 
