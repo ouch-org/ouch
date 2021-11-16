@@ -538,9 +538,10 @@ fn smart_unpack(
     let root_contains_only_one_element = fs::read_dir(&temp_dir_path)?.count() == 1;
     if root_contains_only_one_element {
         // Only one file in the root directory, so we can just move it to the output directory
-        let file = fs::read_dir(&temp_dir_path)?.next().unwrap().unwrap();
+        let file = fs::read_dir(&temp_dir_path)?.next().expect("item exists")?;
         let file_path = file.path();
-        let file_name = file_path.file_name().unwrap().to_str().unwrap();
+        let file_name =
+            file_path.file_name().expect("Should be safe because paths in archives should not end with '..'");
         let correct_path = output_dir.join(file_name);
         // One case to handle tough is we need to check if a file with the same name already exists
         if !utils::clear_path(&correct_path, question_policy)? {
