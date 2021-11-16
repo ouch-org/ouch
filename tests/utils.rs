@@ -3,6 +3,7 @@ use std::{io::Write, path::PathBuf};
 use fs_err as fs;
 use rand::RngCore;
 
+/// Run ouch with cargo run
 #[macro_export]
 macro_rules! ouch {
     ($($e:expr),*) => {
@@ -11,6 +12,40 @@ macro_rules! ouch {
             $(.arg($e))*
             .unwrap();
     }
+}
+
+/// Run ouch with cargo run and returns (child process, stdin handle and stdout channel receiver)
+#[macro_export]
+macro_rules! ouch_interactive {
+    ($($e:expr),*) => {
+        {
+         let mut p = ::std::process::Command::new("cargo")
+            .stdin(::std::process::Stdio::piped())
+            .stdout(::std::process::Stdio::piped())
+            .arg("run")
+            .arg("--")
+            $(.arg($e))*
+            .spawn()
+            .unwrap();
+         let sin = p.stdin.take().unwrap();
+         let mut sout = p.stdout.take().unwrap();
+
+         let (tx, rx) = ::std::sync::mpsc::channel();
+         ::std::thread::spawn(move ||{
+            // This thread/loop is used so we can make the output more deterministic
+            let mut s = [0; 1024];
+            loop {
+                let n = ::std::io::Read::read(&mut sout, &mut s).unwrap();
+                let s = ::std::string::String::from_utf8(s[..n].to_vec()).unwrap();
+                for l in s.lines() {
+                    tx.send(l.to_string()).unwrap();
+                }
+            }
+         });
+
+         (p, sin, rx)
+        }
+    };
 }
 
 // write random content to a file

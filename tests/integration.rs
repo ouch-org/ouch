@@ -1,7 +1,7 @@
 #[macro_use]
 mod utils;
 
-use std::{iter::once, path::PathBuf};
+use std::{io::Write, iter::once, path::PathBuf};
 
 use fs_err as fs;
 use parse_display::Display;
@@ -119,4 +119,35 @@ fn multiple_files(
     ouch!("c", before_dir, archive);
     ouch!("d", archive, "-d", after);
     assert_same_directory(before, after, !matches!(ext, DirectoryExtension::Zip));
+}
+
+#[test]
+fn test_compress_decompress() {
+    let dir = tempdir().unwrap();
+    let dir = dir.path();
+    let i1 = dir.join("i1");
+    std::fs::write(&i1, "ouch").unwrap();
+    let o1 = dir.join("o1.tar");
+    let out = dir.join("out");
+    std::fs::create_dir(&out).unwrap();
+
+    {
+        assert!(ouch_interactive!("c", &i1, &dir.join("o1.tar")).0.wait().unwrap().success());
+    }
+    {
+        let (_ouch, mut sin, sout) = ouch_interactive!("d", &o1, "-d", &out);
+        assert!(sout.recv().unwrap().starts_with("Do you want to overwrite"));
+        writeln!(&mut sin, "n").unwrap();
+        assert!(!out.join("i1").exists());
+    }
+    {
+        let (_ouch, mut sin, sout) = ouch_interactive!("d", &o1, "-d", &out);
+        assert!(sout.recv().unwrap().starts_with("Do you want to overwrite"));
+        writeln!(&mut sin, "Y").unwrap();
+        assert!(sout.recv().unwrap().ends_with("created."));
+        assert!(sout.recv().unwrap().ends_with("extracted. (4.00 B)"));
+        assert!(sout.recv().unwrap().starts_with("[INFO] Successfully decompressed archive"));
+        assert_eq!(sout.recv().unwrap(), "[INFO] Files unpacked: 1");
+        assert_eq!(std::fs::read(&dir.join("out/i1")).unwrap(), b"ouch");
+    }
 }
