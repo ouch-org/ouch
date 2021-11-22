@@ -24,7 +24,7 @@
 # Features
 
 1. Easy to use.
-2. Accessibility (A11Y) mode via `--accessibility` or env var `ACCESSIBILITY`
+2. Accessibility mode (A11Y) via `--accessibility` or `ACCESSIBILITY` env var (see [wiki page](https://github.com/ouch-org/ouch/wiki/Accessibility)).
 3. Automatic formats detection.
 4. Same usage syntax for all formats.
 5. Uses encoding and decoding streams to improve performance.

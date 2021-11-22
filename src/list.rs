@@ -23,7 +23,7 @@ pub struct FileInArchive {
 
 /// Actually print the files
 pub fn list_files(archive: &Path, files: Vec<FileInArchive>, list_options: ListOptions) {
-    println!("Archiv: {}", archive.display());
+    println!("Archive: {}", archive.display());
     if list_options.tree {
         let tree: Tree = files.into_iter().collect();
         tree.print();
