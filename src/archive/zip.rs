@@ -48,7 +48,11 @@ where
 
         match (&*file.name()).ends_with('/') {
             _is_dir @ true => {
-                info!("File {} extracted to \"{}\"", idx, file_path.display());
+	            // This is printed for every file in the archive and has little
+	            // importance for most users, but would generate lots of
+	            // spoken text for users using screen readers, braille displays
+	            // and so on
+                info!(inaccessible, "File {} extracted to \"{}\"", idx, file_path.display());
                 fs::create_dir_all(&file_path)?;
             }
             _is_file @ false => {
@@ -59,7 +63,8 @@ where
                 }
                 let file_path = strip_cur_dir(file_path.as_path());
 
-                info!("{:?} extracted. ({})", file_path.display(), Bytes::new(file.size()));
+				// same reason is in _is_dir: long, often not needed text
+                info!(inaccessible, "{:?} extracted. ({})", file_path.display(), Bytes::new(file.size()));
 
                 let mut output_file = fs::File::create(&file_path)?;
                 io::copy(&mut file, &mut output_file)?;
@@ -125,7 +130,11 @@ where
             let entry = entry?;
             let path = entry.path();
 
-            info!("Compressing '{}'.", to_utf(path));
+            // This is printed for every file in `input_filenames` and has
+            // little importance for most users, but would generate lots of
+            // spoken text for users using screen readers, braille displays
+            // and so on
+            info!(inaccessible, "Compressing '{}'.", to_utf(path));
 
             if path.is_dir() {
                 if dir_is_empty(path) {
@@ -149,7 +158,8 @@ where
 fn check_for_comments(file: &ZipFile) {
     let comment = file.comment();
     if !comment.is_empty() {
-        info!("Found comment in {}: {}", file.name(), comment);
+	    // TODO: is this important?
+        info!(inaccessible, "Found comment in {}: {}", file.name(), comment);
     }
 }
 
