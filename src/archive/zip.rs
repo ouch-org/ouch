@@ -158,8 +158,17 @@ where
 fn check_for_comments(file: &ZipFile) {
     let comment = file.comment();
     if !comment.is_empty() {
-	    // TODO: is this important?
-        info!(inaccessible, "Found comment in {}: {}", file.name(), comment);
+	    // Zip file comments seem to be pretty rare, but if they are used,
+	    // they may contain important information, so better show them
+	    //
+	    // "The .ZIP file format allows for a comment containing up to 65,535 (216−1) bytes
+	    // of data to occur at the end of the file after the central directory."
+	    //
+	    // If there happen to be cases of very long and unnecessary comments in
+	    // the future, maybe asking the user if he wants to display the comment
+	    // (informing him of its size) would be sensible for both normal and
+	    // accessibility mode..
+        info!(accessible, "Found comment in {}: {}", file.name(), comment);
     }
 }
 
