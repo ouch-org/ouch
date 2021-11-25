@@ -21,6 +21,7 @@ use crate::{
     },
     info,
     list::{self, ListOptions},
+    progress::Progress,
     utils::{
         self, concatenate_os_str_list, dir_is_empty, nice_directory_display, to_utf, try_infer_extension,
         user_wants_to_continue_decompressing,
@@ -280,6 +281,18 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
 // formats contains each format necessary for compression, example: [Tar, Gz] (in compression order)
 // output_file is the resulting compressed file name, example: "compressed.tar.gz"
 fn compress_files(files: Vec<PathBuf>, formats: Vec<Extension>, output_file: fs::File) -> crate::Result<()> {
+    // The next lines are for displaying the progress bar
+    // If the input files contain a directory, then the total size will be underestimated
+    let (total_input_size, precise) = files
+        .iter()
+        .map(|f| (f.metadata().expect("file exists").len(), f.is_file()))
+        .fold((0, true), |(total_size, and_precise), (size, precise)| (total_size + size, and_precise & precise));
+    //NOTE: canonicalize is here to avoid a weird bug:
+    //      > If output_file_path is a nested path and it exists and the user overwrite it
+    //      >> output_file_path.exists() will always return false (somehow)
+    //      - canonicalize seems to fix this
+    let output_file_path = output_file.path().canonicalize()?;
+
     let file_writer = BufWriter::with_capacity(BUFFER_CAPACITY, output_file);
 
     let mut writer: Box<dyn Write> = Box::new(file_writer);
@@ -309,12 +322,28 @@ fn compress_files(files: Vec<PathBuf>, formats: Vec<Extension>, output_file: fs:
 
     match formats[0].compression_formats[0] {
         Gzip | Bzip | Lz4 | Lzma | Zstd => {
+            let _progress = Progress::new_accessible_aware(
+                total_input_size,
+                precise,
+                Some(Box::new(move || output_file_path.metadata().expect("file exists").len())),
+            );
+
             writer = chain_writer_encoder(&formats[0].compression_formats[0], writer)?;
             let mut reader = fs::File::open(&files[0]).unwrap();
             io::copy(&mut reader, &mut writer)?;
         }
         Tar => {
-            let mut writer = archive::tar::build_archive_from_paths(&files, writer)?;
+            let mut progress = Progress::new_accessible_aware(
+                total_input_size,
+                precise,
+                Some(Box::new(move || output_file_path.metadata().expect("file exists").len())),
+            );
+
+            archive::tar::build_archive_from_paths(
+                &files,
+                &mut writer,
+                progress.as_mut().map(Progress::display_handle).unwrap_or(&mut io::stdout()),
+            )?;
             writer.flush()?;
         }
         Zip => {
@@ -328,7 +357,27 @@ fn compress_files(files: Vec<PathBuf>, formats: Vec<Extension>, output_file: fs:
             eprintln!("\tThe design of .zip makes it impossible to compress via stream.");
 
             let mut vec_buffer = io::Cursor::new(vec![]);
-            archive::zip::build_archive_from_paths(&files, &mut vec_buffer)?;
+
+            let current_position_fn = {
+                let vec_buffer_ptr = {
+                    struct FlyPtr(*const io::Cursor<Vec<u8>>);
+                    unsafe impl Send for FlyPtr {}
+                    FlyPtr(&vec_buffer as *const _)
+                };
+                Box::new(move || {
+                    let vec_buffer_ptr = &vec_buffer_ptr;
+                    // Safety: ptr is valid and vec_buffer is still alive
+                    unsafe { &*vec_buffer_ptr.0 }.position()
+                })
+            };
+
+            let mut progress = Progress::new_accessible_aware(total_input_size, precise, Some(current_position_fn));
+
+            archive::zip::build_archive_from_paths(
+                &files,
+                &mut vec_buffer,
+                progress.as_mut().map(Progress::display_handle).unwrap_or(&mut io::stdout()),
+            )?;
             let vec_buffer = vec_buffer.into_inner();
             io::copy(&mut vec_buffer.as_slice(), &mut writer)?;
         }
@@ -351,6 +400,7 @@ fn decompress_file(
     question_policy: QuestionPolicy,
 ) -> crate::Result<()> {
     assert!(output_dir.exists());
+    let total_input_size = input_file_path.metadata().expect("file exists").len();
     let reader = fs::File::open(&input_file_path)?;
     // Zip archives are special, because they require io::Seek, so it requires it's logic separated
     // from decoder chaining.
@@ -362,7 +412,14 @@ fn decompress_file(
     if formats.len() == 1 && *formats[0].compression_formats == [Zip] {
         let zip_archive = zip::ZipArchive::new(reader)?;
         let files = if let ControlFlow::Continue(files) = smart_unpack(
-            Box::new(move |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, question_policy)),
+            Box::new(move |output_dir| {
+                let mut progress = Progress::new_accessible_aware(total_input_size, true, None);
+                crate::archive::zip::unpack_archive(
+                    zip_archive,
+                    output_dir,
+                    progress.as_mut().map(Progress::display_handle).unwrap_or(&mut io::stdout()),
+                )
+            }),
             output_dir,
             &output_file_path,
             question_policy,
@@ -419,12 +476,25 @@ fn decompress_file(
             }
             let mut writer = writer.unwrap();
 
+            let current_position_fn = Box::new({
+                let output_file_path = output_file_path.clone();
+                move || output_file_path.clone().metadata().expect("file exists").len()
+            });
+            let _progress = Progress::new_accessible_aware(total_input_size, true, Some(current_position_fn));
+
             io::copy(&mut reader, &mut writer)?;
             files_unpacked = vec![output_file_path];
         }
         Tar => {
             files_unpacked = if let ControlFlow::Continue(files) = smart_unpack(
-                Box::new(move |output_dir| crate::archive::tar::unpack_archive(reader, output_dir, question_policy)),
+                Box::new(move |output_dir| {
+                    let mut progress = Progress::new_accessible_aware(total_input_size, true, None);
+                    crate::archive::tar::unpack_archive(
+                        reader,
+                        output_dir,
+                        progress.as_mut().map(Progress::display_handle).unwrap_or(&mut io::stdout()),
+                    )
+                }),
                 output_dir,
                 &output_file_path,
                 question_policy,
@@ -448,7 +518,12 @@ fn decompress_file(
 
             files_unpacked = if let ControlFlow::Continue(files) = smart_unpack(
                 Box::new(move |output_dir| {
-                    crate::archive::zip::unpack_archive(zip_archive, output_dir, question_policy)
+                    let mut progress = Progress::new_accessible_aware(total_input_size, true, None);
+                    crate::archive::zip::unpack_archive(
+                        zip_archive,
+                        output_dir,
+                        progress.as_mut().map(Progress::display_handle).unwrap_or(&mut io::stdout()),
+                    )
                 }),
                 output_dir,
                 &output_file_path,

@@ -13,7 +13,8 @@ use once_cell::sync::OnceCell;
 use crate::{Opts, QuestionPolicy, Subcommand};
 
 /// Whether to enable accessible output (removes info output and reduces other
-/// output, removes visual markers like '[' and ']')
+/// output, removes visual markers like '[' and ']').
+/// Removes th progress bar as well
 pub static ACCESSIBLE: OnceCell<bool> = OnceCell::new();
 
 impl Opts {

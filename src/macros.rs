@@ -14,32 +14,45 @@
 ///   while it would generate long and hard to navigate text for blind people
 ///   who have to have each line of output read to them aloud, whithout to
 ///   ability to skip some lines deemed not important like a seeing person would.
+///
+/// By default `info` outputs to Stdout, if you want to specify the output you can use
+/// `@display_handle` modifier
+
 #[macro_export]
 macro_rules! info {
     // Accessible (short/important) info message.
     // Show info message even in ACCESSIBLE mode
     (accessible, $($arg:tt)*) => {
+        info!(@::std::io::stdout(), accessible, $($arg)*);
+    };
+    (@$display_handle: expr, accessible, $($arg:tt)*) => {
+        let display_handle = &mut $display_handle;
         // if in ACCESSIBLE mode, suppress the "[INFO]" and just print the message
-        if (!$crate::cli::ACCESSIBLE.get().unwrap()) {
-            $crate::macros::_info_helper();
+        if !(*$crate::cli::ACCESSIBLE.get().unwrap()) {
+            $crate::macros::_info_helper(display_handle);
         }
-        println!($($arg)*);
+        writeln!(display_handle, $($arg)*).unwrap();
     };
     // Inccessible (long/no important) info message.
     // Print info message if ACCESSIBLE is not turned on
     (inaccessible, $($arg:tt)*) => {
-        if (!$crate::cli::ACCESSIBLE.get().unwrap()) {
-            $crate::macros::_info_helper();
-            println!($($arg)*);
+        info!(@::std::io::stdout(), inaccessible, $($arg)*);
+    };
+    (@$display_handle: expr, inaccessible, $($arg:tt)*) => {
+        if (!$crate::cli::ACCESSIBLE.get().unwrap())
+        {
+            let display_handle = &mut $display_handle;
+            $crate::macros::_info_helper(display_handle);
+            writeln!(display_handle, $($arg)*).unwrap();
         }
     };
 }
 
 /// Helper to display "\[INFO\]", colored yellow
-pub fn _info_helper() {
+pub fn _info_helper(handle: &mut impl std::io::Write) {
     use crate::utils::colors::{RESET, YELLOW};
 
-    print!("{}[INFO]{} ", *YELLOW, *RESET);
+    write!(handle, "{}[INFO]{} ", *YELLOW, *RESET).unwrap();
 }
 
 /// Macro that prints \[WARNING\] messages, wraps [`println`].

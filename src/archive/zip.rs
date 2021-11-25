@@ -15,21 +15,23 @@ use crate::{
     info,
     list::FileInArchive,
     utils::{
-        cd_into_same_dir_as, clear_path, concatenate_os_str_list, dir_is_empty, get_invalid_utf8_paths, strip_cur_dir,
-        to_utf, Bytes,
+        cd_into_same_dir_as, concatenate_os_str_list, dir_is_empty, get_invalid_utf8_paths, strip_cur_dir, to_utf,
+        Bytes,
     },
-    QuestionPolicy,
 };
 
-/// Unpacks the archive given by `archive` into the folder given by `into`.
-pub fn unpack_archive<R>(
+/// Unpacks the archive given by `archive` into the folder given by `output_folder`.
+/// Assumes that output_folder is empty
+pub fn unpack_archive<R, D>(
     mut archive: ZipArchive<R>,
-    into: &Path,
-    question_policy: QuestionPolicy,
+    output_folder: &Path,
+    mut display_handle: D,
 ) -> crate::Result<Vec<PathBuf>>
 where
     R: Read + Seek,
+    D: Write,
 {
+    assert!(output_folder.read_dir().expect("dir exists").count() == 0);
     let mut unpacked_files = vec![];
     for idx in 0..archive.len() {
         let mut file = archive.by_index(idx)?;
@@ -38,11 +40,7 @@ where
             None => continue,
         };
 
-        let file_path = into.join(file_path);
-        if !clear_path(&file_path, question_policy)? {
-            // User doesn't want to overwrite
-            continue;
-        }
+        let file_path = output_folder.join(file_path);
 
         check_for_comments(&file);
 
@@ -52,7 +50,7 @@ where
                 // importance for most users, but would generate lots of
                 // spoken text for users using screen readers, braille displays
                 // and so on
-                info!(inaccessible, "File {} extracted to \"{}\"", idx, file_path.display());
+                info!(@display_handle, inaccessible, "File {} extracted to \"{}\"", idx, file_path.display());
                 fs::create_dir_all(&file_path)?;
             }
             _is_file @ false => {
@@ -64,7 +62,7 @@ where
                 let file_path = strip_cur_dir(file_path.as_path());
 
                 // same reason is in _is_dir: long, often not needed text
-                info!(inaccessible, "{:?} extracted. ({})", file_path.display(), Bytes::new(file.size()));
+                info!(@display_handle, inaccessible, "{:?} extracted. ({})", file_path.display(), Bytes::new(file.size()));
 
                 let mut output_file = fs::File::create(&file_path)?;
                 io::copy(&mut file, &mut output_file)?;
@@ -102,9 +100,10 @@ where
 }
 
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.
-pub fn build_archive_from_paths<W>(input_filenames: &[PathBuf], writer: W) -> crate::Result<W>
+pub fn build_archive_from_paths<W, D>(input_filenames: &[PathBuf], writer: W, mut display_handle: D) -> crate::Result<W>
 where
     W: Write + Seek,
+    D: Write,
 {
     let mut writer = zip::ZipWriter::new(writer);
     let options = zip::write::FileOptions::default();
@@ -134,7 +133,7 @@ where
             // little importance for most users, but would generate lots of
             // spoken text for users using screen readers, braille displays
             // and so on
-            info!(inaccessible, "Compressing '{}'.", to_utf(path));
+            info!(@display_handle, inaccessible, "Compressing '{}'.", to_utf(path));
 
             if path.is_dir() {
                 if dir_is_empty(path) {

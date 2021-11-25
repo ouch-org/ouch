@@ -3,7 +3,7 @@
 use std::{
     env,
     fs::ReadDir,
-    io::Read,
+    io::{Read, Write},
     path::{Path, PathBuf},
 };
 
