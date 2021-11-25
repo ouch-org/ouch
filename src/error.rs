@@ -68,16 +68,16 @@ impl Display for FinalError {
             writeln!(f)?;
             // to reduce redundant output for text-to-speach systems, braille
             // displays and so on, only print "hints" once in ACCESSIBLE mode
-	        if *crate::cli::ACCESSIBLE.get().unwrap_or(&false) {
+            if *crate::cli::ACCESSIBLE.get().unwrap_or(&false) {
                 write!(f, "\n{}hints:{}", *GREEN, *RESET)?;
-	            for hint in &self.hints {
-	                write!(f, "\n{}", hint)?;
-	            }
-	        } else {
-	            for hint in &self.hints {
-	                write!(f, "\n{}hint:{} {}", *GREEN, *RESET, hint)?;
-	            }
-	        }
+                for hint in &self.hints {
+                    write!(f, "\n{}", hint)?;
+                }
+            } else {
+                for hint in &self.hints {
+                    write!(f, "\n{}hint:{} {}", *GREEN, *RESET, hint)?;
+                }
+            }
         }
 
         Ok(())

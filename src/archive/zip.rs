@@ -48,10 +48,10 @@ where
 
         match (&*file.name()).ends_with('/') {
             _is_dir @ true => {
-	            // This is printed for every file in the archive and has little
-	            // importance for most users, but would generate lots of
-	            // spoken text for users using screen readers, braille displays
-	            // and so on
+                // This is printed for every file in the archive and has little
+                // importance for most users, but would generate lots of
+                // spoken text for users using screen readers, braille displays
+                // and so on
                 info!(inaccessible, "File {} extracted to \"{}\"", idx, file_path.display());
                 fs::create_dir_all(&file_path)?;
             }
@@ -63,7 +63,7 @@ where
                 }
                 let file_path = strip_cur_dir(file_path.as_path());
 
-				// same reason is in _is_dir: long, often not needed text
+                // same reason is in _is_dir: long, often not needed text
                 info!(inaccessible, "{:?} extracted. ({})", file_path.display(), Bytes::new(file.size()));
 
                 let mut output_file = fs::File::create(&file_path)?;
@@ -158,16 +158,16 @@ where
 fn check_for_comments(file: &ZipFile) {
     let comment = file.comment();
     if !comment.is_empty() {
-	    // Zip file comments seem to be pretty rare, but if they are used,
-	    // they may contain important information, so better show them
-	    //
-	    // "The .ZIP file format allows for a comment containing up to 65,535 (216−1) bytes
-	    // of data to occur at the end of the file after the central directory."
-	    //
-	    // If there happen to be cases of very long and unnecessary comments in
-	    // the future, maybe asking the user if he wants to display the comment
-	    // (informing him of its size) would be sensible for both normal and
-	    // accessibility mode..
+        // Zip file comments seem to be pretty rare, but if they are used,
+        // they may contain important information, so better show them
+        //
+        // "The .ZIP file format allows for a comment containing up to 65,535 (216−1) bytes
+        // of data to occur at the end of the file after the central directory."
+        //
+        // If there happen to be cases of very long and unnecessary comments in
+        // the future, maybe asking the user if he wants to display the comment
+        // (informing him of its size) would be sensible for both normal and
+        // accessibility mode..
         info!(accessible, "Found comment in {}: {}", file.name(), comment);
     }
 }
