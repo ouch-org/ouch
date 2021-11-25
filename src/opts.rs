@@ -19,6 +19,10 @@ pub struct Opts {
     #[clap(short, long)]
     pub no: bool,
 
+    /// Activate accessibility mode, reducing visual noise
+    #[clap(short = 'A', long, env = "ACCESSIBLE")]
+    pub accessible: bool,
+
     /// Ouch and claps subcommands
     #[clap(subcommand)]
     pub cmd: Subcommand,

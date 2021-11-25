@@ -23,7 +23,7 @@ pub struct FileInArchive {
 
 /// Actually print the files
 pub fn list_files(archive: &Path, files: Vec<FileInArchive>, list_options: ListOptions) {
-    println!("{}:", archive.display());
+    println!("Archive: {}", archive.display());
     if list_options.tree {
         let tree: Tree = files.into_iter().collect();
         tree.print();
@@ -43,6 +43,11 @@ fn print_entry(name: impl std::fmt::Display, is_dir: bool) {
         // if colors are deactivated, print final / to mark directories
         if BLUE.is_empty() {
             println!("{}/", name);
+        // if in ACCESSIBLE mode, use colors but print final / in case colors
+        // aren't read out aloud with a screen reader or aren't printed on a
+        // braille reader
+        } else if *crate::cli::ACCESSIBLE.get().unwrap() {
+            println!("{}{}{}/{}", *BLUE, *STYLE_BOLD, name, *ALL_RESET);
         } else {
             println!("{}{}{}{}", *BLUE, *STYLE_BOLD, name, *ALL_RESET);
         }

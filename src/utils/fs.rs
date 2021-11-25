@@ -42,7 +42,9 @@ pub fn clear_path(path: &Path, question_policy: QuestionPolicy) -> crate::Result
 pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
     if !path.exists() {
         fs::create_dir_all(path)?;
-        info!("directory {} created.", to_utf(path));
+        // creating a directory is an important change to the file system we
+        // should always inform the user about
+        info!(accessible, "directory {} created.", to_utf(path));
     }
     Ok(())
 }

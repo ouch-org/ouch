@@ -7,6 +7,10 @@ DOWNLOAD_LOCATION="/tmp/ouch-binary"
 INSTALLATION_LOCATION="/usr/local/bin/ouch"
 REPO_URL="https://github.com/ouch-org/ouch"
 
+# If env var ACCESSIBLE is set (to a nonempty value), suppress output of
+# `curl` or `wget`
+
+
 # Panics script if anything fails
 set -e
 
@@ -55,12 +59,15 @@ install() {
     echo ""
 
     # Set $downloader
+    downloader_quiet_flag=""
     if [ $(which curl) ]; then
         downloader="curl"
-        downloader_command="curl -fSL $binary_url -o $DOWNLOAD_LOCATION"
+        if [ "$ACCESSIBLE" ]; then downloader_quiet_flag="--silent"; fi
+        downloader_command="curl $downloader_quiet_flag -fSL $binary_url -o $DOWNLOAD_LOCATION"
     elif [ $(which wget) ]; then
         downloader="wget"
-        downloader_command="wget $binary_url -O $DOWNLOAD_LOCATION"
+        if [ "$ACCESSIBLE" ]; then downloader_quiet_flag="--quiet"; fi
+        downloader_command="wget $downloader_quiet_flag $binary_url -O $DOWNLOAD_LOCATION"
     else
         echo "ERROR: have not found 'curl' nor 'wget' to donwload ouch binary."
         exit 1

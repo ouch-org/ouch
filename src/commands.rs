@@ -148,6 +148,7 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                     //   Path::extension says: "if there is no file_name, then there is no extension".
                     //   Contrapositive statement: "if there is extension, then there is file_name".
                     info!(
+                        accessible, // important information
                         "Partial compression detected. Compressing {} into {}",
                         to_utf(files[0].as_path().file_name().unwrap()),
                         to_utf(&output_path)
@@ -168,7 +169,11 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                     eprintln!("  Error:{reset} {}{red}.{reset}\n", err, reset = *colors::RESET, red = *colors::RED);
                 }
             } else {
-                info!("Successfully compressed '{}'.", to_utf(output_path));
+                // this is only printed once, so it doesn't result in much text. On the other hand,
+                // having a final status message is important especially in an accessibility context
+                // as screen readers may not read a commands exit code, making it hard to reason
+                // about whether the command succeeded without such a message
+                info!(accessible, "Successfully compressed '{}'.", to_utf(output_path));
             }
 
             compress_result?;
@@ -366,8 +371,18 @@ fn decompress_file(
         } else {
             return Ok(());
         };
-        info!("Successfully decompressed archive in {}.", nice_directory_display(output_dir));
-        info!("Files unpacked: {}", files.len());
+
+        // this is only printed once, so it doesn't result in much text. On the other hand,
+        // having a final status message is important especially in an accessibility context
+        // as screen readers may not read a commands exit code, making it hard to reason
+        // about whether the command succeeded without such a message
+        info!(
+            accessible,
+            "Successfully decompressed archive in {} ({} files).",
+            nice_directory_display(output_dir),
+            files.len()
+        );
+
         return Ok(());
     }
 
@@ -446,8 +461,12 @@ fn decompress_file(
         }
     }
 
-    info!("Successfully decompressed archive in {}.", nice_directory_display(output_dir));
-    info!("Files unpacked: {}", files_unpacked.len());
+    // this is only printed once, so it doesn't result in much text. On the other hand,
+    // having a final status message is important especially in an accessibility context
+    // as screen readers may not read a commands exit code, making it hard to reason
+    // about whether the command succeeded without such a message
+    info!(accessible, "Successfully decompressed archive in {}.", nice_directory_display(output_dir));
+    info!(accessible, "Files unpacked: {}", files_unpacked.len());
 
     Ok(())
 }
@@ -531,7 +550,11 @@ fn smart_unpack(
     assert!(output_dir.exists());
     let temp_dir = tempfile::tempdir_in(output_dir)?;
     let temp_dir_path = temp_dir.path();
-    info!("Created temporary directory {} to hold decompressed elements.", nice_directory_display(temp_dir_path));
+    info!(
+        accessible,
+        "Created temporary directory {} to hold decompressed elements.",
+        nice_directory_display(temp_dir_path)
+    );
 
     // unpack the files
     let files = unpack_fn(temp_dir_path)?;
@@ -550,6 +573,7 @@ fn smart_unpack(
         }
         fs::rename(&file_path, &correct_path)?;
         info!(
+            accessible,
             "Successfully moved {} to {}.",
             nice_directory_display(&file_path),
             nice_directory_display(&correct_path)
@@ -563,6 +587,7 @@ fn smart_unpack(
         }
         fs::rename(&temp_dir_path, &output_file_path)?;
         info!(
+            accessible,
             "Successfully moved {} to {}.",
             nice_directory_display(&temp_dir_path),
             nice_directory_display(&output_file_path)
@@ -581,7 +606,9 @@ fn check_mime_type(
             // File with no extension
             // Try to detect it automatically and prompt the user about it
             if let Some(detected_format) = try_infer_extension(path) {
-                info!("Detected file: `{}` extension as `{}`", path.display(), detected_format);
+                // Infering the file extension can have unpredicted consequences (e.g. the user just
+                // mistyped, ...) which we should always inform the user about.
+                info!(accessible, "Detected file: `{}` extension as `{}`", path.display(), detected_format);
                 if user_wants_to_continue_decompressing(path, question_policy)? {
                     format.push(detected_format);
                 } else {
@@ -605,7 +632,7 @@ fn check_mime_type(
         } else {
             // NOTE: If this actually produces no false positives, we can upgrade it in the future
             // to a warning and ask the user if he wants to continue decompressing.
-            info!("Could not detect the extension of `{}`", path.display());
+            info!(accessible, "Could not detect the extension of `{}`", path.display());
         }
     }
     Ok(ControlFlow::Continue(()))

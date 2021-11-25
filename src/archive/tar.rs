@@ -38,7 +38,11 @@ pub fn unpack_archive(
 
         file.unpack_in(output_folder)?;
 
-        info!("{:?} extracted. ({})", output_folder.join(file.path()?), Bytes::new(file.size()));
+        // This is printed for every file in the archive and has little
+        // importance for most users, but would generate lots of
+        // spoken text for users using screen readers, braille displays
+        // and so on
+        info!(inaccessible, "{:?} extracted. ({})", output_folder.join(file.path()?), Bytes::new(file.size()));
 
         files_unpacked.push(file_path);
     }
@@ -80,7 +84,11 @@ where
             let entry = entry?;
             let path = entry.path();
 
-            info!("Compressing '{}'.", utils::to_utf(path));
+            // This is printed for every file in `input_filenames` and has
+            // little importance for most users, but would generate lots of
+            // spoken text for users using screen readers, braille displays
+            // and so on
+            info!(inaccessible, "Compressing '{}'.", utils::to_utf(path));
 
             if path.is_dir() {
                 builder.append_dir(path, path)?;

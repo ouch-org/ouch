@@ -49,7 +49,13 @@ pub struct FinalError {
 impl Display for FinalError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Title
-        write!(f, "{}[ERROR]{} {}", *RED, *RESET, self.title)?;
+        //
+        // When in ACCESSIBLE mode, the square brackets are suppressed
+        if *crate::cli::ACCESSIBLE.get().unwrap_or(&false) {
+            write!(f, "{}ERROR{}: {}", *RED, *RESET, self.title)?;
+        } else {
+            write!(f, "{}[ERROR]{} {}", *RED, *RESET, self.title)?;
+        }
 
         // Details
         for detail in &self.details {
@@ -60,9 +66,18 @@ impl Display for FinalError {
         if !self.hints.is_empty() {
             // Separate by one blank line.
             writeln!(f)?;
-            for hint in &self.hints {
-                write!(f, "\n{}hint:{} {}", *GREEN, *RESET, hint)?;
-            }
+            // to reduce redundant output for text-to-speach systems, braille
+            // displays and so on, only print "hints" once in ACCESSIBLE mode
+	        if *crate::cli::ACCESSIBLE.get().unwrap_or(&false) {
+                write!(f, "\n{}hints:{}", *GREEN, *RESET)?;
+	            for hint in &self.hints {
+	                write!(f, "\n{}", hint)?;
+	            }
+	        } else {
+	            for hint in &self.hints {
+	                write!(f, "\n{}hint:{} {}", *GREEN, *RESET, hint)?;
+	            }
+	        }
         }
 
         Ok(())

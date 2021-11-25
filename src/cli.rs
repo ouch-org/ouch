@@ -8,8 +8,13 @@ use std::{
 
 use clap::Parser;
 use fs_err as fs;
+use once_cell::sync::OnceCell;
 
 use crate::{Opts, QuestionPolicy, Subcommand};
+
+/// Whether to enable accessible output (removes info output and reduces other
+/// output, removes visual markers like '[' and ']')
+pub static ACCESSIBLE: OnceCell<bool> = OnceCell::new();
 
 impl Opts {
     /// A helper method that calls `clap::Parser::parse`.
@@ -19,6 +24,8 @@ impl Opts {
     ///   2. Checks the QuestionPolicy.
     pub fn parse_args() -> crate::Result<(Self, QuestionPolicy)> {
         let mut opts = Self::parse();
+
+        ACCESSIBLE.set(opts.accessible).unwrap();
 
         let (Subcommand::Compress { files, .. }
         | Subcommand::Decompress { files, .. }
