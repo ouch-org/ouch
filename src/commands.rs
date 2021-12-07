@@ -347,14 +347,10 @@ fn compress_files(files: Vec<PathBuf>, formats: Vec<Extension>, output_file: fs:
             writer.flush()?;
         }
         Zip => {
-            eprintln!("{yellow}Warning:{reset}", yellow = *colors::YELLOW, reset = *colors::RESET);
-            eprintln!("\tCompressing .zip entirely in memory.");
-            eprintln!("\tIf the file is too big, your PC might freeze!");
-            eprintln!(
-                "\tThis is a limitation for formats like '{}'.",
-                formats.iter().map(|format| format.to_string()).collect::<String>()
-            );
-            eprintln!("\tThe design of .zip makes it impossible to compress via stream.");
+            eprintln!("{orange}[WARNING]{reset}", orange = *colors::ORANGE, reset = *colors::RESET);
+            eprintln!("\tThere is a limitation for .zip archives with extra extensions. (e.g. <file>.zip.gz)\
+            \n\tThe design of .zip makes it impossible to compress via stream, so it must be done entirely in memory.\
+            \n\tBy compressing .zip with extra compression formats, you can run out of RAM if the file is too large!");
 
             let mut vec_buffer = io::Cursor::new(vec![]);
 
@@ -505,12 +501,10 @@ fn decompress_file(
             };
         }
         Zip => {
-            eprintln!("Compressing first into .zip.");
-            eprintln!("Warning: .zip archives with extra extensions have a downside.");
-            eprintln!(
-                "The only way is loading everything into the RAM while compressing, and then write everything down."
-            );
-            eprintln!("this means that by compressing .zip with extra compression formats, you can run out of RAM if the file is too large!");
+            eprintln!("{orange}[WARNING]{reset}", orange = *colors::ORANGE, reset = *colors::RESET);
+            eprintln!("\tThere is a limitation for .zip archives with extra extensions. (e.g. <file>.zip.gz)\
+            \n\tThe design of .zip makes it impossible to compress via stream, so it must be done entirely in memory.\
+            \n\tBy compressing .zip with extra compression formats, you can run out of RAM if the file is too large!");
 
             let mut vec = vec![];
             io::copy(&mut reader, &mut vec)?;
@@ -593,10 +587,10 @@ fn list_archive_contents(
     let files = match formats[0] {
         Tar => crate::archive::tar::list_archive(reader)?,
         Zip => {
-            eprintln!("Listing files from zip archive.");
-            eprintln!("Warning: .zip archives with extra extensions have a downside.");
-            eprintln!("The only way is loading everything into the RAM while compressing, and then reading the archive contents.");
-            eprintln!("this means that by compressing .zip with extra compression formats, you can run out of RAM if the file is too large!");
+            eprintln!("{orange}[WARNING]{reset}", orange = *colors::ORANGE, reset = *colors::RESET);
+            eprintln!("\tThere is a limitation for .zip archives with extra extensions. (e.g. <file>.zip.gz)\
+            \n\tThe design of .zip makes it impossible to compress via stream, so it must be done entirely in memory.\
+            \n\tBy compressing .zip with extra compression formats, you can run out of RAM if the file is too large!");
 
             let mut vec = vec![];
             io::copy(&mut reader, &mut vec)?;
