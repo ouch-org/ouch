@@ -72,11 +72,11 @@ ouch c file.txt file.zip
 
 # Supported formats
 
-| Format    | `.tar` | `.zip` | `.bz`, `.bz2` | `.gz` | `.lz4` | `.xz`, `.lzma` | `.zst` |
-|:---------:|:------:|:------:|:-------------:|:-----:|:------:|:---------------------:|:------:|
-| Supported | ✓     | ✓      | ✓            | ✓     | ✓     | ✓                     | ✓     |
+| Format    | `.tar` | `.zip` | `.bz`, `.bz2` | `.gz` | `.lz4` | `.xz`, `.lzma` | `.sz` | `.zst` |
+|:---------:|:------:|:------:|:-------------:|:-----:|:------:|:--------------:|:-----:|:-------|
+| Supported | ✓      | ✓      | ✓             | ✓     | ✓      | ✓              | ✓     | ✓      |
 
-And the aliases: `tgz`, `tbz`, `tbz2`, `tlz4`, `txz`, `tlz`, `tlzma`, `tzst`.
+And the aliases: `tgz`, `tbz`, `tbz2`, `tlz4`, `txz`, `tlzma`, `tsz`, `tzst`.
 
 Formats can be chained:
 

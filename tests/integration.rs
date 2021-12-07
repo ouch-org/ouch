@@ -20,8 +20,8 @@ enum DirectoryExtension {
     Tbz,
     Tgz,
     Tlz4,
-    Tlz,
     Tlzma,
+    Tsz,
     Txz,
     Zip,
 }
@@ -35,6 +35,7 @@ enum FileExtension {
     Gz,
     Lz4,
     Lzma,
+    Sz,
     Xz,
 }
 
