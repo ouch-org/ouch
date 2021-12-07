@@ -63,7 +63,7 @@ impl Progress {
         thread::spawn(move || {
             let template = {
                 let mut t = String::new();
-                t += "{prefix} [{elapsed_precise}] ";
+                t += "{wide_msg} [{elapsed_precise}] ";
                 if precise && current_position_fn.is_some() {
                     t += "[{wide_bar:.cyan/blue}] ";
                 } else {
@@ -88,7 +88,7 @@ impl Progress {
                     pb.tick();
                 }
                 if let Ok(msg) = msg_rx.try_recv() {
-                    pb.set_prefix(msg);
+                    pb.set_message(msg);
                 }
                 thread::sleep(Duration::from_millis(100));
             }
