@@ -63,6 +63,20 @@ pub fn create_or_ask_overwrite(path: &Path, question_policy: QuestionPolicy) -> 
     }
 }
 
+/// Check if QuestionPolicy flags were set, otherwise, ask the user if they want to continue compressing.
+pub fn user_wants_to_continue_compressing(path: &Path, question_policy: QuestionPolicy) -> crate::Result<bool> {
+    match question_policy {
+        QuestionPolicy::AlwaysYes => Ok(true),
+        QuestionPolicy::AlwaysNo => Ok(false),
+        QuestionPolicy::Ask => {
+            let path = to_utf(strip_cur_dir(path));
+            let path = Some(path.as_str());
+            let placeholder = Some("FILE");
+            Confirmation::new("Do you want to continue compressing 'FILE'?", placeholder).ask(path)
+        }
+    }
+}
+
 /// Check if QuestionPolicy flags were set, otherwise, ask the user if they want to continue decompressing.
 pub fn user_wants_to_continue_decompressing(path: &Path, question_policy: QuestionPolicy) -> crate::Result<bool> {
     match question_policy {

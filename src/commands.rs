@@ -24,7 +24,7 @@ use crate::{
     progress::Progress,
     utils::{
         self, concatenate_os_str_list, dir_is_empty, nice_directory_display, to_utf, try_infer_extension,
-        user_wants_to_continue_decompressing,
+        user_wants_to_continue_compressing, user_wants_to_continue_decompressing,
     },
     warning, Opts, QuestionPolicy, Subcommand,
 };
@@ -157,7 +157,7 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                     formats = new_formats;
                 }
             }
-            let compress_result = compress_files(files, formats, output_file);
+            let compress_result = compress_files(files, formats, output_file, &output_path, question_policy);
 
             // If any error occurred, delete incomplete file
             if compress_result.is_err() {
@@ -268,7 +268,7 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                     println!();
                 }
                 let formats = formats.iter().flat_map(Extension::iter).map(Clone::clone).collect();
-                list_archive_contents(archive_path, formats, list_options)?;
+                list_archive_contents(archive_path, formats, list_options, question_policy)?;
             }
         }
     }
@@ -280,7 +280,13 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
 // files are the list of paths to be compressed: ["dir/file1.txt", "dir/file2.txt"]
 // formats contains each format necessary for compression, example: [Tar, Gz] (in compression order)
 // output_file is the resulting compressed file name, example: "compressed.tar.gz"
-fn compress_files(files: Vec<PathBuf>, formats: Vec<Extension>, output_file: fs::File) -> crate::Result<()> {
+fn compress_files(
+    files: Vec<PathBuf>,
+    formats: Vec<Extension>,
+    output_file: fs::File,
+    output_dir: &Path,
+    question_policy: QuestionPolicy
+) -> crate::Result<()> {
     // The next lines are for displaying the progress bar
     // If the input files contain a directory, then the total size will be underestimated
     let (total_input_size, precise) = files
@@ -351,6 +357,11 @@ fn compress_files(files: Vec<PathBuf>, formats: Vec<Extension>, output_file: fs:
             eprintln!("\tThere is a limitation for .zip archives with extra extensions. (e.g. <file>.zip.gz)\
             \n\tThe design of .zip makes it impossible to compress via stream, so it must be done entirely in memory.\
             \n\tBy compressing .zip with extra compression formats, you can run out of RAM if the file is too large!");
+
+            // give user the option to continue compressing after warning is shown
+            if !user_wants_to_continue_compressing(output_dir, question_policy)? {
+                return Ok(());
+            }
 
             let mut vec_buffer = io::Cursor::new(vec![]);
 
@@ -506,6 +517,11 @@ fn decompress_file(
             \n\tThe design of .zip makes it impossible to compress via stream, so it must be done entirely in memory.\
             \n\tBy compressing .zip with extra compression formats, you can run out of RAM if the file is too large!");
 
+            // give user the option to continue decompressing after warning is shown
+            if !user_wants_to_continue_decompressing(input_file_path, question_policy)? {
+                return Ok(());
+            }
+
             let mut vec = vec![];
             io::copy(&mut reader, &mut vec)?;
             let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
@@ -546,6 +562,7 @@ fn list_archive_contents(
     archive_path: &Path,
     formats: Vec<CompressionFormat>,
     list_options: ListOptions,
+    question_policy: QuestionPolicy
 ) -> crate::Result<()> {
     let reader = fs::File::open(&archive_path)?;
 
@@ -591,6 +608,11 @@ fn list_archive_contents(
             eprintln!("\tThere is a limitation for .zip archives with extra extensions. (e.g. <file>.zip.gz)\
             \n\tThe design of .zip makes it impossible to compress via stream, so it must be done entirely in memory.\
             \n\tBy compressing .zip with extra compression formats, you can run out of RAM if the file is too large!");
+
+            // give user the option to continue decompressing after warning is shown
+            if !user_wants_to_continue_decompressing(archive_path, question_policy)? {
+                return Ok(());
+            }
 
             let mut vec = vec![];
             io::copy(&mut reader, &mut vec)?;
