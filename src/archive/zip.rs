@@ -142,7 +142,17 @@ where
                 // If a dir has files, the files are responsible for creating them.
             } else {
                 writer.start_file(path.to_str().unwrap().to_owned(), options)?;
-                let file_bytes = fs::read(entry.path())?;
+                let file_bytes = match fs::read(entry.path()) {
+                    Ok(b) => b,
+                    Err(e) => {
+                        if e.kind() == std::io::ErrorKind::NotFound && path.is_symlink() {
+                            // This path is for a broken symlink
+                            // We just ignore it
+                            continue;
+                        }
+                        return Err(e.into());
+                    }
+                };
                 writer.write_all(&*file_bytes)?;
             }
         }

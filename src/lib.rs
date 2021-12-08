@@ -5,6 +5,8 @@
 // used as a binary. Since `clap` doesn't remove URL markup in it's help output,
 // we don't mark them as URLs. This suppresses the relevant rustdoc warning:
 #![allow(rustdoc::bare_urls)]
+// Useful to detect broken symlinks when compressing. (So we can safely ignore them)
+#![feature(is_symlink)]
 
 // Macros should be declared before
 pub mod macros;
