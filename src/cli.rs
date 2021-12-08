@@ -33,12 +33,11 @@ impl Opts {
         | Subcommand::List { archives: files, .. }) = &mut opts.cmd;
         *files = canonicalize_files(files)?;
 
-        let skip_questions_positively = if opts.yes {
-            QuestionPolicy::AlwaysYes
-        } else if opts.no {
-            QuestionPolicy::AlwaysNo
-        } else {
-            QuestionPolicy::Ask
+        let skip_questions_positively = match (opts.yes, opts.no) {
+            (false, false) => QuestionPolicy::Ask,
+            (true, false) => QuestionPolicy::AlwaysYes,
+            (false, true) => QuestionPolicy::AlwaysNo,
+            (true, true) => unreachable!(),
         };
 
         Ok((opts, skip_questions_positively))
