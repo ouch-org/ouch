@@ -22,16 +22,24 @@ pub struct FileInArchive {
 }
 
 /// Actually print the files
-pub fn list_files(archive: &Path, files: Vec<FileInArchive>, list_options: ListOptions) {
+/// Returns an Error, if one of the files can't be read
+pub fn list_files(
+    archive: &Path,
+    files: impl IntoIterator<Item = crate::Result<FileInArchive>>,
+    list_options: ListOptions,
+) -> crate::Result<()> {
     println!("Archive: {}", archive.display());
+
     if list_options.tree {
-        let tree: Tree = files.into_iter().collect();
+        let tree: Tree = files.into_iter().collect::<crate::Result<Tree>>()?;
         tree.print();
     } else {
-        for FileInArchive { path, is_dir } in files {
+        for file in files {
+            let FileInArchive { path, is_dir } = file?;
             print_entry(path.display(), is_dir);
         }
     }
+    Ok(())
 }
 
 /// Print an entry and highlight directories, either by coloring them

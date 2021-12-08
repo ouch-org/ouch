@@ -47,20 +47,23 @@ pub fn unpack_archive(
 }
 
 /// List contents of `archive`, returning a vector of archive entries
-pub fn list_archive(reader: Box<dyn Read>) -> crate::Result<Vec<FileInArchive>> {
-    let mut archive = tar::Archive::new(reader);
+pub fn list_archive(
+    archive: tar::Archive<impl Read + 'static>,
+) -> crate::Result<impl Iterator<Item = crate::Result<FileInArchive>>> {
+    // NOTE: tar::Archive::entries takes a &mut self
+    // This makes returning an iterator impossible
+    // Current workaround is just to leak the archive
+    // This can be replaced when upstream add `into_entries` function that consumes the archive
+    let archive = Box::leak(Box::new(archive));
 
-    let mut files = vec![];
-    for file in archive.entries()? {
+    Ok(archive.entries()?.map(|file| {
         let file = file?;
 
         let path = file.path()?.into_owned();
         let is_dir = file.header().entry_type().is_dir();
 
-        files.push(FileInArchive { path, is_dir });
-    }
-
-    Ok(files)
+        Ok(FileInArchive { path, is_dir })
+    }))
 }
 
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.

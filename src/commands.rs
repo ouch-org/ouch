@@ -20,7 +20,7 @@ use crate::{
         Extension,
     },
     info,
-    list::{self, ListOptions},
+    list::{self, FileInArchive, ListOptions},
     progress::Progress,
     utils::{
         self, concatenate_os_str_list, dir_is_empty, nice_directory_display, to_utf, try_infer_extension,
@@ -580,8 +580,9 @@ fn list_archive_contents(
     // Any other Zip decompression done can take up the whole RAM and freeze ouch.
     if let [Zip] = *formats.as_slice() {
         let zip_archive = zip::ZipArchive::new(reader)?;
-        let files = crate::archive::zip::list_archive(zip_archive)?;
-        list::list_files(archive_path, files, list_options);
+        let files = crate::archive::zip::list_archive(zip_archive);
+        list::list_files(archive_path, files, list_options)?;
+
         return Ok(());
     }
 
@@ -607,8 +608,8 @@ fn list_archive_contents(
         reader = chain_reader_decoder(format, reader)?;
     }
 
-    let files = match formats[0] {
-        Tar => crate::archive::tar::list_archive(reader)?,
+    let files: Box<dyn Iterator<Item = crate::Result<FileInArchive>>> = match formats[0] {
+        Tar => Box::new(crate::archive::tar::list_archive(tar::Archive::new(reader))?),
         Zip => {
             eprintln!("{orange}[WARNING]{reset}", orange = *colors::ORANGE, reset = *colors::RESET);
             eprintln!(
@@ -626,13 +627,13 @@ fn list_archive_contents(
             io::copy(&mut reader, &mut vec)?;
             let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
 
-            crate::archive::zip::list_archive(zip_archive)?
+            Box::new(crate::archive::zip::list_archive(zip_archive))
         }
         Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {
             panic!("Not an archive! This should never happen, if it does, something is wrong with `CompressionFormat::is_archive()`. Please report this error!");
         }
     };
-    list::list_files(archive_path, files, list_options);
+    list::list_files(archive_path, files, list_options)?;
     Ok(())
 }
 

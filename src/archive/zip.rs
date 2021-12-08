@@ -80,23 +80,24 @@ where
 }
 
 /// List contents of `archive`, returning a vector of archive entries
-pub fn list_archive<R>(mut archive: ZipArchive<R>) -> crate::Result<Vec<FileInArchive>>
+pub fn list_archive<R>(mut archive: ZipArchive<R>) -> impl Iterator<Item = crate::Result<FileInArchive>>
 where
-    R: Read + Seek,
+    R: Read + Seek + 'static,
 {
-    let mut files = vec![];
-    for idx in 0..archive.len() {
-        let file = archive.by_index(idx)?;
+    (0..archive.len()).filter_map(move |idx| {
+        let file = match archive.by_index(idx) {
+            Ok(f) => f,
+            Err(e) => return Some(Err(e.into())),
+        };
 
         let path = match file.enclosed_name() {
             Some(path) => path.to_owned(),
-            None => continue,
+            None => return None,
         };
         let is_dir = file.is_dir();
 
-        files.push(FileInArchive { path, is_dir });
-    }
-    Ok(files)
+        Some(Ok(FileInArchive { path, is_dir }))
+    })
 }
 
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.
