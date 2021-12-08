@@ -83,10 +83,9 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                 // Breaks if Lzma is .lz or .lzma and not .xz
                 // Or if Bzip is .bz2 and not .bz
                 let extensions_start_position = output_path.rfind(&extensions_text).unwrap();
-                let pos = extensions_start_position;
-                let empty_range = pos..pos;
+                let pos = extensions_start_position - 1;
                 let mut suggested_output_path = output_path.clone();
-                suggested_output_path.replace_range(empty_range, ".tar");
+                suggested_output_path.insert_str(pos, ".tar");
 
                 let error = FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))
                     .detail("You are trying to compress multiple files.")
