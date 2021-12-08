@@ -26,7 +26,7 @@ use crate::{
         self, concatenate_os_str_list, dir_is_empty, nice_directory_display, to_utf, try_infer_extension,
         user_wants_to_continue,
     },
-    warning, Opts, QuestionPolicy, QuestionAction, Subcommand,
+    warning, Opts, QuestionAction, QuestionPolicy, Subcommand,
 };
 
 // Used in BufReader and BufWriter to perform less syscalls

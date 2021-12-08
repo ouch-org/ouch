@@ -23,7 +23,7 @@ pub mod opts;
 
 pub use error::{Error, Result};
 pub use opts::{Opts, Subcommand};
-pub use utils::{QuestionPolicy, QuestionAction};
+pub use utils::{QuestionAction, QuestionPolicy};
 
 /// The status code returned from `ouch` on error
 pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;

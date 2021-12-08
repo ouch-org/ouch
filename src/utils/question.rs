@@ -37,7 +37,6 @@ pub enum QuestionAction {
     Decompression,
 }
 
-
 /// Check if QuestionPolicy flags were set, otherwise, ask user if they want to overwrite.
 pub fn user_wants_to_overwrite(path: &Path, question_policy: QuestionPolicy) -> crate::Result<bool> {
     match question_policy {
@@ -74,7 +73,11 @@ pub fn create_or_ask_overwrite(path: &Path, question_policy: QuestionPolicy) -> 
 }
 
 /// Check if QuestionPolicy flags were set, otherwise, ask the user if they want to continue.
-pub fn user_wants_to_continue(path: &Path, question_policy: QuestionPolicy, question_action: QuestionAction) -> crate::Result<bool> {
+pub fn user_wants_to_continue(
+    path: &Path,
+    question_policy: QuestionPolicy,
+    question_action: QuestionAction,
+) -> crate::Result<bool> {
     match question_policy {
         QuestionPolicy::AlwaysYes => Ok(true),
         QuestionPolicy::AlwaysNo => Ok(false),
