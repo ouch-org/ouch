@@ -83,6 +83,9 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
     fn is_lz4(buf: &[u8]) -> bool {
         buf.starts_with(&[0x04, 0x22, 0x4D, 0x18])
     }
+    fn is_sz(buf: &[u8]) -> bool {
+        buf.starts_with(&[0xFF, 0x06, 0x00, 0x00, 0x73, 0x4E, 0x61, 0x50, 0x70, 0x59])
+    }
     fn is_zst(buf: &[u8]) -> bool {
         buf.starts_with(&[0x28, 0xB5, 0x2F, 0xFD])
     }
@@ -113,6 +116,8 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
         Some(Extension::new(&[Lzma], "xz"))
     } else if is_lz4(&buf) {
         Some(Extension::new(&[Lz4], "lz4"))
+    } else if is_sz(&buf) {
+        Some(Extension::new(&[Snappy], "sz"))
     } else if is_zst(&buf) {
         Some(Extension::new(&[Zstd], "zst"))
     } else {

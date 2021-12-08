@@ -309,6 +309,7 @@ fn compress_files(
             Bzip => Box::new(bzip2::write::BzEncoder::new(encoder, Default::default())),
             Lz4 => Box::new(lzzzz::lz4f::WriteCompressor::new(encoder, Default::default())?),
             Lzma => Box::new(xz2::write::XzEncoder::new(encoder, 6)),
+            Snappy => Box::new(snap::write::FrameEncoder::new(encoder)),
             Zstd => {
                 let zstd_encoder = zstd::stream::write::Encoder::new(encoder, Default::default());
                 // Safety:
@@ -326,7 +327,7 @@ fn compress_files(
     }
 
     match formats[0].compression_formats[0] {
-        Gzip | Bzip | Lz4 | Lzma | Zstd => {
+        Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {
             let _progress = Progress::new_accessible_aware(
                 total_input_size,
                 precise,
@@ -462,6 +463,7 @@ fn decompress_file(
             Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
             Lz4 => Box::new(lzzzz::lz4f::ReadDecompressor::new(decoder)?),
             Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
+            Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
             Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
             Tar | Zip => unreachable!(),
         };
@@ -474,7 +476,7 @@ fn decompress_file(
 
     let files_unpacked;
     match formats[0].compression_formats[0] {
-        Gzip | Bzip | Lz4 | Lzma | Zstd => {
+        Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {
             reader = chain_reader_decoder(&formats[0].compression_formats[0], reader)?;
 
             let writer = utils::create_or_ask_overwrite(&output_file_path, question_policy)?;
@@ -594,6 +596,7 @@ fn list_archive_contents(
             Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
             Lz4 => Box::new(lzzzz::lz4f::ReadDecompressor::new(decoder)?),
             Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
+            Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
             Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
             Tar | Zip => unreachable!(),
         };
@@ -625,7 +628,7 @@ fn list_archive_contents(
 
             crate::archive::zip::list_archive(zip_archive)?
         }
-        Gzip | Bzip | Lz4 | Lzma | Zstd => {
+        Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {
             panic!("Not an archive! This should never happen, if it does, something is wrong with `CompressionFormat::is_archive()`. Please report this error!");
         }
     };

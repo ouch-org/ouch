@@ -57,7 +57,9 @@ pub enum CompressionFormat {
     Lz4,
     /// .xz .lzma
     Lzma,
-    /// tar, tgz, tbz, tbz2, txz, tlz, tlz4, tlzma, tzst
+    /// .sz
+    Snappy,
+    /// tar, tgz, tbz, tbz2, txz, tlz4, tlzma, tsz, tzst
     Tar,
     /// .zst
     Zstd,
@@ -75,6 +77,7 @@ impl CompressionFormat {
             Bzip => false,
             Lz4 => false,
             Lzma => false,
+            Snappy => false,
             Zstd => false,
         }
     }
@@ -91,6 +94,7 @@ impl fmt::Display for CompressionFormat {
                 Zstd => ".zst",
                 Lz4 => ".lz4",
                 Lzma => ".lz",
+                Snappy => ".sz",
                 Tar => ".tar",
                 Zip => ".zip",
             }
@@ -121,13 +125,15 @@ pub fn separate_known_extensions_from_name(mut path: &Path) -> (&Path, Vec<Exten
             "tgz" => &[Tar, Gzip],
             "tbz" | "tbz2" => &[Tar, Bzip],
             "tlz4" => &[Tar, Lz4],
-            "txz" | "tlz" | "tlzma" => &[Tar, Lzma],
+            "txz" | "tlzma" => &[Tar, Lzma],
+            "tsz" => &[Tar, Snappy],
             "tzst" => &[Tar, Zstd],
             "zip" => &[Zip],
             "bz" | "bz2" => &[Bzip],
             "gz" => &[Gzip],
             "lz4" => &[Lz4],
             "xz" | "lzma" => &[Lzma],
+            "sz" => &[Snappy],
             "zst" => &[Zstd],
             _ => break,
         };
