@@ -285,7 +285,7 @@ fn compress_files(
     formats: Vec<Extension>,
     output_file: fs::File,
     output_dir: &Path,
-    question_policy: QuestionPolicy
+    question_policy: QuestionPolicy,
 ) -> crate::Result<()> {
     // The next lines are for displaying the progress bar
     // If the input files contain a directory, then the total size will be underestimated
@@ -354,9 +354,11 @@ fn compress_files(
         }
         Zip => {
             eprintln!("{orange}[WARNING]{reset}", orange = *colors::ORANGE, reset = *colors::RESET);
-            eprintln!("\tThere is a limitation for .zip archives with extra extensions. (e.g. <file>.zip.gz)\
+            eprintln!(
+                "\tThere is a limitation for .zip archives with extra extensions. (e.g. <file>.zip.gz)\
             \n\tThe design of .zip makes it impossible to compress via stream, so it must be done entirely in memory.\
-            \n\tBy compressing .zip with extra compression formats, you can run out of RAM if the file is too large!");
+            \n\tBy compressing .zip with extra compression formats, you can run out of RAM if the file is too large!"
+            );
 
             // give user the option to continue compressing after warning is shown
             if !user_wants_to_continue_compressing(output_dir, question_policy)? {
@@ -513,9 +515,11 @@ fn decompress_file(
         }
         Zip => {
             eprintln!("{orange}[WARNING]{reset}", orange = *colors::ORANGE, reset = *colors::RESET);
-            eprintln!("\tThere is a limitation for .zip archives with extra extensions. (e.g. <file>.zip.gz)\
+            eprintln!(
+                "\tThere is a limitation for .zip archives with extra extensions. (e.g. <file>.zip.gz)\
             \n\tThe design of .zip makes it impossible to compress via stream, so it must be done entirely in memory.\
-            \n\tBy compressing .zip with extra compression formats, you can run out of RAM if the file is too large!");
+            \n\tBy compressing .zip with extra compression formats, you can run out of RAM if the file is too large!"
+            );
 
             // give user the option to continue decompressing after warning is shown
             if !user_wants_to_continue_decompressing(input_file_path, question_policy)? {
@@ -562,7 +566,7 @@ fn list_archive_contents(
     archive_path: &Path,
     formats: Vec<CompressionFormat>,
     list_options: ListOptions,
-    question_policy: QuestionPolicy
+    question_policy: QuestionPolicy,
 ) -> crate::Result<()> {
     let reader = fs::File::open(&archive_path)?;
 
@@ -605,9 +609,11 @@ fn list_archive_contents(
         Tar => crate::archive::tar::list_archive(reader)?,
         Zip => {
             eprintln!("{orange}[WARNING]{reset}", orange = *colors::ORANGE, reset = *colors::RESET);
-            eprintln!("\tThere is a limitation for .zip archives with extra extensions. (e.g. <file>.zip.gz)\
+            eprintln!(
+                "\tThere is a limitation for .zip archives with extra extensions. (e.g. <file>.zip.gz)\
             \n\tThe design of .zip makes it impossible to compress via stream, so it must be done entirely in memory.\
-            \n\tBy compressing .zip with extra compression formats, you can run out of RAM if the file is too large!");
+            \n\tBy compressing .zip with extra compression formats, you can run out of RAM if the file is too large!"
+            );
 
             // give user the option to continue decompressing after warning is shown
             if !user_wants_to_continue_decompressing(archive_path, question_policy)? {
