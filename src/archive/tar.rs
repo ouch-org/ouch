@@ -53,7 +53,6 @@ pub fn list_archive(
     // NOTE: tar::Archive::entries takes a &mut self
     // This makes returning an iterator impossible
     // Current workaround is just to leak the archive
-    // This can be replaced when upstream add `into_entries` function that consumes the archive
     let archive = Box::leak(Box::new(archive));
 
     Ok(archive.entries()?.map(|file| {
