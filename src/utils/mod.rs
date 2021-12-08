@@ -11,8 +11,8 @@ mod question;
 pub use formatting::{concatenate_os_str_list, nice_directory_display, strip_cur_dir, to_utf, Bytes};
 pub use fs::{cd_into_same_dir_as, clear_path, create_dir_if_non_existent, dir_is_empty, try_infer_extension};
 pub use question::{
-    create_or_ask_overwrite, user_wants_to_continue_compressing, user_wants_to_continue_decompressing,
-    user_wants_to_overwrite, QuestionPolicy,
+    create_or_ask_overwrite, user_wants_to_continue, user_wants_to_overwrite,
+    QuestionPolicy, QuestionAction,
 };
 pub use utf8::{get_invalid_utf8_paths, is_invalid_utf8};
 
