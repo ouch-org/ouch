@@ -93,7 +93,7 @@ where
                 let mut file = match fs::File::open(path) {
                     Ok(f) => f,
                     Err(e) => {
-                        if e.kind() == std::io::ErrorKind::NotFound && path.is_symlink() {
+                        if e.kind() == std::io::ErrorKind::NotFound && utils::is_symlink(path) {
                             // This path is for a broken symlink
                             // We just ignore it
                             continue;

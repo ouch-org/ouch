@@ -15,8 +15,8 @@ use crate::{
     info,
     list::FileInArchive,
     utils::{
-        cd_into_same_dir_as, concatenate_os_str_list, dir_is_empty, get_invalid_utf8_paths, strip_cur_dir, to_utf,
-        Bytes,
+        self, cd_into_same_dir_as, concatenate_os_str_list, dir_is_empty, get_invalid_utf8_paths, strip_cur_dir,
+        to_utf, Bytes,
     },
 };
 
@@ -145,7 +145,7 @@ where
                 let file_bytes = match fs::read(entry.path()) {
                     Ok(b) => b,
                     Err(e) => {
-                        if e.kind() == std::io::ErrorKind::NotFound && path.is_symlink() {
+                        if e.kind() == std::io::ErrorKind::NotFound && utils::is_symlink(path) {
                             // This path is for a broken symlink
                             // We just ignore it
                             continue;
