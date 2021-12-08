@@ -20,6 +20,10 @@ pub struct Opts {
     pub no: bool,
 
     /// Activate accessibility mode, reducing visual noise
+    #[clap(short = 'f', long)]
+    pub format: Option<String>,
+
+    /// Ignore autodetection, specifying
     #[clap(short = 'A', long, env = "ACCESSIBLE")]
     pub accessible: bool,
 

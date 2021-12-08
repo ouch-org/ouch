@@ -102,8 +102,54 @@ impl fmt::Display for CompressionFormat {
     }
 }
 
-// use crate::extension::CompressionFormat::*;
-//
+/// Returns the list of compression formats that correspond to the given extension text.
+///
+/// # Examples:
+/// - `"tar" => Some(&[Tar])`
+/// - `"tgz" => Some(&[Tar, Gzip])`
+///
+/// Note that the text given as input should not contain any dots, otherwise, None will be returned.
+pub fn compression_formats_from_text(extension: &str) -> Option<&'static [CompressionFormat]> {
+    match extension {
+        "tar" => Some(&[Tar]),
+        "tgz" => Some(&[Tar, Gzip]),
+        "tbz" | "tbz2" => Some(&[Tar, Bzip]),
+        "tlz4" => Some(&[Tar, Lz4]),
+        "txz" | "tlzma" => Some(&[Tar, Lzma]),
+        "tsz" => Some(&[Tar, Snappy]),
+        "tzst" => Some(&[Tar, Zstd]),
+        "zip" => Some(&[Zip]),
+        "bz" | "bz2" => Some(&[Bzip]),
+        "gz" => Some(&[Gzip]),
+        "lz4" => Some(&[Lz4]),
+        "xz" | "lzma" => Some(&[Lzma]),
+        "sz" => Some(&[Snappy]),
+        "zst" => Some(&[Zstd]),
+        _ => None,
+    }
+}
+
+/// Grab a user given format, and parse it.
+///
+/// # Examples:
+/// - `"tar.gz"  => Extension { ... [Tar, Gz] }`
+/// - `".tar.gz" => Extension { ... [Tar, Gz] }`
+pub fn from_format_text(format: &str) -> Option<Vec<Extension>> {
+    let mut extensions = vec![];
+
+    // Ignore all dots, use filter to ignore dots at first and last char leaving empty pieces
+    let extension_pieces = format.split('.').filter(|piece| !piece.is_empty());
+    for piece in extension_pieces {
+        let extension = match compression_formats_from_text(piece) {
+            Some(formats) => Extension::new(formats, piece),
+            None => return None,
+        };
+        extensions.push(extension);
+    }
+
+    extensions.reverse();
+    Some(extensions)
+}
 
 /// Extracts extensions from a path,
 /// return both the remaining path and the list of extension objects
@@ -120,25 +166,10 @@ pub fn separate_known_extensions_from_name(mut path: &Path) -> (&Path, Vec<Exten
 
     // While there is known extensions at the tail, grab them
     while let Some(extension) = path.extension().and_then(OsStr::to_str) {
-        let formats: &[CompressionFormat] = match extension {
-            "tar" => &[Tar],
-            "tgz" => &[Tar, Gzip],
-            "tbz" | "tbz2" => &[Tar, Bzip],
-            "tlz4" => &[Tar, Lz4],
-            "txz" | "tlzma" => &[Tar, Lzma],
-            "tsz" => &[Tar, Snappy],
-            "tzst" => &[Tar, Zstd],
-            "zip" => &[Zip],
-            "bz" | "bz2" => &[Bzip],
-            "gz" => &[Gzip],
-            "lz4" => &[Lz4],
-            "xz" | "lzma" => &[Lzma],
-            "sz" => &[Snappy],
-            "zst" => &[Zstd],
-            _ => break,
+        let extension = match compression_formats_from_text(extension) {
+            Some(formats) => Extension::new(formats, extension),
+            None => break,
         };
-
-        let extension = Extension::new(formats, extension);
         extensions.push(extension);
 
         // Update for the next iteration

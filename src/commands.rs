@@ -46,7 +46,8 @@ fn represents_several_files(files: &[PathBuf]) -> bool {
 pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
     match args.cmd {
         Subcommand::Compress { mut files, output: output_path } => {
-            // If the output_path file exists and is the same as some of the input files, warn the user and skip those inputs (in order to avoid compression recursion)
+            // If the output_path file exists and is the same as some of the input files, warn the
+            // user and skip those inputs (in order to avoid compression recursion)
             if output_path.exists() {
                 clean_input_files_if_needed(&mut files, &fs::canonicalize(&output_path)?);
             }
@@ -56,7 +57,15 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
             }
 
             // Formats from path extension, like "file.tar.gz.xz" -> vec![Tar, Gzip, Lzma]
-            let mut formats = extension::extensions_from_path(&output_path);
+            let mut formats = if let Some(format) = args.format {
+                extension::from_format_text(&format).ok_or_else(|| {
+                    FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))
+                        .detail("Supplied compression format is not valid")
+                        .hint("Check --help for all supported formats")
+                })
+            } else {
+                Ok(extension::extensions_from_path(&output_path))
+            }?;
 
             if formats.is_empty() {
                 let error = FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))

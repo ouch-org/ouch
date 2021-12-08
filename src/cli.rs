@@ -10,7 +10,7 @@ use clap::Parser;
 use fs_err as fs;
 use once_cell::sync::OnceCell;
 
-use crate::{Opts, QuestionPolicy, Subcommand};
+use crate::{error::FinalError, Opts, QuestionPolicy, Subcommand};
 
 /// Whether to enable accessible output (removes info output and reduces other
 /// output, removes visual markers like '[' and ']').
@@ -25,6 +25,13 @@ impl Opts {
     ///   2. Checks the QuestionPolicy.
     pub fn parse_args() -> crate::Result<(Self, QuestionPolicy)> {
         let mut opts = Self::parse();
+
+        if opts.format.as_ref().map(String::is_empty).unwrap_or(false) {
+            let error = FinalError::with_title("Given --format flag is empty")
+                .hint("Try passing a supported extension, like --format tar.gz");
+
+            return Err(error.into());
+        }
 
         ACCESSIBLE.set(opts.accessible).unwrap();
 
