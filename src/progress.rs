@@ -65,7 +65,7 @@ impl Progress {
                 let mut t = String::new();
                 t += "{wide_msg} [{elapsed_precise}] ";
                 if precise && current_position_fn.is_some() {
-                    t += "[{wide_bar:.cyan/blue}] ";
+                    t += "[{bar:.cyan/blue}] ";
                 } else {
                     t += "{spinner:.green} ";
                 }
