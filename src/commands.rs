@@ -24,9 +24,9 @@ use crate::{
     progress::Progress,
     utils::{
         self, concatenate_os_str_list, dir_is_empty, nice_directory_display, to_utf, try_infer_extension,
-        user_wants_to_continue_compressing, user_wants_to_continue_decompressing,
+        user_wants_to_continue,
     },
-    warning, Opts, QuestionPolicy, Subcommand,
+    warning, Opts, QuestionAction, QuestionPolicy, Subcommand,
 };
 
 // Used in BufReader and BufWriter to perform less syscalls
@@ -361,7 +361,7 @@ fn compress_files(
             );
 
             // give user the option to continue compressing after warning is shown
-            if !user_wants_to_continue_compressing(output_dir, question_policy)? {
+            if !user_wants_to_continue(output_dir, question_policy, QuestionAction::Compression)? {
                 return Ok(());
             }
 
@@ -523,7 +523,7 @@ fn decompress_file(
             );
 
             // give user the option to continue decompressing after warning is shown
-            if !user_wants_to_continue_decompressing(input_file_path, question_policy)? {
+            if !user_wants_to_continue(input_file_path, question_policy, QuestionAction::Decompression)? {
                 return Ok(());
             }
 
@@ -618,7 +618,7 @@ fn list_archive_contents(
             );
 
             // give user the option to continue decompressing after warning is shown
-            if !user_wants_to_continue_decompressing(archive_path, question_policy)? {
+            if !user_wants_to_continue(archive_path, question_policy, QuestionAction::Decompression)? {
                 return Ok(());
             }
 
@@ -708,7 +708,7 @@ fn check_mime_type(
                 // Infering the file extension can have unpredicted consequences (e.g. the user just
                 // mistyped, ...) which we should always inform the user about.
                 info!(accessible, "Detected file: `{}` extension as `{}`", path.display(), detected_format);
-                if user_wants_to_continue_decompressing(path, question_policy)? {
+                if user_wants_to_continue(path, question_policy, QuestionAction::Decompression)? {
                     format.push(detected_format);
                 } else {
                     return Ok(ControlFlow::Break(()));
@@ -724,7 +724,7 @@ fn check_mime_type(
                     outer_ext,
                     detected_format
                 );
-                if !user_wants_to_continue_decompressing(path, question_policy)? {
+                if !user_wants_to_continue(path, question_policy, QuestionAction::Decompression)? {
                     return Ok(ControlFlow::Break(()));
                 }
             }
