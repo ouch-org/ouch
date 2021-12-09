@@ -591,6 +591,17 @@ fn list_archive_contents(
     let mut reader: Box<dyn Read + Send> = Box::new(reader);
 
     // Grab previous decoder and wrap it inside of a new one
+<<<<<<< HEAD
+    let chain_reader_decoder = |format: &CompressionFormat, decoder: Box<dyn Read>| -> crate::Result<Box<dyn Read>> {
+        let decoder: Box<dyn Read> = match format {
+            Gzip => Box::new(flate2::read::GzDecoder::new(decoder)),
+            Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
+            Lz4 => Box::new(lzzzz::lz4f::ReadDecompressor::new(decoder)?),
+            Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
+            Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
+            Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
+            Tar | Zip => unreachable!(),
+=======
     let chain_reader_decoder =
         |format: &CompressionFormat, decoder: Box<dyn Read + Send>| -> crate::Result<Box<dyn Read + Send>> {
             let decoder: Box<dyn Read + Send> = match format {
@@ -598,11 +609,11 @@ fn list_archive_contents(
                 Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
                 Lz4 => Box::new(lzzzz::lz4f::ReadDecompressor::new(decoder)?),
                 Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
-                Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
                 Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
                 Tar | Zip => unreachable!(),
             };
             Ok(decoder)
+>>>>>>> 84526db (Use a new thread for listing)
         };
 
     for format in formats.iter().skip(1).rev() {
