@@ -4,6 +4,8 @@ use std::{
     env,
     io::{self, prelude::*},
     path::{Path, PathBuf},
+    sync::mpsc,
+    thread,
 };
 
 use fs_err as fs;
@@ -82,22 +84,41 @@ where
 /// List contents of `archive`, returning a vector of archive entries
 pub fn list_archive<R>(mut archive: ZipArchive<R>) -> impl Iterator<Item = crate::Result<FileInArchive>>
 where
-    R: Read + Seek + 'static,
+    R: Read + Seek + Send + 'static,
 {
-    (0..archive.len()).filter_map(move |idx| {
-        let file = match archive.by_index(idx) {
-            Ok(f) => f,
-            Err(e) => return Some(Err(e.into())),
-        };
+    struct Files(mpsc::Receiver<crate::Result<FileInArchive>>);
+    impl Iterator for Files {
+        type Item = crate::Result<FileInArchive>;
 
-        let path = match file.enclosed_name() {
-            Some(path) => path.to_owned(),
-            None => return None,
-        };
-        let is_dir = file.is_dir();
+        fn next(&mut self) -> Option<Self::Item> {
+            self.0.recv().ok()
+        }
+    }
 
-        Some(Ok(FileInArchive { path, is_dir }))
-    })
+    let (tx, rx) = mpsc::channel();
+    thread::spawn(move || {
+        for idx in 0..archive.len() {
+            let maybe_file_in_archive = (|| {
+                let file = match archive.by_index(idx) {
+                    Ok(f) => f,
+                    Err(e) => return Some(Err(e.into())),
+                };
+
+                let path = match file.enclosed_name() {
+                    Some(path) => path.to_owned(),
+                    None => return None,
+                };
+                let is_dir = file.is_dir();
+
+                Some(Ok(FileInArchive { path, is_dir }))
+            })();
+            if let Some(file_in_archive) = maybe_file_in_archive {
+                tx.send(file_in_archive).unwrap();
+            }
+        }
+    });
+
+    Files(rx)
 }
 
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.

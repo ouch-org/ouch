@@ -309,7 +309,6 @@ fn compress_files(
             Bzip => Box::new(bzip2::write::BzEncoder::new(encoder, Default::default())),
             Lz4 => Box::new(lzzzz::lz4f::WriteCompressor::new(encoder, Default::default())?),
             Lzma => Box::new(xz2::write::XzEncoder::new(encoder, 6)),
-            Snappy => Box::new(snap::write::FrameEncoder::new(encoder)),
             Zstd => {
                 let zstd_encoder = zstd::stream::write::Encoder::new(encoder, Default::default());
                 // Safety:
@@ -463,7 +462,6 @@ fn decompress_file(
             Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
             Lz4 => Box::new(lzzzz::lz4f::ReadDecompressor::new(decoder)?),
             Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
-            Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
             Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
             Tar | Zip => unreachable!(),
         };
@@ -567,7 +565,6 @@ fn list_archive_contents(
     archive_path: &Path,
     formats: Vec<CompressionFormat>,
     list_options: ListOptions,
-    question_policy: QuestionPolicy,
 ) -> crate::Result<()> {
     let reader = fs::File::open(&archive_path)?;
 
@@ -588,18 +585,21 @@ fn list_archive_contents(
 
     // Will be used in decoder chaining
     let reader = BufReader::with_capacity(BUFFER_CAPACITY, reader);
-    let mut reader: Box<dyn Read> = Box::new(reader);
+    let mut reader: Box<dyn Read + Send> = Box::new(reader);
 
     // Grab previous decoder and wrap it inside of a new one
-    let chain_reader_decoder = |format: &CompressionFormat, decoder: Box<dyn Read>| -> crate::Result<Box<dyn Read>> {
-        let decoder: Box<dyn Read> = match format {
-            Gzip => Box::new(flate2::read::GzDecoder::new(decoder)),
-            Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
-            Lz4 => Box::new(lzzzz::lz4f::ReadDecompressor::new(decoder)?),
-            Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
-            Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
-            Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
-            Tar | Zip => unreachable!(),
+    let chain_reader_decoder =
+        |format: &CompressionFormat, decoder: Box<dyn Read + Send>| -> crate::Result<Box<dyn Read + Send>> {
+            let decoder: Box<dyn Read + Send> = match format {
+                Gzip => Box::new(flate2::read::GzDecoder::new(decoder)),
+                Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
+                Lz4 => Box::new(lzzzz::lz4f::ReadDecompressor::new(decoder)?),
+                Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
+                Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),		                
+		Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
+                Tar | Zip => unreachable!(),
+            };
+            Ok(decoder)
         };
         Ok(decoder)
     };
@@ -609,7 +609,7 @@ fn list_archive_contents(
     }
 
     let files: Box<dyn Iterator<Item = crate::Result<FileInArchive>>> = match formats[0] {
-        Tar => Box::new(crate::archive::tar::list_archive(tar::Archive::new(reader))?),
+        Tar => Box::new(crate::archive::tar::list_archive(tar::Archive::new(reader))),
         Zip => {
             eprintln!("{orange}[WARNING]{reset}", orange = *colors::ORANGE, reset = *colors::RESET);
             eprintln!(
