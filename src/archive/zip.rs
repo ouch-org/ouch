@@ -15,8 +15,8 @@ use crate::{
     info,
     list::FileInArchive,
     utils::{
-        cd_into_same_dir_as, concatenate_os_str_list, dir_is_empty, get_invalid_utf8_paths, strip_cur_dir, to_utf,
-        Bytes,
+        self, cd_into_same_dir_as, concatenate_os_str_list, dir_is_empty, get_invalid_utf8_paths, strip_cur_dir,
+        to_utf, Bytes,
     },
 };
 
@@ -142,7 +142,17 @@ where
                 // If a dir has files, the files are responsible for creating them.
             } else {
                 writer.start_file(path.to_str().unwrap().to_owned(), options)?;
-                let file_bytes = fs::read(entry.path())?;
+                let file_bytes = match fs::read(entry.path()) {
+                    Ok(b) => b,
+                    Err(e) => {
+                        if e.kind() == std::io::ErrorKind::NotFound && utils::is_symlink(path) {
+                            // This path is for a broken symlink
+                            // We just ignore it
+                            continue;
+                        }
+                        return Err(e.into());
+                    }
+                };
                 writer.write_all(&*file_bytes)?;
             }
         }

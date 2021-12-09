@@ -90,7 +90,17 @@ where
             if path.is_dir() {
                 builder.append_dir(path, path)?;
             } else {
-                let mut file = fs::File::open(path)?;
+                let mut file = match fs::File::open(path) {
+                    Ok(f) => f,
+                    Err(e) => {
+                        if e.kind() == std::io::ErrorKind::NotFound && utils::is_symlink(path) {
+                            // This path is for a broken symlink
+                            // We just ignore it
+                            continue;
+                        }
+                        return Err(e.into());
+                    }
+                };
                 builder.append_file(path, file.file_mut()).map_err(|err| {
                     FinalError::with_title("Could not create archive")
                         .detail("Unexpected error while trying to read file")
