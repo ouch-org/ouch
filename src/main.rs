@@ -2,7 +2,7 @@ use ouch::{commands, Opts, Result};
 
 fn main() {
     if let Err(err) = run() {
-        println!("{}", err);
+        eprintln!("{}", err);
         std::process::exit(ouch::EXIT_FAILURE);
     }
 }

@@ -55,12 +55,12 @@ pub fn _info_helper(handle: &mut impl std::io::Write) {
     write!(handle, "{}[INFO]{} ", *YELLOW, *RESET).unwrap();
 }
 
-/// Macro that prints \[WARNING\] messages, wraps [`println`].
+/// Macro that prints \[WARNING\] messages, wraps [`eprintln`].
 #[macro_export]
 macro_rules! warning {
     ($($arg:tt)*) => {
         $crate::macros::_warning_helper();
-        println!($($arg)*);
+        eprintln!($($arg)*);
     };
 }
 
