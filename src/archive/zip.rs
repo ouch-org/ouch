@@ -14,10 +14,7 @@ use crate::{
     error::FinalError,
     info,
     list::FileInArchive,
-    utils::{
-        self, cd_into_same_dir_as, concatenate_os_str_list, dir_is_empty, get_invalid_utf8_paths, strip_cur_dir,
-        to_utf, Bytes,
-    },
+    utils::{self, cd_into_same_dir_as, concatenate_os_str_list, get_invalid_utf8_paths, strip_cur_dir, to_utf, Bytes},
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `output_folder`.
@@ -136,10 +133,7 @@ where
             info!(@display_handle, inaccessible, "Compressing '{}'.", to_utf(path));
 
             if path.is_dir() {
-                if dir_is_empty(path) {
-                    writer.add_directory(path.to_str().unwrap().to_owned(), options)?;
-                }
-                // If a dir has files, the files are responsible for creating them.
+                writer.add_directory(path.to_str().unwrap().to_owned(), options)?;
             } else {
                 writer.start_file(path.to_str().unwrap().to_owned(), options)?;
                 let file_bytes = match fs::read(entry.path()) {
