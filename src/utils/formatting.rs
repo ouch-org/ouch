@@ -1,9 +1,4 @@
-use std::{
-    borrow::Cow,
-    cmp,
-    ffi::OsStr,
-    path::{Component, Path},
-};
+use std::{borrow::Cow, cmp, ffi::OsStr, path::Path};
 
 /// Converts an OsStr to utf8 with custom formatting.
 ///
@@ -19,7 +14,8 @@ pub fn to_utf(os_str: impl AsRef<OsStr>) -> String {
 /// normally used for presentation sake.
 /// If this function fails, it will return source path as a PathBuf.
 pub fn strip_cur_dir(source_path: &Path) -> &Path {
-    source_path.strip_prefix(Component::CurDir).unwrap_or(source_path)
+    let cwd = std::env::current_dir().unwrap_or_else(|_| Path::new(".").to_path_buf());
+    source_path.strip_prefix(cwd).unwrap_or(source_path)
 }
 
 /// Converts a slice of AsRef<OsStr> to comma separated String
