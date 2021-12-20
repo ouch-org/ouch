@@ -1,12 +1,10 @@
 //! Implementation of the 'list' command, print list of files in an archive
 
-use std::{
-    io::Write,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
+
+use indicatif::{ProgressBar, ProgressStyle};
 
 use self::tree::Tree;
-use crate::info;
 
 /// Options controlling how archive contents should be listed
 #[derive(Debug, Clone, Copy)]
@@ -35,14 +33,26 @@ pub fn list_files(
     println!("Archive: {}", archive.display());
 
     if list_options.tree {
+        let pb = if !crate::cli::ACCESSIBLE.get().unwrap() {
+            let template = "{wide_msg} [{elapsed_precise}] {spinner:.green}";
+            let pb = ProgressBar::new_spinner();
+            pb.set_style(ProgressStyle::default_bar().template(template));
+            Some(pb)
+        } else {
+            None
+        };
+
         let tree: Tree = files
             .into_iter()
             .map(|file| {
                 let file = file?;
-                info!(inaccessible, "Processing file: {}", file.path.display());
+                if !crate::cli::ACCESSIBLE.get().unwrap() {
+                    pb.as_ref().expect("exists").set_message(format!("Processing: {}", file.path.display()));
+                }
                 Ok(file)
             })
             .collect::<crate::Result<Tree>>()?;
+        drop(pb);
         tree.print();
     } else {
         for file in files {
