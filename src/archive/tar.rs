@@ -4,6 +4,8 @@ use std::{
     env,
     io::prelude::*,
     path::{Path, PathBuf},
+    sync::mpsc::{self, Receiver},
+    thread,
 };
 
 use fs_err as fs;
@@ -48,20 +50,32 @@ pub fn unpack_archive(
 }
 
 /// List contents of `archive`, returning a vector of archive entries
-pub fn list_archive(reader: Box<dyn Read>) -> crate::Result<Vec<FileInArchive>> {
-    let mut archive = tar::Archive::new(reader);
+pub fn list_archive(
+    mut archive: tar::Archive<impl Read + Send + 'static>,
+) -> impl Iterator<Item = crate::Result<FileInArchive>> {
+    struct Files(Receiver<crate::Result<FileInArchive>>);
+    impl Iterator for Files {
+        type Item = crate::Result<FileInArchive>;
 
-    let mut files = vec![];
-    for file in archive.entries()? {
-        let file = file?;
-
-        let path = file.path()?.into_owned();
-        let is_dir = file.header().entry_type().is_dir();
-
-        files.push(FileInArchive { path, is_dir });
+        fn next(&mut self) -> Option<Self::Item> {
+            self.0.recv().ok()
+        }
     }
 
-    Ok(files)
+    let (tx, rx) = mpsc::channel();
+    thread::spawn(move || {
+        for file in archive.entries().expect("entries is only used once") {
+            let file_in_archive = (|| {
+                let file = file?;
+                let path = file.path()?.into_owned();
+                let is_dir = file.header().entry_type().is_dir();
+                Ok(FileInArchive { path, is_dir })
+            })();
+            tx.send(file_in_archive).unwrap();
+        }
+    });
+
+    Files(rx)
 }
 
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.

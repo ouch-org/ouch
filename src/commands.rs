@@ -20,7 +20,7 @@ use crate::{
         Extension,
     },
     info,
-    list::{self, ListOptions},
+    list::{self, FileInArchive, ListOptions},
     progress::Progress,
     utils::{
         self, concatenate_os_str_list, dir_is_empty, nice_directory_display, to_utf, try_infer_extension,
@@ -580,35 +580,37 @@ fn list_archive_contents(
     // Any other Zip decompression done can take up the whole RAM and freeze ouch.
     if let [Zip] = *formats.as_slice() {
         let zip_archive = zip::ZipArchive::new(reader)?;
-        let files = crate::archive::zip::list_archive(zip_archive)?;
-        list::list_files(archive_path, files, list_options);
+        let files = crate::archive::zip::list_archive(zip_archive);
+        list::list_files(archive_path, files, list_options)?;
+
         return Ok(());
     }
 
     // Will be used in decoder chaining
     let reader = BufReader::with_capacity(BUFFER_CAPACITY, reader);
-    let mut reader: Box<dyn Read> = Box::new(reader);
+    let mut reader: Box<dyn Read + Send> = Box::new(reader);
 
     // Grab previous decoder and wrap it inside of a new one
-    let chain_reader_decoder = |format: &CompressionFormat, decoder: Box<dyn Read>| -> crate::Result<Box<dyn Read>> {
-        let decoder: Box<dyn Read> = match format {
-            Gzip => Box::new(flate2::read::GzDecoder::new(decoder)),
-            Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
-            Lz4 => Box::new(lzzzz::lz4f::ReadDecompressor::new(decoder)?),
-            Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
-            Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
-            Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
-            Tar | Zip => unreachable!(),
+    let chain_reader_decoder =
+        |format: &CompressionFormat, decoder: Box<dyn Read + Send>| -> crate::Result<Box<dyn Read + Send>> {
+            let decoder: Box<dyn Read + Send> = match format {
+                Gzip => Box::new(flate2::read::GzDecoder::new(decoder)),
+                Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
+                Lz4 => Box::new(lzzzz::lz4f::ReadDecompressor::new(decoder)?),
+                Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
+                Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
+                Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
+                Tar | Zip => unreachable!(),
+            };
+            Ok(decoder)
         };
-        Ok(decoder)
-    };
 
     for format in formats.iter().skip(1).rev() {
         reader = chain_reader_decoder(format, reader)?;
     }
 
-    let files = match formats[0] {
-        Tar => crate::archive::tar::list_archive(reader)?,
+    let files: Box<dyn Iterator<Item = crate::Result<FileInArchive>>> = match formats[0] {
+        Tar => Box::new(crate::archive::tar::list_archive(tar::Archive::new(reader))),
         Zip => {
             eprintln!("{orange}[WARNING]{reset}", orange = *colors::ORANGE, reset = *colors::RESET);
             eprintln!(
@@ -626,13 +628,13 @@ fn list_archive_contents(
             io::copy(&mut reader, &mut vec)?;
             let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
 
-            crate::archive::zip::list_archive(zip_archive)?
+            Box::new(crate::archive::zip::list_archive(zip_archive))
         }
         Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {
             panic!("Not an archive! This should never happen, if it does, something is wrong with `CompressionFormat::is_archive()`. Please report this error!");
         }
     };
-    list::list_files(archive_path, files, list_options);
+    list::list_files(archive_path, files, list_options)?;
     Ok(())
 }
 

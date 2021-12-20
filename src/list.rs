@@ -2,6 +2,8 @@
 
 use std::path::{Path, PathBuf};
 
+use indicatif::{ProgressBar, ProgressStyle};
+
 use self::tree::Tree;
 
 /// Options controlling how archive contents should be listed
@@ -22,16 +24,43 @@ pub struct FileInArchive {
 }
 
 /// Actually print the files
-pub fn list_files(archive: &Path, files: Vec<FileInArchive>, list_options: ListOptions) {
+/// Returns an Error, if one of the files can't be read
+pub fn list_files(
+    archive: &Path,
+    files: impl IntoIterator<Item = crate::Result<FileInArchive>>,
+    list_options: ListOptions,
+) -> crate::Result<()> {
     println!("Archive: {}", archive.display());
+
     if list_options.tree {
-        let tree: Tree = files.into_iter().collect();
+        let pb = if !crate::cli::ACCESSIBLE.get().unwrap() {
+            let template = "{wide_msg} [{elapsed_precise}] {spinner:.green}";
+            let pb = ProgressBar::new_spinner();
+            pb.set_style(ProgressStyle::default_bar().template(template));
+            Some(pb)
+        } else {
+            None
+        };
+
+        let tree: Tree = files
+            .into_iter()
+            .map(|file| {
+                let file = file?;
+                if !crate::cli::ACCESSIBLE.get().unwrap() {
+                    pb.as_ref().expect("exists").set_message(format!("Processing: {}", file.path.display()));
+                }
+                Ok(file)
+            })
+            .collect::<crate::Result<Tree>>()?;
+        drop(pb);
         tree.print();
     } else {
-        for FileInArchive { path, is_dir } in files {
+        for file in files {
+            let FileInArchive { path, is_dir } = file?;
             print_entry(path.display(), is_dir);
         }
     }
+    Ok(())
 }
 
 /// Print an entry and highlight directories, either by coloring them
