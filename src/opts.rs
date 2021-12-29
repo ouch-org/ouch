@@ -12,15 +12,15 @@ use clap::{Parser, ValueHint};
 #[clap(version)]
 pub struct Opts {
     /// Skip [Y/n] questions positively.
-    #[clap(short, long, conflicts_with = "no")]
+    #[clap(short, long, conflicts_with = "no", global = true)]
     pub yes: bool,
 
     /// Skip [Y/n] questions negatively.
-    #[clap(short, long)]
+    #[clap(short, long, global = true)]
     pub no: bool,
 
     /// Activate accessibility mode, reducing visual noise
-    #[clap(short = 'A', long, env = "ACCESSIBLE")]
+    #[clap(short = 'A', long, env = "ACCESSIBLE", global = true)]
     pub accessible: bool,
 
     /// Ouch and claps subcommands
