@@ -84,8 +84,8 @@ fn single_empty_file(ext: Extension, #[any(size_range(0..8).lift())] exts: Vec<F
     let archive = &dir.join(format!("file.{}", merge_extensions(ext, exts)));
     let after = &dir.join("after");
     write_random_content(&mut fs::File::create(before_file).unwrap(), &mut SmallRng::from_entropy());
-    ouch!("c", before_file, archive);
-    ouch!("d", archive, "-d", after);
+    ouch!("-A", "c", before_file, archive);
+    ouch!("-A", "d", archive, "-d", after);
     assert_same_directory(before, after, false);
 }
 
@@ -100,8 +100,8 @@ fn single_file(ext: Extension, #[any(size_range(0..8).lift())] exts: Vec<FileExt
     let archive = &dir.join(format!("file.{}", merge_extensions(ext, exts)));
     let after = &dir.join("after");
     fs::write(before_file, []).unwrap();
-    ouch!("c", before_file, archive);
-    ouch!("d", archive, "-d", after);
+    ouch!("-A", "c", before_file, archive);
+    ouch!("-A", "d", archive, "-d", after);
     assert_same_directory(before, after, false);
 }
 
@@ -120,7 +120,7 @@ fn multiple_files(
     let archive = &dir.join(format!("archive.{}", merge_extensions(&ext, exts)));
     let after = &dir.join("after");
     create_random_files(before_dir, depth, &mut SmallRng::from_entropy());
-    ouch!("c", before_dir, archive);
-    ouch!("d", archive, "-d", after);
+    ouch!("-A", "c", before_dir, archive);
+    ouch!("-A", "d", archive, "-d", after);
     assert_same_directory(before, after, !matches!(ext, DirectoryExtension::Zip));
 }
