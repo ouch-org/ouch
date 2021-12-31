@@ -18,11 +18,13 @@ use crate::utils::{assert_same_directory, write_random_content};
 enum DirectoryExtension {
     Tar,
     Tbz,
+    Tbz2,
     Tgz,
     Tlz4,
     Tlzma,
     Tsz,
     Txz,
+    Tzst,
     Zip,
 }
 
@@ -37,6 +39,7 @@ enum FileExtension {
     Lzma,
     Sz,
     Xz,
+    Zst,
 }
 
 #[derive(Arbitrary, Debug, Display)]
