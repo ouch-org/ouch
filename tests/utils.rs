@@ -1,7 +1,7 @@
 use std::{io::Write, path::PathBuf};
 
 use fs_err as fs;
-use rand::RngCore;
+use rand::{Rng, RngCore};
 
 #[macro_export]
 macro_rules! ouch {
@@ -15,9 +15,10 @@ macro_rules! ouch {
 
 // write random content to a file
 pub fn write_random_content(file: &mut impl Write, rng: &mut impl RngCore) {
-    let data = &mut Vec::with_capacity((rng.next_u32() % 8192) as usize);
-    rng.fill_bytes(data);
-    file.write_all(data).unwrap();
+    let mut data = Vec::new();
+    data.resize(rng.gen_range(0..8192), 0);
+    rng.fill_bytes(&mut data);
+    file.write_all(&data).unwrap();
 }
 
 // check that two directories have the exact same content recursively
