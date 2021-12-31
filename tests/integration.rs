@@ -6,7 +6,7 @@ use std::{iter::once, path::PathBuf};
 use fs_err as fs;
 use parse_display::Display;
 use proptest::sample::size_range;
-use rand::{rngs::SmallRng, RngCore, SeedableRng};
+use rand::{rngs::SmallRng, Rng, SeedableRng};
 use tempfile::tempdir;
 use test_strategy::{proptest, Arbitrary};
 
@@ -60,12 +60,12 @@ fn create_random_files(dir: impl Into<PathBuf>, depth: u8, rng: &mut SmallRng) {
     let dir = &dir.into();
 
     // create 0 to 7 random files
-    for _ in 0..rng.next_u32() % 8 {
+    for _ in 0..rng.gen_range(0..8u32) {
         write_random_content(&mut tempfile::Builder::new().tempfile_in(dir).unwrap().keep().unwrap().0, rng);
     }
 
     // create more random files in 0 to 3 new directories
-    for _ in 0..rng.next_u32() % 4 {
+    for _ in 0..rng.gen_range(0..4u32) {
         create_random_files(&tempfile::tempdir_in(dir).unwrap().into_path(), depth - 1, rng);
     }
 }
