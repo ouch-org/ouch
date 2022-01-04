@@ -616,7 +616,6 @@ fn list_archive_contents(
     let files: Box<dyn Iterator<Item = crate::Result<FileInArchive>>> = match formats[0] {
         Tar => Box::new(crate::archive::tar::list_archive(tar::Archive::new(reader))),
         Zip => {
-
             if formats.len() > 1 {
                 eprintln!("{orange}[WARNING]{reset}", orange = *colors::ORANGE, reset = *colors::RESET);
                 eprintln!(
