@@ -158,8 +158,14 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
             }
             let compress_result = compress_files(files, formats, output_file, &output_path, question_policy);
 
-            // If any error occurred, delete incomplete file
-            if compress_result.is_err() {
+            if let Ok(true) = compress_result {
+                // this is only printed once, so it doesn't result in much text. On the other hand,
+                // having a final status message is important especially in an accessibility context
+                // as screen readers may not read a commands exit code, making it hard to reason
+                // about whether the command succeeded without such a message
+                info!(accessible, "Successfully compressed '{}'.", to_utf(output_path));
+            } else {
+                // If Ok(false) or Err() occurred, delete incomplete file
                 // Print an extra alert message pointing out that we left a possibly
                 // CORRUPTED FILE at `output_path`
                 if let Err(err) = fs::remove_file(&output_path) {
@@ -168,12 +174,6 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                     eprintln!("  Compression failed and we could not delete '{}'.", to_utf(&output_path),);
                     eprintln!("  Error:{reset} {}{red}.{reset}\n", err, reset = *colors::RESET, red = *colors::RED);
                 }
-            } else {
-                // this is only printed once, so it doesn't result in much text. On the other hand,
-                // having a final status message is important especially in an accessibility context
-                // as screen readers may not read a commands exit code, making it hard to reason
-                // about whether the command succeeded without such a message
-                info!(accessible, "Successfully compressed '{}'.", to_utf(output_path));
             }
 
             compress_result?;
@@ -285,7 +285,7 @@ fn compress_files(
     output_file: fs::File,
     output_dir: &Path,
     question_policy: QuestionPolicy,
-) -> crate::Result<()> {
+) -> crate::Result<bool> {
     // The next lines are for displaying the progress bar
     // If the input files contain a directory, then the total size will be underestimated
     let (total_input_size, precise) = files
@@ -353,16 +353,18 @@ fn compress_files(
             writer.flush()?;
         }
         Zip => {
-            eprintln!("{orange}[WARNING]{reset}", orange = *colors::ORANGE, reset = *colors::RESET);
-            eprintln!(
-                "\tThere is a limitation for .zip archives with extra extensions. (e.g. <file>.zip.gz)\
-            \n\tThe design of .zip makes it impossible to compress via stream, so it must be done entirely in memory.\
-            \n\tBy compressing .zip with extra compression formats, you can run out of RAM if the file is too large!"
-            );
+            if formats.len() > 1 {
+                eprintln!("{orange}[WARNING]{reset}", orange = *colors::ORANGE, reset = *colors::RESET);
+                eprintln!(
+                    "\tThere is a limitation for .zip archives with extra extensions. (e.g. <file>.zip.gz)\
+                    \n\tThe design of .zip makes it impossible to compress via stream, so it must be done entirely in memory.\
+                    \n\tBy compressing .zip with extra compression formats, you can run out of RAM if the file is too large!"
+                );
 
-            // give user the option to continue compressing after warning is shown
-            if !user_wants_to_continue(output_dir, question_policy, QuestionAction::Compression)? {
-                return Ok(());
+                // give user the option to continue compressing after warning is shown
+                if !user_wants_to_continue(output_dir, question_policy, QuestionAction::Compression)? {
+                    return Ok(false);
+                }
             }
 
             let mut vec_buffer = io::Cursor::new(vec![]);
@@ -392,7 +394,7 @@ fn compress_files(
         }
     }
 
-    Ok(())
+    Ok(true)
 }
 
 // Decompress a file
@@ -515,16 +517,18 @@ fn decompress_file(
             };
         }
         Zip => {
-            eprintln!("{orange}[WARNING]{reset}", orange = *colors::ORANGE, reset = *colors::RESET);
-            eprintln!(
-                "\tThere is a limitation for .zip archives with extra extensions. (e.g. <file>.zip.gz)\
-            \n\tThe design of .zip makes it impossible to compress via stream, so it must be done entirely in memory.\
-            \n\tBy compressing .zip with extra compression formats, you can run out of RAM if the file is too large!"
-            );
+            if formats.len() > 1 {
+                eprintln!("{orange}[WARNING]{reset}", orange = *colors::ORANGE, reset = *colors::RESET);
+                eprintln!(
+                    "\tThere is a limitation for .zip archives with extra extensions. (e.g. <file>.zip.gz)\
+                    \n\tThe design of .zip makes it impossible to compress via stream, so it must be done entirely in memory.\
+                    \n\tBy compressing .zip with extra compression formats, you can run out of RAM if the file is too large!"
+                );
 
-            // give user the option to continue decompressing after warning is shown
-            if !user_wants_to_continue(input_file_path, question_policy, QuestionAction::Decompression)? {
-                return Ok(());
+                // give user the option to continue decompressing after warning is shown
+                if !user_wants_to_continue(input_file_path, question_policy, QuestionAction::Decompression)? {
+                    return Ok(());
+                }
             }
 
             let mut vec = vec![];
@@ -612,16 +616,19 @@ fn list_archive_contents(
     let files: Box<dyn Iterator<Item = crate::Result<FileInArchive>>> = match formats[0] {
         Tar => Box::new(crate::archive::tar::list_archive(tar::Archive::new(reader))),
         Zip => {
-            eprintln!("{orange}[WARNING]{reset}", orange = *colors::ORANGE, reset = *colors::RESET);
-            eprintln!(
-                "\tThere is a limitation for .zip archives with extra extensions. (e.g. <file>.zip.gz)\
-            \n\tThe design of .zip makes it impossible to compress via stream, so it must be done entirely in memory.\
-            \n\tBy compressing .zip with extra compression formats, you can run out of RAM if the file is too large!"
-            );
 
-            // give user the option to continue decompressing after warning is shown
-            if !user_wants_to_continue(archive_path, question_policy, QuestionAction::Decompression)? {
-                return Ok(());
+            if formats.len() > 1 {
+                eprintln!("{orange}[WARNING]{reset}", orange = *colors::ORANGE, reset = *colors::RESET);
+                eprintln!(
+                    "\tThere is a limitation for .zip archives with extra extensions. (e.g. <file>.zip.gz)\
+                    \n\tThe design of .zip makes it impossible to compress via stream, so it must be done entirely in memory.\
+                    \n\tBy compressing .zip with extra compression formats, you can run out of RAM if the file is too large!"
+                );
+
+                // give user the option to continue decompressing after warning is shown
+                if !user_wants_to_continue(archive_path, question_policy, QuestionAction::Decompression)? {
+                    return Ok(());
+                }
             }
 
             let mut vec = vec![];
