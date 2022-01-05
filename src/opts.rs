@@ -9,7 +9,7 @@ use clap::{Parser, ValueHint};
 ///
 /// Repository: https://github.com/ouch-org/ouch
 #[derive(Parser, Debug)]
-#[clap(version)]
+#[clap(about, version)]
 pub struct Opts {
     /// Skip [Y/n] questions positively.
     #[clap(short, long, conflicts_with = "no")]
