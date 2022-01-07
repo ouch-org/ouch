@@ -46,6 +46,7 @@ Categories Used:
 - Mark directories when compressing to zip regardless of their contents [\#230](https://github.com/ouch-org/ouch/pull/230) ([sigmaSd](https://github.com/sigmaSd))
 
 ### Improvements
+- Infer file extension when decompressing [\#154](https://github.com/ouch-org/ouch/pull/154) ([sigmaSd](https://github.com/sigmaSd))
 - extension: Use hardcoded slices instead of `Vecs` when creating an `Extension` [\#155](https://github.com/ouch-org/ouch/pull/155) ([vrmiguel](https://github.com/vrmiguel))
 - Avoid allocating in `nice_directory_display` when possible, make `Extension` non-exhaustive  [\#156](https://github.com/ouch-org/ouch/pull/156) ([vrmiguel](https://github.com/vrmiguel))
 - Optimize `strip_cur_dir` [\#167](https://github.com/ouch-org/ouch/pull/167) ([vrmiguel](https://github.com/vrmiguel))
@@ -67,6 +68,10 @@ Categories Used:
 - Simplify decompress function [\#206](https://github.com/ouch-org/ouch/pull/206) ([sigmaSd](https://github.com/sigmaSd))
 - Add redundant check for --yes and --no flags conflict [\#221](https://github.com/ouch-org/ouch/pull/221) ([marcospb19](https://github.com/marcospb19))
 - Ignore broken symlinks when compressing [\#224](https://github.com/ouch-org/ouch/pull/224) ([sigmaSd](https://github.com/sigmaSd))
+
+### New Contributors
+- [@sigmaSd](https://github.com/sigmaSd) made their first contribution in [\#154](https://github.com/ouch-org/ouch/pull/154)
+- [@Crypto-Spartan](https://github.com/Crypto-Spartan) made their first contribution in [\#217](https://github.com/ouch-org/ouch/pull/217)
 
 
 ## [0.3.1](https://github.com/ouch-org/ouch/compare/0.3.0...0.3.1) (2021-11-02)
@@ -141,6 +146,7 @@ Categories Used:
 
 ## [0.2.0](https://github.com/ouch-org/ouch/compare/0.1.6...0.2.0) (2021-10-06)
 ### New Features
+- Add Cargo lock file [\#46](https://github.com/ouch-org/ouch/pull/46) ([psibi](https://github.com/psibi))
 - Allow compression of empty folders [\#57](https://github.com/ouch-org/ouch/pull/57) ([GabrielSimonetto](https://github.com/GabrielSimonetto))
 - Make decompress command explicit [\#61](https://github.com/ouch-org/ouch/pull/61) ([GabrielSimonetto](https://github.com/GabrielSimonetto))
 - Add support for Zstd [\#64](https://github.com/ouch-org/ouch/pull/64) ([vrmiguel](https://github.com/vrmiguel))
@@ -152,6 +158,10 @@ Categories Used:
 - Don't use colors when `stdout` or `stderr` are being redirected [\#60](https://github.com/ouch-org/ouch/pull/60) ([vrmiguel](https://github.com/vrmiguel))
 - Making an error message for running decompress without arguments [\#63](https://github.com/ouch-org/ouch/issues/63)
 - Increasing read and writer buffers capacity [\#65](https://github.com/ouch-org/ouch/pull/65) ([marcospb19](https://github.com/marcospb19))
+
+### New Contributors
+- [@psibi](https://github.com/psibi) made their first contribution in [\#54](https://github.com/ouch-org/ouch/pull/54)
+- [@GabrielSimonetto](https://github.com/GabrielSimonetto) made their first contribution in [\#54](https://github.com/ouch-org/ouch/pull/54)
 
 
 ## [0.1.6](https://github.com/ouch-org/ouch/compare/0.1.5...0.1.6) (2021-09-17)
@@ -180,6 +190,9 @@ Categories Used:
 
 ### Tweaks
 - Switch panics to errors [\#21](https://github.com/ouch-org/ouch/pull/21) ([vrmiguel](https://github.com/vrmiguel))
+
+### New Contributors
+- [@fabricio7p](https://github.com/figsoda) made their first contribution in [\#27](https://github.com/ouch-org/ouch/pull/27)
 
 
 ## [0.1.5-rc](https://github.com/ouch-org/ouch/compare/0.1.4...0.1.5-rc) (2021-04-07)
