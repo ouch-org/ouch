@@ -160,8 +160,8 @@ Categories Used:
 - Increasing read and writer buffers capacity [\#65](https://github.com/ouch-org/ouch/pull/65) ([marcospb19](https://github.com/marcospb19))
 
 ### New Contributors
-- [@psibi](https://github.com/psibi) made their first contribution in [\#54](https://github.com/ouch-org/ouch/pull/54)
-- [@GabrielSimonetto](https://github.com/GabrielSimonetto) made their first contribution in [\#54](https://github.com/ouch-org/ouch/pull/54)
+- [@psibi](https://github.com/psibi) made their first contribution in [\#46](https://github.com/ouch-org/ouch/pull/46)
+- [@GabrielSimonetto](https://github.com/GabrielSimonetto) made their first contribution in [\#57](https://github.com/ouch-org/ouch/pull/57)
 
 
 ## [0.1.6](https://github.com/ouch-org/ouch/compare/0.1.5...0.1.6) (2021-09-17)
