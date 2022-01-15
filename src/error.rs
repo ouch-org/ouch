@@ -86,17 +86,20 @@ impl Display for FinalError {
 
 impl FinalError {
     /// Only constructor
+    #[must_use]
     pub fn with_title(title: impl ToString) -> Self {
         Self { title: title.to_string(), details: vec![], hints: vec![] }
     }
 
     /// Add one detail line, can have multiple
+    #[must_use]
     pub fn detail(mut self, detail: impl ToString) -> Self {
         self.details.push(detail.to_string());
         self
     }
 
     /// Add one hint line, can have multiple
+    #[must_use]
     pub fn hint(mut self, hint: impl ToString) -> Self {
         self.hints.push(hint.to_string());
         self
