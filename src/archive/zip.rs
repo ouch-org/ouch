@@ -9,14 +9,16 @@ use std::{
 };
 
 use fs_err as fs;
-use walkdir::WalkDir;
 use zip::{self, read::ZipFile, ZipArchive};
 
 use crate::{
     error::FinalError,
     info,
     list::FileInArchive,
-    utils::{self, cd_into_same_dir_as, concatenate_os_str_list, get_invalid_utf8_paths, strip_cur_dir, to_utf, Bytes},
+    utils::{
+        self, cd_into_same_dir_as, concatenate_os_str_list, get_invalid_utf8_paths, strip_cur_dir, to_utf, Bytes,
+        FileVisibilityPolicy,
+    },
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `output_folder`.
@@ -119,7 +121,12 @@ where
 }
 
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.
-pub fn build_archive_from_paths<W, D>(input_filenames: &[PathBuf], writer: W, mut display_handle: D) -> crate::Result<W>
+pub fn build_archive_from_paths<W, D>(
+    input_filenames: &[PathBuf],
+    writer: W,
+    file_visibility_policy: FileVisibilityPolicy,
+    mut display_handle: D,
+) -> crate::Result<W>
 where
     W: Write + Seek,
     D: Write,
@@ -144,7 +151,7 @@ where
         // Safe unwrap, input shall be treated before
         let filename = filename.file_name().unwrap();
 
-        for entry in WalkDir::new(filename) {
+        for entry in file_visibility_policy.build_walker(filename) {
             let entry = entry?;
             let path = entry.path();
 

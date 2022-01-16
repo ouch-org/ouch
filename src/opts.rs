@@ -23,6 +23,14 @@ pub struct Opts {
     #[clap(short = 'A', long, env = "ACCESSIBLE", global = true)]
     pub accessible: bool,
 
+    /// Ignores hidden files
+    #[clap(short = 'H', long)]
+    pub hidden: bool,
+
+    /// Ignores files matched by git's ignore files
+    #[clap(short = 'g', long)]
+    pub gitignore: bool,
+
     /// Ouch and claps subcommands
     #[clap(subcommand)]
     pub cmd: Subcommand,
