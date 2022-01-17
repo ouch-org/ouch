@@ -10,7 +10,7 @@ use clap::Parser;
 use fs_err as fs;
 use once_cell::sync::OnceCell;
 
-use crate::{Opts, QuestionPolicy, Subcommand};
+use crate::{utils::FileVisibilityPolicy, Opts, QuestionPolicy, Subcommand};
 
 /// Whether to enable accessible output (removes info output and reduces other
 /// output, removes visual markers like '[' and ']').
@@ -23,7 +23,7 @@ impl Opts {
     /// And:
     ///   1. Make paths absolute.
     ///   2. Checks the QuestionPolicy.
-    pub fn parse_args() -> crate::Result<(Self, QuestionPolicy)> {
+    pub fn parse_args() -> crate::Result<(Self, QuestionPolicy, FileVisibilityPolicy)> {
         let mut opts = Self::parse();
 
         ACCESSIBLE.set(opts.accessible).unwrap();
@@ -40,7 +40,14 @@ impl Opts {
             (true, true) => unreachable!(),
         };
 
-        Ok((opts, skip_questions_positively))
+        // TODO: change this to be just a single function call?
+        let file_visibility_policy = FileVisibilityPolicy::new()
+            .read_git_exclude(opts.gitignore)
+            .read_ignore(opts.gitignore)
+            .read_git_ignore(opts.gitignore)
+            .read_hidden(opts.hidden);
+
+        Ok((opts, skip_questions_positively, file_visibility_policy))
     }
 }
 

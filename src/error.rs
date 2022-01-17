@@ -172,8 +172,8 @@ impl From<zip::result::ZipError> for Error {
     }
 }
 
-impl From<walkdir::Error> for Error {
-    fn from(err: walkdir::Error) -> Self {
+impl From<ignore::Error> for Error {
+    fn from(err: ignore::Error) -> Self {
         Self::WalkdirError { reason: err.to_string() }
     }
 }
