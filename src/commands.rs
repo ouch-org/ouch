@@ -82,16 +82,16 @@ pub fn run(
                 // To          file.tar.bz.xz
                 let extensions_text: String = formats.iter().map(|format| format.to_string()).collect();
 
-                let output_path = to_utf(output_path);
+                let output_path = to_utf(&output_path).to_string();
 
                 // Breaks if Lzma is .lz or .lzma and not .xz
                 // Or if Bzip is .bz2 and not .bz
                 let extensions_start_position = output_path.rfind(&extensions_text).unwrap();
                 let pos = extensions_start_position - 1;
-                let mut suggested_output_path = output_path.clone();
+                let mut suggested_output_path = output_path.to_string();
                 suggested_output_path.insert_str(pos, ".tar");
 
-                let error = FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))
+                let error = FinalError::with_title(format!("Cannot compress to '{}'.", output_path))
                     .detail("You are trying to compress multiple files.")
                     .detail(format!("The compression format '{}' cannot receive multiple files.", &formats[0]))
                     .detail("The only supported formats that archive files into an archive are .tar and .zip.")
@@ -154,7 +154,7 @@ pub fn run(
                     info!(
                         accessible, // important information
                         "Partial compression detected. Compressing {} into {}",
-                        to_utf(files[0].as_path().file_name().unwrap()),
+                        to_utf(files[0].as_path().file_name().unwrap().as_ref()),
                         to_utf(&output_path)
                     );
                     formats = new_formats;
@@ -178,7 +178,7 @@ pub fn run(
                 // having a final status message is important especially in an accessibility context
                 // as screen readers may not read a commands exit code, making it hard to reason
                 // about whether the command succeeded without such a message
-                info!(accessible, "Successfully compressed '{}'.", to_utf(output_path));
+                info!(accessible, "Successfully compressed '{}'.", to_utf(&output_path));
             }
 
             compress_result?;
@@ -698,8 +698,8 @@ fn smart_unpack(
         info!(
             accessible,
             "Successfully moved {} to {}.",
-            nice_directory_display(&temp_dir_path),
-            nice_directory_display(&output_file_path)
+            nice_directory_display(temp_dir_path),
+            nice_directory_display(output_file_path)
         );
     }
     Ok(ControlFlow::Continue(files))
