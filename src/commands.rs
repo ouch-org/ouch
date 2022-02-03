@@ -279,6 +279,8 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
 // files are the list of paths to be compressed: ["dir/file1.txt", "dir/file2.txt"]
 // formats contains each format necessary for compression, example: [Tar, Gz] (in compression order)
 // output_file is the resulting compressed file name, example: "compressed.tar.gz"
+//
+// Returns Ok(true) if compressed all files successfully, and Ok(false) if user opted to skip files
 fn compress_files(
     files: Vec<PathBuf>,
     formats: Vec<Extension>,
