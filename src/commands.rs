@@ -29,6 +29,13 @@ use crate::{
     warning, Opts, QuestionAction, QuestionPolicy, Subcommand,
 };
 
+// Message used to advice the user that .zip archives have limitations that require it to load everything into memory at once
+// and this can lead to out-of-memory scenarios for archives that are big enough.
+const ZIP_IN_MEMORY_LIMITATION_WARNING: &str =
+    "\tThere is a limitation for .zip archives with extra extensions. (e.g. <file>.zip.gz)
+\tThe design of .zip makes it impossible to compress via stream, so it must be done entirely in memory.
+\tBy compressing .zip with extra compression formats, you can run out of RAM if the file is too large!";
+
 // Used in BufReader and BufWriter to perform less syscalls
 const BUFFER_CAPACITY: usize = 1024 * 64;
 
@@ -300,7 +307,8 @@ fn compress_files(
         .iter()
         .map(|f| (f.metadata().expect("file exists").len(), f.is_file()))
         .fold((0, true), |(total_size, and_precise), (size, precise)| (total_size + size, and_precise & precise));
-    //NOTE: canonicalize is here to avoid a weird bug:
+
+    // NOTE: canonicalize is here to avoid a weird bug:
     //      > If output_file_path is a nested path and it exists and the user overwrite it
     //      >> output_file_path.exists() will always return false (somehow)
     //      - canonicalize seems to fix this
@@ -364,11 +372,7 @@ fn compress_files(
         Zip => {
             if formats.len() > 1 {
                 eprintln!("{orange}[WARNING]{reset}", orange = *colors::ORANGE, reset = *colors::RESET);
-                eprintln!(
-                    "\tThere is a limitation for .zip archives with extra extensions. (e.g. <file>.zip.gz)\
-                    \n\tThe design of .zip makes it impossible to compress via stream, so it must be done entirely in memory.\
-                    \n\tBy compressing .zip with extra compression formats, you can run out of RAM if the file is too large!"
-                );
+                eprintln!("{}", ZIP_IN_MEMORY_LIMITATION_WARNING);
 
                 // give user the option to continue compressing after warning is shown
                 if !user_wants_to_continue(output_dir, question_policy, QuestionAction::Compression)? {
@@ -529,11 +533,7 @@ fn decompress_file(
         Zip => {
             if formats.len() > 1 {
                 eprintln!("{orange}[WARNING]{reset}", orange = *colors::ORANGE, reset = *colors::RESET);
-                eprintln!(
-                    "\tThere is a limitation for .zip archives with extra extensions. (e.g. <file>.zip.gz)\
-                    \n\tThe design of .zip makes it impossible to compress via stream, so it must be done entirely in memory.\
-                    \n\tBy compressing .zip with extra compression formats, you can run out of RAM if the file is too large!"
-                );
+                eprintln!("{}", ZIP_IN_MEMORY_LIMITATION_WARNING);
 
                 // give user the option to continue decompressing after warning is shown
                 if !user_wants_to_continue(input_file_path, question_policy, QuestionAction::Decompression)? {
@@ -628,11 +628,7 @@ fn list_archive_contents(
         Zip => {
             if formats.len() > 1 {
                 eprintln!("{orange}[WARNING]{reset}", orange = *colors::ORANGE, reset = *colors::RESET);
-                eprintln!(
-                    "\tThere is a limitation for .zip archives with extra extensions. (e.g. <file>.zip.gz)\
-                    \n\tThe design of .zip makes it impossible to compress via stream, so it must be done entirely in memory.\
-                    \n\tBy compressing .zip with extra compression formats, you can run out of RAM if the file is too large!"
-                );
+                eprintln!("{}", ZIP_IN_MEMORY_LIMITATION_WARNING);
 
                 // give user the option to continue decompressing after warning is shown
                 if !user_wants_to_continue(archive_path, question_policy, QuestionAction::Decompression)? {
