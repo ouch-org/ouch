@@ -9,19 +9,27 @@ use clap::{Parser, ValueHint};
 ///
 /// Repository: https://github.com/ouch-org/ouch
 #[derive(Parser, Debug)]
-#[clap(version)]
+#[clap(about, version)]
 pub struct Opts {
     /// Skip [Y/n] questions positively.
-    #[clap(short, long, conflicts_with = "no")]
+    #[clap(short, long, conflicts_with = "no", global = true)]
     pub yes: bool,
 
     /// Skip [Y/n] questions negatively.
-    #[clap(short, long)]
+    #[clap(short, long, global = true)]
     pub no: bool,
 
     /// Activate accessibility mode, reducing visual noise
-    #[clap(short = 'A', long, env = "ACCESSIBLE")]
+    #[clap(short = 'A', long, env = "ACCESSIBLE", global = true)]
     pub accessible: bool,
+
+    /// Ignores hidden files
+    #[clap(short = 'H', long)]
+    pub hidden: bool,
+
+    /// Ignores files matched by git's ignore files
+    #[clap(short = 'g', long)]
+    pub gitignore: bool,
 
     /// Ouch and claps subcommands
     #[clap(subcommand)]

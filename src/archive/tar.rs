@@ -10,13 +10,12 @@ use std::{
 
 use fs_err as fs;
 use tar;
-use walkdir::WalkDir;
 
 use crate::{
     error::FinalError,
     info,
     list::FileInArchive,
-    utils::{self, Bytes},
+    utils::{self, Bytes, FileVisibilityPolicy},
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `into`.
@@ -79,7 +78,12 @@ pub fn list_archive(
 }
 
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.
-pub fn build_archive_from_paths<W, D>(input_filenames: &[PathBuf], writer: W, mut display_handle: D) -> crate::Result<W>
+pub fn build_archive_from_paths<W, D>(
+    input_filenames: &[PathBuf],
+    writer: W,
+    file_visibility_policy: FileVisibilityPolicy,
+    mut display_handle: D,
+) -> crate::Result<W>
 where
     W: Write,
     D: Write,
@@ -92,7 +96,7 @@ where
         // Safe unwrap, input shall be treated before
         let filename = filename.file_name().unwrap();
 
-        for entry in WalkDir::new(&filename) {
+        for entry in file_visibility_policy.build_walker(filename) {
             let entry = entry?;
             let path = entry.path();
 

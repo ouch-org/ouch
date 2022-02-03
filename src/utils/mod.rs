@@ -4,10 +4,12 @@
 //! stdin interaction helpers.
 
 pub mod colors;
+mod file_visibility;
 mod formatting;
 mod fs;
 mod question;
 
+pub use file_visibility::FileVisibilityPolicy;
 pub use formatting::{concatenate_os_str_list, nice_directory_display, strip_cur_dir, to_utf, Bytes};
 pub use fs::{
     cd_into_same_dir_as, clear_path, create_dir_if_non_existent, dir_is_empty, is_symlink, try_infer_extension,

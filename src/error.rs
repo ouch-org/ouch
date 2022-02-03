@@ -2,7 +2,10 @@
 //!
 //! All usage errors will pass throught the Error enum, a lot of them in the Error::Custom.
 
-use std::fmt::{self, Display};
+use std::{
+    borrow::Cow,
+    fmt::{self, Display},
+};
 
 use crate::utils::colors::*;
 
@@ -35,15 +38,18 @@ pub enum Error {
 /// Alias to std's Result with ouch's Error
 pub type Result<T> = std::result::Result<T, Error>;
 
+/// A string either heap-allocated or located in static storage
+pub type CowStr = Cow<'static, str>;
+
 /// Pretty final error message for end users, crashing the program after display.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct FinalError {
     /// Should be made of just one line, appears after the "\[ERROR\]" part
-    title: String,
+    title: CowStr,
     /// Shown as a unnumbered list in yellow
-    details: Vec<String>,
+    details: Vec<CowStr>,
     /// Shown as green at the end to give hints on how to work around this error, if it's fixable
-    hints: Vec<String>,
+    hints: Vec<CowStr>,
 }
 
 impl Display for FinalError {
@@ -86,19 +92,22 @@ impl Display for FinalError {
 
 impl FinalError {
     /// Only constructor
-    pub fn with_title(title: impl ToString) -> Self {
-        Self { title: title.to_string(), details: vec![], hints: vec![] }
+    #[must_use]
+    pub fn with_title(title: impl Into<CowStr>) -> Self {
+        Self { title: title.into(), details: vec![], hints: vec![] }
     }
 
     /// Add one detail line, can have multiple
-    pub fn detail(mut self, detail: impl ToString) -> Self {
-        self.details.push(detail.to_string());
+    #[must_use]
+    pub fn detail(mut self, detail: impl Into<CowStr>) -> Self {
+        self.details.push(detail.into());
         self
     }
 
     /// Add one hint line, can have multiple
-    pub fn hint(mut self, hint: impl ToString) -> Self {
-        self.hints.push(hint.to_string());
+    #[must_use]
+    pub fn hint(mut self, hint: impl Into<CowStr>) -> Self {
+        self.hints.push(hint.into());
         self
     }
 }
@@ -106,19 +115,23 @@ impl FinalError {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let err = match self {
-            Error::WalkdirError { reason } => FinalError::with_title(reason),
-            Error::NotFound { error_title } => FinalError::with_title(error_title).detail("File not found"),
+            Error::WalkdirError { reason } => FinalError::with_title(reason.to_string()),
+            Error::NotFound { error_title } => FinalError::with_title(error_title.to_string()).detail("File not found"),
             Error::CompressingRootFolder => {
                 FinalError::with_title("It seems you're trying to compress the root folder.")
                     .detail("This is unadvisable since ouch does compressions in-memory.")
                     .hint("Use a more appropriate tool for this, such as rsync.")
             }
-            Error::IoError { reason } => FinalError::with_title(reason),
-            Error::Lz4Error { reason } => FinalError::with_title(reason),
-            Error::AlreadyExists { error_title } => FinalError::with_title(error_title).detail("File already exists"),
-            Error::InvalidZipArchive(reason) => FinalError::with_title("Invalid zip archive").detail(reason),
-            Error::PermissionDenied { error_title } => FinalError::with_title(error_title).detail("Permission denied"),
-            Error::UnsupportedZipArchive(reason) => FinalError::with_title("Unsupported zip archive").detail(reason),
+            Error::IoError { reason } => FinalError::with_title(reason.to_string()),
+            Error::Lz4Error { reason } => FinalError::with_title(reason.to_string()),
+            Error::AlreadyExists { error_title } => {
+                FinalError::with_title(error_title.to_string()).detail("File already exists")
+            }
+            Error::InvalidZipArchive(reason) => FinalError::with_title("Invalid zip archive").detail(*reason),
+            Error::PermissionDenied { error_title } => {
+                FinalError::with_title(error_title.to_string()).detail("Permission denied")
+            }
+            Error::UnsupportedZipArchive(reason) => FinalError::with_title("Unsupported zip archive").detail(*reason),
             Error::Custom { reason } => reason.clone(),
         };
 
@@ -159,8 +172,8 @@ impl From<zip::result::ZipError> for Error {
     }
 }
 
-impl From<walkdir::Error> for Error {
-    fn from(err: walkdir::Error) -> Self {
+impl From<ignore::Error> for Error {
+    fn from(err: ignore::Error) -> Self {
         Self::WalkdirError { reason: err.to_string() }
     }
 }

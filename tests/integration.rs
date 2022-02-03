@@ -6,7 +6,7 @@ use std::{iter::once, path::PathBuf};
 use fs_err as fs;
 use parse_display::Display;
 use proptest::sample::size_range;
-use rand::{rngs::SmallRng, RngCore, SeedableRng};
+use rand::{rngs::SmallRng, Rng, SeedableRng};
 use tempfile::tempdir;
 use test_strategy::{proptest, Arbitrary};
 
@@ -18,11 +18,13 @@ use crate::utils::{assert_same_directory, write_random_content};
 enum DirectoryExtension {
     Tar,
     Tbz,
+    Tbz2,
     Tgz,
     Tlz4,
     Tlzma,
     Tsz,
     Txz,
+    Tzst,
     Zip,
 }
 
@@ -37,6 +39,7 @@ enum FileExtension {
     Lzma,
     Sz,
     Xz,
+    Zst,
 }
 
 #[derive(Arbitrary, Debug, Display)]
@@ -60,12 +63,12 @@ fn create_random_files(dir: impl Into<PathBuf>, depth: u8, rng: &mut SmallRng) {
     let dir = &dir.into();
 
     // create 0 to 7 random files
-    for _ in 0..rng.next_u32() % 8 {
+    for _ in 0..rng.gen_range(0..8u32) {
         write_random_content(&mut tempfile::Builder::new().tempfile_in(dir).unwrap().keep().unwrap().0, rng);
     }
 
     // create more random files in 0 to 3 new directories
-    for _ in 0..rng.next_u32() % 4 {
+    for _ in 0..rng.gen_range(0..4u32) {
         create_random_files(&tempfile::tempdir_in(dir).unwrap().into_path(), depth - 1, rng);
     }
 }
@@ -81,8 +84,8 @@ fn single_empty_file(ext: Extension, #[any(size_range(0..8).lift())] exts: Vec<F
     let archive = &dir.join(format!("file.{}", merge_extensions(ext, exts)));
     let after = &dir.join("after");
     write_random_content(&mut fs::File::create(before_file).unwrap(), &mut SmallRng::from_entropy());
-    ouch!("c", before_file, archive);
-    ouch!("d", archive, "-d", after);
+    ouch!("-A", "c", before_file, archive);
+    ouch!("-A", "d", archive, "-d", after);
     assert_same_directory(before, after, false);
 }
 
@@ -97,8 +100,8 @@ fn single_file(ext: Extension, #[any(size_range(0..8).lift())] exts: Vec<FileExt
     let archive = &dir.join(format!("file.{}", merge_extensions(ext, exts)));
     let after = &dir.join("after");
     fs::write(before_file, []).unwrap();
-    ouch!("c", before_file, archive);
-    ouch!("d", archive, "-d", after);
+    ouch!("-A", "c", before_file, archive);
+    ouch!("-A", "d", archive, "-d", after);
     assert_same_directory(before, after, false);
 }
 
@@ -117,7 +120,7 @@ fn multiple_files(
     let archive = &dir.join(format!("archive.{}", merge_extensions(&ext, exts)));
     let after = &dir.join("after");
     create_random_files(before_dir, depth, &mut SmallRng::from_entropy());
-    ouch!("c", before_dir, archive);
-    ouch!("d", archive, "-d", after);
+    ouch!("-A", "c", before_dir, archive);
+    ouch!("-A", "d", archive, "-d", after);
     assert_same_directory(before, after, !matches!(ext, DirectoryExtension::Zip));
 }

@@ -24,7 +24,7 @@ use crate::{
     progress::Progress,
     utils::{
         self, concatenate_os_str_list, dir_is_empty, nice_directory_display, to_utf, try_infer_extension,
-        user_wants_to_continue,
+        user_wants_to_continue, FileVisibilityPolicy,
     },
     warning, Opts, QuestionAction, QuestionPolicy, Subcommand,
 };
@@ -43,7 +43,11 @@ fn represents_several_files(files: &[PathBuf]) -> bool {
 }
 
 /// Entrypoint of ouch, receives cli options and matches Subcommand to decide what to do
-pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
+pub fn run(
+    args: Opts,
+    question_policy: QuestionPolicy,
+    file_visibility_policy: FileVisibilityPolicy,
+) -> crate::Result<()> {
     match args.cmd {
         Subcommand::Compress { mut files, output: output_path } => {
             // If the output_path file exists and is the same as some of the input files, warn the user and skip those inputs (in order to avoid compression recursion)
@@ -156,7 +160,8 @@ pub fn run(args: Opts, question_policy: QuestionPolicy) -> crate::Result<()> {
                     formats = new_formats;
                 }
             }
-            let compress_result = compress_files(files, formats, output_file, &output_path, question_policy);
+            let compress_result =
+                compress_files(files, formats, output_file, &output_path, question_policy, file_visibility_policy);
 
             if let Ok(true) = compress_result {
                 // this is only printed once, so it doesn't result in much text. On the other hand,
@@ -287,6 +292,7 @@ fn compress_files(
     output_file: fs::File,
     output_dir: &Path,
     question_policy: QuestionPolicy,
+    file_visibility_policy: FileVisibilityPolicy,
 ) -> crate::Result<bool> {
     // The next lines are for displaying the progress bar
     // If the input files contain a directory, then the total size will be underestimated
@@ -350,6 +356,7 @@ fn compress_files(
             archive::tar::build_archive_from_paths(
                 &files,
                 &mut writer,
+                file_visibility_policy,
                 progress.as_mut().map(Progress::display_handle).unwrap_or(&mut io::stdout()),
             )?;
             writer.flush()?;
@@ -389,6 +396,7 @@ fn compress_files(
             archive::zip::build_archive_from_paths(
                 &files,
                 &mut vec_buffer,
+                file_visibility_policy,
                 progress.as_mut().map(Progress::display_handle).unwrap_or(&mut io::stdout()),
             )?;
             let vec_buffer = vec_buffer.into_inner();
