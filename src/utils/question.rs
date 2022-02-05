@@ -44,7 +44,7 @@ pub fn user_wants_to_overwrite(path: &Path, question_policy: QuestionPolicy) -> 
         QuestionPolicy::AlwaysNo => Ok(false),
         QuestionPolicy::Ask => {
             let path = to_utf(strip_cur_dir(path));
-            let path = Some(path.as_str());
+            let path = Some(&*path);
             let placeholder = Some("FILE");
             Confirmation::new("Do you want to overwrite 'FILE'?", placeholder).ask(path)
         }
@@ -87,7 +87,7 @@ pub fn user_wants_to_continue(
                 QuestionAction::Decompression => "decompressing",
             };
             let path = to_utf(strip_cur_dir(path));
-            let path = Some(path.as_str());
+            let path = Some(&*path);
             let placeholder = Some("FILE");
             Confirmation::new(&format!("Do you want to continue {} 'FILE'?", action), placeholder).ask(path)
         }
