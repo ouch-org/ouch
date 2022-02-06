@@ -33,7 +33,9 @@ where
     D: Write,
 {
     assert!(output_folder.read_dir().expect("dir exists").count() == 0);
-    let mut unpacked_files = vec![];
+
+    let mut unpacked_files = Vec::with_capacity(archive.len());
+
     for idx in 0..archive.len() {
         let mut file = archive.by_index(idx)?;
         let file_path = match file.enclosed_name() {
@@ -67,13 +69,15 @@ where
 
                 let mut output_file = fs::File::create(&file_path)?;
                 io::copy(&mut file, &mut output_file)?;
+
+                #[cfg(unix)]
+                set_last_modified_time(&output_file, &file)?;
             }
         }
 
         #[cfg(unix)]
         __unix_set_permissions(&file_path, &file)?;
 
-        let file_path = fs::canonicalize(&file_path)?;
         unpacked_files.push(file_path);
     }
 
@@ -202,6 +206,47 @@ fn check_for_comments(file: &ZipFile) {
         // accessibility mode..
         info!(accessible, "Found comment in {}: {}", file.name(), comment);
     }
+}
+
+#[cfg(unix)]
+/// Attempts to convert a [`zip::DateTime`] to a [`libc::timespec`].
+fn convert_zip_date_time(date_time: zip::DateTime) -> Option<libc::timespec> {
+    use time::{Date, Month, PrimitiveDateTime, Time};
+
+    // Safety: time::Month is repr(u8) and goes from 1 to 12
+    let month: Month = unsafe { std::mem::transmute(date_time.month()) };
+
+    let date = Date::from_calendar_date(date_time.year() as _, month, date_time.day()).ok()?;
+
+    let time = Time::from_hms(date_time.hour(), date_time.minute(), date_time.second()).ok()?;
+
+    let date_time = PrimitiveDateTime::new(date, time);
+    let timestamp = date_time.assume_utc().unix_timestamp();
+
+    Some(libc::timespec { tv_sec: timestamp, tv_nsec: 0 })
+}
+
+#[cfg(unix)]
+fn set_last_modified_time(file: &fs::File, zip_file: &ZipFile) -> crate::Result<()> {
+    use std::os::unix::prelude::AsRawFd;
+
+    use libc::UTIME_NOW;
+
+    let now = libc::timespec { tv_sec: 0, tv_nsec: UTIME_NOW };
+
+    let last_modified = zip_file.last_modified();
+    let last_modified = convert_zip_date_time(last_modified).unwrap_or(now);
+
+    // The first value is the last accessed time, which we'll set as being right now.
+    // The second value is the last modified time, which we'll copy over from the zip archive
+    let times = [now, last_modified];
+
+    let output_fd = file.as_raw_fd();
+
+    // TODO: check for -1
+    unsafe { libc::futimens(output_fd, &times as *const _) };
+
+    Ok(())
 }
 
 #[cfg(unix)]
