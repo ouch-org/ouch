@@ -28,9 +28,11 @@ xz2 = "0.1.6"
 zip = { version = "0.5.13", default-features = false }
 zstd = { version = "0.9.0", default-features = false }
 tempfile = "3.2.0"
-time = { version = "0.3.7", default-features = false }
 ignore = "0.4.18"
 indicatif = "0.16.2"
+
+[target.'cfg(unix)'.dependencies]
+time = { version = "0.3.7", default-features = false }
 
 [build-dependencies]
 clap = { version = "3.0.4", features = ["derive", "env"] }
