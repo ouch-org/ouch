@@ -1,4 +1,4 @@
-use std::{env, fs::create_dir_all, path::Path};
+use std::{env, fs::create_dir_all};
 
 use clap::{ArgEnum, IntoApp};
 use clap_complete::{generate_to, Shell};
@@ -12,7 +12,11 @@ fn main() {
         return;
     }
 
-    let out = &Path::new(&env::var_os("OUT_DIR").unwrap()).join("completions");
+    let out = &env::var_os("OUCH_COMPLETIONS_DIR")
+        .map(|path| PathBuf::from(&path))
+        .or_else(|| env::var_os("OUT_DIR").map(|path| PathBuf::from(&path)).map(|path| path.join("completions")))
+        .unwrap();
+
     create_dir_all(out).unwrap();
     let app = &mut Opts::into_app();
 
