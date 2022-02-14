@@ -120,7 +120,7 @@ pub fn run(
             let output_file = fs::File::create(&output_path)?;
 
             if !represents_several_files(&files) {
-                // It's possible the file is already partially compressed so we don't want to compress it again
+                // It is possible the file is already partially compressed so we don't want to compress it again
                 // `ouch compress file.tar.gz file.tar.gz.xz` should produce `file.tar.gz.xz` and not `file.tar.gz.tar.gz.xz`
                 let input_extensions = extension::extensions_from_path(&files[0]);
 
