@@ -43,7 +43,7 @@ assert_cmd = "2.0.4"
 infer = "0.7.0"
 parse-display = "0.5.4"
 proptest = "1.0.0"
-rand = { version = "0.8.3", default-features = false, features = ["small_rng", "std"] }
+rand = { version = "0.8.5", default-features = false, features = ["small_rng", "std"] }
 test-strategy = "0.1.2"
 
 [features]
