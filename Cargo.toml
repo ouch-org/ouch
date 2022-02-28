@@ -40,7 +40,7 @@ clap_complete = "3.1.0"
 
 [dev-dependencies]
 assert_cmd = "2.0.4"
-infer = "0.5.0"
+infer = "0.7.0"
 parse-display = "0.5.3"
 proptest = "1.0.0"
 rand = { version = "0.8.3", default-features = false, features = ["small_rng", "std"] }
