@@ -445,9 +445,9 @@ dependencies = [
 
 [[package]]
 name = "lzzzz"
-version = "0.8.0"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6d891cedd3b1659c206a60ff8afd15bccd7c2754b157f8a164861989e042b88"
+checksum = "e8be9301236955fb2b31545b8d4be8b28b8057cd5fbfa30dfef899e5c64b7079"
 dependencies = [
  "cc",
 ]
