@@ -1,13 +1,20 @@
-use std::{borrow::Cow, cmp, ffi::OsStr, path::Path};
+use std::{borrow::Cow, cmp, path::Path};
 
+// The lifetimes here could elided but I think they help
+// comprehension in this case
+#[allow(clippy::needless_lifetimes)]
 /// Converts an OsStr to utf8 with custom formatting.
 ///
 /// This is different from [`Path::display`].
 ///
 /// See <https://gist.github.com/marcospb19/ebce5572be26397cf08bbd0fd3b65ac1> for a comparison.
-pub fn to_utf(os_str: impl AsRef<OsStr>) -> String {
-    let text = format!("{:?}", os_str.as_ref());
-    text.trim_matches('"').to_string()
+pub fn to_utf<'a>(os_str: &'a Path) -> Cow<'a, str> {
+    let format = || {
+        let text = format!("{:?}", os_str);
+        Cow::Owned(text.trim_matches('"').to_string())
+    };
+
+    os_str.to_str().map_or_else(format, Cow::Borrowed)
 }
 
 /// Removes the current dir from the beginning of a path
@@ -21,25 +28,27 @@ pub fn strip_cur_dir(source_path: &Path) -> &Path {
 /// Converts a slice of AsRef<OsStr> to comma separated String
 ///
 /// Panics if the slice is empty.
-pub fn concatenate_os_str_list(os_strs: &[impl AsRef<OsStr>]) -> String {
+pub fn concatenate_os_str_list(os_strs: &[impl AsRef<Path>]) -> String {
     let mut iter = os_strs.iter().map(AsRef::as_ref);
 
-    let mut string = to_utf(iter.next().unwrap()); // May panic
+    let mut string = to_utf(iter.next().unwrap()).to_string(); // May panic
 
     for os_str in iter {
         string += ", ";
-        string += &to_utf(os_str);
+        string += &*to_utf(os_str);
     }
     string
 }
 
+// The lifetimes here could elided but I think they help
+// comprehension in this case
+#[allow(clippy::needless_lifetimes)]
 /// Display the directory name, but change to "current directory" when necessary.
-pub fn nice_directory_display(os_str: impl AsRef<OsStr>) -> Cow<'static, str> {
-    if os_str.as_ref() == "." {
+pub fn nice_directory_display<'a>(path: &'a Path) -> Cow<'a, str> {
+    if path == Path::new(".") {
         Cow::Borrowed("current directory")
     } else {
-        let text = to_utf(os_str);
-        Cow::Owned(format!("'{}'", text))
+        to_utf(path)
     }
 }
 
