@@ -14,7 +14,7 @@ fn main() {
 
     let out = &Path::new(&env::var_os("OUT_DIR").unwrap()).join("completions");
     create_dir_all(out).unwrap();
-    let app = &mut Opts::into_app();
+    let app = &mut Opts::command();
 
     for shell in Shell::value_variants() {
         generate_to(*shell, app, "ouch", out).unwrap();
