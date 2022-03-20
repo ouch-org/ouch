@@ -33,7 +33,7 @@
 /// - `target/debug/build/ouch-195b34a8adca6ec3/out/completions`
 ///
 /// The _"195b34a8adca6ec3"_ part is a hash that might change between runs.
-use std::{env, ffi::OsStr, fs::create_dir_all, path::Path};
+use std::{env, fs::create_dir_all, path::Path};
 
 use clap::{ArgEnum, IntoApp};
 use clap_complete::{generate_to, Shell};
@@ -64,12 +64,12 @@ fn detect_completions_output_directory() -> Option<PathBuf> {
     };
 
     // If set, directory goes inside of cargo's `target/`
-    let gen_completions = env::var_os("GEN_COMPLETIONS").map(|var| &var == OsStr::new("1")).unwrap_or(false);
+    let gen_completions = env::var_os("GEN_COMPLETIONS").map(|var| &var == "1").unwrap_or(false);
     if gen_completions {
         let out_dir = env::var_os("OUT_DIR").unwrap();
         let dir = Path::new(&out_dir).join("completions");
-        return Some(dir);
+        Some(dir)
+    } else {
+        None
     }
-
-    return None;
 }
