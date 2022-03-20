@@ -45,7 +45,7 @@ fn main() {
 
     if let Some(completions_output_directory) = detect_completions_output_directory() {
         create_dir_all(&completions_output_directory).expect("Could not create shell completions output folder.");
-        let app = &mut Opts::into_app();
+        let app = &mut Opts::command();
 
         for shell in Shell::value_variants() {
             generate_to(*shell, app, "ouch", &completions_output_directory)
