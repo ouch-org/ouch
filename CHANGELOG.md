@@ -83,12 +83,13 @@ Categories Used:
 - Remove redundant user_wants_to_continue function [\#227](https://github.com/ouch-org/ouch/pull/227) ([Crypto-Spartan](https://github.com/Crypto-Spartan))
 - Fix missing \#\[must_use\] attribute on a method returning `Self` [\#243](https://github.com/ouch-org/ouch/pull/243) ([vrmiguel](https://github.com/vrmiguel))
 - Update dependencies [\#253](https://github.com/ouch-org/ouch/pull/253) ([Crypto-Spartan](https://github.com/Crypto-Spartan))
-- Update dependencies, again [\#257](https://github.com/ouch-org/ouch/pull/257) ([Artturin](https://github.com/Artturin))
+- Update dependencies [\#257](https://github.com/ouch-org/ouch/pull/257) ([Artturin](https://github.com/Artturin))
 
 ### New Contributors
 
 - [@sigmaSd](https://github.com/sigmaSd) made their first contribution in [\#154](https://github.com/ouch-org/ouch/pull/154)
 - [@Crypto-Spartan](https://github.com/Crypto-Spartan) made their first contribution in [\#217](https://github.com/ouch-org/ouch/pull/217)
+- [@Artturin](https://github.com/Artturin) made their first contribution in [\#257](https://github.com/ouch-org/ouch/pull/257)
 
 ## [0.3.1](https://github.com/ouch-org/ouch/compare/0.3.0...0.3.1) (2021-11-02)
 
