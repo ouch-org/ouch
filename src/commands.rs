@@ -711,7 +711,7 @@ fn smart_unpack(
 
 fn check_mime_type(
     files: &[PathBuf],
-    formats: &mut Vec<Vec<Extension>>,
+    formats: &mut [Vec<Extension>],
     question_policy: QuestionPolicy,
 ) -> crate::Result<ControlFlow<()>> {
     for (path, format) in files.iter().zip(formats.iter_mut()) {
