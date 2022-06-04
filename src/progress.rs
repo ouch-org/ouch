@@ -8,6 +8,8 @@ use std::{
 
 use indicatif::{ProgressBar, ProgressStyle};
 
+use crate::accessible::is_running_in_accessible_mode;
+
 /// Draw a ProgressBar using a function that checks periodically for the progress
 pub struct Progress {
     draw_stop: Sender<()>,
@@ -51,7 +53,7 @@ impl Progress {
         precise: bool,
         current_position_fn: Option<Box<dyn Fn() -> u64 + Send>>,
     ) -> Option<Self> {
-        if *crate::cli::ACCESSIBLE.get().unwrap() {
+        if is_running_in_accessible_mode() {
             return None;
         }
         Some(Self::new(total_input_size, precise, current_position_fn))

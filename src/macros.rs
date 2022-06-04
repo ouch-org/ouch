@@ -1,5 +1,7 @@
 //! Macros used on ouch.
 
+use crate::accessible::is_running_in_accessible_mode;
+
 /// Macro that prints \[INFO\] messages, wraps [`println`].
 ///
 /// There are essentially two different versions of the `info!()` macro:
@@ -28,7 +30,7 @@ macro_rules! info {
     (@$display_handle: expr, accessible, $($arg:tt)*) => {
         let display_handle = &mut $display_handle;
         // if in ACCESSIBLE mode, suppress the "[INFO]" and just print the message
-        if !(*$crate::cli::ACCESSIBLE.get().unwrap()) {
+        if !$crate::accessible::is_running_in_accessible_mode() {
             $crate::macros::_info_helper(display_handle);
         }
         writeln!(display_handle, $($arg)*).unwrap();
@@ -39,8 +41,7 @@ macro_rules! info {
         info!(@::std::io::stdout(), inaccessible, $($arg)*);
     };
     (@$display_handle: expr, inaccessible, $($arg:tt)*) => {
-        if (!$crate::cli::ACCESSIBLE.get().unwrap())
-        {
+        if !$crate::accessible::is_running_in_accessible_mode() {
             let display_handle = &mut $display_handle;
             $crate::macros::_info_helper(display_handle);
             writeln!(display_handle, $($arg)*).unwrap();
@@ -68,7 +69,7 @@ macro_rules! warning {
 pub fn _warning_helper() {
     use crate::utils::colors::{ORANGE, RESET};
 
-    if *crate::cli::ACCESSIBLE.get().unwrap() {
+    if is_running_in_accessible_mode() {
         eprint!("{}Warning:{} ", *ORANGE, *RESET);
     } else {
         eprint!("{}[WARNING]{} ", *ORANGE, *RESET);

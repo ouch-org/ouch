@@ -20,14 +20,14 @@ use crate::{
 
 // Compress files into an `output_file`
 //
-// files are the list of paths to be compressed: ["dir/file1.txt", "dir/file2.txt"]
-// formats contains each format necessary for compression, example: [Tar, Gz] (in compression order)
-// output_file is the resulting compressed file name, example: "compressed.tar.gz"
+// - `files`: is the list of paths to be compressed: ["dir/file1.txt", "dir/file2.txt"]
+// - `extensions`: contains each compression format necessary for compressing, example: [Tar, Gz] (in compression order)
+// - `output_file` is the resulting compressed file name, example: "compressed.tar.gz"
 //
 // Returns Ok(true) if compressed all files successfully, and Ok(false) if user opted to skip files
 pub fn compress_files(
     files: Vec<PathBuf>,
-    formats: Vec<Extension>,
+    extensions: Vec<Extension>,
     output_file: fs::File,
     output_dir: &Path,
     question_policy: QuestionPolicy,
@@ -72,13 +72,13 @@ pub fn compress_files(
         Ok(encoder)
     };
 
-    let (first_extension, extensions) = split_first_compression_format(&formats);
+    let (first_format, formats) = split_first_compression_format(&extensions);
 
-    for format in extensions.iter().rev() {
+    for format in formats.iter().rev() {
         writer = chain_writer_encoder(format, writer)?;
     }
 
-    match first_extension {
+    match first_format {
         Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {
             let _progress = Progress::new_accessible_aware(
                 total_input_size,
@@ -88,7 +88,7 @@ pub fn compress_files(
                 })),
             );
 
-            writer = chain_writer_encoder(&first_extension, writer)?;
+            writer = chain_writer_encoder(&first_format, writer)?;
             let mut reader = fs::File::open(&files[0]).unwrap();
             io::copy(&mut reader, &mut writer)?;
         }
@@ -113,7 +113,7 @@ pub fn compress_files(
             writer.flush()?;
         }
         Zip => {
-            if formats.len() > 1 {
+            if !formats.is_empty() {
                 warn_user_about_loading_zip_in_memory();
 
                 // give user the option to continue compressing after warning is shown

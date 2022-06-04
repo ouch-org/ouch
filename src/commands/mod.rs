@@ -1,6 +1,4 @@
-//! Core of the crate, where the `compress_files` and `decompress_file` functions are implemented
-//!
-//! Also, where correctly call functions based on the detected `Command`.
+//! Receive command from the cli and call the respective function for that command.
 
 mod compress;
 mod decompress;

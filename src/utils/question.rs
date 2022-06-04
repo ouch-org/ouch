@@ -13,6 +13,7 @@ use fs_err as fs;
 
 use super::{strip_cur_dir, to_utf};
 use crate::{
+    accessible::is_running_in_accessible_mode,
     error::{Error, Result},
     utils::colors,
 };
@@ -126,7 +127,7 @@ impl<'a> Confirmation<'a> {
 
         // Ask the same question to end while no valid answers are given
         loop {
-            if *crate::cli::ACCESSIBLE.get().unwrap() {
+            if is_running_in_accessible_mode() {
                 print!(
                     "{} {}yes{}/{}no{}: ",
                     message,
