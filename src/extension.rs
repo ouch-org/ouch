@@ -23,9 +23,9 @@ impl PartialEq for Extension {
 impl Extension {
     /// # Panics:
     ///   Will panic if `formats` is empty
-    pub fn new(formats: &'static [CompressionFormat], text: impl Into<String>) -> Self {
+    pub fn new(formats: &'static [CompressionFormat], text: impl ToString) -> Self {
         assert!(!formats.is_empty());
-        Self { compression_formats: formats, display_text: text.into() }
+        Self { compression_formats: formats, display_text: text.to_string() }
     }
 
     /// Checks if the first format in `compression_formats` is an archive

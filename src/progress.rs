@@ -78,21 +78,21 @@ impl Progress {
                 t += "({bytes_per_sec}, {eta}) {path}";
                 t
             };
-            let pb = ProgressBar::new(total_input_size);
-            pb.set_style(ProgressStyle::default_bar().template(&template).progress_chars("#>-"));
+            let bar = ProgressBar::new(total_input_size);
+            bar.set_style(ProgressStyle::default_bar().template(&template).progress_chars("#>-"));
 
             while draw_rx.try_recv().is_err() {
                 if let Some(ref pos_fn) = current_position_fn {
-                    pb.set_position(pos_fn());
+                    bar.set_position(pos_fn());
                 } else {
-                    pb.tick();
+                    bar.tick();
                 }
                 if let Ok(msg) = msg_rx.try_recv() {
-                    pb.set_message(msg);
+                    bar.set_message(msg);
                 }
                 thread::sleep(Duration::from_millis(100));
             }
-            pb.finish();
+            bar.finish();
             let _ = clean_tx.send(());
         });
 

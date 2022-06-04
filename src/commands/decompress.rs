@@ -97,8 +97,7 @@ pub fn decompress_file(
         reader = chain_reader_decoder(format, reader)?;
     }
 
-    let files_unpacked;
-    match formats[0].compression_formats[0] {
+    let files_unpacked = match formats[0].compression_formats[0] {
         Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {
             reader = chain_reader_decoder(&formats[0].compression_formats[0], reader)?;
 
@@ -116,10 +115,10 @@ pub fn decompress_file(
             let _progress = Progress::new_accessible_aware(total_input_size, true, Some(current_position_fn));
 
             io::copy(&mut reader, &mut writer)?;
-            files_unpacked = vec![output_file_path];
+            vec![output_file_path]
         }
         Tar => {
-            files_unpacked = if let ControlFlow::Continue(files) = smart_unpack(
+            if let ControlFlow::Continue(files) = smart_unpack(
                 Box::new(move |output_dir| {
                     let mut progress = Progress::new_accessible_aware(total_input_size, true, None);
                     crate::archive::tar::unpack_archive(
@@ -135,7 +134,7 @@ pub fn decompress_file(
                 files
             } else {
                 return Ok(());
-            };
+            }
         }
         Zip => {
             if formats.len() > 1 {
@@ -151,7 +150,7 @@ pub fn decompress_file(
             io::copy(&mut reader, &mut vec)?;
             let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
 
-            files_unpacked = if let ControlFlow::Continue(files) = smart_unpack(
+            if let ControlFlow::Continue(files) = smart_unpack(
                 Box::new(move |output_dir| {
                     let mut progress = Progress::new_accessible_aware(total_input_size, true, None);
                     crate::archive::zip::unpack_archive(
@@ -167,9 +166,9 @@ pub fn decompress_file(
                 files
             } else {
                 return Ok(());
-            };
+            }
         }
-    }
+    };
 
     // this is only printed once, so it doesn't result in much text. On the other hand,
     // having a final status message is important especially in an accessibility context

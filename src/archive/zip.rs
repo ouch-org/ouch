@@ -45,7 +45,7 @@ where
 
         let file_path = output_folder.join(file_path);
 
-        check_for_comments(&file);
+        display_zip_comment_if_exists(&file);
 
         match (&*file.name()).ends_with('/') {
             _is_dir @ true => {
@@ -191,7 +191,7 @@ where
     Ok(bytes)
 }
 
-fn check_for_comments(file: &ZipFile) {
+fn display_zip_comment_if_exists(file: &ZipFile) {
     let comment = file.comment();
     if !comment.is_empty() {
         // Zip file comments seem to be pretty rare, but if they are used,
