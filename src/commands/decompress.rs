@@ -9,6 +9,7 @@ use fs_err as fs;
 use crate::{
     commands::warn_user_about_in_memory_zip_decompression,
     extension::{
+        split_first_extension,
         CompressionFormat::{self, *},
         Extension,
     },
@@ -34,6 +35,7 @@ pub fn decompress_file(
     assert!(output_dir.exists());
     let total_input_size = input_file_path.metadata().expect("file exists").len();
     let reader = fs::File::open(&input_file_path)?;
+
     // Zip archives are special, because they require io::Seek, so it requires it's logic separated
     // from decoder chaining.
     //
@@ -41,7 +43,7 @@ pub fn decompress_file(
     // in-memory decompression/copying first.
     //
     // Any other Zip decompression done can take up the whole RAM and freeze ouch.
-    if formats.len() == 1 && *formats[0].compression_formats == [Zip] {
+    if let [Extension { compression_formats: [Zip], .. }] = formats.as_slice() {
         let zip_archive = zip::ZipArchive::new(reader)?;
         let files = if let ControlFlow::Continue(files) = smart_unpack(
             Box::new(move |output_dir| {
@@ -93,13 +95,15 @@ pub fn decompress_file(
         Ok(decoder)
     };
 
-    for format in formats.iter().flat_map(Extension::iter).skip(1).collect::<Vec<_>>().iter().rev() {
+    let (first_extension, extensions) = split_first_extension(&formats);
+
+    for format in extensions.iter().rev() {
         reader = chain_reader_decoder(format, reader)?;
     }
 
-    let files_unpacked = match formats[0].compression_formats[0] {
+    let files_unpacked = match first_extension {
         Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {
-            reader = chain_reader_decoder(&formats[0].compression_formats[0], reader)?;
+            reader = chain_reader_decoder(&first_extension, reader)?;
 
             let writer = utils::create_or_ask_overwrite(&output_file_path, question_policy)?;
             if writer.is_none() {

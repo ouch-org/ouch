@@ -9,6 +9,7 @@ use crate::{
     archive,
     commands::warn_user_about_in_memory_zip_compression,
     extension::{
+        split_first_extension,
         CompressionFormat::{self, *},
         Extension,
     },
@@ -69,11 +70,13 @@ pub fn compress_files(
         Ok(encoder)
     };
 
-    for format in formats.iter().flat_map(Extension::iter).skip(1).collect::<Vec<_>>().iter().rev() {
+    let (first_extension, extensions) = split_first_extension(&formats);
+
+    for format in extensions.iter().rev() {
         writer = chain_writer_encoder(format, writer)?;
     }
 
-    match formats[0].compression_formats[0] {
+    match first_extension {
         Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {
             let _progress = Progress::new_accessible_aware(
                 total_input_size,
@@ -81,7 +84,7 @@ pub fn compress_files(
                 Some(Box::new(move || output_file_path.metadata().expect("file exists").len())),
             );
 
-            writer = chain_writer_encoder(&formats[0].compression_formats[0], writer)?;
+            writer = chain_writer_encoder(&first_extension, writer)?;
             let mut reader = fs::File::open(&files[0]).unwrap();
             io::copy(&mut reader, &mut writer)?;
         }

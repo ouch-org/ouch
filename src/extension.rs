@@ -171,3 +171,10 @@ mod tests {
         assert_eq!(formats, vec![&Tar, &Gzip]);
     }
 }
+
+// Panics if formats has an empty list of compression formats
+pub fn split_first_extension(formats: &[Extension]) -> (CompressionFormat, Vec<CompressionFormat>) {
+    let mut extensions: Vec<CompressionFormat> = formats.iter().flat_map(Extension::iter).copied().collect();
+    let first_extension = extensions.remove(0);
+    (first_extension, extensions)
+}
