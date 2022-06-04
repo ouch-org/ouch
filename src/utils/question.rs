@@ -83,13 +83,13 @@ pub fn user_wants_to_continue(
         QuestionPolicy::AlwaysNo => Ok(false),
         QuestionPolicy::Ask => {
             let action = match question_action {
-                QuestionAction::Compression => "compressing",
-                QuestionAction::Decompression => "decompressing",
+                QuestionAction::Compression => "compress",
+                QuestionAction::Decompression => "decompress",
             };
             let path = to_utf(strip_cur_dir(path));
             let path = Some(&*path);
             let placeholder = Some("FILE");
-            Confirmation::new(&format!("Do you want to continue {} 'FILE'?", action), placeholder).ask(path)
+            Confirmation::new(&format!("Do you want to {} 'FILE'?", action), placeholder).ask(path)
         }
     }
 }

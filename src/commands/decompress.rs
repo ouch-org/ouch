@@ -7,7 +7,7 @@ use std::{
 use fs_err as fs;
 
 use crate::{
-    commands::warn_user_about_in_memory_zip_decompression,
+    commands::warn_user_about_loading_zip_in_memory,
     extension::{
         split_first_compression_format,
         CompressionFormat::{self, *},
@@ -152,7 +152,7 @@ pub fn decompress_file(
         }
         Zip => {
             if formats.len() > 1 {
-                warn_user_about_in_memory_zip_decompression();
+                warn_user_about_loading_zip_in_memory();
 
                 // give user the option to continue decompressing after warning is shown
                 if !user_wants_to_continue(input_file_path, question_policy, QuestionAction::Decompression)? {
@@ -233,7 +233,7 @@ fn smart_unpack(
             .file_name()
             .expect("Should be safe because paths in archives should not end with '..'");
         let correct_path = output_dir.join(file_name);
-        // One case to handle tough is we need to check if a file with the same name already exists
+        // Before moving, need to check if a file with the same name already exists
         if !utils::clear_path(&correct_path, question_policy)? {
             return Ok(ControlFlow::Break(()));
         }
@@ -246,7 +246,7 @@ fn smart_unpack(
         );
     } else {
         // Multiple files in the root directory, so:
-        // Rename  the temporary directory to the archive name, which is output_file_path
+        // Rename the temporary directory to the archive name, which is output_file_path
         // One case to handle tough is we need to check if a file with the same name already exists
         if !utils::clear_path(output_file_path, question_policy)? {
             return Ok(ControlFlow::Break(()));

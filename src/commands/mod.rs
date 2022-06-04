@@ -28,28 +28,12 @@ use crate::{
     warning, Opts, QuestionAction, QuestionPolicy, Subcommand,
 };
 
-/// Warn the user that .zip archives have limitations that require it to compress everything
-/// in-memory when working with multiple chained formats.
-///
-/// This can sadly lead to out-of-memory scenarios for big archives.
-fn warn_user_about_in_memory_zip_compression() {
-    const ZIP_IN_MEMORY_LIMITATION_WARNING: &str =
-        "\tThere is a limitation for .zip archives with extra extensions. (e.g. <file>.zip.gz)\n\
-         \tThe design of .zip makes it impossible to compress via stream, so it must be done entirely in memory.\n\
-         \tBy compressing .zip with extra compression formats, you can run out of RAM if the file is too large!";
-
-    warning!("{}", ZIP_IN_MEMORY_LIMITATION_WARNING);
-}
-
-/// Warn the user that .zip archives have limitations that require it to decompress everything
-/// in-memory when working with multiple chained formats.
-///
-/// This can sadly lead to out-of-memory scenarios for big archives.
-fn warn_user_about_in_memory_zip_decompression() {
-    const ZIP_IN_MEMORY_LIMITATION_WARNING: &str =
-        "\tThere is a limitation for .zip archives with extra extensions. (e.g. <file>.zip.gz)\n\
-         \tThe design of .zip makes it impossible to compress via stream, so it must be done entirely in memory.\n\
-         \tBy compressing .zip with extra compression formats, you can run out of RAM if the file is too large!";
+/// Warn the user that (de)compressing this .zip archive might freeze their system.
+fn warn_user_about_loading_zip_in_memory() {
+    const ZIP_IN_MEMORY_LIMITATION_WARNING: &str = "\n\
+        \tThe format '.zip' is limited and cannot be (de)compressed using encoding streams.\n\
+        \tWhen using '.zip' with other formats, (de)compression must be done in-memory\n\
+        \tCareful, you might run out of RAM if the archive is too large!";
 
     warning!("{}", ZIP_IN_MEMORY_LIMITATION_WARNING);
 }

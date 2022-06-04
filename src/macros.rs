@@ -69,8 +69,8 @@ pub fn _warning_helper() {
     use crate::utils::colors::{ORANGE, RESET};
 
     if *crate::cli::ACCESSIBLE.get().unwrap() {
-        print!("{}Warning:{} ", *ORANGE, *RESET);
+        eprint!("{}Warning:{} ", *ORANGE, *RESET);
     } else {
-        print!("{}[WARNING]{} ", *ORANGE, *RESET);
+        eprint!("{}[WARNING]{} ", *ORANGE, *RESET);
     }
 }

@@ -6,7 +6,7 @@ use std::{
 use fs_err as fs;
 
 use crate::{
-    commands::warn_user_about_in_memory_zip_decompression,
+    commands::warn_user_about_loading_zip_in_memory,
     extension::CompressionFormat::{self, *},
     list::{self, FileInArchive, ListOptions},
     utils::user_wants_to_continue,
@@ -30,7 +30,7 @@ pub fn list_archive_contents(
     // in-memory decompression/copying first.
     //
     // Any other Zip decompression done can take up the whole RAM and freeze ouch.
-    if let [Zip] = *formats.as_slice() {
+    if let &[Zip] = formats.as_slice() {
         let zip_archive = zip::ZipArchive::new(reader)?;
         let files = crate::archive::zip::list_archive(zip_archive);
         list::list_files(archive_path, files, list_options)?;
@@ -65,7 +65,7 @@ pub fn list_archive_contents(
         Tar => Box::new(crate::archive::tar::list_archive(tar::Archive::new(reader))),
         Zip => {
             if formats.len() > 1 {
-                warn_user_about_in_memory_zip_decompression();
+                warn_user_about_loading_zip_in_memory();
 
                 // give user the option to continue decompressing after warning is shown
                 if !user_wants_to_continue(archive_path, question_policy, QuestionAction::Decompression)? {

@@ -7,7 +7,7 @@ use fs_err as fs;
 
 use crate::{
     archive,
-    commands::warn_user_about_in_memory_zip_compression,
+    commands::warn_user_about_loading_zip_in_memory,
     extension::{
         split_first_compression_format,
         CompressionFormat::{self, *},
@@ -114,7 +114,7 @@ pub fn compress_files(
         }
         Zip => {
             if formats.len() > 1 {
-                warn_user_about_in_memory_zip_compression();
+                warn_user_about_loading_zip_in_memory();
 
                 // give user the option to continue compressing after warning is shown
                 if !user_wants_to_continue(output_dir, question_policy, QuestionAction::Compression)? {
