@@ -68,7 +68,7 @@ macro_rules! warning {
 pub fn _warning_helper() {
     use crate::utils::colors::{ORANGE, RESET};
 
-    if !crate::cli::ACCESSIBLE.get().unwrap() {
+    if *crate::cli::ACCESSIBLE.get().unwrap() {
         print!("{}Warning:{} ", *ORANGE, *RESET);
     } else {
         print!("{}[WARNING]{} ", *ORANGE, *RESET);
