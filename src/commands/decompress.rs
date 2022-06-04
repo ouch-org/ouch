@@ -9,7 +9,7 @@ use fs_err as fs;
 use crate::{
     commands::warn_user_about_in_memory_zip_decompression,
     extension::{
-        split_first_extension,
+        split_first_compression_format,
         CompressionFormat::{self, *},
         Extension,
     },
@@ -95,7 +95,7 @@ pub fn decompress_file(
         Ok(decoder)
     };
 
-    let (first_extension, extensions) = split_first_extension(&formats);
+    let (first_extension, extensions) = split_first_compression_format(&formats);
 
     for format in extensions.iter().rev() {
         reader = chain_reader_decoder(format, reader)?;

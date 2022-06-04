@@ -9,7 +9,7 @@ use crate::{
     archive,
     commands::warn_user_about_in_memory_zip_compression,
     extension::{
-        split_first_extension,
+        split_first_compression_format,
         CompressionFormat::{self, *},
         Extension,
     },
@@ -70,7 +70,7 @@ pub fn compress_files(
         Ok(encoder)
     };
 
-    let (first_extension, extensions) = split_first_extension(&formats);
+    let (first_extension, extensions) = split_first_compression_format(&formats);
 
     for format in extensions.iter().rev() {
         writer = chain_writer_encoder(format, writer)?;

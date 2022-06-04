@@ -18,7 +18,7 @@ use utils::colors;
 use crate::{
     commands::{compress::compress_files, decompress::decompress_file, list::list_archive_contents},
     error::FinalError,
-    extension::{self, Extension},
+    extension::{self, flatten_compression_formats, Extension},
     info,
     list::ListOptions,
     utils::{
@@ -296,7 +296,7 @@ pub fn run(
                 if i > 0 {
                     println!();
                 }
-                let formats = formats.iter().flat_map(Extension::iter).map(Clone::clone).collect();
+                let formats = flatten_compression_formats(&formats);
                 list_archive_contents(archive_path, formats, list_options, question_policy)?;
             }
         }
