@@ -22,7 +22,7 @@ use crate::{
     info,
     list::ListOptions,
     utils::{
-        self, concatenate_os_str_list, dir_is_empty, to_utf, try_infer_extension, user_wants_to_continue,
+        self, dir_is_empty, pretty_format_list_of_paths, to_utf, try_infer_extension, user_wants_to_continue,
         FileVisibilityPolicy,
     },
     warning, Opts, QuestionAction, QuestionPolicy, Subcommand,
@@ -266,7 +266,7 @@ pub fn run(
                 let error = FinalError::with_title("Cannot decompress files without extensions")
                     .detail(format!(
                         "Files without supported extensions: {}",
-                        concatenate_os_str_list(&files_missing_format)
+                        pretty_format_list_of_paths(&files_missing_format)
                     ))
                     .detail("Decompression formats are detected automatically by the file extension")
                     .hint("Provide a file with a supported extension:")
@@ -323,7 +323,7 @@ pub fn run(
                     .detail("Only archives can have their contents listed")
                     .detail(format!(
                         "Files are not archives: {}",
-                        concatenate_os_str_list(&not_archives)
+                        pretty_format_list_of_paths(&not_archives)
                     ));
 
                 return Err(error.into());

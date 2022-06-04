@@ -16,7 +16,7 @@ use crate::{
     info,
     list::FileInArchive,
     utils::{
-        self, cd_into_same_dir_as, concatenate_os_str_list, get_invalid_utf8_paths, strip_cur_dir, to_utf, Bytes,
+        self, cd_into_same_dir_as, get_invalid_utf8_paths, pretty_format_list_of_paths, strip_cur_dir, to_utf, Bytes,
         FileVisibilityPolicy,
     },
 };
@@ -47,7 +47,7 @@ where
 
         display_zip_comment_if_exists(&file);
 
-        match (&*file.name()).ends_with('/') {
+        match file.name().ends_with('/') {
             _is_dir @ true => {
                 // This is printed for every file in the archive and has little
                 // importance for most users, but would generate lots of
@@ -146,7 +146,7 @@ where
             .detail("Zip archives require files to have valid UTF-8 paths")
             .detail(format!(
                 "Files with invalid paths: {}",
-                concatenate_os_str_list(&invalid_unicode_filenames)
+                pretty_format_list_of_paths(&invalid_unicode_filenames)
             ));
 
         return Err(error.into());
@@ -183,7 +183,7 @@ where
                         return Err(e.into());
                     }
                 };
-                writer.write_all(&*file_bytes)?;
+                writer.write_all(&file_bytes)?;
             }
         }
 

@@ -1,14 +1,11 @@
-use std::{borrow::Cow, cmp, path::Path};
+use std::{borrow::Cow, cmp, env, path::Path};
 
-// The lifetimes here could elided but I think they help
-// comprehension in this case
-#[allow(clippy::needless_lifetimes)]
 /// Converts an OsStr to utf8 with custom formatting.
 ///
 /// This is different from [`Path::display`].
 ///
 /// See <https://gist.github.com/marcospb19/ebce5572be26397cf08bbd0fd3b65ac1> for a comparison.
-pub fn to_utf<'a>(os_str: &'a Path) -> Cow<'a, str> {
+pub fn to_utf(os_str: &Path) -> Cow<str> {
     let format = || {
         let text = format!("{:?}", os_str);
         Cow::Owned(text.trim_matches('"').to_string())
@@ -17,34 +14,37 @@ pub fn to_utf<'a>(os_str: &'a Path) -> Cow<'a, str> {
     os_str.to_str().map_or_else(format, Cow::Borrowed)
 }
 
-/// Removes the current dir from the beginning of a path
-/// normally used for presentation sake.
-/// If this function fails, it will return source path as a PathBuf.
+/// Removes the current dir from the beginning of a path as it's redundant information,
+/// useful for presentation sake.
 pub fn strip_cur_dir(source_path: &Path) -> &Path {
-    let cwd = std::env::current_dir().unwrap_or_else(|_| Path::new(".").to_path_buf());
-    source_path.strip_prefix(cwd).unwrap_or(source_path)
+    let current_dir = env::current_dir();
+
+    let current_dir = match &current_dir {
+        Ok(inner) => inner.as_path(),
+        Err(_) => Path::new(""),
+    };
+
+    source_path.strip_prefix(current_dir).unwrap_or(source_path)
 }
 
 /// Converts a slice of AsRef<OsStr> to comma separated String
 ///
 /// Panics if the slice is empty.
-pub fn concatenate_os_str_list(os_strs: &[impl AsRef<Path>]) -> String {
+pub fn pretty_format_list_of_paths(os_strs: &[impl AsRef<Path>]) -> String {
     let mut iter = os_strs.iter().map(AsRef::as_ref);
 
-    let mut string = to_utf(iter.next().unwrap()).to_string(); // May panic
+    let first_element = iter.next().unwrap();
+    let mut string = to_utf(first_element).into_owned();
 
     for os_str in iter {
         string += ", ";
-        string += &*to_utf(os_str);
+        string += &to_utf(os_str);
     }
     string
 }
 
-// The lifetimes here could elided but I think they help
-// comprehension in this case
-#[allow(clippy::needless_lifetimes)]
-/// Display the directory name, but change to "current directory" when necessary.
-pub fn nice_directory_display<'a>(path: &'a Path) -> Cow<'a, str> {
+/// Display the directory name, but use "current directory" when necessary.
+pub fn nice_directory_display(path: &Path) -> Cow<str> {
     if path == Path::new(".") {
         Cow::Borrowed("current directory")
     } else {
@@ -67,7 +67,7 @@ impl Bytes {
 }
 
 impl std::fmt::Display for Bytes {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let num = self.bytes;
         debug_assert!(num >= 0.0);
         if num < 1_f64 {

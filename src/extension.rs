@@ -39,7 +39,7 @@ impl Extension {
 }
 
 impl fmt::Display for Extension {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.display_text.fmt(f)
     }
 }
@@ -174,7 +174,7 @@ mod tests {
 
 // Panics if formats has an empty list of compression formats
 pub fn split_first_compression_format(formats: &[Extension]) -> (CompressionFormat, Vec<CompressionFormat>) {
-    let mut extensions: Vec<CompressionFormat> = flatten_compression_formats(&formats);
+    let mut extensions: Vec<CompressionFormat> = flatten_compression_formats(formats);
     let first_extension = extensions.remove(0);
     (first_extension, extensions)
 }

@@ -203,7 +203,8 @@ pub fn decompress_file(
 
 /// Unpacks an archive with some heuristics
 /// - If the archive contains only one file, it will be extracted to the `output_dir`
-/// - If the archive contains multiple files, it will be extracted to a subdirectory of the output_dir named after the archive (given by `output_file_path`)
+/// - If the archive contains multiple files, it will be extracted to a subdirectory of the
+///   output_dir named after the archive (given by `output_file_path`)
 /// Note: This functions assumes that `output_dir` exists
 fn smart_unpack(
     unpack_fn: Box<dyn FnOnce(&Path) -> crate::Result<Vec<PathBuf>>>,
