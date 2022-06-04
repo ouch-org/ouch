@@ -17,7 +17,7 @@ use crate::{
     utils::colors,
 };
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 /// Determines if overwrite questions should be skipped or asked to the user
 pub enum QuestionPolicy {
     /// Ask the user every time
@@ -28,7 +28,7 @@ pub enum QuestionPolicy {
     AlwaysNo,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 /// Determines which action is being questioned
 pub enum QuestionAction {
     /// question called from a compression function
