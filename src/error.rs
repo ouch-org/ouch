@@ -94,7 +94,11 @@ impl FinalError {
     /// Only constructor
     #[must_use]
     pub fn with_title(title: impl Into<CowStr>) -> Self {
-        Self { title: title.into(), details: vec![], hints: vec![] }
+        Self {
+            title: title.into(),
+            details: vec![],
+            hints: vec![],
+        }
     }
 
     /// Add one detail line, can have multiple
@@ -142,17 +146,35 @@ impl fmt::Display for Error {
 impl From<std::io::Error> for Error {
     fn from(err: std::io::Error) -> Self {
         match err.kind() {
-            std::io::ErrorKind::NotFound => Self::NotFound { error_title: err.to_string() },
-            std::io::ErrorKind::PermissionDenied => Self::PermissionDenied { error_title: err.to_string() },
-            std::io::ErrorKind::AlreadyExists => Self::AlreadyExists { error_title: err.to_string() },
-            _other => Self::IoError { reason: err.to_string() },
+            std::io::ErrorKind::NotFound => {
+                Self::NotFound {
+                    error_title: err.to_string(),
+                }
+            }
+            std::io::ErrorKind::PermissionDenied => {
+                Self::PermissionDenied {
+                    error_title: err.to_string(),
+                }
+            }
+            std::io::ErrorKind::AlreadyExists => {
+                Self::AlreadyExists {
+                    error_title: err.to_string(),
+                }
+            }
+            _other => {
+                Self::IoError {
+                    reason: err.to_string(),
+                }
+            }
         }
     }
 }
 
 impl From<lzzzz::lz4f::Error> for Error {
     fn from(err: lzzzz::lz4f::Error) -> Self {
-        Self::Lz4Error { reason: err.to_string() }
+        Self::Lz4Error {
+            reason: err.to_string(),
+        }
     }
 }
 
@@ -174,7 +196,9 @@ impl From<zip::result::ZipError> for Error {
 
 impl From<ignore::Error> for Error {
     fn from(err: ignore::Error) -> Self {
-        Self::WalkdirError { reason: err.to_string() }
+        Self::WalkdirError {
+            reason: err.to_string(),
+        }
     }
 }
 

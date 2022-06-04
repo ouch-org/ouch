@@ -144,7 +144,10 @@ where
     if !invalid_unicode_filenames.is_empty() {
         let error = FinalError::with_title("Cannot build zip archive")
             .detail("Zip archives require files to have valid UTF-8 paths")
-            .detail(format!("Files with invalid paths: {}", concatenate_os_str_list(&invalid_unicode_filenames)));
+            .detail(format!(
+                "Files with invalid paths: {}",
+                concatenate_os_str_list(&invalid_unicode_filenames)
+            ));
 
         return Err(error.into());
     }
@@ -223,7 +226,10 @@ fn convert_zip_date_time(date_time: zip::DateTime) -> Option<libc::timespec> {
     let date_time = PrimitiveDateTime::new(date, time);
     let timestamp = date_time.assume_utc().unix_timestamp();
 
-    Some(libc::timespec { tv_sec: timestamp, tv_nsec: 0 })
+    Some(libc::timespec {
+        tv_sec: timestamp,
+        tv_nsec: 0,
+    })
 }
 
 #[cfg(unix)]
@@ -232,7 +238,10 @@ fn set_last_modified_time(file: &fs::File, zip_file: &ZipFile) -> crate::Result<
 
     use libc::UTIME_NOW;
 
-    let now = libc::timespec { tv_sec: 0, tv_nsec: UTIME_NOW };
+    let now = libc::timespec {
+        tv_sec: 0,
+        tv_nsec: UTIME_NOW,
+    };
 
     let last_modified = zip_file.last_modified();
     let last_modified = convert_zip_date_time(last_modified).unwrap_or(now);

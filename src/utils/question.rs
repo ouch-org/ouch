@@ -110,7 +110,10 @@ pub struct Confirmation<'a> {
 impl<'a> Confirmation<'a> {
     /// Creates a new Confirmation.
     pub const fn new(prompt: &'a str, pattern: Option<&'a str>) -> Self {
-        Self { prompt, placeholder: pattern }
+        Self {
+            prompt,
+            placeholder: pattern,
+        }
     }
 
     /// Creates user message and receives a boolean input to be used on the program
@@ -124,9 +127,23 @@ impl<'a> Confirmation<'a> {
         // Ask the same question to end while no valid answers are given
         loop {
             if *crate::cli::ACCESSIBLE.get().unwrap() {
-                print!("{} {}yes{}/{}no{}: ", message, *colors::GREEN, *colors::RESET, *colors::RED, *colors::RESET);
+                print!(
+                    "{} {}yes{}/{}no{}: ",
+                    message,
+                    *colors::GREEN,
+                    *colors::RESET,
+                    *colors::RED,
+                    *colors::RESET
+                );
             } else {
-                print!("{} [{}Y{}/{}n{}] ", message, *colors::GREEN, *colors::RESET, *colors::RED, *colors::RESET);
+                print!(
+                    "{} [{}Y{}/{}n{}] ",
+                    message,
+                    *colors::GREEN,
+                    *colors::RESET,
+                    *colors::RED,
+                    *colors::RESET
+                );
             }
             io::stdout().flush()?;
 

@@ -43,7 +43,11 @@ pub fn decompress_file(
     // in-memory decompression/copying first.
     //
     // Any other Zip decompression done can take up the whole RAM and freeze ouch.
-    if let [Extension { compression_formats: [Zip], .. }] = formats.as_slice() {
+    if let [Extension {
+        compression_formats: [Zip],
+        ..
+    }] = formats.as_slice()
+    {
         let zip_archive = zip::ZipArchive::new(reader)?;
         let files = if let ControlFlow::Continue(files) = smart_unpack(
             Box::new(move |output_dir| {
@@ -51,7 +55,10 @@ pub fn decompress_file(
                 crate::archive::zip::unpack_archive(
                     zip_archive,
                     output_dir,
-                    progress.as_mut().map(Progress::display_handle).unwrap_or(&mut io::stdout()),
+                    progress
+                        .as_mut()
+                        .map(Progress::display_handle)
+                        .unwrap_or(&mut io::stdout()),
                 )
             }),
             output_dir,
@@ -128,7 +135,10 @@ pub fn decompress_file(
                     crate::archive::tar::unpack_archive(
                         reader,
                         output_dir,
-                        progress.as_mut().map(Progress::display_handle).unwrap_or(&mut io::stdout()),
+                        progress
+                            .as_mut()
+                            .map(Progress::display_handle)
+                            .unwrap_or(&mut io::stdout()),
                     )
                 }),
                 output_dir,
@@ -160,7 +170,10 @@ pub fn decompress_file(
                     crate::archive::zip::unpack_archive(
                         zip_archive,
                         output_dir,
-                        progress.as_mut().map(Progress::display_handle).unwrap_or(&mut io::stdout()),
+                        progress
+                            .as_mut()
+                            .map(Progress::display_handle)
+                            .unwrap_or(&mut io::stdout()),
                     )
                 }),
                 output_dir,
@@ -178,7 +191,11 @@ pub fn decompress_file(
     // having a final status message is important especially in an accessibility context
     // as screen readers may not read a commands exit code, making it hard to reason
     // about whether the command succeeded without such a message
-    info!(accessible, "Successfully decompressed archive in {}.", nice_directory_display(output_dir));
+    info!(
+        accessible,
+        "Successfully decompressed archive in {}.",
+        nice_directory_display(output_dir)
+    );
     info!(accessible, "Files unpacked: {}", files_unpacked.len());
 
     Ok(())
@@ -211,8 +228,9 @@ fn smart_unpack(
         // Only one file in the root directory, so we can just move it to the output directory
         let file = fs::read_dir(&temp_dir_path)?.next().expect("item exists")?;
         let file_path = file.path();
-        let file_name =
-            file_path.file_name().expect("Should be safe because paths in archives should not end with '..'");
+        let file_name = file_path
+            .file_name()
+            .expect("Should be safe because paths in archives should not end with '..'");
         let correct_path = output_dir.join(file_name);
         // One case to handle tough is we need to check if a file with the same name already exists
         if !utils::clear_path(&correct_path, question_policy)? {

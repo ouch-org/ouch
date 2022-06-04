@@ -29,6 +29,9 @@ mod utf8 {
 
     /// Filter out list of paths that are not utf8 valid
     pub fn get_invalid_utf8_paths(paths: &[PathBuf]) -> Vec<&PathBuf> {
-        paths.iter().filter_map(|path| is_invalid_utf8(path).then(|| path)).collect()
+        paths
+            .iter()
+            .filter_map(|path| is_invalid_utf8(path).then(|| path))
+            .collect()
     }
 }

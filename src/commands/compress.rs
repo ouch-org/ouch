@@ -38,7 +38,9 @@ pub fn compress_files(
     let (total_input_size, precise) = files
         .iter()
         .map(|f| (f.metadata().expect("file exists").len(), f.is_file()))
-        .fold((0, true), |(total_size, and_precise), (size, precise)| (total_size + size, and_precise & precise));
+        .fold((0, true), |(total_size, and_precise), (size, precise)| {
+            (total_size + size, and_precise & precise)
+        });
 
     // NOTE: canonicalize is here to avoid a weird bug:
     //      > If output_file_path is a nested path and it exists and the user overwrite it
@@ -81,7 +83,9 @@ pub fn compress_files(
             let _progress = Progress::new_accessible_aware(
                 total_input_size,
                 precise,
-                Some(Box::new(move || output_file_path.metadata().expect("file exists").len())),
+                Some(Box::new(move || {
+                    output_file_path.metadata().expect("file exists").len()
+                })),
             );
 
             writer = chain_writer_encoder(&first_extension, writer)?;
@@ -92,14 +96,19 @@ pub fn compress_files(
             let mut progress = Progress::new_accessible_aware(
                 total_input_size,
                 precise,
-                Some(Box::new(move || output_file_path.metadata().expect("file exists").len())),
+                Some(Box::new(move || {
+                    output_file_path.metadata().expect("file exists").len()
+                })),
             );
 
             archive::tar::build_archive_from_paths(
                 &files,
                 &mut writer,
                 file_visibility_policy,
-                progress.as_mut().map(Progress::display_handle).unwrap_or(&mut io::stdout()),
+                progress
+                    .as_mut()
+                    .map(Progress::display_handle)
+                    .unwrap_or(&mut io::stdout()),
             )?;
             writer.flush()?;
         }
@@ -134,7 +143,10 @@ pub fn compress_files(
                 &files,
                 &mut vec_buffer,
                 file_visibility_policy,
-                progress.as_mut().map(Progress::display_handle).unwrap_or(&mut io::stdout()),
+                progress
+                    .as_mut()
+                    .map(Progress::display_handle)
+                    .unwrap_or(&mut io::stdout()),
             )?;
             let vec_buffer = vec_buffer.into_inner();
             io::copy(&mut vec_buffer.as_slice(), &mut writer)?;

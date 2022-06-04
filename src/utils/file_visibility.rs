@@ -23,7 +23,12 @@ pub struct FileVisibilityPolicy {
 
 impl Default for FileVisibilityPolicy {
     fn default() -> Self {
-        Self { read_ignore: false, read_hidden: true, read_git_ignore: false, read_git_exclude: false }
+        Self {
+            read_ignore: false,
+            read_hidden: true,
+            read_git_ignore: false,
+            read_git_exclude: false,
+        }
     }
 }
 
@@ -41,13 +46,19 @@ impl FileVisibilityPolicy {
     #[must_use]
     /// Enables reading .gitignore files.
     pub fn read_git_ignore(self, read_git_ignore: bool) -> Self {
-        Self { read_git_ignore, ..self }
+        Self {
+            read_git_ignore,
+            ..self
+        }
     }
 
     #[must_use]
     /// Enables reading `.git/info/exclude` files.
     pub fn read_git_exclude(self, read_git_exclude: bool) -> Self {
-        Self { read_git_exclude, ..self }
+        Self {
+            read_git_exclude,
+            ..self
+        }
     }
 
     #[must_use]

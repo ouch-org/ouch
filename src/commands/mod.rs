@@ -74,7 +74,10 @@ pub fn run(
     file_visibility_policy: FileVisibilityPolicy,
 ) -> crate::Result<()> {
     match args.cmd {
-        Subcommand::Compress { mut files, output: output_path } => {
+        Subcommand::Compress {
+            mut files,
+            output: output_path,
+        } => {
             // If the output_path file exists and is the same as some of the input files, warn the user and skip those inputs (in order to avoid compression recursion)
             if output_path.exists() {
                 deduplicate_input_files(&mut files, &fs::canonicalize(&output_path)?);
@@ -95,7 +98,10 @@ pub fn run(
                     .hint(format!("  ouch compress <FILES>... {}.zip", to_utf(&output_path)))
                     .hint("")
                     .hint("Alternatively, you can overwrite this option by using the '--format' flag:")
-                    .hint(format!("  ouch compress <FILES>... {} --format tar.gz", to_utf(&output_path)));
+                    .hint(format!(
+                        "  ouch compress <FILES>... {} --format tar.gz",
+                        to_utf(&output_path)
+                    ));
 
                 return Err(error.into());
             }
@@ -118,7 +124,10 @@ pub fn run(
 
                 let error = FinalError::with_title(format!("Cannot compress to '{}'.", output_path))
                     .detail("You are trying to compress multiple files.")
-                    .detail(format!("The compression format '{}' cannot receive multiple files.", &formats[0]))
+                    .detail(format!(
+                        "The compression format '{}' cannot receive multiple files.",
+                        &formats[0]
+                    ))
                     .detail("The only supported formats that archive files into an archive are .tar and .zip.")
                     .hint(format!("Try inserting '.tar' or '.zip' before '{}'.", &formats[0]))
                     .hint(format!("From: {}", output_path))
@@ -130,9 +139,19 @@ pub fn run(
             if let Some(format) = formats.iter().skip(1).find(|format| format.is_archive()) {
                 let error = FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))
                     .detail(format!("Found the format '{}' in an incorrect position.", format))
-                    .detail(format!("'{}' can only be used at the start of the file extension.", format))
-                    .hint(format!("If you wish to compress multiple files, start the extension with '{}'.", format))
-                    .hint(format!("Otherwise, remove the last '{}' from '{}'.", format, to_utf(&output_path)));
+                    .detail(format!(
+                        "'{}' can only be used at the start of the file extension.",
+                        format
+                    ))
+                    .hint(format!(
+                        "If you wish to compress multiple files, start the extension with '{}'.",
+                        format
+                    ))
+                    .hint(format!(
+                        "Otherwise, remove the last '{}' from '{}'.",
+                        format,
+                        to_utf(&output_path)
+                    ));
 
                 return Err(error.into());
             }
@@ -185,8 +204,14 @@ pub fn run(
                     formats = new_formats;
                 }
             }
-            let compress_result =
-                compress_files(files, formats, output_file, &output_path, question_policy, file_visibility_policy);
+            let compress_result = compress_files(
+                files,
+                formats,
+                output_file,
+                &output_path,
+                question_policy,
+                file_visibility_policy,
+            );
 
             if let Ok(true) = compress_result {
                 // this is only printed once, so it doesn't result in much text. On the other hand,
@@ -201,8 +226,16 @@ pub fn run(
                 if let Err(err) = fs::remove_file(&output_path) {
                     eprintln!("{red}FATAL ERROR:\n", red = *colors::RED);
                     eprintln!("  Please manually delete '{}'.", to_utf(&output_path));
-                    eprintln!("  Compression failed and we could not delete '{}'.", to_utf(&output_path),);
-                    eprintln!("  Error:{reset} {}{red}.{reset}\n", err, reset = *colors::RESET, red = *colors::RED);
+                    eprintln!(
+                        "  Compression failed and we could not delete '{}'.",
+                        to_utf(&output_path),
+                    );
+                    eprintln!(
+                        "  Error:{reset} {}{red}.{reset}\n",
+                        err,
+                        reset = *colors::RESET,
+                        red = *colors::RED
+                    );
                 }
             }
 
@@ -240,7 +273,10 @@ pub fn run(
                     .hint("  ouch decompress example.tar.gz")
                     .hint("")
                     .hint("Or overwrite this option with the '--format' flag:")
-                    .hint(format!("  ouch decompress {} --format tar.gz", to_utf(&files_missing_format[0])));
+                    .hint(format!(
+                        "  ouch decompress {} --format tar.gz",
+                        to_utf(&files_missing_format[0])
+                    ));
 
                 return Err(error.into());
             }
@@ -285,7 +321,10 @@ pub fn run(
             if !not_archives.is_empty() {
                 let error = FinalError::with_title("Cannot list archive contents")
                     .detail("Only archives can have their contents listed")
-                    .detail(format!("Files are not archives: {}", concatenate_os_str_list(&not_archives)));
+                    .detail(format!(
+                        "Files are not archives: {}",
+                        concatenate_os_str_list(&not_archives)
+                    ));
 
                 return Err(error.into());
             }
@@ -316,7 +355,12 @@ fn check_mime_type(
             if let Some(detected_format) = try_infer_extension(path) {
                 // Infering the file extension can have unpredicted consequences (e.g. the user just
                 // mistyped, ...) which we should always inform the user about.
-                info!(accessible, "Detected file: `{}` extension as `{}`", path.display(), detected_format);
+                info!(
+                    accessible,
+                    "Detected file: `{}` extension as `{}`",
+                    path.display(),
+                    detected_format
+                );
                 if user_wants_to_continue(path, question_policy, QuestionAction::Decompression)? {
                     format.push(detected_format);
                 } else {
@@ -350,7 +394,10 @@ fn deduplicate_input_files(files: &mut Vec<PathBuf>, output_path: &Path) {
     let mut idx = 0;
     while idx < files.len() {
         if files[idx] == output_path {
-            warning!("The output file and the input file are the same: `{}`, skipping...", output_path.display());
+            warning!(
+                "The output file and the input file are the same: `{}`, skipping...",
+                output_path.display()
+            );
             files.remove(idx);
         } else {
             idx += 1;

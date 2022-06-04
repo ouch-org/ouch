@@ -47,7 +47,9 @@ pub fn list_files(
             .map(|file| {
                 let file = file?;
                 if !crate::cli::ACCESSIBLE.get().unwrap() {
-                    pb.as_ref().expect("exists").set_message(format!("Processing: {}", file.path.display()));
+                    pb.as_ref()
+                        .expect("exists")
+                        .set_message(format!("Processing: {}", file.path.display()));
                 }
                 Ok(file)
             })

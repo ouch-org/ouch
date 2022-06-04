@@ -25,7 +25,10 @@ impl Extension {
     ///   Will panic if `formats` is empty
     pub fn new(formats: &'static [CompressionFormat], text: impl ToString) -> Self {
         assert!(!formats.is_empty());
-        Self { compression_formats: formats, display_text: text.to_string() }
+        Self {
+            compression_formats: formats,
+            display_text: text.to_string(),
+        }
     }
 
     /// Checks if the first format in `compression_formats` is an archive
@@ -80,20 +83,18 @@ impl CompressionFormat {
 
 impl fmt::Display for CompressionFormat {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Gzip => ".gz",
-                Bzip => ".bz",
-                Zstd => ".zst",
-                Lz4 => ".lz4",
-                Lzma => ".lz",
-                Snappy => ".sz",
-                Tar => ".tar",
-                Zip => ".zip",
-            }
-        )
+        let text = match self {
+            Gzip => ".gz",
+            Bzip => ".bz",
+            Zstd => ".zst",
+            Lz4 => ".lz4",
+            Lzma => ".lz",
+            Snappy => ".sz",
+            Tar => ".tar",
+            Zip => ".zip",
+        };
+
+        write!(f, "{text}")
     }
 }
 
@@ -137,7 +138,11 @@ pub fn separate_known_extensions_from_name(mut path: &Path) -> (&Path, Vec<Exten
         extensions.push(extension);
 
         // Update for the next iteration
-        path = if let Some(stem) = path.file_stem() { Path::new(stem) } else { Path::new("") };
+        path = if let Some(stem) = path.file_stem() {
+            Path::new(stem)
+        } else {
+            Path::new("")
+        };
     }
     // Put the extensions in the correct order: left to right
     extensions.reverse();
@@ -175,5 +180,9 @@ pub fn split_first_compression_format(formats: &[Extension]) -> (CompressionForm
 }
 
 pub fn flatten_compression_formats(extensions: &[Extension]) -> Vec<CompressionFormat> {
-    extensions.iter().flat_map(|extension| extension.compression_formats.iter()).copied().collect()
+    extensions
+        .iter()
+        .flat_map(|extension| extension.compression_formats.iter())
+        .copied()
+        .collect()
 }

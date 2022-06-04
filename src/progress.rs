@@ -36,7 +36,9 @@ impl io::Write for DisplayHandle {
         fn io_error<X>(_: X) -> io::Error {
             io::Error::new(io::ErrorKind::Other, "failed to flush buffer")
         }
-        self.sender.send(String::from_utf8(self.buf.drain(..).collect()).map_err(io_error)?).map_err(io_error)
+        self.sender
+            .send(String::from_utf8(self.buf.drain(..).collect()).map_err(io_error)?)
+            .map_err(io_error)
     }
 }
 
@@ -99,7 +101,10 @@ impl Progress {
         Progress {
             draw_stop: draw_tx,
             clean_done: clean_rx,
-            display_handle: DisplayHandle { buf: Vec::new(), sender: msg_tx },
+            display_handle: DisplayHandle {
+                buf: Vec::new(),
+                sender: msg_tx,
+            },
         }
     }
 
