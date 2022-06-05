@@ -33,7 +33,7 @@
 /// - `target/debug/build/ouch-195b34a8adca6ec3/out/completions`
 ///
 /// The _"195b34a8adca6ec3"_ part is a hash that might change between runs.
-use std::{env, fs::create_dir_all, path::Path};
+use std::{env, fs, path::Path};
 
 use clap::IntoApp;
 use clap_complete::{generate_to, Shell};
@@ -46,14 +46,28 @@ fn main() {
     println!("cargo:rerun-if-env-changed=GEN_COMPLETIONS");
     println!("cargo:rerun-if-env-changed=OUCH_COMPLETIONS_FOLDER");
 
-    if let Some(completions_output_directory) = detect_completions_output_directory() {
-        create_dir_all(&completions_output_directory).expect("Could not create shell completions output folder.");
-        let app = &mut Opts::command();
+    let completions_output_directory = match detect_completions_output_directory() {
+        Some(inner) => inner,
+        _ => return,
+    };
 
-        for shell in TARGET_SHELLS {
-            generate_to(*shell, app, "ouch", &completions_output_directory)
-                .unwrap_or_else(|err| panic!("Failed to generate shell completions for {}: {}.", shell, err));
-        }
+    fs::create_dir_all(&completions_output_directory).expect("Could not create shell completions output folder.");
+
+    let app = &mut Opts::command();
+
+    for shell in TARGET_SHELLS {
+        let target_directory = if env::var_os("OUCH_COMPLETIONS_FOLDER").is_some() {
+            let shell_name = shell.to_string();
+
+            let shell_dir = completions_output_directory.join(&shell_name);
+            fs::create_dir(&shell_dir).expect("Failed to create directory for shell completions");
+
+            shell_dir
+        } else {
+            completions_output_directory.clone()
+        };
+        generate_to(*shell, app, "ouch", &target_directory)
+            .unwrap_or_else(|err| panic!("Failed to generate shell completions for {}: {}.", shell, err));
     }
 }
 
@@ -66,6 +80,10 @@ fn detect_completions_output_directory() -> Option<PathBuf> {
         return Some(dir.into());
     };
 
+    get_deprecated_completions_directory()
+}
+
+fn get_deprecated_completions_directory() -> Option<PathBuf> {
     // If set, directory goes inside of cargo's `target/`
     let gen_completions = env::var_os("GEN_COMPLETIONS").map(|var| &var == "1").unwrap_or(false);
     if gen_completions {
