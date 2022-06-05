@@ -35,8 +35,10 @@
 /// The _"195b34a8adca6ec3"_ part is a hash that might change between runs.
 use std::{env, fs::create_dir_all, path::Path};
 
-use clap::{ArgEnum, IntoApp};
+use clap::IntoApp;
 use clap_complete::{generate_to, Shell};
+
+const TARGET_SHELLS: &[Shell] = &[Shell::Bash, Shell::Zsh, Shell::Fish];
 
 include!("src/opts.rs");
 
@@ -48,7 +50,7 @@ fn main() {
         create_dir_all(&completions_output_directory).expect("Could not create shell completions output folder.");
         let app = &mut Opts::command();
 
-        for shell in Shell::value_variants() {
+        for shell in TARGET_SHELLS {
             generate_to(*shell, app, "ouch", &completions_output_directory)
                 .unwrap_or_else(|err| panic!("Failed to generate shell completions for {}: {}.", shell, err));
         }
