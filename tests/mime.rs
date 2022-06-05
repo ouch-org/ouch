@@ -46,8 +46,9 @@ fn sanity_check_through_mime() {
         let compressed_file_path = &format!("{}.{}", path_to_compress.display(), format);
         ouch!("c", path_to_compress, compressed_file_path);
 
-        let sniffed =
-            infer::get_from_path(compressed_file_path).expect("the file to be read").expect("the MIME to be found");
+        let sniffed = infer::get_from_path(compressed_file_path)
+            .expect("the file to be read")
+            .expect("the MIME to be found");
 
         assert_eq!(&sniffed.mime_type(), expected_mime);
     }

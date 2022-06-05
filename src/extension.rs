@@ -23,9 +23,12 @@ impl PartialEq for Extension {
 impl Extension {
     /// # Panics:
     ///   Will panic if `formats` is empty
-    pub fn new(formats: &'static [CompressionFormat], text: impl Into<String>) -> Self {
+    pub fn new(formats: &'static [CompressionFormat], text: impl ToString) -> Self {
         assert!(!formats.is_empty());
-        Self { compression_formats: formats, display_text: text.into() }
+        Self {
+            compression_formats: formats,
+            display_text: text.to_string(),
+        }
     }
 
     /// Checks if the first format in `compression_formats` is an archive
@@ -33,15 +36,10 @@ impl Extension {
         // Safety: we check that `compression_formats` is not empty in `Self::new`
         self.compression_formats[0].is_archive_format()
     }
-
-    /// Iteration to inner compression formats, useful for flat_mapping
-    pub fn iter(&self) -> impl Iterator<Item = &CompressionFormat> {
-        self.compression_formats.iter()
-    }
 }
 
 impl fmt::Display for Extension {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.display_text.fmt(f)
     }
 }
@@ -85,20 +83,18 @@ impl CompressionFormat {
 
 impl fmt::Display for CompressionFormat {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Gzip => ".gz",
-                Bzip => ".bz",
-                Zstd => ".zst",
-                Lz4 => ".lz4",
-                Lzma => ".lz",
-                Snappy => ".sz",
-                Tar => ".tar",
-                Zip => ".zip",
-            }
-        )
+        let text = match self {
+            Gzip => ".gz",
+            Bzip => ".bz",
+            Zstd => ".zst",
+            Lz4 => ".lz4",
+            Lzma => ".lz",
+            Snappy => ".sz",
+            Tar => ".tar",
+            Zip => ".zip",
+        };
+
+        write!(f, "{text}")
     }
 }
 
@@ -142,7 +138,11 @@ pub fn separate_known_extensions_from_name(mut path: &Path) -> (&Path, Vec<Exten
         extensions.push(extension);
 
         // Update for the next iteration
-        path = if let Some(stem) = path.file_stem() { Path::new(stem) } else { Path::new("") };
+        path = if let Some(stem) = path.file_stem() {
+            Path::new(stem)
+        } else {
+            Path::new("")
+        };
     }
     // Put the extensions in the correct order: left to right
     extensions.reverse();
@@ -166,8 +166,23 @@ mod tests {
         let path = Path::new("bolovo.tar.gz");
 
         let extensions: Vec<Extension> = extensions_from_path(path);
-        let formats: Vec<&CompressionFormat> = extensions.iter().flat_map(Extension::iter).collect::<Vec<_>>();
+        let formats: Vec<CompressionFormat> = flatten_compression_formats(&extensions);
 
-        assert_eq!(formats, vec![&Tar, &Gzip]);
+        assert_eq!(formats, vec![Tar, Gzip]);
     }
+}
+
+// Panics if formats has an empty list of compression formats
+pub fn split_first_compression_format(formats: &[Extension]) -> (CompressionFormat, Vec<CompressionFormat>) {
+    let mut extensions: Vec<CompressionFormat> = flatten_compression_formats(formats);
+    let first_extension = extensions.remove(0);
+    (first_extension, extensions)
+}
+
+pub fn flatten_compression_formats(extensions: &[Extension]) -> Vec<CompressionFormat> {
+    extensions
+        .iter()
+        .flat_map(|extension| extension.compression_formats.iter())
+        .copied()
+        .collect()
 }

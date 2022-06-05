@@ -1,10 +1,11 @@
-//! Implementation of the 'list' command, print list of files in an archive
+//! Some implementation helpers related to the 'list' command.
 
 use std::path::{Path, PathBuf};
 
 use indicatif::{ProgressBar, ProgressStyle};
 
 use self::tree::Tree;
+use crate::accessible::is_running_in_accessible_mode;
 
 /// Options controlling how archive contents should be listed
 #[derive(Debug, Clone, Copy)]
@@ -33,7 +34,7 @@ pub fn list_files(
     println!("Archive: {}", archive.display());
 
     if list_options.tree {
-        let pb = if !crate::cli::ACCESSIBLE.get().unwrap() {
+        let pb = if !is_running_in_accessible_mode() {
             let template = "{wide_msg} [{elapsed_precise}] {spinner:.green}";
             let pb = ProgressBar::new_spinner();
             pb.set_style(ProgressStyle::default_bar().template(template));
@@ -46,8 +47,10 @@ pub fn list_files(
             .into_iter()
             .map(|file| {
                 let file = file?;
-                if !crate::cli::ACCESSIBLE.get().unwrap() {
-                    pb.as_ref().expect("exists").set_message(format!("Processing: {}", file.path.display()));
+                if !is_running_in_accessible_mode() {
+                    pb.as_ref()
+                        .expect("exists")
+                        .set_message(format!("Processing: {}", file.path.display()));
                 }
                 Ok(file)
             })
@@ -75,7 +78,7 @@ fn print_entry(name: impl std::fmt::Display, is_dir: bool) {
         // if in ACCESSIBLE mode, use colors but print final / in case colors
         // aren't read out aloud with a screen reader or aren't printed on a
         // braille reader
-        } else if *crate::cli::ACCESSIBLE.get().unwrap() {
+        } else if is_running_in_accessible_mode() {
             println!("{}{}{}/{}", *BLUE, *STYLE_BOLD, name, *ALL_RESET);
         } else {
             println!("{}{}{}{}", *BLUE, *STYLE_BOLD, name, *ALL_RESET);
@@ -103,6 +106,7 @@ mod tree {
         file: Option<FileInArchive>,
         children: LinkedHashMap<OsString, Tree>,
     }
+
     impl Tree {
         /// Insert a file into the tree
         pub fn insert(&mut self, file: FileInArchive) {

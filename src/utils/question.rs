@@ -13,11 +13,12 @@ use fs_err as fs;
 
 use super::{strip_cur_dir, to_utf};
 use crate::{
+    accessible::is_running_in_accessible_mode,
     error::{Error, Result},
     utils::colors,
 };
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 /// Determines if overwrite questions should be skipped or asked to the user
 pub enum QuestionPolicy {
     /// Ask the user every time
@@ -28,7 +29,7 @@ pub enum QuestionPolicy {
     AlwaysNo,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 /// Determines which action is being questioned
 pub enum QuestionAction {
     /// question called from a compression function
@@ -83,13 +84,13 @@ pub fn user_wants_to_continue(
         QuestionPolicy::AlwaysNo => Ok(false),
         QuestionPolicy::Ask => {
             let action = match question_action {
-                QuestionAction::Compression => "compressing",
-                QuestionAction::Decompression => "decompressing",
+                QuestionAction::Compression => "compress",
+                QuestionAction::Decompression => "decompress",
             };
             let path = to_utf(strip_cur_dir(path));
             let path = Some(&*path);
             let placeholder = Some("FILE");
-            Confirmation::new(&format!("Do you want to continue {} 'FILE'?", action), placeholder).ask(path)
+            Confirmation::new(&format!("Do you want to {} 'FILE'?", action), placeholder).ask(path)
         }
     }
 }
@@ -110,7 +111,10 @@ pub struct Confirmation<'a> {
 impl<'a> Confirmation<'a> {
     /// Creates a new Confirmation.
     pub const fn new(prompt: &'a str, pattern: Option<&'a str>) -> Self {
-        Self { prompt, placeholder: pattern }
+        Self {
+            prompt,
+            placeholder: pattern,
+        }
     }
 
     /// Creates user message and receives a boolean input to be used on the program
@@ -123,10 +127,24 @@ impl<'a> Confirmation<'a> {
 
         // Ask the same question to end while no valid answers are given
         loop {
-            if *crate::cli::ACCESSIBLE.get().unwrap() {
-                print!("{} {}yes{}/{}no{}: ", message, *colors::GREEN, *colors::RESET, *colors::RED, *colors::RESET);
+            if is_running_in_accessible_mode() {
+                print!(
+                    "{} {}yes{}/{}no{}: ",
+                    message,
+                    *colors::GREEN,
+                    *colors::RESET,
+                    *colors::RED,
+                    *colors::RESET
+                );
             } else {
-                print!("{} [{}Y{}/{}n{}] ", message, *colors::GREEN, *colors::RESET, *colors::RED, *colors::RESET);
+                print!(
+                    "{} [{}Y{}/{}n{}] ",
+                    message,
+                    *colors::GREEN,
+                    *colors::RESET,
+                    *colors::RED,
+                    *colors::RESET
+                );
             }
             io::stdout().flush()?;
 

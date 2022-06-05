@@ -10,7 +10,7 @@ mod fs;
 mod question;
 
 pub use file_visibility::FileVisibilityPolicy;
-pub use formatting::{concatenate_os_str_list, nice_directory_display, strip_cur_dir, to_utf, Bytes};
+pub use formatting::{nice_directory_display, pretty_format_list_of_paths, strip_cur_dir, to_utf, Bytes};
 pub use fs::{
     cd_into_same_dir_as, clear_path, create_dir_if_non_existent, dir_is_empty, is_symlink, try_infer_extension,
 };
@@ -29,6 +29,9 @@ mod utf8 {
 
     /// Filter out list of paths that are not utf8 valid
     pub fn get_invalid_utf8_paths(paths: &[PathBuf]) -> Vec<&PathBuf> {
-        paths.iter().filter_map(|path| is_invalid_utf8(path).then(|| path)).collect()
+        paths
+            .iter()
+            .filter_map(|path| is_invalid_utf8(path).then(|| path))
+            .collect()
     }
 }

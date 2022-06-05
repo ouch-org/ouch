@@ -16,7 +16,7 @@ use crate::{
     info,
     list::FileInArchive,
     utils::{
-        self, cd_into_same_dir_as, concatenate_os_str_list, get_invalid_utf8_paths, strip_cur_dir, to_utf, Bytes,
+        self, cd_into_same_dir_as, get_invalid_utf8_paths, pretty_format_list_of_paths, strip_cur_dir, to_utf, Bytes,
         FileVisibilityPolicy,
     },
 };
@@ -45,9 +45,9 @@ where
 
         let file_path = output_folder.join(file_path);
 
-        check_for_comments(&file);
+        display_zip_comment_if_exists(&file);
 
-        match (&*file.name()).ends_with('/') {
+        match file.name().ends_with('/') {
             _is_dir @ true => {
                 // This is printed for every file in the archive and has little
                 // importance for most users, but would generate lots of
@@ -144,7 +144,10 @@ where
     if !invalid_unicode_filenames.is_empty() {
         let error = FinalError::with_title("Cannot build zip archive")
             .detail("Zip archives require files to have valid UTF-8 paths")
-            .detail(format!("Files with invalid paths: {}", concatenate_os_str_list(&invalid_unicode_filenames)));
+            .detail(format!(
+                "Files with invalid paths: {}",
+                pretty_format_list_of_paths(&invalid_unicode_filenames)
+            ));
 
         return Err(error.into());
     }
@@ -180,7 +183,7 @@ where
                         return Err(e.into());
                     }
                 };
-                writer.write_all(&*file_bytes)?;
+                writer.write_all(&file_bytes)?;
             }
         }
 
@@ -191,7 +194,7 @@ where
     Ok(bytes)
 }
 
-fn check_for_comments(file: &ZipFile) {
+fn display_zip_comment_if_exists(file: &ZipFile) {
     let comment = file.comment();
     if !comment.is_empty() {
         // Zip file comments seem to be pretty rare, but if they are used,
@@ -223,7 +226,10 @@ fn convert_zip_date_time(date_time: zip::DateTime) -> Option<libc::timespec> {
     let date_time = PrimitiveDateTime::new(date, time);
     let timestamp = date_time.assume_utc().unix_timestamp();
 
-    Some(libc::timespec { tv_sec: timestamp, tv_nsec: 0 })
+    Some(libc::timespec {
+        tv_sec: timestamp,
+        tv_nsec: 0,
+    })
 }
 
 #[cfg(unix)]
@@ -232,7 +238,10 @@ fn set_last_modified_time(file: &fs::File, zip_file: &ZipFile) -> crate::Result<
 
     use libc::UTIME_NOW;
 
-    let now = libc::timespec { tv_sec: 0, tv_nsec: UTIME_NOW };
+    let now = libc::timespec {
+        tv_sec: 0,
+        tv_nsec: UTIME_NOW,
+    };
 
     let last_modified = zip_file.last_modified();
     let last_modified = convert_zip_date_time(last_modified).unwrap_or(now);

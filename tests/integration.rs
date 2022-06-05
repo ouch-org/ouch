@@ -51,7 +51,10 @@ enum Extension {
 
 // converts a list of extension structs to string
 fn merge_extensions(ext: impl ToString, exts: Vec<FileExtension>) -> String {
-    once(ext.to_string()).chain(exts.into_iter().map(|x| x.to_string())).collect::<Vec<_>>().join(".")
+    once(ext.to_string())
+        .chain(exts.into_iter().map(|x| x.to_string()))
+        .collect::<Vec<_>>()
+        .join(".")
 }
 
 // create random nested directories and files under the specified directory
@@ -64,7 +67,10 @@ fn create_random_files(dir: impl Into<PathBuf>, depth: u8, rng: &mut SmallRng) {
 
     // create 0 to 7 random files
     for _ in 0..rng.gen_range(0..8u32) {
-        write_random_content(&mut tempfile::Builder::new().tempfile_in(dir).unwrap().keep().unwrap().0, rng);
+        write_random_content(
+            &mut tempfile::Builder::new().tempfile_in(dir).unwrap().keep().unwrap().0,
+            rng,
+        );
     }
 
     // create more random files in 0 to 3 new directories
@@ -83,7 +89,10 @@ fn single_empty_file(ext: Extension, #[any(size_range(0..8).lift())] exts: Vec<F
     let before_file = &before.join("file");
     let archive = &dir.join(format!("file.{}", merge_extensions(ext, exts)));
     let after = &dir.join("after");
-    write_random_content(&mut fs::File::create(before_file).unwrap(), &mut SmallRng::from_entropy());
+    write_random_content(
+        &mut fs::File::create(before_file).unwrap(),
+        &mut SmallRng::from_entropy(),
+    );
     ouch!("-A", "c", before_file, archive);
     ouch!("-A", "d", archive, "-d", after);
     assert_same_directory(before, after, false);

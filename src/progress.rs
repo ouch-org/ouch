@@ -8,6 +8,8 @@ use std::{
 
 use indicatif::{ProgressBar, ProgressStyle};
 
+use crate::accessible::is_running_in_accessible_mode;
+
 /// Draw a ProgressBar using a function that checks periodically for the progress
 pub struct Progress {
     draw_stop: Sender<()>,
@@ -36,7 +38,9 @@ impl io::Write for DisplayHandle {
         fn io_error<X>(_: X) -> io::Error {
             io::Error::new(io::ErrorKind::Other, "failed to flush buffer")
         }
-        self.sender.send(String::from_utf8(self.buf.drain(..).collect()).map_err(io_error)?).map_err(io_error)
+        self.sender
+            .send(String::from_utf8(self.buf.drain(..).collect()).map_err(io_error)?)
+            .map_err(io_error)
     }
 }
 
@@ -49,7 +53,7 @@ impl Progress {
         precise: bool,
         current_position_fn: Option<Box<dyn Fn() -> u64 + Send>>,
     ) -> Option<Self> {
-        if *crate::cli::ACCESSIBLE.get().unwrap() {
+        if is_running_in_accessible_mode() {
             return None;
         }
         Some(Self::new(total_input_size, precise, current_position_fn))
@@ -78,28 +82,31 @@ impl Progress {
                 t += "({bytes_per_sec}, {eta}) {path}";
                 t
             };
-            let pb = ProgressBar::new(total_input_size);
-            pb.set_style(ProgressStyle::default_bar().template(&template).progress_chars("#>-"));
+            let bar = ProgressBar::new(total_input_size);
+            bar.set_style(ProgressStyle::default_bar().template(&template).progress_chars("#>-"));
 
             while draw_rx.try_recv().is_err() {
                 if let Some(ref pos_fn) = current_position_fn {
-                    pb.set_position(pos_fn());
+                    bar.set_position(pos_fn());
                 } else {
-                    pb.tick();
+                    bar.tick();
                 }
                 if let Ok(msg) = msg_rx.try_recv() {
-                    pb.set_message(msg);
+                    bar.set_message(msg);
                 }
                 thread::sleep(Duration::from_millis(100));
             }
-            pb.finish();
+            bar.finish();
             let _ = clean_tx.send(());
         });
 
         Progress {
             draw_stop: draw_tx,
             clean_done: clean_rx,
-            display_handle: DisplayHandle { buf: Vec::new(), sender: msg_tx },
+            display_handle: DisplayHandle {
+                buf: Vec::new(),
+                sender: msg_tx,
+            },
         }
     }
 
