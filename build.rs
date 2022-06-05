@@ -42,6 +42,7 @@ include!("src/opts.rs");
 
 fn main() {
     println!("cargo:rerun-if-env-changed=GEN_COMPLETIONS");
+    println!("cargo:rerun-if-env-changed=OUCH_COMPLETIONS_FOLDER");
 
     if let Some(completions_output_directory) = detect_completions_output_directory() {
         create_dir_all(&completions_output_directory).expect("Could not create shell completions output folder.");
