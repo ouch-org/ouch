@@ -10,6 +10,9 @@ use clap::{Parser, ValueHint};
 /// Repository: https://github.com/ouch-org/ouch
 #[derive(Parser, Debug)]
 #[clap(about, version)]
+// Ignore bare urls in the documentation of this file because the doc comments
+// are also being used by Clap's --help generation
+#[allow(rustdoc::bare_urls)]
 pub struct Opts {
     /// Skip [Y/n] questions positively.
     #[clap(short, long, conflicts_with = "no", global = true)]
@@ -48,6 +51,7 @@ pub struct Opts {
 // Clap commands:
 //  - `help`
 #[derive(Parser, PartialEq, Eq, Debug)]
+#[allow(rustdoc::bare_urls)]
 pub enum Subcommand {
     /// Compress one or more files into one output file.
     #[clap(alias = "c")]
