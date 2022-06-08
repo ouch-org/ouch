@@ -1,4 +1,6 @@
-use std::{borrow::Cow, cmp, env, path::Path};
+use std::{borrow::Cow, cmp, path::Path};
+
+use crate::CURRENT_DIRECTORY;
 
 /// Converts an OsStr to utf8 with custom formatting.
 ///
@@ -17,12 +19,7 @@ pub fn to_utf(os_str: &Path) -> Cow<str> {
 /// Removes the current dir from the beginning of a path as it's redundant information,
 /// useful for presentation sake.
 pub fn strip_cur_dir(source_path: &Path) -> &Path {
-    let current_dir = env::current_dir();
-
-    let current_dir = match &current_dir {
-        Ok(inner) => inner.as_path(),
-        Err(_) => Path::new(""),
-    };
+    let current_dir = &*CURRENT_DIRECTORY;
 
     source_path.strip_prefix(current_dir).unwrap_or(source_path)
 }
