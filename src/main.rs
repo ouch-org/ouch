@@ -14,12 +14,18 @@ pub mod utils;
 /// CLI argparsing definitions, using `clap`.
 pub mod opts;
 
+use std::{env, path::PathBuf};
+
 use error::{Error, Result};
+use once_cell::sync::Lazy;
 use opts::{Opts, Subcommand};
 use utils::{QuestionAction, QuestionPolicy};
 
 // Used in BufReader and BufWriter to perform less syscalls
 const BUFFER_CAPACITY: usize = 1024 * 32;
+
+/// Current directory or empty directory
+static CURRENT_DIRECTORY: Lazy<PathBuf> = Lazy::new(|| env::current_dir().unwrap_or_default());
 
 /// The status code returned from `ouch` on error
 pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;
