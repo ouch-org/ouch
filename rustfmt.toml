@@ -9,6 +9,5 @@ use_try_shorthand = true
 
 # Unstable features (nightly only)
 unstable_features = true
-force_multiline_blocks = true
 group_imports = "StdExternalCrate"
 imports_granularity = "Crate"
