@@ -145,26 +145,18 @@ impl fmt::Display for Error {
 impl From<std::io::Error> for Error {
     fn from(err: std::io::Error) -> Self {
         match err.kind() {
-            std::io::ErrorKind::NotFound => {
-                Self::NotFound {
-                    error_title: err.to_string(),
-                }
-            }
-            std::io::ErrorKind::PermissionDenied => {
-                Self::PermissionDenied {
-                    error_title: err.to_string(),
-                }
-            }
-            std::io::ErrorKind::AlreadyExists => {
-                Self::AlreadyExists {
-                    error_title: err.to_string(),
-                }
-            }
-            _other => {
-                Self::IoError {
-                    reason: err.to_string(),
-                }
-            }
+            std::io::ErrorKind::NotFound => Self::NotFound {
+                error_title: err.to_string(),
+            },
+            std::io::ErrorKind::PermissionDenied => Self::PermissionDenied {
+                error_title: err.to_string(),
+            },
+            std::io::ErrorKind::AlreadyExists => Self::AlreadyExists {
+                error_title: err.to_string(),
+            },
+            _other => Self::IoError {
+                reason: err.to_string(),
+            },
         }
     }
 }
@@ -183,11 +175,9 @@ impl From<zip::result::ZipError> for Error {
         match err {
             ZipError::Io(io_err) => Self::from(io_err),
             ZipError::InvalidArchive(filename) => Self::InvalidZipArchive(filename),
-            ZipError::FileNotFound => {
-                Self::Custom {
-                    reason: FinalError::with_title("Unexpected error in zip archive").detail("File not found"),
-                }
-            }
+            ZipError::FileNotFound => Self::Custom {
+                reason: FinalError::with_title("Unexpected error in zip archive").detail("File not found"),
+            },
             ZipError::UnsupportedArchive(filename) => Self::UnsupportedZipArchive(filename),
         }
     }
