@@ -84,6 +84,7 @@ Categories Used:
 - Fix missing \#\[must_use\] attribute on a method returning `Self` [\#243](https://github.com/ouch-org/ouch/pull/243) ([vrmiguel](https://github.com/vrmiguel))
 - Update dependencies [\#253](https://github.com/ouch-org/ouch/pull/253) ([Crypto-Spartan](https://github.com/Crypto-Spartan))
 - Update dependencies [\#257](https://github.com/ouch-org/ouch/pull/257) ([Artturin](https://github.com/Artturin))
+- Add pull request template [\#263](https://github.com/ouch-org/ouch/pull/263) ([figsoda](https://github.com/figsoda))
 
 ### New Contributors
 
