@@ -71,7 +71,7 @@ pub enum Subcommand {
         #[clap(required = true, min_values = 1)]
         files: Vec<PathBuf>,
 
-        /// Choose to  files in a directory other than the current
+        /// Place results in a directory other than the current one.
         #[clap(short = 'd', long = "dir", value_hint = ValueHint::DirPath)]
         output_dir: Option<PathBuf>,
     },
