@@ -64,6 +64,7 @@ Categories Used:
 - Use `Cow<'static, str>` in `FinalError` [\#246](https://github.com/ouch-org/ouch/pull/246) ([vrmiguel](https://github.com/vrmiguel))
 - Don't allocate when possible in `to_utf`, `nice_directory_display` [\#249](https://github.com/ouch-org/ouch/pull/249) ([vrmiguel](https://github.com/vrmiguel))
 - Allow overriding the completions output directory [\#251]](https://github.com/ouch-org/ouch/pull/251) ([jcgruenhage](https://github.com/jcgruenhage))
+- Use Lazy to optimize env::current_dir repeated call [\#261]](https://github.com/ouch-org/ouch/pull/261) ([marcospb19](https://github.com/marcospb19))
 
 ### Tweaks
 
