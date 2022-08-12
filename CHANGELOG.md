@@ -85,7 +85,7 @@ Categories Used:
 - Update dependencies [\#253](https://github.com/ouch-org/ouch/pull/253) ([Crypto-Spartan](https://github.com/Crypto-Spartan))
 - Update dependencies [\#257](https://github.com/ouch-org/ouch/pull/257) ([Artturin](https://github.com/Artturin))
 - Add pull request template [\#263](https://github.com/ouch-org/ouch/pull/263) ([figsoda](https://github.com/figsoda))
-- Clean up the description for the `-o/--dir` argument to `decompress` [\#264](https://github.com/ouch-org/ouch/pull/264) ([hivehand](https://github.com/hivehand))
+- Clean up the description for the `-d/--dir` argument to `decompress` [\#264](https://github.com/ouch-org/ouch/pull/264) ([hivehand](https://github.com/hivehand))
 
 ### New Contributors
 
@@ -111,7 +111,7 @@ Categories Used:
 - Implement command 'list' to show archive contents [\#129](https://github.com/ouch-org/ouch/pull/129) ([AntonHermann](https://github.com/AntonHermann))
 - Print number of unpacked files by [\#130](https://github.com/ouch-org/ouch/pull/130) ([dcariotti](https://github.com/dcariotti))
 
-**Disclaimer: _Our installation script does not support installing man pages and shell completions yet, but PRs are welcome!_ **
+**Disclaimer: _Our installation script does not support installing man pages and shell completions yet, but PRs are welcome!_**
 
 ### Bug Fixes
 
