@@ -140,6 +140,7 @@ Categories Used:
 - CI: Check the format with Github Action [\#126](https://github.com/ouch-org/ouch/pull/126) ([dcariotti](https://github.com/dcariotti))
 - CI: Rewrite [\#135](https://github.com/ouch-org/ouch/pull/135) ([figsoda](https://github.com/figsoda))
 - Improving error messages and removing dead error treatment code [\#140](https://github.com/ouch-org/ouch/pull/140) ([marcospb19](https://github.com/marcospb19))
+- Apply clippy lints and simplify smart_unpack [\#267](https://github.com/ouch-org/ouch/pull/267) ([figsoda](https://github.com/figsoda))
 
 ### Tweaks
 
