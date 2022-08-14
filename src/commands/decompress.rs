@@ -50,17 +50,8 @@ pub fn decompress_file(
     {
         let zip_archive = zip::ZipArchive::new(reader)?;
         let files = if let ControlFlow::Continue(files) = smart_unpack(
-            Box::new(move |output_dir| {
-                let mut progress = Progress::new_accessible_aware(total_input_size, true, None);
-                crate::archive::zip::unpack_archive(
-                    zip_archive,
-                    output_dir,
-                    progress
-                        .as_mut()
-                        .map(Progress::display_handle)
-                        .unwrap_or(&mut io::stdout()),
-                )
-            }),
+            |output_dir, progress| crate::archive::zip::unpack_archive(zip_archive, output_dir, progress),
+            total_input_size,
             output_dir,
             &output_file_path,
             question_policy,
@@ -130,17 +121,8 @@ pub fn decompress_file(
         }
         Tar => {
             if let ControlFlow::Continue(files) = smart_unpack(
-                Box::new(move |output_dir| {
-                    let mut progress = Progress::new_accessible_aware(total_input_size, true, None);
-                    crate::archive::tar::unpack_archive(
-                        reader,
-                        output_dir,
-                        progress
-                            .as_mut()
-                            .map(Progress::display_handle)
-                            .unwrap_or(&mut io::stdout()),
-                    )
-                }),
+                |output_dir, progress| crate::archive::tar::unpack_archive(reader, output_dir, progress),
+                total_input_size,
                 output_dir,
                 &output_file_path,
                 question_policy,
@@ -165,17 +147,8 @@ pub fn decompress_file(
             let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
 
             if let ControlFlow::Continue(files) = smart_unpack(
-                Box::new(move |output_dir| {
-                    let mut progress = Progress::new_accessible_aware(total_input_size, true, None);
-                    crate::archive::zip::unpack_archive(
-                        zip_archive,
-                        output_dir,
-                        progress
-                            .as_mut()
-                            .map(Progress::display_handle)
-                            .unwrap_or(&mut io::stdout()),
-                    )
-                }),
+                |output_dir, progress| crate::archive::zip::unpack_archive(zip_archive, output_dir, progress),
+                total_input_size,
                 output_dir,
                 &output_file_path,
                 question_policy,
@@ -207,7 +180,8 @@ pub fn decompress_file(
 ///   output_dir named after the archive (given by `output_file_path`)
 /// Note: This functions assumes that `output_dir` exists
 fn smart_unpack(
-    unpack_fn: Box<dyn FnOnce(&Path) -> crate::Result<Vec<PathBuf>>>,
+    unpack_fn: impl FnOnce(&Path, &mut dyn Write) -> crate::Result<Vec<PathBuf>>,
+    total_input_size: u64,
     output_dir: &Path,
     output_file_path: &Path,
     question_policy: QuestionPolicy,
@@ -222,7 +196,13 @@ fn smart_unpack(
     );
 
     // unpack the files
-    let files = unpack_fn(temp_dir_path)?;
+    let files = unpack_fn(
+        temp_dir_path,
+        Progress::new_accessible_aware(total_input_size, true, None)
+            .as_mut()
+            .map(Progress::display_handle)
+            .unwrap_or(&mut io::stdout()),
+    )?;
 
     let root_contains_only_one_element = fs::read_dir(&temp_dir_path)?.count() == 1;
     if root_contains_only_one_element {
