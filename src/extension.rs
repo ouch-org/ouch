@@ -98,8 +98,10 @@ impl fmt::Display for CompressionFormat {
     }
 }
 
-// use crate::extension::CompressionFormat::*;
-//
+pub const SUPPORTED_EXTENSIONS: &[&str] = &[
+    "tar", "tgz", "tbz", "tlz4", "txz", "tzlma", "tsz", "tzst", "zip", "bz", "bz2", "gz", "lz4", "xz", "lzma", "sz",
+    "zst",
+];
 
 /// Extracts extensions from a path,
 /// return both the remaining path and the list of extension objects
