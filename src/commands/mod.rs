@@ -16,7 +16,7 @@ use utils::colors;
 use crate::{
     commands::{compress::compress_files, decompress::decompress_file, list::list_archive_contents},
     error::FinalError,
-    extension::{self, flatten_compression_formats, Extension},
+    extension::{self, flatten_compression_formats, Extension, SUPPORTED_EXTENSIONS},
     info,
     list::ListOptions,
     utils::{
@@ -44,6 +44,40 @@ fn represents_several_files(files: &[PathBuf]) -> bool {
     };
 
     files.iter().any(is_non_empty_dir) || files.len() > 1
+}
+
+/// Builds a suggested output file in scenarios where the user tried to compress
+/// a folder into a non-archive compression format, for error message purposes
+///
+/// E.g.: `build_suggestion("file.bz.xz", ".tar")` results in `Some("file.tar.bz.xz")`
+fn build_archive_file_suggestion(path: &Path, suggested_extension: &str) -> Option<String> {
+    let path = path.to_string_lossy();
+    let mut rest = &*path;
+    let mut position_to_insert = 0;
+
+    // Walk through the path to find the first supported compression extension
+    while let Some(pos) = rest.find('.') {
+        // Use just the text located after the dot we found
+        rest = &rest[pos + 1..];
+        position_to_insert += pos + 1;
+
+        // If the string contains more chained extensions, clip to the immediate one
+        let maybe_extension = {
+            let idx = rest.find('.').unwrap_or(rest.len());
+            &rest[..idx]
+        };
+
+        // If the extension we got is a supported extension, generate the suggestion
+        // at the position we found
+        if SUPPORTED_EXTENSIONS.contains(&maybe_extension) {
+            let mut path = path.to_string();
+            path.insert_str(position_to_insert - 1, suggested_extension);
+
+            return Some(path);
+        }
+    }
+
+    None
 }
 
 /// This function checks what command needs to be run and performs A LOT of ahead-of-time checks
@@ -93,16 +127,10 @@ pub fn run(
                 // It says:
                 // Change from file.bz.xz
                 // To          file.tar.bz.xz
-                let extensions_text: String = formats.iter().map(|format| format.to_string()).collect();
+                let suggested_output_path = build_archive_file_suggestion(&output_path, ".tar")
+                    .expect("output path did not contain a compression format");
 
-                let output_path = to_utf(&output_path).to_string();
-
-                // Breaks if Lzma is .lz or .lzma and not .xz
-                // Or if Bzip is .bz2 and not .bz
-                let extensions_start_position = output_path.rfind(&extensions_text).unwrap();
-                let pos = extensions_start_position - 1;
-                let mut suggested_output_path = output_path.to_string();
-                suggested_output_path.insert_str(pos, ".tar");
+                let output_path = to_utf(&output_path);
 
                 let error = FinalError::with_title(format!("Cannot compress to '{}'.", output_path))
                     .detail("You are trying to compress multiple files.")
@@ -384,5 +412,33 @@ fn deduplicate_input_files(files: &mut Vec<PathBuf>, output_path: &Path) {
         } else {
             idx += 1;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use super::build_archive_file_suggestion;
+
+    #[test]
+    fn builds_suggestion_correctly() {
+        assert_eq!(build_archive_file_suggestion(Path::new("linux.png"), ".tar"), None);
+        assert_eq!(
+            build_archive_file_suggestion(Path::new("linux.xz.gz.zst"), ".tar").unwrap(),
+            "linux.tar.xz.gz.zst"
+        );
+        assert_eq!(
+            build_archive_file_suggestion(Path::new("linux.pkg.xz.gz.zst"), ".tar").unwrap(),
+            "linux.pkg.tar.xz.gz.zst"
+        );
+        assert_eq!(
+            build_archive_file_suggestion(Path::new("linux.pkg.zst"), ".tar").unwrap(),
+            "linux.pkg.tar.zst"
+        );
+        assert_eq!(
+            build_archive_file_suggestion(Path::new("linux.pkg.info.zst"), ".tar").unwrap(),
+            "linux.pkg.info.tar.zst"
+        );
     }
 }
