@@ -126,6 +126,7 @@ Categories Used:
 - Fix wrong archive format detection patterns [\#125](https://github.com/ouch-org/ouch/pull/125) ([SpyrosRoum](https://github.com/SpyrosRoum))
 - Decompressing file without extension gives bad error message [\#137](https://github.com/ouch-org/ouch/issues/137) ([marcospb19](https://github.com/marcospb19))
 - Fix decompression overwritting files without asking and failing on directories [\#141](https://github.com/ouch-org/ouch/pull/141) ([SpyrosRoum](https://github.com/SpyrosRoum))
+- Fix incorrect warnings for decompression [\#270](https://github.com/ouch-org/ouch/pull/270) ([figsoda](https://github.com/figsoda))
 
 ### Improvements
 
