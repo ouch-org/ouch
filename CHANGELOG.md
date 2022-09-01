@@ -141,6 +141,7 @@ Categories Used:
 - CI: Rewrite [\#135](https://github.com/ouch-org/ouch/pull/135) ([figsoda](https://github.com/figsoda))
 - Improving error messages and removing dead error treatment code [\#140](https://github.com/ouch-org/ouch/pull/140) ([marcospb19](https://github.com/marcospb19))
 - Apply clippy lints and simplify smart_unpack [\#267](https://github.com/ouch-org/ouch/pull/267) ([figsoda](https://github.com/figsoda))
+- Respect file permissions when compressing zip files [\#271](https://github.com/ouch-org/ouch/pull/271) ([figsoda](https://github.com/figsoda))
 
 ### Tweaks
 
