@@ -1,5 +1,7 @@
 //! Contains Zip-specific building and unpacking functions
 
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 use std::{
     env,
     io::{self, prelude::*},
@@ -138,6 +140,9 @@ where
     let mut writer = zip::ZipWriter::new(writer);
     let options = zip::write::FileOptions::default();
 
+    #[cfg(not(unix))]
+    let executable = options.unix_permissions(0o755);
+
     // Vec of any filename that failed the UTF-8 check
     let invalid_unicode_filenames = get_invalid_utf8_paths(input_filenames);
 
@@ -168,21 +173,33 @@ where
             // and so on
             info!(@display_handle, inaccessible, "Compressing '{}'.", to_utf(path));
 
-            if path.is_dir() {
+            let metadata = match path.metadata() {
+                Ok(metadata) => metadata,
+                Err(e) => {
+                    if e.kind() == std::io::ErrorKind::NotFound && utils::is_symlink(path) {
+                        // This path is for a broken symlink
+                        // We just ignore it
+                        continue;
+                    }
+                    return Err(e.into());
+                }
+            };
+
+            #[cfg(unix)]
+            let options = options.unix_permissions(metadata.permissions().mode());
+
+            if metadata.is_dir() {
                 writer.add_directory(path.to_str().unwrap().to_owned(), options)?;
             } else {
-                writer.start_file(path.to_str().unwrap().to_owned(), options)?;
-                let file_bytes = match fs::read(entry.path()) {
-                    Ok(b) => b,
-                    Err(e) => {
-                        if e.kind() == std::io::ErrorKind::NotFound && utils::is_symlink(path) {
-                            // This path is for a broken symlink
-                            // We just ignore it
-                            continue;
-                        }
-                        return Err(e.into());
-                    }
+                #[cfg(not(unix))]
+                let options = if is_executable::is_executable(path) {
+                    executable
+                } else {
+                    options
                 };
+
+                writer.start_file(path.to_str().unwrap().to_owned(), options)?;
+                let file_bytes = fs::read(entry.path())?;
                 writer.write_all(&file_bytes)?;
             }
         }
@@ -260,7 +277,7 @@ fn set_last_modified_time(file: &fs::File, zip_file: &ZipFile) -> crate::Result<
 
 #[cfg(unix)]
 fn __unix_set_permissions(file_path: &Path, file: &ZipFile) -> crate::Result<()> {
-    use std::{fs::Permissions, os::unix::fs::PermissionsExt};
+    use std::fs::Permissions;
 
     if let Some(mode) = file.unix_mode() {
         fs::set_permissions(file_path, Permissions::from_mode(mode))?;
