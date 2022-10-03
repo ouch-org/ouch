@@ -43,8 +43,8 @@ jobs:
           rustup toolchain install nightly --profile minimal -t ${{ matrix.target }}
           cargo +nightly build --release --target ${{ matrix.target }}
         env:
-          GEN_COMPLETIONS: 1
-          RUSTFLAGS: -Z strip=symbols
+          OUCH_ARTIFACTS_FOLDER: artifacts
+          RUSTFLAGS: -C strip=symbols
 
       - name: Upload bianry
         uses: actions/upload-artifact@v2
@@ -52,25 +52,12 @@ jobs:
           name: ouch-${{ matrix.target }}${{ matrix.ext }}
           path: target/${{ matrix.target }}/release/ouch${{ matrix.ext }}
  
-      - name: Build man page and find completions (musl)
-        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
-        run: |
-          help2man target/${{ matrix.target }}/release/ouch > ouch.1
-          cp -r target/${{ matrix.target }}/release/build/ouch-*/out/completions .
-
-      - name: Upload completions (musl)
+      - name: Upload artifacts (musl)
         if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
         uses: actions/upload-artifact@v2
         with:
-          name: completions
-          path: completions
-
-      - name: Upload man page (musl)
-        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
-        uses: actions/upload-artifact@v2
-        with:
-          name: ouch.1
-          path: ouch.1
+          name: artifacts
+          path: artifacts
 
   clippy-rustfmt:
     name: clippy-rustfmt

@@ -1,96 +1,55 @@
-/// This build script checks for env vars to build ouch with shell completions.
+/// This build script checks for env vars to build ouch with shell completions and man pages.
 ///
-/// # How to generate shell completions:
+/// # How to generate shell completions and man pages:
 ///
-/// Set `OUCH_COMPLETIONS_FOLDER` to the name of the destination folder:
+/// Set `OUCH_ARTIFACTS_FOLDER` to the name of the destination folder:
 ///
 /// ```sh
-/// OUCH_COMPLETIONS_FOLDER=my-folder cargo build
+/// OUCH_ARTIFACTS_FOLDER=my-folder cargo build
 /// ```
 ///
 /// All completion files will be generated inside of the folder "my-folder".
 ///
 /// If the folder does not exist, it will be created.
 ///
-/// We recommend you naming this folder "completions" for the sake of consistency.
+/// We recommend you naming this folder "artifacts" for the sake of consistency.
 ///
 /// ```sh
-/// OUCH_COMPLETIONS_FOLDER=completions cargo build
+/// OUCH_ARTIFACTS_FOLDER=artifacts cargo build
 /// ```
-///
-/// # Retrocompatibility
-///
-/// The old method that still works so it does not break older packages.
-///
-/// Using `GEN_COMPLETIONS=1` still works for those packages who need it,
-/// however.
-///
-/// ```sh
-/// GEN_COMPLETIONS=1 cargo build
-/// ```
-///
-/// Will generate completions to a cargo target default folder, for example:
-/// - `target/debug/build/ouch-195b34a8adca6ec3/out/completions`
-///
-/// The _"195b34a8adca6ec3"_ part is a hash that might change between runs.
-use std::{env, fs, path::Path};
+use std::{
+    env,
+    fs::{create_dir_all, File},
+    path::Path,
+};
 
-use clap::IntoApp;
+use clap::{CommandFactory, ValueEnum};
 use clap_complete::{generate_to, Shell};
-
-const TARGET_SHELLS: &[Shell] = &[Shell::Bash, Shell::Zsh, Shell::Fish];
+use clap_mangen::Man;
 
 include!("src/opts.rs");
 
 fn main() {
-    println!("cargo:rerun-if-env-changed=GEN_COMPLETIONS");
-    println!("cargo:rerun-if-env-changed=OUCH_COMPLETIONS_FOLDER");
+    println!("cargo:rerun-if-env-changed=OUCH_ARTIFACTS_FOLDER");
 
-    let completions_output_directory = match detect_completions_output_directory() {
-        Some(inner) => inner,
-        _ => return,
-    };
+    if let Some(dir) = env::var_os("OUCH_ARTIFACTS_FOLDER") {
+        let out = &Path::new(&dir);
+        create_dir_all(out).unwrap();
+        let cmd = &mut Opts::command();
 
-    fs::create_dir_all(&completions_output_directory).expect("Could not create shell completions output folder.");
+        Man::new(cmd.clone())
+            .render(&mut File::create(out.join("ouch.1")).unwrap())
+            .unwrap();
 
-    let app = &mut Opts::command();
+        for subcmd in cmd.get_subcommands() {
+            let name = format!("ouch-{}", subcmd.get_name());
+            Man::new(subcmd.clone().name(&name))
+                .render(&mut File::create(out.join(format!("{name}.1"))).unwrap())
+                .unwrap();
+        }
 
-    for shell in TARGET_SHELLS {
-        let target_directory = if env::var_os("OUCH_COMPLETIONS_FOLDER").is_some() {
-            let shell_name = shell.to_string();
-
-            let shell_dir = completions_output_directory.join(&shell_name);
-            fs::create_dir(&shell_dir).expect("Failed to create directory for shell completions");
-
-            shell_dir
-        } else {
-            completions_output_directory.clone()
-        };
-        generate_to(*shell, app, "ouch", &target_directory)
-            .unwrap_or_else(|err| panic!("Failed to generate shell completions for {}: {}.", shell, err));
-    }
-}
-
-/// Decide whether or not to generate completions, and the destination.
-///
-/// Note that `OUCH_COMPLETIONS_FOLDER` is checked before `GEN_COMPLETIONS`.
-fn detect_completions_output_directory() -> Option<PathBuf> {
-    // Get directory from var
-    if let Some(dir) = env::var_os("OUCH_COMPLETIONS_FOLDER") {
-        return Some(dir.into());
-    };
-
-    get_deprecated_completions_directory()
-}
-
-fn get_deprecated_completions_directory() -> Option<PathBuf> {
-    // If set, directory goes inside of cargo's `target/`
-    let gen_completions = env::var_os("GEN_COMPLETIONS").map(|var| &var == "1").unwrap_or(false);
-    if gen_completions {
-        let out_dir = env::var_os("OUT_DIR").unwrap();
-        let dir = Path::new(&out_dir).join("completions");
-        Some(dir)
-    } else {
-        None
+        for shell in Shell::value_variants() {
+            generate_to(*shell, cmd, "ouch", out).unwrap();
+        }
     }
 }
