@@ -94,7 +94,7 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
         let mut buf = [0; 270];
 
         // Error cause will be ignored, so use std::fs instead of fs_err
-        let result = std::fs::File::open(&path).map(|mut file| file.read(&mut buf));
+        let result = std::fs::File::open(path).map(|mut file| file.read(&mut buf));
 
         // In case of file open or read failure, could not infer a extension
         if result.is_err() {
