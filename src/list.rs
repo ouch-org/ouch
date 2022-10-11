@@ -36,9 +36,8 @@ pub fn list_files(
     if list_options.tree {
         let pb = if !is_running_in_accessible_mode() {
             let template = "{wide_msg} [{elapsed_precise}] {spinner:.green}";
-            let pb = ProgressBar::new_spinner();
-            pb.set_style(ProgressStyle::default_bar().template(template));
-            Some(pb)
+            let style = ProgressStyle::with_template(template).map_err(crate::Error::TemplateError)?;
+            Some(ProgressBar::new_spinner().with_style(style))
         } else {
             None
         };
