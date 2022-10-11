@@ -82,8 +82,8 @@ impl Progress {
                 t += "({bytes_per_sec}, {eta}) {path}";
                 t
             };
-            let bar = ProgressBar::new(total_input_size);
-            bar.set_style(ProgressStyle::default_bar().template(&template).progress_chars("#>-"));
+            let bar = ProgressBar::new(total_input_size)
+                .with_style(ProgressStyle::with_template(&template).unwrap().progress_chars("#>-"));
 
             while draw_rx.try_recv().is_err() {
                 if let Some(ref pos_fn) = current_position_fn {
