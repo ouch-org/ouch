@@ -30,6 +30,7 @@ Categories Used:
 - Add progress bar to compressing/decompressing [\#210](https://github.com/ouch-org/ouch/pull/210) ([sigmaSd](https://github.com/sigmaSd))
 - Support snappy format [\#215](https://github.com/ouch-org/ouch/pull/215) ([figsoda](https://github.com/figsoda))
 - Allow ignoring hidden files and files matched by .gitignore files [\#245](https://github.com/ouch-org/ouch/pull/245) ([vrmiguel](https://github.com/vrmiguel))
+- Automatically generate man pages with clap_mangen [\#273](https://github.com/ouch-org/ouch/pull/273) ([figsoda](https://github.com/figsoda))
 
 ### Bug Fixes
 
@@ -51,6 +52,7 @@ Categories Used:
 - Mark directories when compressing to zip regardless of their contents [\#230](https://github.com/ouch-org/ouch/pull/230) ([sigmaSd](https://github.com/sigmaSd))
 - Recover last modified time when unpacking zip archives [\#250](https://github.com/ouch-org/ouch/pull/250) ([vrmiguel](https://github.com/vrmiguel))
 - Remove single quotes from clap doc comments [\#251](https://github.com/ouch-org/ouch/pull/251) ([jcgruenhage](https://github.com/jcgruenhage))
+- Fix incorrect warnings for decompression [\#270](https://github.com/ouch-org/ouch/pull/270) ([figsoda](https://github.com/figsoda))
 
 ### Improvements
 
@@ -65,6 +67,9 @@ Categories Used:
 - Don't allocate when possible in `to_utf`, `nice_directory_display` [\#249](https://github.com/ouch-org/ouch/pull/249) ([vrmiguel](https://github.com/vrmiguel))
 - Allow overriding the completions output directory [\#251]](https://github.com/ouch-org/ouch/pull/251) ([jcgruenhage](https://github.com/jcgruenhage))
 - Use Lazy to optimize env::current_dir repeated call [\#261]](https://github.com/ouch-org/ouch/pull/261) ([marcospb19](https://github.com/marcospb19))
+- Apply clippy lints and simplify smart_unpack [\#267](https://github.com/ouch-org/ouch/pull/267) ([figsoda](https://github.com/figsoda))
+- Respect file permissions when compressing zip files [\#271](https://github.com/ouch-org/ouch/pull/271) ([figsoda](https://github.com/figsoda))
+- Apply clippy lints [\#273](https://github.com/ouch-org/ouch/pull/273) ([figsoda](https://github.com/figsoda))
 
 ### Tweaks
 
@@ -126,7 +131,6 @@ Categories Used:
 - Fix wrong archive format detection patterns [\#125](https://github.com/ouch-org/ouch/pull/125) ([SpyrosRoum](https://github.com/SpyrosRoum))
 - Decompressing file without extension gives bad error message [\#137](https://github.com/ouch-org/ouch/issues/137) ([marcospb19](https://github.com/marcospb19))
 - Fix decompression overwritting files without asking and failing on directories [\#141](https://github.com/ouch-org/ouch/pull/141) ([SpyrosRoum](https://github.com/SpyrosRoum))
-- Fix incorrect warnings for decompression [\#270](https://github.com/ouch-org/ouch/pull/270) ([figsoda](https://github.com/figsoda))
 
 ### Improvements
 
@@ -141,8 +145,6 @@ Categories Used:
 - CI: Check the format with Github Action [\#126](https://github.com/ouch-org/ouch/pull/126) ([dcariotti](https://github.com/dcariotti))
 - CI: Rewrite [\#135](https://github.com/ouch-org/ouch/pull/135) ([figsoda](https://github.com/figsoda))
 - Improving error messages and removing dead error treatment code [\#140](https://github.com/ouch-org/ouch/pull/140) ([marcospb19](https://github.com/marcospb19))
-- Apply clippy lints and simplify smart_unpack [\#267](https://github.com/ouch-org/ouch/pull/267) ([figsoda](https://github.com/figsoda))
-- Respect file permissions when compressing zip files [\#271](https://github.com/ouch-org/ouch/pull/271) ([figsoda](https://github.com/figsoda))
 
 ### Tweaks
 

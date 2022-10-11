@@ -61,7 +61,7 @@ where
             _is_file @ false => {
                 if let Some(path) = file_path.parent() {
                     if !path.exists() {
-                        fs::create_dir_all(&path)?;
+                        fs::create_dir_all(path)?;
                     }
                 }
                 let file_path = strip_cur_dir(file_path.as_path());
@@ -69,7 +69,7 @@ where
                 // same reason is in _is_dir: long, often not needed text
                 info!(@display_handle, inaccessible, "{:?} extracted. ({})", file_path.display(), Bytes::new(file.size()));
 
-                let mut output_file = fs::File::create(&file_path)?;
+                let mut output_file = fs::File::create(file_path)?;
                 io::copy(&mut file, &mut output_file)?;
 
                 #[cfg(unix)]

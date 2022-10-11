@@ -34,7 +34,7 @@ pub fn decompress_file(
 ) -> crate::Result<()> {
     assert!(output_dir.exists());
     let total_input_size = input_file_path.metadata().expect("file exists").len();
-    let reader = fs::File::open(&input_file_path)?;
+    let reader = fs::File::open(input_file_path)?;
 
     // Zip archives are special, because they require io::Seek, so it requires it's logic separated
     // from decoder chaining.
@@ -204,10 +204,10 @@ fn smart_unpack(
             .unwrap_or(&mut io::stdout()),
     )?;
 
-    let root_contains_only_one_element = fs::read_dir(&temp_dir_path)?.count() == 1;
+    let root_contains_only_one_element = fs::read_dir(temp_dir_path)?.count() == 1;
     if root_contains_only_one_element {
         // Only one file in the root directory, so we can just move it to the output directory
-        let file = fs::read_dir(&temp_dir_path)?.next().expect("item exists")?;
+        let file = fs::read_dir(temp_dir_path)?.next().expect("item exists")?;
         let file_path = file.path();
         let file_name = file_path
             .file_name()
@@ -231,7 +231,7 @@ fn smart_unpack(
         if !utils::clear_path(output_file_path, question_policy)? {
             return Ok(ControlFlow::Break(()));
         }
-        fs::rename(&temp_dir_path, &output_file_path)?;
+        fs::rename(temp_dir_path, output_file_path)?;
         info!(
             accessible,
             "Successfully moved {} to {}.",

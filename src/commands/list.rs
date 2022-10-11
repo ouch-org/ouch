@@ -21,7 +21,7 @@ pub fn list_archive_contents(
     list_options: ListOptions,
     question_policy: QuestionPolicy,
 ) -> crate::Result<()> {
-    let reader = fs::File::open(&archive_path)?;
+    let reader = fs::File::open(archive_path)?;
 
     // Zip archives are special, because they require io::Seek, so it requires it's logic separated
     // from decoder chaining.

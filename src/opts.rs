@@ -9,33 +9,33 @@ use clap::{Parser, ValueHint};
 ///
 /// Repository: https://github.com/ouch-org/ouch
 #[derive(Parser, Debug)]
-#[clap(about, version)]
+#[command(about, version)]
 // Ignore bare urls in the documentation of this file because the doc comments
 // are also being used by Clap's --help generation
 #[allow(rustdoc::bare_urls)]
 pub struct Opts {
     /// Skip [Y/n] questions positively.
-    #[clap(short, long, conflicts_with = "no", global = true)]
+    #[arg(short, long, conflicts_with = "no", global = true)]
     pub yes: bool,
 
     /// Skip [Y/n] questions negatively.
-    #[clap(short, long, global = true)]
+    #[arg(short, long, global = true)]
     pub no: bool,
 
     /// Activate accessibility mode, reducing visual noise
-    #[clap(short = 'A', long, env = "ACCESSIBLE", global = true)]
+    #[arg(short = 'A', long, env = "ACCESSIBLE", global = true)]
     pub accessible: bool,
 
     /// Ignores hidden files
-    #[clap(short = 'H', long)]
+    #[arg(short = 'H', long)]
     pub hidden: bool,
 
     /// Ignores files matched by git's ignore files
-    #[clap(short = 'g', long)]
+    #[arg(short = 'g', long)]
     pub gitignore: bool,
 
     /// Ouch and claps subcommands
-    #[clap(subcommand)]
+    #[command(subcommand)]
     pub cmd: Subcommand,
 }
 
@@ -54,36 +54,36 @@ pub struct Opts {
 #[allow(rustdoc::bare_urls)]
 pub enum Subcommand {
     /// Compress one or more files into one output file.
-    #[clap(alias = "c")]
+    #[command(alias = "c")]
     Compress {
         /// Files to be compressed.
-        #[clap(required = true, min_values = 1)]
+        #[arg(required = true, num_args = 1..)]
         files: Vec<PathBuf>,
 
         /// The resulting file. Its extensions can be used to specify the compression formats.
-        #[clap(required = true, value_hint = ValueHint::FilePath)]
+        #[arg(required = true, value_hint = ValueHint::FilePath)]
         output: PathBuf,
     },
     /// Decompresses one or more files, optionally into another folder.
-    #[clap(alias = "d")]
+    #[command(alias = "d")]
     Decompress {
         /// Files to be decompressed.
-        #[clap(required = true, min_values = 1)]
+        #[arg(required = true, num_args = 1..)]
         files: Vec<PathBuf>,
 
         /// Place results in a directory other than the current one.
-        #[clap(short = 'd', long = "dir", value_hint = ValueHint::DirPath)]
+        #[arg(short = 'd', long = "dir", value_hint = ValueHint::DirPath)]
         output_dir: Option<PathBuf>,
     },
     /// List contents.     Alias: l
-    #[clap(alias = "l")]
+    #[command(alias = "l")]
     List {
         /// Archives whose contents should be listed
-        #[clap(required = true, min_values = 1)]
+        #[arg(required = true, num_args = 1..)]
         archives: Vec<PathBuf>,
 
         /// Show archive contents as a tree
-        #[clap(short, long)]
+        #[arg(short, long)]
         tree: bool,
     },
 }
