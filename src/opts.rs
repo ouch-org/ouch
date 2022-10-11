@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use clap::{Parser, ValueHint};
 
-// Command line options
+// Ouch command line options (docstrings below are part of --help)
 /// A command-line utility for easily compressing and decompressing files and directories.
 ///
 /// Supported formats: tar, zip, bz/bz2, gz, lz4, xz/lz/lzma, zst.
@@ -10,15 +10,14 @@ use clap::{Parser, ValueHint};
 /// Repository: https://github.com/ouch-org/ouch
 #[derive(Parser, Debug)]
 #[command(about, version)]
-// Ignore bare urls in the documentation of this file because the doc comments
-// are also being used by Clap's --help generation
+// Disable rustdoc::bare_urls because rustdoc parses URLs differently than Clap
 #[allow(rustdoc::bare_urls)]
 pub struct Opts {
-    /// Skip [Y/n] questions positively.
+    /// Skip [Y/n] questions positively
     #[arg(short, long, conflicts_with = "no", global = true)]
     pub yes: bool,
 
-    /// Skip [Y/n] questions negatively.
+    /// Skip [Y/n] questions negatively
     #[arg(short, long, global = true)]
     pub no: bool,
 
@@ -39,44 +38,33 @@ pub struct Opts {
     pub cmd: Subcommand,
 }
 
-// CAREFUL: this docs can accidentally become part of the --help message if they get too long
-// this was tested in clap 3.0.0-beta5.
-/// Repository: https://github.com/ouch-org/ouch
-//
-// Ouch commands:
-// - `compress`
-// - `decompress`
-// - `list`
-//
-// Clap commands:
-//  - `help`
 #[derive(Parser, PartialEq, Eq, Debug)]
 #[allow(rustdoc::bare_urls)]
 pub enum Subcommand {
-    /// Compress one or more files into one output file.
-    #[command(alias = "c")]
+    /// Compress one or more files into one output file
+    #[command(visible_alias = "c")]
     Compress {
-        /// Files to be compressed.
+        /// Files to be compressed
         #[arg(required = true, num_args = 1..)]
         files: Vec<PathBuf>,
 
-        /// The resulting file. Its extensions can be used to specify the compression formats.
+        /// The resulting file. Its extensions can be used to specify the compression formats
         #[arg(required = true, value_hint = ValueHint::FilePath)]
         output: PathBuf,
     },
-    /// Decompresses one or more files, optionally into another folder.
-    #[command(alias = "d")]
+    /// Decompresses one or more files, optionally into another folder
+    #[command(visible_alias = "d")]
     Decompress {
-        /// Files to be decompressed.
+        /// Files to be decompressed
         #[arg(required = true, num_args = 1..)]
         files: Vec<PathBuf>,
 
-        /// Place results in a directory other than the current one.
+        /// Place results in a directory other than the current one
         #[arg(short = 'd', long = "dir", value_hint = ValueHint::DirPath)]
         output_dir: Option<PathBuf>,
     },
-    /// List contents.     Alias: l
-    #[command(alias = "l")]
+    /// List contents of an archive
+    #[command(visible_alias = "l")]
     List {
         /// Archives whose contents should be listed
         #[arg(required = true, num_args = 1..)]
