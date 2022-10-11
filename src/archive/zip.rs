@@ -10,6 +10,7 @@ use std::{
     thread,
 };
 
+use filetime::{set_file_mtime, FileTime};
 use fs_err as fs;
 use zip::{self, read::ZipFile, ZipArchive};
 
@@ -73,12 +74,12 @@ where
                 io::copy(&mut file, &mut output_file)?;
 
                 #[cfg(unix)]
-                set_last_modified_time(&output_file, &file)?;
+                set_last_modified_time(&file, file_path)?;
             }
         }
 
         #[cfg(unix)]
-        __unix_set_permissions(&file_path, &file)?;
+        unix_set_permissions(&file_path, &file)?;
 
         unpacked_files.push(file_path);
     }
@@ -229,54 +230,23 @@ fn display_zip_comment_if_exists(file: &ZipFile) {
 }
 
 #[cfg(unix)]
-/// Attempts to convert a [`zip::DateTime`] to a [`libc::timespec`].
-fn convert_zip_date_time(date_time: zip::DateTime) -> Option<libc::timespec> {
-    use time::{Date, Month, PrimitiveDateTime, Time};
+fn set_last_modified_time(zip_file: &ZipFile, path: &Path) -> crate::Result<()> {
+    let modification_time_in_seconds = zip_file
+        .last_modified()
+        .to_time()
+        .expect("Zip archive contains a file with broken 'last modified time'")
+        .unix_timestamp();
 
-    // Safety: time::Month is repr(u8) and goes from 1 to 12
-    let month: Month = unsafe { std::mem::transmute(date_time.month()) };
+    // Zip does not support nanoseconds, so we can assume zero here
+    let modification_time = FileTime::from_unix_time(modification_time_in_seconds, 0);
 
-    let date = Date::from_calendar_date(date_time.year() as _, month, date_time.day()).ok()?;
-
-    let time = Time::from_hms(date_time.hour(), date_time.minute(), date_time.second()).ok()?;
-
-    let date_time = PrimitiveDateTime::new(date, time);
-    let timestamp = date_time.assume_utc().unix_timestamp();
-
-    Some(libc::timespec {
-        tv_sec: timestamp,
-        tv_nsec: 0,
-    })
-}
-
-#[cfg(unix)]
-fn set_last_modified_time(file: &fs::File, zip_file: &ZipFile) -> crate::Result<()> {
-    use std::os::unix::prelude::AsRawFd;
-
-    use libc::UTIME_NOW;
-
-    let now = libc::timespec {
-        tv_sec: 0,
-        tv_nsec: UTIME_NOW,
-    };
-
-    let last_modified = zip_file.last_modified();
-    let last_modified = convert_zip_date_time(last_modified).unwrap_or(now);
-
-    // The first value is the last accessed time, which we'll set as being right now.
-    // The second value is the last modified time, which we'll copy over from the zip archive
-    let times = [now, last_modified];
-
-    let output_fd = file.as_raw_fd();
-
-    // TODO: check for -1
-    unsafe { libc::futimens(output_fd, &times as *const _) };
+    set_file_mtime(path, modification_time)?;
 
     Ok(())
 }
 
 #[cfg(unix)]
-fn __unix_set_permissions(file_path: &Path, file: &ZipFile) -> crate::Result<()> {
+fn unix_set_permissions(file_path: &Path, file: &ZipFile) -> crate::Result<()> {
     use std::fs::Permissions;
 
     if let Some(mode) = file.unix_mode() {

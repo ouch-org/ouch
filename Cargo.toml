@@ -25,11 +25,12 @@ once_cell = "1.15.0"
 snap = "1.0.5"
 tar = "0.4.38"
 xz2 = "0.1.7"
-zip = { version = "0.6.2", default-features = false }
+zip = { version = "0.6.2", default-features = false, features = ["time"] }
 zstd = { version = "0.11.2", default-features = false }
 tempfile = "3.3.0"
 ignore = "0.4.18"
 indicatif = "0.16.2"
+filetime = "0.2.17"
 
 [target.'cfg(unix)'.dependencies]
 time = { version = "0.3.14", default-features = false }

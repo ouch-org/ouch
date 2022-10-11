@@ -60,8 +60,6 @@ pub fn create_or_ask_overwrite(path: &Path, question_policy: QuestionPolicy) -> 
         Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
             if user_wants_to_overwrite(path, question_policy)? {
                 if path.is_dir() {
-                    // We can't just use `fs::File::create(&path)` because it would return io::ErrorKind::IsADirectory
-                    // ToDo: Maybe we should emphasise that `path` is a directory and everything inside it will be gone?
                     fs::remove_dir_all(path)?;
                 }
                 Ok(Some(fs::File::create(path)?))
