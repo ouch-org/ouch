@@ -71,6 +71,7 @@ Categories Used:
 - Respect file permissions when compressing zip files [\#271](https://github.com/ouch-org/ouch/pull/271) ([figsoda](https://github.com/figsoda))
 - Apply clippy lints [\#273](https://github.com/ouch-org/ouch/pull/273) ([figsoda](https://github.com/figsoda))
 - Warn user if file extension is passed as file name [\#277](https://github.com/ouch-org/ouch/pull/277) ([marcospb19](https://github.com/marcospb19))
+- Check for errors when setting the last modified time [\#278](https://github.com/ouch-org/ouch/pull/278) ([marcospb19](https://github.com/marcospb19))
 
 ### Tweaks
 
@@ -93,6 +94,7 @@ Categories Used:
 - Update dependencies [\#257](https://github.com/ouch-org/ouch/pull/257) ([Artturin](https://github.com/Artturin))
 - Add pull request template [\#263](https://github.com/ouch-org/ouch/pull/263) ([figsoda](https://github.com/figsoda))
 - Clean up the description for the `-d/--dir` argument to `decompress` [\#264](https://github.com/ouch-org/ouch/pull/264) ([hivehand](https://github.com/hivehand))
+- Show subcommand aliases on --help [\#275](https://github.com/ouch-org/ouch/pull/275) ([marcospb19](https://github.com/marcospb19)) 
 - Update dependencies [\#276](https://github.com/ouch-org/ouch/pull/276) ([figsoda](https://github.com/figsoda))
 
 ### New Contributors
