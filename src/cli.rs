@@ -34,7 +34,6 @@ impl Opts {
             (true, true) => unreachable!(),
         };
 
-        // TODO: change this to be just a single function call?
         let file_visibility_policy = FileVisibilityPolicy::new()
             .read_git_exclude(opts.gitignore)
             .read_ignore(opts.gitignore)

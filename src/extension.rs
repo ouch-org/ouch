@@ -3,6 +3,7 @@
 use std::{ffi::OsStr, fmt, path::Path};
 
 use self::CompressionFormat::*;
+use crate::warning;
 
 /// A wrapper around `CompressionFormat` that allows combinations like `tgz`
 #[derive(Debug, Clone, Eq)]
@@ -103,18 +104,19 @@ pub const SUPPORTED_EXTENSIONS: &[&str] = &[
     "zst",
 ];
 
-/// Extracts extensions from a path,
-/// return both the remaining path and the list of extension objects
+/// Extracts extensions from a path.
+///
+/// Returns both the remaining path and the list of extension objects
 pub fn separate_known_extensions_from_name(mut path: &Path) -> (&Path, Vec<Extension>) {
-    // // TODO: check for file names with the name of an extension
-    // // TODO2: warn the user that currently .tar.gz is a .gz file named .tar
-    //
-    // let all = ["tar", "zip", "bz", "bz2", "gz", "xz", "lzma", "lz"];
-    // if path.file_name().is_some() && all.iter().any(|ext| path.file_name().unwrap() == *ext) {
-    //     todo!("we found a extension in the path name instead, what to do with this???");
-    // }
-
     let mut extensions = vec![];
+
+    if let Some(file_stem) = path.file_stem().and_then(OsStr::to_str) {
+        let file_stem = file_stem.trim_matches('.');
+
+        if SUPPORTED_EXTENSIONS.contains(&file_stem) {
+            warning!("Received a file with name '{file_stem}', but {file_stem} was expected as the extension.");
+        }
+    }
 
     // While there is known extensions at the tail, grab them
     while let Some(extension) = path.extension().and_then(OsStr::to_str) {
