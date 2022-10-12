@@ -4,6 +4,7 @@
 use std::os::unix::fs::PermissionsExt;
 use std::{
     env,
+    fs::File,
     io::{self, prelude::*},
     path::{Path, PathBuf},
     sync::mpsc,
@@ -12,7 +13,7 @@ use std::{
 
 use filetime::{set_file_mtime, FileTime};
 use fs_err as fs;
-use zip::{self, read::ZipFile, ZipArchive};
+use zip::{self, read::ZipFile, DateTime, ZipArchive};
 
 use crate::{
     error::FinalError,
@@ -203,9 +204,12 @@ where
                     options
                 };
 
-                writer.start_file(path.to_str().unwrap().to_owned(), options)?;
-                let file_bytes = fs::read(entry.path())?;
-                writer.write_all(&file_bytes)?;
+                let mut file = File::open(entry.path())?;
+                writer.start_file(
+                    path.to_str().unwrap(),
+                    options.last_modified_time(get_last_modified_time(&file)),
+                )?;
+                io::copy(&mut file, &mut writer)?;
             }
         }
 
@@ -231,6 +235,14 @@ fn display_zip_comment_if_exists(file: &ZipFile) {
         // accessibility mode..
         info!(accessible, "Found comment in {}: {}", file.name(), comment);
     }
+}
+
+fn get_last_modified_time(file: &File) -> DateTime {
+    file.metadata()
+        .and_then(|metadata| metadata.modified())
+        .map_err(|_| ())
+        .and_then(|time| DateTime::from_time(time.into()))
+        .unwrap_or_default()
 }
 
 fn set_last_modified_time(zip_file: &ZipFile, path: &Path) -> crate::Result<()> {

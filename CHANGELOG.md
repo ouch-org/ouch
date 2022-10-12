@@ -31,6 +31,7 @@ Categories Used:
 - Support snappy format [\#215](https://github.com/ouch-org/ouch/pull/215) ([figsoda](https://github.com/figsoda))
 - Allow ignoring hidden files and files matched by .gitignore files [\#245](https://github.com/ouch-org/ouch/pull/245) ([vrmiguel](https://github.com/vrmiguel))
 - Automatically generate man pages with clap_mangen [\#273](https://github.com/ouch-org/ouch/pull/273) ([figsoda](https://github.com/figsoda))
+- Set last modified time during zip compression [\#279](https://github.com/ouch-org/ouch/pull/279) ([figsoda](https://github.com/figsoda))
 
 ### Bug Fixes
 
@@ -94,7 +95,7 @@ Categories Used:
 - Update dependencies [\#257](https://github.com/ouch-org/ouch/pull/257) ([Artturin](https://github.com/Artturin))
 - Add pull request template [\#263](https://github.com/ouch-org/ouch/pull/263) ([figsoda](https://github.com/figsoda))
 - Clean up the description for the `-d/--dir` argument to `decompress` [\#264](https://github.com/ouch-org/ouch/pull/264) ([hivehand](https://github.com/hivehand))
-- Show subcommand aliases on --help [\#275](https://github.com/ouch-org/ouch/pull/275) ([marcospb19](https://github.com/marcospb19)) 
+- Show subcommand aliases on --help [\#275](https://github.com/ouch-org/ouch/pull/275) ([marcospb19](https://github.com/marcospb19))
 - Update dependencies [\#276](https://github.com/ouch-org/ouch/pull/276) ([figsoda](https://github.com/figsoda))
 
 ### New Contributors
