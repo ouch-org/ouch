@@ -9,7 +9,6 @@ use std::{
 };
 
 use fs_err as fs;
-use tar;
 
 use crate::{
     error::FinalError,
@@ -40,7 +39,12 @@ pub fn unpack_archive(
         // spoken text for users using screen readers, braille displays
         // and so on
 
-        info!(@display_handle, inaccessible, "{:?} extracted. ({})", utils::strip_cur_dir(&output_folder.join(file.path()?)), Bytes::new(file.size()));
+        info!(
+            @display_handle,
+            inaccessible,
+            "{:?} extracted. ({})",
+            utils::strip_cur_dir(&output_folder.join(file.path()?)), Bytes::new(file.size())
+        );
 
         files_unpacked.push(file_path);
     }
