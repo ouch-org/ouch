@@ -68,7 +68,12 @@ where
                 let file_path = strip_cur_dir(file_path.as_path());
 
                 // same reason is in _is_dir: long, often not needed text
-                info!(@display_handle, inaccessible, "{:?} extracted. ({})", file_path.display(), Bytes::new(file.size()));
+                info!(
+                    @display_handle,
+                    inaccessible,
+                    "{:?} extracted. ({})",
+                    file_path.display(), Bytes::new(file.size())
+                );
 
                 let mut output_file = fs::File::create(file_path)?;
                 io::copy(&mut file, &mut output_file)?;
