@@ -19,11 +19,7 @@ use crate::{
 
 /// Unpacks the archive given by `archive` into the folder given by `into`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive(
-    reader: Box<dyn Read>,
-    output_folder: &Path,
-    mut display_handle: impl Write,
-) -> crate::Result<Vec<PathBuf>> {
+pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, mut out: impl Write) -> crate::Result<Vec<PathBuf>> {
     assert!(output_folder.read_dir().expect("dir exists").count() == 0);
     let mut archive = tar::Archive::new(reader);
 
@@ -40,7 +36,7 @@ pub fn unpack_archive(
         // and so on
 
         info!(
-            @display_handle,
+            @out,
             inaccessible,
             "{:?} extracted. ({})",
             utils::strip_cur_dir(&output_folder.join(file.path()?)), Bytes::new(file.size())
@@ -86,7 +82,7 @@ pub fn build_archive_from_paths<W, D>(
     input_filenames: &[PathBuf],
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
-    mut display_handle: D,
+    mut out: D,
 ) -> crate::Result<W>
 where
     W: Write,
@@ -108,7 +104,7 @@ where
             // little importance for most users, but would generate lots of
             // spoken text for users using screen readers, braille displays
             // and so on
-            info!(@display_handle, inaccessible, "Compressing '{}'.", utils::to_utf(path));
+            info!(@out, inaccessible, "Compressing '{}'.", utils::to_utf(path));
 
             if path.is_dir() {
                 builder.append_dir(path, path)?;

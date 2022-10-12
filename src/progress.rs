@@ -1,122 +1,68 @@
 //! Module that provides functions to display progress bars for compressing and decompressing files.
 use std::{
-    io,
-    sync::mpsc::{self, Receiver, Sender},
-    thread,
-    time::Duration,
+    io::{self, Read, Write},
+    mem,
 };
 
-use indicatif::{ProgressBar, ProgressStyle};
-
-use crate::accessible::is_running_in_accessible_mode;
+use indicatif::{ProgressBar, ProgressBarIter, ProgressStyle};
 
 /// Draw a ProgressBar using a function that checks periodically for the progress
 pub struct Progress {
-    draw_stop: Sender<()>,
-    clean_done: Receiver<()>,
-    display_handle: DisplayHandle,
+    bar: ProgressBar,
+    buf: Vec<u8>,
 }
 
-/// Writes to this struct will be displayed on the progress bar or stdout depending on the
-/// ProgressBarPolicy
-struct DisplayHandle {
-    buf: Vec<u8>,
-    sender: Sender<String>,
-}
-impl io::Write for DisplayHandle {
+impl Write for Progress {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.buf.extend(buf);
-        // Newline is the signal to flush
-        if matches!(buf.last(), Some(&b'\n')) {
+
+        if self.buf.last() == Some(&b'\n') {
             self.buf.pop();
             self.flush()?;
         }
+
         Ok(buf.len())
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        fn io_error<X>(_: X) -> io::Error {
-            io::Error::new(io::ErrorKind::Other, "failed to flush buffer")
-        }
-        self.sender
-            .send(String::from_utf8(self.buf.drain(..).collect()).map_err(io_error)?)
-            .map_err(io_error)
+        self.bar.set_message(
+            String::from_utf8(mem::take(&mut self.buf))
+                .map_err(|_| io::Error::new(io::ErrorKind::Other, "Failed to parse buffer content as utf8"))?,
+        );
+        Ok(())
     }
 }
 
 impl Progress {
-    /// Create a ProgressBar using a function that checks periodically for the progress
-    /// If precise is true, the total_input_size will be displayed as the total_bytes size
-    /// If ACCESSIBLE is set, this function returns None
-    pub fn new_accessible_aware(
-        total_input_size: u64,
-        precise: bool,
-        current_position_fn: Option<Box<dyn Fn() -> u64 + Send>>,
-    ) -> Option<Self> {
-        if is_running_in_accessible_mode() {
-            return None;
-        }
-        Some(Self::new(total_input_size, precise, current_position_fn))
-    }
-
-    fn new(total_input_size: u64, precise: bool, current_position_fn: Option<Box<dyn Fn() -> u64 + Send>>) -> Self {
-        let (draw_tx, draw_rx) = mpsc::channel();
-        let (clean_tx, clean_rx) = mpsc::channel();
-        let (msg_tx, msg_rx) = mpsc::channel();
-
-        thread::spawn(move || {
-            let template = {
-                let mut t = String::new();
-                t += "{wide_msg} [{elapsed_precise}] ";
-                if precise && current_position_fn.is_some() {
-                    t += "[{bar:.cyan/blue}] ";
-                } else {
-                    t += "{spinner:.green} ";
-                }
-                if current_position_fn.is_some() {
-                    t += "{bytes}/ ";
-                }
-                if precise {
-                    t += "{total_bytes} ";
-                }
-                t += "({bytes_per_sec}, {eta}) {path}";
-                t
-            };
-            let bar = ProgressBar::new(total_input_size)
-                .with_style(ProgressStyle::with_template(&template).unwrap().progress_chars("#>-"));
-
-            while draw_rx.try_recv().is_err() {
-                if let Some(ref pos_fn) = current_position_fn {
-                    bar.set_position(pos_fn());
-                } else {
-                    bar.tick();
-                }
-                if let Ok(msg) = msg_rx.try_recv() {
-                    bar.set_message(msg);
-                }
-                thread::sleep(Duration::from_millis(100));
+    pub(crate) fn new(total_input_size: u64, precise: bool, position_updates: bool) -> Self {
+        let template = {
+            let mut t = String::new();
+            t += "{wide_msg} [{elapsed_precise}] ";
+            if precise && position_updates {
+                t += "[{bar:.cyan/blue}] ";
+            } else {
+                t += "{spinner:.green} ";
             }
-            bar.finish();
-            let _ = clean_tx.send(());
-        });
+            if position_updates {
+                t += "{bytes}/ ";
+            }
+            if precise {
+                t += "{total_bytes} ";
+            }
+            t += "({bytes_per_sec}, {eta}) {path}";
+            t
+        };
+        let bar = ProgressBar::new(total_input_size)
+            .with_style(ProgressStyle::with_template(&template).unwrap().progress_chars("#>-"));
 
-        Progress {
-            draw_stop: draw_tx,
-            clean_done: clean_rx,
-            display_handle: DisplayHandle {
-                buf: Vec::new(),
-                sender: msg_tx,
-            },
-        }
+        Progress { bar, buf: Vec::new() }
     }
 
-    pub(crate) fn display_handle(&mut self) -> &mut dyn io::Write {
-        &mut self.display_handle
+    pub(crate) fn wrap_read<R: Read>(&self, read: R) -> ProgressBarIter<R> {
+        self.bar.wrap_read(read)
     }
-}
-impl Drop for Progress {
-    fn drop(&mut self) {
-        let _ = self.draw_stop.send(());
-        let _ = self.clean_done.recv();
+
+    pub(crate) fn wrap_write<W: Write>(&self, write: W) -> ProgressBarIter<W> {
+        self.bar.wrap_write(write)
     }
 }
