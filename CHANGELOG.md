@@ -12,7 +12,9 @@ Categories Used:
 - New Features - new features added to ouch itself, not CI
 - Bug Fixes
 - Improvements - general enhancements
-- Tweaks - Anything that doesn't fit into other categories, small typo fixes, most CI stuff, meta changes (e.g. README updates), etc.
+- Tweaks - anything that doesn't fit into other categories, small typo fixes, most CI stuff,
+  meta changes (e.g. README updates), etc.
+- Regression - removal of a feature (that might be readded, or reworked in the future)
 
 **Bullet points in chronological order by PR**
 
@@ -99,6 +101,10 @@ Categories Used:
 - Show subcommand aliases on --help [\#275](https://github.com/ouch-org/ouch/pull/275) ([marcospb19](https://github.com/marcospb19))
 - Update dependencies [\#276](https://github.com/ouch-org/ouch/pull/276) ([figsoda](https://github.com/figsoda))
 - Rewrite progress module [\#280](https://github.com/ouch-org/ouch/pull/280) ([figsoda](https://github.com/figsoda))
+
+### Regression
+
+- Remove automatic detection for partial compression [\#286](https://github.com/ouch-org/ouch/pull/286) ([marcospb19](https://github.com/marcospb19))
 
 ### New Contributors
 
