@@ -27,7 +27,11 @@ use crate::{
 
 /// Unpacks the archive given by `archive` into the folder given by `output_folder`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive<R, D>(mut archive: ZipArchive<R>, output_folder: &Path, mut out: D) -> crate::Result<Vec<PathBuf>>
+pub fn unpack_archive<R, D>(
+    mut archive: ZipArchive<R>,
+    output_folder: &Path,
+    mut log_out: D,
+) -> crate::Result<Vec<PathBuf>>
 where
     R: Read + Seek,
     D: Write,
@@ -53,7 +57,7 @@ where
                 // importance for most users, but would generate lots of
                 // spoken text for users using screen readers, braille displays
                 // and so on
-                info!(@out, inaccessible, "File {} extracted to \"{}\"", idx, file_path.display());
+                info!(@log_out, inaccessible, "File {} extracted to \"{}\"", idx, file_path.display());
                 fs::create_dir_all(&file_path)?;
             }
             _is_file @ false => {
@@ -66,7 +70,7 @@ where
 
                 // same reason is in _is_dir: long, often not needed text
                 info!(
-                    @out,
+                    @log_out,
                     inaccessible,
                     "{:?} extracted. ({})",
                     file_path.display(), Bytes::new(file.size())
@@ -133,7 +137,7 @@ pub fn build_archive_from_paths<W, D>(
     input_filenames: &[PathBuf],
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
-    mut out: D,
+    mut log_out: D,
 ) -> crate::Result<W>
 where
     W: Write + Seek,
@@ -173,7 +177,7 @@ where
             // little importance for most users, but would generate lots of
             // spoken text for users using screen readers, braille displays
             // and so on
-            info!(@out, inaccessible, "Compressing '{}'.", to_utf(path));
+            info!(@log_out, inaccessible, "Compressing '{}'.", to_utf(path));
 
             let metadata = match path.metadata() {
                 Ok(metadata) => metadata,

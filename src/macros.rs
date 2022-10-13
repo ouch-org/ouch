@@ -18,7 +18,7 @@ use crate::accessible::is_running_in_accessible_mode;
 ///   ability to skip some lines deemed not important like a seeing person would.
 ///
 /// By default `info` outputs to Stdout, if you want to specify the output you can use
-/// `@out` modifier
+/// `@log_out` modifier
 
 #[macro_export]
 macro_rules! info {
@@ -27,24 +27,24 @@ macro_rules! info {
     (accessible, $($arg:tt)*) => {
         info!(@::std::io::stdout(), accessible, $($arg)*);
     };
-    (@$out: expr, accessible, $($arg:tt)*) => {
-        let out = &mut $out;
+    (@$log_out: expr, accessible, $($arg:tt)*) => {
+        let log_out = &mut $log_out;
         // if in ACCESSIBLE mode, suppress the "[INFO]" and just print the message
         if !$crate::accessible::is_running_in_accessible_mode() {
-            $crate::macros::_info_helper(out);
+            $crate::macros::_info_helper(log_out);
         }
-        writeln!(out, $($arg)*).unwrap();
+        writeln!(log_out, $($arg)*).unwrap();
     };
     // Inccessible (long/no important) info message.
     // Print info message if ACCESSIBLE is not turned on
     (inaccessible, $($arg:tt)*) => {
         info!(@::std::io::stdout(), inaccessible, $($arg)*);
     };
-    (@$out: expr, inaccessible, $($arg:tt)*) => {
+    (@$log_out: expr, inaccessible, $($arg:tt)*) => {
         if !$crate::accessible::is_running_in_accessible_mode() {
-            let out = &mut $out;
-            $crate::macros::_info_helper(out);
-            writeln!(out, $($arg)*).unwrap();
+            let log_out = &mut $log_out;
+            $crate::macros::_info_helper(log_out);
+            writeln!(log_out, $($arg)*).unwrap();
         }
     };
 }
