@@ -9,13 +9,14 @@ use std::{
 };
 
 use fs_err as fs;
+use humansize::{format_size, DECIMAL};
 
 use crate::{
     error::FinalError,
     info,
     list::FileInArchive,
     progress::OutputLine,
-    utils::{self, Bytes, FileVisibilityPolicy},
+    utils::{self, FileVisibilityPolicy},
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `into`.
@@ -44,7 +45,8 @@ pub fn unpack_archive(
             @log_out,
             inaccessible,
             "{:?} extracted. ({})",
-            utils::strip_cur_dir(&output_folder.join(file.path()?)), Bytes::new(file.size())
+            utils::strip_cur_dir(&output_folder.join(file.path()?)),
+            format_size(file.size(), DECIMAL),
         );
 
         files_unpacked.push(file_path);
