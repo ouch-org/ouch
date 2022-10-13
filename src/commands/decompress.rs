@@ -1,5 +1,5 @@
 use std::{
-    io::{self, BufReader, Read, Write},
+    io::{self, BufReader, Read},
     ops::ControlFlow,
     path::{Path, PathBuf},
 };
@@ -7,6 +7,7 @@ use std::{
 use fs_err as fs;
 
 use crate::{
+    accessible::is_running_in_accessible_mode,
     commands::warn_user_about_loading_zip_in_memory,
     extension::{
         split_first_compression_format,
@@ -14,7 +15,7 @@ use crate::{
         Extension,
     },
     info,
-    progress::Progress,
+    progress::{OutputLine, Progress},
     utils::{self, nice_directory_display, user_wants_to_continue},
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
@@ -110,13 +111,15 @@ pub fn decompress_file(
             }
             let mut writer = writer.unwrap();
 
-            let current_position_fn = Box::new({
-                let output_file_path = output_file_path.clone();
-                move || output_file_path.clone().metadata().expect("file exists").len()
-            });
-            let _progress = Progress::new_accessible_aware(total_input_size, true, Some(current_position_fn));
+            if is_running_in_accessible_mode() {
+                io::copy(&mut reader, &mut writer)?;
+            } else {
+                io::copy(
+                    &mut Progress::new(total_input_size, true, true).wrap_read(reader),
+                    &mut writer,
+                )?;
+            }
 
-            io::copy(&mut reader, &mut writer)?;
             vec![output_file_path]
         }
         Tar => {
@@ -180,7 +183,7 @@ pub fn decompress_file(
 ///   output_dir named after the archive (given by `output_file_path`)
 /// Note: This functions assumes that `output_dir` exists
 fn smart_unpack(
-    unpack_fn: impl FnOnce(&Path, &mut dyn Write) -> crate::Result<Vec<PathBuf>>,
+    unpack_fn: impl FnOnce(&Path, &mut dyn OutputLine) -> crate::Result<Vec<PathBuf>>,
     total_input_size: u64,
     output_dir: &Path,
     output_file_path: &Path,
@@ -196,13 +199,11 @@ fn smart_unpack(
     );
 
     // unpack the files
-    let files = unpack_fn(
-        temp_dir_path,
-        Progress::new_accessible_aware(total_input_size, true, None)
-            .as_mut()
-            .map(Progress::display_handle)
-            .unwrap_or(&mut io::stdout()),
-    )?;
+    let files = if is_running_in_accessible_mode() {
+        unpack_fn(temp_dir_path, &mut io::stderr())
+    } else {
+        unpack_fn(temp_dir_path, &mut Progress::new(total_input_size, true, false))
+    }?;
 
     let root_contains_only_one_element = fs::read_dir(temp_dir_path)?.count() == 1;
     if root_contains_only_one_element {

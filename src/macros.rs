@@ -18,42 +18,33 @@ use crate::accessible::is_running_in_accessible_mode;
 ///   ability to skip some lines deemed not important like a seeing person would.
 ///
 /// By default `info` outputs to Stdout, if you want to specify the output you can use
-/// `@display_handle` modifier
+/// `@log_out` modifier
 
 #[macro_export]
 macro_rules! info {
     // Accessible (short/important) info message.
     // Show info message even in ACCESSIBLE mode
     (accessible, $($arg:tt)*) => {
-        info!(@::std::io::stdout(), accessible, $($arg)*);
+        info!(@::std::io::stderr(), accessible, $($arg)*);
     };
-    (@$display_handle: expr, accessible, $($arg:tt)*) => {
-        let display_handle = &mut $display_handle;
+    (@$log_out: expr, accessible, $($arg:tt)*) => {{
         // if in ACCESSIBLE mode, suppress the "[INFO]" and just print the message
         if !$crate::accessible::is_running_in_accessible_mode() {
-            $crate::macros::_info_helper(display_handle);
+            $log_out.output_line_info(format_args!($($arg)*));
+        } else {
+            $log_out.output_line(format_args!($($arg)*));
         }
-        writeln!(display_handle, $($arg)*).unwrap();
-    };
+    }};
     // Inccessible (long/no important) info message.
     // Print info message if ACCESSIBLE is not turned on
     (inaccessible, $($arg:tt)*) => {
-        info!(@::std::io::stdout(), inaccessible, $($arg)*);
+        info!(@::std::io::stderr(), inaccessible, $($arg)*);
     };
-    (@$display_handle: expr, inaccessible, $($arg:tt)*) => {
+    (@$log_out: expr, inaccessible, $($arg:tt)*) => {{
         if !$crate::accessible::is_running_in_accessible_mode() {
-            let display_handle = &mut $display_handle;
-            $crate::macros::_info_helper(display_handle);
-            writeln!(display_handle, $($arg)*).unwrap();
+            $log_out.output_line_info(format_args!($($arg)*));
         }
-    };
-}
-
-/// Helper to display "\[INFO\]", colored yellow
-pub fn _info_helper(handle: &mut impl std::io::Write) {
-    use crate::utils::colors::{RESET, YELLOW};
-
-    write!(handle, "{}[INFO]{} ", *YELLOW, *RESET).unwrap();
+    }};
 }
 
 /// Macro that prints \[WARNING\] messages, wraps [`eprintln`].

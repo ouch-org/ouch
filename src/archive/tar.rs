@@ -15,6 +15,7 @@ use crate::{
     error::FinalError,
     info,
     list::FileInArchive,
+    progress::OutputLine,
     utils::{self, FileVisibilityPolicy},
 };
 
@@ -23,7 +24,7 @@ use crate::{
 pub fn unpack_archive(
     reader: Box<dyn Read>,
     output_folder: &Path,
-    mut display_handle: impl Write,
+    mut log_out: impl OutputLine,
 ) -> crate::Result<Vec<PathBuf>> {
     assert!(output_folder.read_dir().expect("dir exists").count() == 0);
     let mut archive = tar::Archive::new(reader);
@@ -41,7 +42,7 @@ pub fn unpack_archive(
         // and so on
 
         info!(
-            @display_handle,
+            @log_out,
             inaccessible,
             "{:?} extracted. ({})",
             utils::strip_cur_dir(&output_folder.join(file.path()?)),
@@ -88,11 +89,11 @@ pub fn build_archive_from_paths<W, D>(
     input_filenames: &[PathBuf],
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
-    mut display_handle: D,
+    mut log_out: D,
 ) -> crate::Result<W>
 where
     W: Write,
-    D: Write,
+    D: OutputLine,
 {
     let mut builder = tar::Builder::new(writer);
 
@@ -110,7 +111,7 @@ where
             // little importance for most users, but would generate lots of
             // spoken text for users using screen readers, braille displays
             // and so on
-            info!(@display_handle, inaccessible, "Compressing '{}'.", utils::to_utf(path));
+            info!(@log_out, inaccessible, "Compressing '{}'.", utils::to_utf(path));
 
             if path.is_dir() {
                 builder.append_dir(path, path)?;

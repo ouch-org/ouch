@@ -3,14 +3,14 @@
 use std::{
     env,
     fs::ReadDir,
-    io::{Read, Write},
+    io::Read,
     path::{Path, PathBuf},
 };
 
 use fs_err as fs;
 
 use super::{to_utf, user_wants_to_overwrite};
-use crate::{extension::Extension, info, QuestionPolicy};
+use crate::{extension::Extension, info, progress::OutputLine, QuestionPolicy};
 
 /// Checks if given path points to an empty directory.
 pub fn dir_is_empty(dir_path: &Path) -> bool {

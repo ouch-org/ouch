@@ -1,11 +1,12 @@
 use std::{
-    io::{self, BufWriter, Write},
+    io::{self, BufWriter, Cursor, Seek, Write},
     path::{Path, PathBuf},
 };
 
 use fs_err as fs;
 
 use crate::{
+    accessible::is_running_in_accessible_mode,
     archive,
     commands::warn_user_about_loading_zip_in_memory,
     extension::{
@@ -42,12 +43,6 @@ pub fn compress_files(
             (total_size + size, and_precise & precise)
         });
 
-    // NOTE: canonicalize is here to avoid a weird bug:
-    //      > If output_file_path is a nested path and it exists and the user overwrite it
-    //      >> output_file_path.exists() will always return false (somehow)
-    //      - canonicalize seems to fix this
-    let output_file_path = output_file.path().canonicalize()?;
-
     let file_writer = BufWriter::with_capacity(BUFFER_CAPACITY, output_file);
 
     let mut writer: Box<dyn Write> = Box::new(file_writer);
@@ -80,37 +75,28 @@ pub fn compress_files(
 
     match first_format {
         Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {
-            let _progress = Progress::new_accessible_aware(
-                total_input_size,
-                precise,
-                Some(Box::new(move || {
-                    output_file_path.metadata().expect("file exists").len()
-                })),
-            );
-
             writer = chain_writer_encoder(&first_format, writer)?;
             let mut reader = fs::File::open(&files[0]).unwrap();
-            io::copy(&mut reader, &mut writer)?;
+
+            if is_running_in_accessible_mode() {
+                io::copy(&mut reader, &mut writer)?;
+            } else {
+                io::copy(
+                    &mut Progress::new(total_input_size, precise, true).wrap_read(reader),
+                    &mut writer,
+                )?;
+            }
         }
         Tar => {
-            let mut progress = Progress::new_accessible_aware(
-                total_input_size,
-                precise,
-                Some(Box::new(move || {
-                    output_file_path.metadata().expect("file exists").len()
-                })),
-            );
-
-            archive::tar::build_archive_from_paths(
-                &files,
-                &mut writer,
-                file_visibility_policy,
-                progress
-                    .as_mut()
-                    .map(Progress::display_handle)
-                    .unwrap_or(&mut io::stdout()),
-            )?;
-            writer.flush()?;
+            if is_running_in_accessible_mode() {
+                archive::tar::build_archive_from_paths(&files, &mut writer, file_visibility_policy, io::stderr())?;
+                writer.flush()?;
+            } else {
+                let mut progress = Progress::new(total_input_size, precise, true);
+                let mut writer = progress.wrap_write(writer);
+                archive::tar::build_archive_from_paths(&files, &mut writer, file_visibility_policy, &mut progress)?;
+                writer.flush()?;
+            }
         }
         Zip => {
             if !formats.is_empty() {
@@ -122,34 +108,18 @@ pub fn compress_files(
                 }
             }
 
-            let mut vec_buffer = io::Cursor::new(vec![]);
+            let mut vec_buffer = Cursor::new(vec![]);
 
-            let current_position_fn = {
-                let vec_buffer_ptr = {
-                    struct FlyPtr(*const io::Cursor<Vec<u8>>);
-                    unsafe impl Send for FlyPtr {}
-                    FlyPtr(&vec_buffer as *const _)
-                };
-                Box::new(move || {
-                    let vec_buffer_ptr = &vec_buffer_ptr;
-                    // Safety: ptr is valid and vec_buffer is still alive
-                    unsafe { &*vec_buffer_ptr.0 }.position()
-                })
-            };
-
-            let mut progress = Progress::new_accessible_aware(total_input_size, precise, Some(current_position_fn));
-
-            archive::zip::build_archive_from_paths(
-                &files,
-                &mut vec_buffer,
-                file_visibility_policy,
-                progress
-                    .as_mut()
-                    .map(Progress::display_handle)
-                    .unwrap_or(&mut io::stdout()),
-            )?;
-            let vec_buffer = vec_buffer.into_inner();
-            io::copy(&mut vec_buffer.as_slice(), &mut writer)?;
+            if is_running_in_accessible_mode() {
+                archive::zip::build_archive_from_paths(&files, &mut vec_buffer, file_visibility_policy, io::stderr())?;
+                vec_buffer.rewind()?;
+                io::copy(&mut vec_buffer, &mut writer)?;
+            } else {
+                let mut progress = Progress::new(total_input_size, precise, true);
+                archive::zip::build_archive_from_paths(&files, &mut vec_buffer, file_visibility_policy, &mut progress)?;
+                vec_buffer.rewind()?;
+                io::copy(&mut progress.wrap_read(vec_buffer), &mut writer)?;
+            }
         }
     }
 
