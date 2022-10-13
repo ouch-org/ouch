@@ -1,35 +1,52 @@
 //! Module that provides functions to display progress bars for compressing and decompressing files.
 use std::{
-    io::{self, Read, Write},
-    mem,
+    fmt::Arguments,
+    io::{Read, Stderr, Write},
 };
 
 use indicatif::{ProgressBar, ProgressBarIter, ProgressStyle};
 
+use crate::utils::colors::{RESET, YELLOW};
+
 /// Draw a ProgressBar using a function that checks periodically for the progress
 pub struct Progress {
     bar: ProgressBar,
-    buf: Vec<u8>,
 }
 
-impl Write for Progress {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.buf.extend(buf);
+pub trait OutputLine {
+    fn output_line(&mut self, args: Arguments);
+    fn output_line_info(&mut self, args: Arguments);
+}
 
-        if self.buf.last() == Some(&b'\n') {
-            self.buf.pop();
-            self.flush()?;
-        }
-
-        Ok(buf.len())
+impl OutputLine for Progress {
+    fn output_line(&mut self, args: Arguments) {
+        self.bar.set_message(args.to_string());
     }
 
-    fn flush(&mut self) -> io::Result<()> {
-        self.bar.set_message(
-            String::from_utf8(mem::take(&mut self.buf))
-                .map_err(|_| io::Error::new(io::ErrorKind::Other, "Failed to parse buffer content as utf8"))?,
-        );
-        Ok(())
+    fn output_line_info(&mut self, args: Arguments) {
+        self.bar.set_message(format!("{}[INFO]{}{args}", *YELLOW, *RESET));
+    }
+}
+
+impl OutputLine for Stderr {
+    fn output_line(&mut self, args: Arguments) {
+        self.write_fmt(args).unwrap();
+    }
+
+    fn output_line_info(&mut self, args: Arguments) {
+        write!(self, "{}[INFO]{} {args}", *YELLOW, *RESET).unwrap();
+        self.write_fmt(args).unwrap();
+        self.write_all(b"\n").unwrap();
+    }
+}
+
+impl<T: OutputLine + ?Sized> OutputLine for &mut T {
+    fn output_line(&mut self, args: Arguments) {
+        (*self).output_line(args)
+    }
+
+    fn output_line_info(&mut self, args: Arguments) {
+        (*self).output_line_info(args);
     }
 }
 
@@ -55,7 +72,7 @@ impl Progress {
         let bar = ProgressBar::new(total_input_size)
             .with_style(ProgressStyle::with_template(&template).unwrap().progress_chars("#>-"));
 
-        Progress { bar, buf: Vec::new() }
+        Progress { bar }
     }
 
     pub(crate) fn wrap_read<R: Read>(&self, read: R) -> ProgressBarIter<R> {

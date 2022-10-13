@@ -89,7 +89,7 @@ pub fn compress_files(
         }
         Tar => {
             if is_running_in_accessible_mode() {
-                archive::tar::build_archive_from_paths(&files, &mut writer, file_visibility_policy, io::stdout())?;
+                archive::tar::build_archive_from_paths(&files, &mut writer, file_visibility_policy, io::stderr())?;
                 writer.flush()?;
             } else {
                 let mut progress = Progress::new(total_input_size, precise, true);
@@ -111,7 +111,7 @@ pub fn compress_files(
             let mut vec_buffer = Cursor::new(vec![]);
 
             if is_running_in_accessible_mode() {
-                archive::zip::build_archive_from_paths(&files, &mut vec_buffer, file_visibility_policy, io::stdout())?;
+                archive::zip::build_archive_from_paths(&files, &mut vec_buffer, file_visibility_policy, io::stderr())?;
                 vec_buffer.rewind()?;
                 io::copy(&mut vec_buffer, &mut writer)?;
             } else {

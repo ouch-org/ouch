@@ -14,6 +14,7 @@ use crate::{
     error::FinalError,
     info,
     list::FileInArchive,
+    progress::OutputLine,
     utils::{self, Bytes, FileVisibilityPolicy},
 };
 
@@ -22,7 +23,7 @@ use crate::{
 pub fn unpack_archive(
     reader: Box<dyn Read>,
     output_folder: &Path,
-    mut log_out: impl Write,
+    mut log_out: impl OutputLine,
 ) -> crate::Result<Vec<PathBuf>> {
     assert!(output_folder.read_dir().expect("dir exists").count() == 0);
     let mut archive = tar::Archive::new(reader);
@@ -90,7 +91,7 @@ pub fn build_archive_from_paths<W, D>(
 ) -> crate::Result<W>
 where
     W: Write,
-    D: Write,
+    D: OutputLine,
 {
     let mut builder = tar::Builder::new(writer);
 

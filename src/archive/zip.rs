@@ -19,6 +19,7 @@ use crate::{
     error::FinalError,
     info,
     list::FileInArchive,
+    progress::OutputLine,
     utils::{
         self, cd_into_same_dir_as, get_invalid_utf8_paths, pretty_format_list_of_paths, strip_cur_dir, to_utf, Bytes,
         FileVisibilityPolicy,
@@ -34,7 +35,7 @@ pub fn unpack_archive<R, D>(
 ) -> crate::Result<Vec<PathBuf>>
 where
     R: Read + Seek,
-    D: Write,
+    D: OutputLine,
 {
     assert!(output_folder.read_dir().expect("dir exists").count() == 0);
 
@@ -141,7 +142,7 @@ pub fn build_archive_from_paths<W, D>(
 ) -> crate::Result<W>
 where
     W: Write + Seek,
-    D: Write,
+    D: OutputLine,
 {
     let mut writer = zip::ZipWriter::new(writer);
     let options = zip::write::FileOptions::default();

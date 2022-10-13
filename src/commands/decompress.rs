@@ -1,5 +1,5 @@
 use std::{
-    io::{self, BufReader, Read, Write},
+    io::{self, BufReader, Read},
     ops::ControlFlow,
     path::{Path, PathBuf},
 };
@@ -15,7 +15,7 @@ use crate::{
         Extension,
     },
     info,
-    progress::Progress,
+    progress::{OutputLine, Progress},
     utils::{self, nice_directory_display, user_wants_to_continue},
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
@@ -183,7 +183,7 @@ pub fn decompress_file(
 ///   output_dir named after the archive (given by `output_file_path`)
 /// Note: This functions assumes that `output_dir` exists
 fn smart_unpack(
-    unpack_fn: impl FnOnce(&Path, &mut dyn Write) -> crate::Result<Vec<PathBuf>>,
+    unpack_fn: impl FnOnce(&Path, &mut dyn OutputLine) -> crate::Result<Vec<PathBuf>>,
     total_input_size: u64,
     output_dir: &Path,
     output_file_path: &Path,
@@ -200,7 +200,7 @@ fn smart_unpack(
 
     // unpack the files
     let files = if is_running_in_accessible_mode() {
-        unpack_fn(temp_dir_path, &mut io::stdout())
+        unpack_fn(temp_dir_path, &mut io::stderr())
     } else {
         unpack_fn(temp_dir_path, &mut Progress::new(total_input_size, true, false))
     }?;
