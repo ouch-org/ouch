@@ -24,7 +24,7 @@ impl OutputLine for Progress {
     }
 
     fn output_line_info(&mut self, args: Arguments) {
-        self.bar.set_message(format!("{}[INFO]{}{args}", *YELLOW, *RESET));
+        self.bar.set_message(format!("{}[INFO]{} {args}", *YELLOW, *RESET));
     }
 }
 
