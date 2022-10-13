@@ -97,6 +97,7 @@ Categories Used:
 - Clean up the description for the `-d/--dir` argument to `decompress` [\#264](https://github.com/ouch-org/ouch/pull/264) ([hivehand](https://github.com/hivehand))
 - Show subcommand aliases on --help [\#275](https://github.com/ouch-org/ouch/pull/275) ([marcospb19](https://github.com/marcospb19))
 - Update dependencies [\#276](https://github.com/ouch-org/ouch/pull/276) ([figsoda](https://github.com/figsoda))
+- Rewrite progress module [\#280](https://github.com/ouch-org/ouch/pull/280) ([figsoda](https://github.com/figsoda))
 
 ### New Contributors
 
