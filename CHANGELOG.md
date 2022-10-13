@@ -73,6 +73,7 @@ Categories Used:
 - Apply clippy lints [\#273](https://github.com/ouch-org/ouch/pull/273) ([figsoda](https://github.com/figsoda))
 - Warn user if file extension is passed as file name [\#277](https://github.com/ouch-org/ouch/pull/277) ([marcospb19](https://github.com/marcospb19))
 - Check for errors when setting the last modified time [\#278](https://github.com/ouch-org/ouch/pull/278) ([marcospb19](https://github.com/marcospb19))
+- Use to the humansize crate for formatting human-readable file sizes [\#281](https://github.com/ouch-org/ouch/pull/281) ([figsoda](https://github.com/figsoda))
 
 ### Tweaks
 

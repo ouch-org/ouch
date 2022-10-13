@@ -13,6 +13,7 @@ use std::{
 
 use filetime::{set_file_mtime, FileTime};
 use fs_err as fs;
+use humansize::{format_size, DECIMAL};
 use zip::{self, read::ZipFile, DateTime, ZipArchive};
 
 use crate::{
@@ -20,7 +21,7 @@ use crate::{
     info,
     list::FileInArchive,
     utils::{
-        self, cd_into_same_dir_as, get_invalid_utf8_paths, pretty_format_list_of_paths, strip_cur_dir, to_utf, Bytes,
+        self, cd_into_same_dir_as, get_invalid_utf8_paths, pretty_format_list_of_paths, strip_cur_dir, to_utf,
         FileVisibilityPolicy,
     },
 };
@@ -73,7 +74,8 @@ where
                     @display_handle,
                     inaccessible,
                     "{:?} extracted. ({})",
-                    file_path.display(), Bytes::new(file.size())
+                    file_path.display(),
+                    format_size(file.size(), DECIMAL),
                 );
 
                 let mut output_file = fs::File::create(file_path)?;
