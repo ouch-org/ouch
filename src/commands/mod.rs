@@ -104,7 +104,7 @@ pub fn run(
             }
 
             // Formats from path extension, like "file.tar.gz.xz" -> vec![Tar, Gzip, Lzma]
-            let mut formats = extension::extensions_from_path(&output_path);
+            let formats = extension::extensions_from_path(&output_path);
 
             if formats.is_empty() {
                 let error = FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))
@@ -172,48 +172,6 @@ pub fn run(
             }
 
             let output_file = fs::File::create(&output_path)?;
-
-            if !represents_several_files(&files) {
-                // It is possible the file is already partially compressed so we don't want to compress it again
-                // `ouch compress file.tar.gz file.tar.gz.xz` should produce `file.tar.gz.xz` and not `file.tar.gz.tar.gz.xz`
-                let input_extensions = extension::extensions_from_path(&files[0]);
-
-                // We calculate the formats that are left if we filter out a sublist at the start of what we have that's the same as the input formats
-                let mut new_formats = Vec::with_capacity(formats.len());
-                for (inp_ext, out_ext) in input_extensions.iter().zip(&formats) {
-                    if inp_ext.compression_formats == out_ext.compression_formats {
-                        new_formats.push(out_ext.clone());
-                    } else if inp_ext
-                        .compression_formats
-                        .iter()
-                        .zip(out_ext.compression_formats.iter())
-                        .all(|(inp, out)| inp == out)
-                    {
-                        let new_ext = Extension::new(
-                            &out_ext.compression_formats[..inp_ext.compression_formats.len()],
-                            &out_ext.display_text,
-                        );
-                        new_formats.push(new_ext);
-                        break;
-                    }
-                }
-                // If the input is a sublist at the start of `formats` then remove the extensions
-                // Note: If input_extensions is empty then it will make `formats` empty too, which we don't want
-                if !input_extensions.is_empty() && new_formats != formats {
-                    // Safety:
-                    //   We checked above that input_extensions isn't empty, so files[0] has an extension.
-                    //
-                    //   Path::extension says: "if there is no file_name, then there is no extension".
-                    //   Contrapositive statement: "if there is extension, then there is file_name".
-                    info!(
-                        accessible, // important information
-                        "Partial compression detected. Compressing {} into {}",
-                        to_utf(files[0].as_path().file_name().unwrap().as_ref()),
-                        to_utf(&output_path)
-                    );
-                    formats = new_formats;
-                }
-            }
             let compress_result = compress_files(
                 files,
                 formats,
