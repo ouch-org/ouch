@@ -557,6 +557,7 @@ dependencies = [
  "parse-display",
  "proptest",
  "rand",
+ "same-file",
  "snap",
  "tar",
  "tempfile",

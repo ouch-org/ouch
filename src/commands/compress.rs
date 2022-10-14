@@ -30,7 +30,7 @@ pub fn compress_files(
     files: Vec<PathBuf>,
     extensions: Vec<Extension>,
     output_file: fs::File,
-    output_dir: &Path,
+    output_path: &Path,
     question_policy: QuestionPolicy,
     file_visibility_policy: FileVisibilityPolicy,
 ) -> crate::Result<bool> {
@@ -89,12 +89,24 @@ pub fn compress_files(
         }
         Tar => {
             if is_running_in_accessible_mode() {
-                archive::tar::build_archive_from_paths(&files, &mut writer, file_visibility_policy, io::stderr())?;
+                archive::tar::build_archive_from_paths(
+                    &files,
+                    output_path,
+                    &mut writer,
+                    file_visibility_policy,
+                    io::stderr(),
+                )?;
                 writer.flush()?;
             } else {
                 let mut progress = Progress::new(total_input_size, precise, true);
                 let mut writer = progress.wrap_write(writer);
-                archive::tar::build_archive_from_paths(&files, &mut writer, file_visibility_policy, &mut progress)?;
+                archive::tar::build_archive_from_paths(
+                    &files,
+                    output_path,
+                    &mut writer,
+                    file_visibility_policy,
+                    &mut progress,
+                )?;
                 writer.flush()?;
             }
         }
@@ -103,7 +115,7 @@ pub fn compress_files(
                 warn_user_about_loading_zip_in_memory();
 
                 // give user the option to continue compressing after warning is shown
-                if !user_wants_to_continue(output_dir, question_policy, QuestionAction::Compression)? {
+                if !user_wants_to_continue(output_path, question_policy, QuestionAction::Compression)? {
                     return Ok(false);
                 }
             }
@@ -111,12 +123,24 @@ pub fn compress_files(
             let mut vec_buffer = Cursor::new(vec![]);
 
             if is_running_in_accessible_mode() {
-                archive::zip::build_archive_from_paths(&files, &mut vec_buffer, file_visibility_policy, io::stderr())?;
+                archive::zip::build_archive_from_paths(
+                    &files,
+                    output_path,
+                    &mut vec_buffer,
+                    file_visibility_policy,
+                    io::stderr(),
+                )?;
                 vec_buffer.rewind()?;
                 io::copy(&mut vec_buffer, &mut writer)?;
             } else {
                 let mut progress = Progress::new(total_input_size, precise, true);
-                archive::zip::build_archive_from_paths(&files, &mut vec_buffer, file_visibility_policy, &mut progress)?;
+                archive::zip::build_archive_from_paths(
+                    &files,
+                    output_path,
+                    &mut vec_buffer,
+                    file_visibility_policy,
+                    &mut progress,
+                )?;
                 vec_buffer.rewind()?;
                 io::copy(&mut progress.wrap_read(vec_buffer), &mut writer)?;
             }

@@ -50,6 +50,11 @@ macro_rules! info {
 /// Macro that prints \[WARNING\] messages, wraps [`eprintln`].
 #[macro_export]
 macro_rules! warning {
+    (@$log_out: expr, $($arg:tt)*) => {
+        if !$crate::accessible::is_running_in_accessible_mode() {
+            $log_out.output_line_warning(format_args!($($arg)*));
+        }
+    };
     ($($arg:tt)*) => {
         $crate::macros::_warning_helper();
         eprintln!($($arg)*);

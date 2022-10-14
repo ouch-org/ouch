@@ -6,7 +6,7 @@ use std::{
 
 use indicatif::{ProgressBar, ProgressBarIter, ProgressStyle};
 
-use crate::utils::colors::{RESET, YELLOW};
+use crate::utils::colors::{ORANGE, RESET, YELLOW};
 
 /// Draw a ProgressBar using a function that checks periodically for the progress
 pub struct Progress {
@@ -16,6 +16,7 @@ pub struct Progress {
 pub trait OutputLine {
     fn output_line(&mut self, args: Arguments);
     fn output_line_info(&mut self, args: Arguments);
+    fn output_line_warning(&mut self, args: Arguments);
 }
 
 impl OutputLine for Progress {
@@ -26,6 +27,10 @@ impl OutputLine for Progress {
     fn output_line_info(&mut self, args: Arguments) {
         self.bar.set_message(format!("{}[INFO]{} {args}", *YELLOW, *RESET));
     }
+
+    fn output_line_warning(&mut self, args: Arguments) {
+        self.bar.println(format!("{}[WARNING]{} {args}", *ORANGE, *RESET));
+    }
 }
 
 impl OutputLine for Stderr {
@@ -34,7 +39,13 @@ impl OutputLine for Stderr {
     }
 
     fn output_line_info(&mut self, args: Arguments) {
-        write!(self, "{}[INFO]{} {args}", *YELLOW, *RESET).unwrap();
+        write!(self, "{}[INFO]{} ", *YELLOW, *RESET).unwrap();
+        self.write_fmt(args).unwrap();
+        self.write_all(b"\n").unwrap();
+    }
+
+    fn output_line_warning(&mut self, args: Arguments) {
+        write!(self, "{}[WARNING]{}", *ORANGE, *RESET).unwrap();
         self.write_fmt(args).unwrap();
         self.write_all(b"\n").unwrap();
     }
@@ -47,6 +58,10 @@ impl<T: OutputLine + ?Sized> OutputLine for &mut T {
 
     fn output_line_info(&mut self, args: Arguments) {
         (*self).output_line_info(args);
+    }
+
+    fn output_line_warning(&mut self, args: Arguments) {
+        (*self).output_line_warning(args);
     }
 }
 
