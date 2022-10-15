@@ -6,55 +6,94 @@ jobs:
   build:
     name: build
     runs-on: ${{ matrix.os }}
+    env:
+      CARGO: cargo
     strategy:
       matrix:
         include:
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            no-zstd-thin: true
+
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+            no-zstd-thin: true
+
+          - target: armv7-unknown-linux-gnueabihf
+            os: ubuntu-latest
+            no-zstd-thin: true
+
+          - target: armv7-unknown-linux-musleabihf
+            os: ubuntu-latest
+            no-zstd-thin: true
+
           - target: x86_64-apple-darwin
             os: macos-latest
-          # - target: x86_64-pc-windows-gnu
-          #   os: windows-latest
-          #   ext: .exe
+
+          - target: x86_64-pc-windows-gnu
+            os: windows-latest
+            no-zstd-thin: true
+            ext: .exe
+
           - target: x86_64-pc-windows-msvc
             os: windows-latest
             ext: .exe
+
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
+
           - target: x86_64-unknown-linux-musl
             os: ubuntu-latest
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
-      - name: Install dependencies (musl)
-        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
+      - name: Install cross (non-x86_64 linux)
+        if: "!contains(matrix.target, 'x86_64') && runner.os == 'Linux'"
+        run: |
+          pushd "$(mktemp -d)"
+          wget https://github.com/cross-rs/cross/releases/download/v0.2.4/cross-x86_64-unknown-linux-musl.tar.gz
+          tar xf cross-x86_64-unknown-linux-musl.tar.gz
+          cp cross ~/.cargo/bin
+          popd
+          echo CARGO=cross >> $GITHUB_ENV
+
+      - name: Install dependencies (x86_64-unknown-linux-musl)
+        if: matrix.target == 'x86_64-unknown-linux-musl'
         run: |
           sudo apt-get update
-          sudo apt-get install help2man musl-tools
+          sudo apt-get install musl-tools
 
-      - name: Build and test on stable
+      - name: Set up extra cargo flags
+        if: matrix.no-zstd-thin
         run: |
-          rustup toolchain install stable --profile minimal -t ${{ matrix.target }}
-          cargo +stable build --target ${{ matrix.target }}
-          cargo +stable test --target ${{ matrix.target }}
+          echo "EXTRA_CARGO_FLAGS=--no-default-features --features flate2/zlib,zip/deflate-zlib" >> $GITHUB_ENV
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable nightly --profile minimal -t ${{ matrix.target }}
+
+      - name: Test on stable
+        run: |
+          ${{ env.CARGO }} +stable test --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
 
       - name: Release on nightly
         run: |
-          rustup toolchain install nightly --profile minimal -t ${{ matrix.target }}
-          cargo +nightly build --release --target ${{ matrix.target }}
+          ${{ env.CARGO }} +nightly build --release --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
         env:
           OUCH_ARTIFACTS_FOLDER: artifacts
           RUSTFLAGS: -C strip=symbols
 
       - name: Upload bianry
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ouch-${{ matrix.target }}${{ matrix.ext }}
           path: target/${{ matrix.target }}/release/ouch${{ matrix.ext }}
- 
+
       - name: Upload artifacts (musl)
-        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
-        uses: actions/upload-artifact@v2
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        uses: actions/upload-artifact@v3
         with:
           name: artifacts
           path: artifacts
@@ -64,7 +103,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: "Cargo: clippy, fmt"
         run: |

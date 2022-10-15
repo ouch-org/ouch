@@ -1,16 +1,29 @@
-use std::{io::Write, path::PathBuf};
+use std::{env, io::Write, path::PathBuf};
 
+use assert_cmd::Command;
 use fs_err as fs;
 use rand::{Rng, RngCore};
 
 #[macro_export]
 macro_rules! ouch {
     ($($e:expr),*) => {
-        ::assert_cmd::Command::cargo_bin("ouch")
-            .expect("Failed to find ouch executable")
+        $crate::utils::cargo_bin()
             $(.arg($e))*
             .unwrap();
     }
+}
+
+pub fn cargo_bin() -> Command {
+    env::vars()
+        .find_map(|(k, v)| {
+            (k.starts_with("CARGO_TARGET_") && k.ends_with("_RUNNER")).then(|| {
+                let mut runner = v.split_whitespace();
+                let mut cmd = Command::new(runner.next().unwrap());
+                cmd.args(runner).arg(assert_cmd::cargo::cargo_bin("ouch"));
+                cmd
+            })
+        })
+        .unwrap_or_else(|| Command::cargo_bin("ouch").expect("Failed to find ouch executable"))
 }
 
 // write random content to a file
