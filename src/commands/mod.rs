@@ -91,13 +91,9 @@ pub fn run(
 ) -> crate::Result<()> {
     match args.cmd {
         Subcommand::Compress {
-            mut files,
+            files,
             output: output_path,
         } => {
-            // If the output_path file exists and is the same as some of the input files, warn the user and skip those inputs (in order to avoid compression recursion)
-            if output_path.exists() {
-                deduplicate_input_files(&mut files, &fs::canonicalize(&output_path)?);
-            }
             // After cleaning, if there are no input files left, exit
             if files.is_empty() {
                 return Err(FinalError::with_title("No files to compress").into());
@@ -359,21 +355,6 @@ fn check_mime_type(
         }
     }
     Ok(ControlFlow::Continue(()))
-}
-
-fn deduplicate_input_files(files: &mut Vec<PathBuf>, output_path: &Path) {
-    let mut idx = 0;
-    while idx < files.len() {
-        if files[idx] == output_path {
-            warning!(
-                "The output file and the input file are the same: `{}`, skipping...",
-                output_path.display()
-            );
-            files.remove(idx);
-        } else {
-            idx += 1;
-        }
-    }
 }
 
 #[cfg(test)]

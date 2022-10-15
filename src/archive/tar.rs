@@ -10,6 +10,7 @@ use std::{
 
 use fs_err as fs;
 use humansize::{format_size, DECIMAL};
+use same_file::Handle;
 
 use crate::{
     error::FinalError,
@@ -17,6 +18,7 @@ use crate::{
     list::FileInArchive,
     progress::OutputLine,
     utils::{self, FileVisibilityPolicy},
+    warning,
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `into`.
@@ -87,6 +89,7 @@ pub fn list_archive(
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.
 pub fn build_archive_from_paths<W, D>(
     input_filenames: &[PathBuf],
+    output_path: &Path,
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
     mut log_out: D,
@@ -96,6 +99,7 @@ where
     D: OutputLine,
 {
     let mut builder = tar::Builder::new(writer);
+    let output_handle = Handle::from_path(output_path);
 
     for filename in input_filenames {
         let previous_location = utils::cd_into_same_dir_as(filename)?;
@@ -106,6 +110,18 @@ where
         for entry in file_visibility_policy.build_walker(filename) {
             let entry = entry?;
             let path = entry.path();
+
+            // If the output_path is the same as the input file, warn the user and skip the input (in order to avoid compression recursion)
+            if let Ok(ref handle) = output_handle {
+                if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
+                    warning!(
+                        @log_out,
+                        "The output file and the input file are the same: `{}`, skipping...",
+                        output_path.display()
+                    );
+                    continue;
+                }
+            }
 
             // This is printed for every file in `input_filenames` and has
             // little importance for most users, but would generate lots of

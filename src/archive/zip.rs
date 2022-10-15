@@ -14,6 +14,7 @@ use std::{
 use filetime::{set_file_mtime, FileTime};
 use fs_err as fs;
 use humansize::{format_size, DECIMAL};
+use same_file::Handle;
 use zip::{self, read::ZipFile, DateTime, ZipArchive};
 
 use crate::{
@@ -25,6 +26,7 @@ use crate::{
         self, cd_into_same_dir_as, get_invalid_utf8_paths, pretty_format_list_of_paths, strip_cur_dir, to_utf,
         FileVisibilityPolicy,
     },
+    warning,
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `output_folder`.
@@ -138,6 +140,7 @@ where
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.
 pub fn build_archive_from_paths<W, D>(
     input_filenames: &[PathBuf],
+    output_path: &Path,
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
     mut log_out: D,
@@ -148,6 +151,7 @@ where
 {
     let mut writer = zip::ZipWriter::new(writer);
     let options = zip::write::FileOptions::default();
+    let output_handle = Handle::from_path(output_path);
 
     #[cfg(not(unix))]
     let executable = options.unix_permissions(0o755);
@@ -175,6 +179,18 @@ where
         for entry in file_visibility_policy.build_walker(filename) {
             let entry = entry?;
             let path = entry.path();
+
+            // If the output_path is the same as the input file, warn the user and skip the input (in order to avoid compression recursion)
+            if let Ok(ref handle) = output_handle {
+                if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
+                    warning!(
+                        @log_out,
+                        "The output file and the input file are the same: `{}`, skipping...",
+                        output_path.display()
+                    );
+                    continue;
+                }
+            }
 
             // This is printed for every file in `input_filenames` and has
             // little importance for most users, but would generate lots of
