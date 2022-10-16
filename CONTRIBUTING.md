@@ -1,20 +1,19 @@
 Thanks for your interest in contributing to `ouch`!
 
-Feel free to open an issue anytime you wish to ask a question, suggest a feature, report a bug, etc.
+# Code of Conduct
 
-# Requirements
+We follow the [Rust Official Code of Conduct](https://www.rust-lang.org/policies/code-of-conduct).
 
-1. Be nice to other people.
-2. If editing the Rust source code, remember to run `rustfmt` (otherwise, CI will warn you the code was not properly formatted).
-3. If new formats are added, please add the format to `tests/integration.rs`.
-If it is an archive format that handles directories, it should be added to `DirectoryExtension`, otherwise it should be added to `FileExtension`.
-It should be added to `mime.rs` as well if the [`infer`](https://docs.rs/infer) crate supports it.
-Most tests are written with `proptest` ([book](https://altsysrq.github.io/proptest-book/), [docs](https://docs.rs/proptest)).
-If you wish to improve these tests, the proptest book might help you.
+# I want to ask a question or provide feedback
 
-Note: we are using `unstable` features of `rustfmt`! Nightly toolchain is required (will likely be installed automatically, cause the toolchain was specified in the project root).
+Create [an issue](https://github.com/ouch-org/ouch/issues) or go to [Ouch Discussions](https://github.com/ouch-org/ouch/discussions).
 
-# Suggestions
+# Adding a new feature
 
-1. If you wish to, you can ask for some guidance before solving an issue.
-2. Run `cargo clippy` too.
+Before creating a PR with a new feature, please, open an issue to suggest your addition.
+
+This allows us to discuss the problem and solution, increasing the chance of your PR to be accepted.
+
+# Don't forget to
+
+- In your PR, add a CHANGELOG.md entry.
