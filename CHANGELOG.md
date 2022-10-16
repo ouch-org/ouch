@@ -108,6 +108,7 @@ Categories Used:
 ### Regression
 
 - Remove automatic detection for partial compression [\#286](https://github.com/ouch-org/ouch/pull/286) ([marcospb19](https://github.com/marcospb19))
+- Remove progress feature [\#300](https://github.com/ouch-org/ouch/pull/300) ([figsoda](https://github.com/figsoda))
 
 ### New Contributors
 
