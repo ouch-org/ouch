@@ -6,7 +6,6 @@ use std::{
 use fs_err as fs;
 
 use crate::{
-    accessible::is_running_in_accessible_mode,
     archive,
     commands::warn_user_about_loading_zip_in_memory,
     extension::{
@@ -14,7 +13,6 @@ use crate::{
         CompressionFormat::{self, *},
         Extension,
     },
-    progress::Progress,
     utils::{user_wants_to_continue, FileVisibilityPolicy},
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
@@ -37,15 +35,7 @@ pub fn compress_files(
     question_policy: QuestionPolicy,
     file_visibility_policy: FileVisibilityPolicy,
 ) -> crate::Result<bool> {
-    // The next lines are for displaying the progress bar
     // If the input files contain a directory, then the total size will be underestimated
-    let (total_input_size, precise) = files
-        .iter()
-        .map(|f| (f.metadata().expect("file exists").len(), f.is_file()))
-        .fold((0, true), |(total_size, and_precise), (size, precise)| {
-            (total_size + size, and_precise & precise)
-        });
-
     let file_writer = BufWriter::with_capacity(BUFFER_CAPACITY, output_file);
 
     let mut writer: Box<dyn Write> = Box::new(file_writer);
@@ -81,37 +71,11 @@ pub fn compress_files(
             writer = chain_writer_encoder(&first_format, writer)?;
             let mut reader = fs::File::open(&files[0]).unwrap();
 
-            if is_running_in_accessible_mode() {
-                io::copy(&mut reader, &mut writer)?;
-            } else {
-                io::copy(
-                    &mut Progress::new(total_input_size, precise, true).wrap_read(reader),
-                    &mut writer,
-                )?;
-            }
+            io::copy(&mut reader, &mut writer)?;
         }
         Tar => {
-            if is_running_in_accessible_mode() {
-                archive::tar::build_archive_from_paths(
-                    &files,
-                    output_path,
-                    &mut writer,
-                    file_visibility_policy,
-                    io::stderr(),
-                )?;
-                writer.flush()?;
-            } else {
-                let mut progress = Progress::new(total_input_size, precise, true);
-                let mut writer = progress.wrap_write(writer);
-                archive::tar::build_archive_from_paths(
-                    &files,
-                    output_path,
-                    &mut writer,
-                    file_visibility_policy,
-                    &mut progress,
-                )?;
-                writer.flush()?;
-            }
+            archive::tar::build_archive_from_paths(&files, output_path, &mut writer, file_visibility_policy)?;
+            writer.flush()?;
         }
         Zip => {
             if !formats.is_empty() {
@@ -124,28 +88,9 @@ pub fn compress_files(
 
             let mut vec_buffer = Cursor::new(vec![]);
 
-            if is_running_in_accessible_mode() {
-                archive::zip::build_archive_from_paths(
-                    &files,
-                    output_path,
-                    &mut vec_buffer,
-                    file_visibility_policy,
-                    io::stderr(),
-                )?;
-                vec_buffer.rewind()?;
-                io::copy(&mut vec_buffer, &mut writer)?;
-            } else {
-                let mut progress = Progress::new(total_input_size, precise, true);
-                archive::zip::build_archive_from_paths(
-                    &files,
-                    output_path,
-                    &mut vec_buffer,
-                    file_visibility_policy,
-                    &mut progress,
-                )?;
-                vec_buffer.rewind()?;
-                io::copy(&mut progress.wrap_read(vec_buffer), &mut writer)?;
-            }
+            archive::zip::build_archive_from_paths(&files, output_path, &mut vec_buffer, file_visibility_policy)?;
+            vec_buffer.rewind()?;
+            io::copy(&mut vec_buffer, &mut writer)?;
         }
     }
 

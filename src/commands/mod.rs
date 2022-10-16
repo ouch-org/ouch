@@ -17,7 +17,6 @@ use crate::{
     extension::{self, flatten_compression_formats, Extension, SUPPORTED_EXTENSIONS},
     info,
     list::ListOptions,
-    progress::OutputLine,
     utils::{
         self, dir_is_empty, pretty_format_list_of_paths, to_utf, try_infer_extension, user_wants_to_continue,
         FileVisibilityPolicy,

@@ -2,8 +2,6 @@
 
 use std::path::{Path, PathBuf};
 
-use indicatif::{ProgressBar, ProgressStyle};
-
 use self::tree::Tree;
 use crate::accessible::is_running_in_accessible_mode;
 
@@ -34,27 +32,13 @@ pub fn list_files(
     println!("Archive: {}", archive.display());
 
     if list_options.tree {
-        let pb = if !is_running_in_accessible_mode() {
-            let template = "{wide_msg} [{elapsed_precise}] {spinner:.green}";
-            let style = ProgressStyle::with_template(template).map_err(crate::Error::TemplateError)?;
-            Some(ProgressBar::new_spinner().with_style(style))
-        } else {
-            None
-        };
-
         let tree: Tree = files
             .into_iter()
             .map(|file| {
                 let file = file?;
-                if !is_running_in_accessible_mode() {
-                    pb.as_ref()
-                        .expect("exists")
-                        .set_message(format!("Processing: {}", file.path.display()));
-                }
                 Ok(file)
             })
             .collect::<crate::Result<Tree>>()?;
-        drop(pb);
         tree.print();
     } else {
         for file in files {

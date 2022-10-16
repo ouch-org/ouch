@@ -10,7 +10,7 @@ use std::{
 use fs_err as fs;
 
 use super::{to_utf, user_wants_to_overwrite};
-use crate::{extension::Extension, info, progress::OutputLine, QuestionPolicy};
+use crate::{extension::Extension, info, QuestionPolicy};
 
 /// Checks if given path points to an empty directory.
 pub fn dir_is_empty(dir_path: &Path) -> bool {
