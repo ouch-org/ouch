@@ -186,13 +186,13 @@ pub fn run(
                 //
                 // if deleting fails, print an extra alert message pointing
                 // out that we left a possibly CORRUPTED file at `output_path`
-                if let Err(_) = utils::remove_file_or_dir(&output_path) {
+                if utils::remove_file_or_dir(&output_path).is_err() {
                     eprintln!("{red}FATAL ERROR:\n", red = *colors::RED);
                     eprintln!("  Ouch failed to delete the file '{}'.", to_utf(&output_path));
                     eprintln!("  Please delete it manually.");
                     eprintln!("  This file is corrupted if compression didn't finished.");
 
-                    if let Err(_) = compress_result {
+                    if compress_result.is_err() {
                         eprintln!("  Compression failed for reasons below.");
                     }
                 }
