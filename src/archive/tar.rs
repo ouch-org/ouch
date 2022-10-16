@@ -16,18 +16,13 @@ use crate::{
     error::FinalError,
     info,
     list::FileInArchive,
-    progress::OutputLine,
     utils::{self, FileVisibilityPolicy},
     warning,
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `into`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive(
-    reader: Box<dyn Read>,
-    output_folder: &Path,
-    mut log_out: impl OutputLine,
-) -> crate::Result<Vec<PathBuf>> {
+pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path) -> crate::Result<Vec<PathBuf>> {
     assert!(output_folder.read_dir().expect("dir exists").count() == 0);
     let mut archive = tar::Archive::new(reader);
 
@@ -44,7 +39,6 @@ pub fn unpack_archive(
         // and so on
 
         info!(
-            @log_out,
             inaccessible,
             "{:?} extracted. ({})",
             utils::strip_cur_dir(&output_folder.join(file.path()?)),
@@ -87,16 +81,14 @@ pub fn list_archive(
 }
 
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.
-pub fn build_archive_from_paths<W, D>(
+pub fn build_archive_from_paths<W>(
     input_filenames: &[PathBuf],
     output_path: &Path,
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
-    mut log_out: D,
 ) -> crate::Result<W>
 where
     W: Write,
-    D: OutputLine,
 {
     let mut builder = tar::Builder::new(writer);
     let output_handle = Handle::from_path(output_path);
@@ -115,7 +107,6 @@ where
             if let Ok(ref handle) = output_handle {
                 if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
                     warning!(
-                        @log_out,
                         "The output file and the input file are the same: `{}`, skipping...",
                         output_path.display()
                     );
@@ -127,7 +118,7 @@ where
             // little importance for most users, but would generate lots of
             // spoken text for users using screen readers, braille displays
             // and so on
-            info!(@log_out, inaccessible, "Compressing '{}'.", utils::to_utf(path));
+            info!(inaccessible, "Compressing '{}'.", utils::to_utf(path));
 
             if path.is_dir() {
                 builder.append_dir(path, path)?;
