@@ -9,7 +9,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use fs_err as fs;
 use utils::colors;
 
 use crate::{
@@ -183,21 +182,12 @@ pub fn run(
                 // about whether the command succeeded without such a message
                 info!(accessible, "Successfully compressed '{}'.", to_utf(&output_path));
             } else {
-                // If Ok(false) or Err() occurred, delete incomplete file
-                // Print an extra alert message pointing out that we left a possibly
-                // CORRUPTED FILE at `output_path`
-                if let Err(err) = fs::remove_file(&output_path) {
+                if let Err(_) = utils::remove_file_or_dir(&output_path) {
                     eprintln!("{red}FATAL ERROR:\n", red = *colors::RED);
                     eprintln!("  Please manually delete '{}'.", to_utf(&output_path));
                     eprintln!(
                         "  Compression failed and we could not delete '{}'.",
                         to_utf(&output_path),
-                    );
-                    eprintln!(
-                        "  Error:{reset} {}{red}.{reset}\n",
-                        err,
-                        reset = *colors::RESET,
-                        red = *colors::RED
                     );
                 }
             }
