@@ -29,13 +29,18 @@ pub fn clear_path(path: &Path, question_policy: QuestionPolicy) -> crate::Result
         return Ok(false);
     }
 
+    remove_file_or_dir(path)?;
+
+    Ok(true)
+}
+
+pub fn remove_file_or_dir(path: &Path) -> crate::Result<()> {
     if path.is_dir() {
         fs::remove_dir_all(path)?;
     } else if path.is_file() {
         fs::remove_file(path)?;
     }
-
-    Ok(true)
+    Ok(())
 }
 
 /// Creates a directory at the path, if there is nothing there.
