@@ -67,7 +67,6 @@ pub fn list_archive_contents(
             if formats.len() > 1 {
                 warn_user_about_loading_zip_in_memory();
 
-                // give user the option to continue decompressing after warning is shown
                 if !user_wants_to_continue(archive_path, question_policy, QuestionAction::Decompression)? {
                     return Ok(());
                 }

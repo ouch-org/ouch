@@ -57,6 +57,7 @@ Categories Used:
 - Remove single quotes from clap doc comments [\#251](https://github.com/ouch-org/ouch/pull/251) ([jcgruenhage](https://github.com/jcgruenhage))
 - Fix incorrect warnings for decompression [\#270](https://github.com/ouch-org/ouch/pull/270) ([figsoda](https://github.com/figsoda))
 - Fix infinite compression if output file is inside the input folder [\#288](https://github.com/ouch-org/ouch/pull/288) ([figsoda](https://github.com/figsoda))
+- Fix not overwriting a folder when compressing [\#295](https://github.com/ouch-org/ouch/pull/295) ([marcospb19](https://github.com/marcospb19))
 
 ### Improvements
 
