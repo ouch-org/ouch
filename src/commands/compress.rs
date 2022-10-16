@@ -19,13 +19,16 @@ use crate::{
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
-// Compress files into an `output_file`
-//
-// - `files`: is the list of paths to be compressed: ["dir/file1.txt", "dir/file2.txt"]
-// - `extensions`: contains each compression format necessary for compressing, example: [Tar, Gz] (in compression order)
-// - `output_file` is the resulting compressed file name, example: "compressed.tar.gz"
-//
-// Returns Ok(true) if compressed all files successfully, and Ok(false) if user opted to skip files
+/// Compress files into `output_file`.
+///
+/// # Arguments:
+/// - `files`: is the list of paths to be compressed: ["dir/file1.txt", "dir/file2.txt"]
+/// - `extensions`: is a list of compression formats for compressing, example: [Tar, Gz] (in compression order)
+/// - `output_file` is the resulting compressed file name, example: "archive.tar.gz"
+///
+/// # Return value
+/// - Returns `Ok(true)` if compressed all files normally.
+/// - Returns `Ok(false)` if user opted to abort compression mid-way.
 pub fn compress_files(
     files: Vec<PathBuf>,
     extensions: Vec<Extension>,

@@ -9,7 +9,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use fs_err as fs;
 use utils::colors;
 
 use crate::{
@@ -183,22 +182,19 @@ pub fn run(
                 // about whether the command succeeded without such a message
                 info!(accessible, "Successfully compressed '{}'.", to_utf(&output_path));
             } else {
-                // If Ok(false) or Err() occurred, delete incomplete file
-                // Print an extra alert message pointing out that we left a possibly
-                // CORRUPTED FILE at `output_path`
-                if let Err(err) = fs::remove_file(&output_path) {
+                // If Ok(false) or Err() occurred, delete incomplete file at `output_path`
+                //
+                // if deleting fails, print an extra alert message pointing
+                // out that we left a possibly CORRUPTED file at `output_path`
+                if utils::remove_file_or_dir(&output_path).is_err() {
                     eprintln!("{red}FATAL ERROR:\n", red = *colors::RED);
-                    eprintln!("  Please manually delete '{}'.", to_utf(&output_path));
-                    eprintln!(
-                        "  Compression failed and we could not delete '{}'.",
-                        to_utf(&output_path),
-                    );
-                    eprintln!(
-                        "  Error:{reset} {}{red}.{reset}\n",
-                        err,
-                        reset = *colors::RESET,
-                        red = *colors::RED
-                    );
+                    eprintln!("  Ouch failed to delete the file '{}'.", to_utf(&output_path));
+                    eprintln!("  Please delete it manually.");
+                    eprintln!("  This file is corrupted if compression didn't finished.");
+
+                    if compress_result.is_err() {
+                        eprintln!("  Compression failed for reasons below.");
+                    }
                 }
             }
 
