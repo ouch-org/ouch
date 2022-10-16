@@ -54,7 +54,7 @@ pub fn user_wants_to_overwrite(path: &Path, question_policy: QuestionPolicy) -> 
 
 /// Create the file if it doesn't exist and if it does then ask to overwrite it.
 /// If the user doesn't want to overwrite then we return [`Ok(None)`]
-pub fn create_or_ask_overwrite(path: &Path, question_policy: QuestionPolicy) -> Result<Option<fs::File>> {
+pub fn ask_to_create_file(path: &Path, question_policy: QuestionPolicy) -> Result<Option<fs::File>> {
     match fs::OpenOptions::new().write(true).create_new(true).open(path) {
         Ok(w) => Ok(Some(w)),
         Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {

@@ -162,12 +162,11 @@ pub fn run(
                 return Err(error.into());
             }
 
-            if output_path.exists() && !utils::user_wants_to_overwrite(&output_path, question_policy)? {
-                // User does not want to overwrite this file, skip and return without any errors
-                return Ok(());
-            }
+            let output_file = match utils::ask_to_create_file(&output_path, question_policy)? {
+                Some(writer) => writer,
+                None => return Ok(()),
+            };
 
-            let output_file = fs::File::create(&output_path)?;
             let compress_result = compress_files(
                 files,
                 formats,

@@ -114,7 +114,6 @@ pub fn compress_files(
             if !formats.is_empty() {
                 warn_user_about_loading_zip_in_memory();
 
-                // give user the option to continue compressing after warning is shown
                 if !user_wants_to_continue(output_path, question_policy, QuestionAction::Compression)? {
                     return Ok(false);
                 }

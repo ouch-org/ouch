@@ -104,12 +104,10 @@ pub fn decompress_file(
         Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {
             reader = chain_reader_decoder(&first_extension, reader)?;
 
-            let writer = utils::create_or_ask_overwrite(&output_file_path, question_policy)?;
-            if writer.is_none() {
-                // Means that the user doesn't want to overwrite
-                return Ok(());
-            }
-            let mut writer = writer.unwrap();
+            let mut writer = match utils::ask_to_create_file(&output_file_path, question_policy)? {
+                Some(file) => file,
+                None => return Ok(()),
+            };
 
             if is_running_in_accessible_mode() {
                 io::copy(&mut reader, &mut writer)?;
@@ -139,7 +137,6 @@ pub fn decompress_file(
             if formats.len() > 1 {
                 warn_user_about_loading_zip_in_memory();
 
-                // give user the option to continue decompressing after warning is shown
                 if !user_wants_to_continue(input_file_path, question_policy, QuestionAction::Decompression)? {
                     return Ok(());
                 }
