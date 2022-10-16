@@ -4,7 +4,6 @@
 use std::os::unix::fs::PermissionsExt;
 use std::{
     env,
-    fs::File,
     io::{self, prelude::*},
     path::{Path, PathBuf},
     sync::mpsc,
@@ -223,7 +222,7 @@ where
                     options
                 };
 
-                let mut file = File::open(entry.path())?;
+                let mut file = fs::File::open(entry.path())?;
                 writer.start_file(
                     path.to_str().unwrap(),
                     options.last_modified_time(get_last_modified_time(&file)),
@@ -256,7 +255,7 @@ fn display_zip_comment_if_exists(file: &ZipFile) {
     }
 }
 
-fn get_last_modified_time(file: &File) -> DateTime {
+fn get_last_modified_time(file: &fs::File) -> DateTime {
     file.metadata()
         .and_then(|metadata| metadata.modified())
         .map_err(|_| ())
