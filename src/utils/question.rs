@@ -15,7 +15,7 @@ use super::{strip_cur_dir, to_utf};
 use crate::{
     accessible::is_running_in_accessible_mode,
     error::{Error, Result},
-    utils::colors,
+    utils::{self, colors},
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -59,9 +59,7 @@ pub fn ask_to_create_file(path: &Path, question_policy: QuestionPolicy) -> Resul
         Ok(w) => Ok(Some(w)),
         Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
             if user_wants_to_overwrite(path, question_policy)? {
-                if path.is_dir() {
-                    fs::remove_dir_all(path)?;
-                }
+                utils::remove_file_or_dir(path)?;
                 Ok(Some(fs::File::create(path)?))
             } else {
                 Ok(None)
