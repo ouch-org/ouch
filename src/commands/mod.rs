@@ -18,8 +18,7 @@ use crate::{
     info,
     list::ListOptions,
     utils::{
-        self, dir_is_empty, pretty_format_list_of_paths, to_utf, try_infer_extension, user_wants_to_continue,
-        FileVisibilityPolicy,
+        self, pretty_format_list_of_paths, to_utf, try_infer_extension, user_wants_to_continue, FileVisibilityPolicy,
     },
     warning, Opts, QuestionAction, QuestionPolicy, Subcommand,
 };
@@ -32,16 +31,6 @@ fn warn_user_about_loading_zip_in_memory() {
         \tCareful, you might run out of RAM if the archive is too large!";
 
     warning!("{}", ZIP_IN_MEMORY_LIMITATION_WARNING);
-}
-
-fn represents_several_files(files: &[PathBuf]) -> bool {
-    let is_non_empty_dir = |path: &PathBuf| {
-        let is_non_empty = || !dir_is_empty(path);
-
-        path.is_dir().then(is_non_empty).unwrap_or_default()
-    };
-
-    files.iter().any(is_non_empty_dir) || files.len() > 1
 }
 
 /// Builds a suggested output file in scenarios where the user tried to compress
@@ -116,23 +105,32 @@ pub fn run(
                 return Err(error.into());
             }
 
-            if !formats.get(0).map(Extension::is_archive).unwrap_or(false) && represents_several_files(&files) {
+            let is_some_input_a_folder = files.iter().any(|path| path.is_dir());
+            let is_multiple_inputs = files.len() > 1;
+
+            // If first format is not archive, can't compress folder, or multiple files
+            // Index safety: empty formats should be checked above.
+            if !formats[0].is_archive() && (is_some_input_a_folder || is_multiple_inputs) {
                 // This piece of code creates a suggestion for compressing multiple files
                 // It says:
                 // Change from file.bz.xz
                 // To          file.tar.bz.xz
                 let suggested_output_path = build_archive_file_suggestion(&output_path, ".tar")
-                    .expect("output path did not contain a compression format");
-
+                    .expect("output path should contain a compression format");
                 let output_path = to_utf(&output_path);
+                let first_detail_message = if is_multiple_inputs {
+                    "You are trying to compress multiple files."
+                } else {
+                    "You are trying to compress a folder."
+                };
 
                 let error = FinalError::with_title(format!("Cannot compress to '{}'.", output_path))
-                    .detail("You are trying to compress multiple files.")
+                    .detail(first_detail_message)
                     .detail(format!(
-                        "The compression format '{}' cannot receive multiple files.",
+                        "The compression format '{}' does not accept multiple files.",
                         &formats[0]
                     ))
-                    .detail("The only supported formats that archive files into an archive are .tar and .zip.")
+                    .detail("Formats that bundle files into an archive are .tar and .zip.")
                     .hint(format!("Try inserting '.tar' or '.zip' before '{}'.", &formats[0]))
                     .hint(format!("From: {}", output_path))
                     .hint(format!("To:   {}", suggested_output_path));
@@ -272,7 +270,7 @@ pub fn run(
             let not_archives: Vec<PathBuf> = files
                 .iter()
                 .zip(&formats)
-                .filter(|(_, formats)| !formats.get(0).map(Extension::is_archive).unwrap_or(false))
+                .filter(|(_, formats)| !formats.first().map(Extension::is_archive).unwrap_or(false))
                 .map(|(path, _)| path.clone())
                 .collect();
 
