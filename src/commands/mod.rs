@@ -89,28 +89,24 @@ pub fn run(
             // Formats from path extension, like "file.tar.gz.xz" -> vec![Tar, Gzip, Lzma]
             let formats = extension::extensions_from_path(&output_path);
 
-            if formats.is_empty() {
-                let error = FinalError::with_title(format!("Cannot compress to '{}'.", to_utf(&output_path)))
+            let first_format = formats.first().ok_or_else(|| {
+                let output_path = to_utf(&output_path);
+                FinalError::with_title(format!("Cannot compress to '{output_path}'."))
                     .detail("You shall supply the compression format")
                     .hint("Try adding supported extensions (see --help):")
-                    .hint(format!("  ouch compress <FILES>... {}.tar.gz", to_utf(&output_path)))
-                    .hint(format!("  ouch compress <FILES>... {}.zip", to_utf(&output_path)))
+                    .hint(format!("  ouch compress <FILES>... {output_path}.tar.gz"))
+                    .hint(format!("  ouch compress <FILES>... {output_path}.zip"))
                     .hint("")
                     .hint("Alternatively, you can overwrite this option by using the '--format' flag:")
-                    .hint(format!(
-                        "  ouch compress <FILES>... {} --format tar.gz",
-                        to_utf(&output_path)
-                    ));
-
-                return Err(error.into());
-            }
+                    .hint(format!("  ouch compress <FILES>... {output_path} --format tar.gz"))
+            })?;
 
             let is_some_input_a_folder = files.iter().any(|path| path.is_dir());
             let is_multiple_inputs = files.len() > 1;
 
             // If first format is not archive, can't compress folder, or multiple files
             // Index safety: empty formats should be checked above.
-            if !formats[0].is_archive() && (is_some_input_a_folder || is_multiple_inputs) {
+            if !first_format.is_archive() && (is_some_input_a_folder || is_multiple_inputs) {
                 // This piece of code creates a suggestion for compressing multiple files
                 // It says:
                 // Change from file.bz.xz
