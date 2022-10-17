@@ -2,7 +2,6 @@
 
 use std::{
     env,
-    fs::ReadDir,
     io::Read,
     path::{Path, PathBuf},
 };
@@ -11,13 +10,6 @@ use fs_err as fs;
 
 use super::{to_utf, user_wants_to_overwrite};
 use crate::{extension::Extension, info, QuestionPolicy};
-
-/// Checks if given path points to an empty directory.
-pub fn dir_is_empty(dir_path: &Path) -> bool {
-    let is_empty = |mut rd: ReadDir| rd.next().is_none();
-
-    dir_path.read_dir().map(is_empty).unwrap_or_default()
-}
 
 /// Remove `path` asking the user to overwrite if necessary.
 ///

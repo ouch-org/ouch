@@ -79,6 +79,7 @@ Categories Used:
 - Check for errors when setting the last modified time [\#278](https://github.com/ouch-org/ouch/pull/278) ([marcospb19](https://github.com/marcospb19))
 - Use to the humansize crate for formatting human-readable file sizes [\#281](https://github.com/ouch-org/ouch/pull/281) ([figsoda](https://github.com/figsoda))
 - Reactivate CI targets for ARM Linux and Windows MinGW [\#289](https://github.com/ouch-org/ouch/pull/289) ([figsoda](https://github.com/figsoda))
+- Improve error message when compressing folder with single-file formats [\#303](https://github.com/ouch-org/ouch/pull/303) ([marcospb19](https://github.com/marcospb19))
 
 ### Tweaks
 
