@@ -2,9 +2,6 @@
   <a href="https://crates.io/crates/ouch">
     <img src="https://img.shields.io/crates/v/ouch?color=6090FF&style=flat-square" alt="Crates.io link">
   </a>
-  <a href="https://docs.rs/ouch">
-    <img src="https://img.shields.io/docsrs/ouch?color=6090FF&style=flat-square" alt="Docs.rs link">
-  </a>
   <a href="https://github.com/ouch/ouch-org/blob/master/LICENSE">
     <img src="https://img.shields.io/crates/l/ouch?color=6090FF&style=flat-square" alt="License">
   </a>
@@ -12,7 +9,9 @@
 
 # Ouch!
 
-`ouch` stands for **Obvious Unified Compression Helper** and is a CLI tool to help you compress and decompress files of several formats.
+`ouch` stands for **Obvious Unified Compression Helper**.
+
+It's a CLI tool for compressing and decompressing for various formats.
 
 - [Features](#features)
 - [Usage](#usage)
@@ -24,29 +23,29 @@
 # Features
 
 1. Easy to use.
-2. Accessibility mode (A11Y) via `--accessibility` or `ACCESSIBILITY` env var (see [wiki page](https://github.com/ouch-org/ouch/wiki/Accessibility)).
-3. Automatic formats detection.
-4. Same usage syntax for all formats.
-5. Uses encoding and decoding streams to improve performance.
-6. No runtime dependencies (for _Linux x86_64_).
-7. Can list archive contents with pretty tree formatting.
-8. Shell completions (soon!).
+2. Fast.
+3. Great error message feedback.
+4. No runtime dependencies required (for _Linux x86_64_).
+5. Accessibility mode ([see more](https://github.com/ouch-org/ouch/wiki/Accessibility)).
+6. Shell completions and man pages.
 
 # Usage
 
+Ouch has three main subcommands:
+
+- `ouch decompress` (alias `d`)
+- `ouch compress` (alias `c`)
+- `ouch list` (alias `l`)
+
 ## Decompressing
 
-Use the `decompress` subcommand and pass the files.
+Use the `decompress` subcommand, `ouch` will detect the extensions automatically.
 
 ```sh
-# Decompress a file
 ouch decompress a.zip
 
 # Decompress multiple files
 ouch decompress a.zip b.tar.gz c.tar
-
-# Short alternative
-ouch d a.zip
 ```
 
 The `-d/--dir` flag can be used to redirect decompression results to another directory.
@@ -58,23 +57,56 @@ ouch decompress summer_vacation.zip --dir pictures
 
 ## Compressing
 
-Use the `compress` subcommand, pass the files and the **output file** at the end.
+Pass input files to the `compress` subcommand, add the **output file** at the end.
 
 ```sh
-# Compress four files
-ouch compress 1 2 3 4 archive.zip
+# Compress two files into `archive.zip`
+ouch compress one.txt two.txt archive.zip
 
-# Short alternative
-ouch c file.txt file.zip
+# Compress file.txt using .lz4 and .zst
+ouch compress file.txt file.txt.lz4.zst
 ```
 
 `ouch` detects the extensions of the **output file** to decide what formats to use.
 
+## Listing
+
+```sh
+ouch list archive.zip
+
+# Example with tree formatting
+ouch list source-code.zip --tree
+```
+
+Output:
+
+```
+└── src
+   ├── archive
+   │  ├── mod.rs
+   │  ├── tar.rs
+   │  └── zip.rs
+   ├── utils
+   │  ├── colors.rs
+   │  ├── formatting.rs
+   │  ├── mod.rs
+   │  └── fs.rs
+   ├── commands
+   │  ├── list.rs
+   │  ├── compress.rs
+   │  ├── decompress.rs
+   │  └── mod.rs
+   ├── accessible.rs
+   ├── error.rs
+   ├── cli.rs
+   └── main.rs
+```
+
 # Supported formats
 
-| Format    | `.tar` | `.zip` | `.bz`, `.bz2` | `.gz` | `.lz4` | `.xz`, `.lzma` | `.sz` | `.zst` |
-|:---------:|:------:|:------:|:-------------:|:-----:|:------:|:--------------:|:-----:|:------:|
-| Supported | ✓      | ✓      | ✓             | ✓     | ✓      | ✓              | ✓     | ✓      |
+| Format    | `.tar` | `.zip` | `.gz` | `.xz`, `.lzma` | `.bz`, `.bz2` | `.lz4` | `.sz` | `.zst` |
+|:---------:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Supported | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 And the aliases: `tgz`, `tbz`, `tbz2`, `tlz4`, `txz`, `tlzma`, `tsz`, `tzst`.
 
@@ -88,7 +120,19 @@ Formats can be chained:
 
 [![Packaging status](https://repology.org/badge/vertical-allrepos/ouch.svg)](https://repology.org/project/ouch/versions)
 
-## Downloading the latest binary
+## On Arch Linux
+
+```bash
+yay -S ouch
+```
+
+## From crates.io
+
+```bash
+cargo install ouch
+```
+
+## Using our script to download the latest binary
 
 Compiled for `x86_64` on _Linux_, _Mac OS_ and _Windows_, run with `curl` or `wget`.
 
@@ -101,7 +145,7 @@ The script will copy the [latest binary](https://github.com/ouch-org/ouch/releas
 
 ## Compiling from source code
 
-Check the [wiki guide](https://github.com/ouch-org/ouch/wiki/Compiling-and-installing-from-source-code).
+Check the [wiki guide on compiling](https://github.com/ouch-org/ouch/wiki/Compiling-and-installing-from-source-code).
 
 # Dependencies
 
