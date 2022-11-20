@@ -85,7 +85,7 @@ jobs:
           OUCH_ARTIFACTS_FOLDER: artifacts
           RUSTFLAGS: -C strip=symbols
 
-      - name: Upload bianry
+      - name: Upload binary
         uses: actions/upload-artifact@v3
         with:
           name: ouch-${{ matrix.target }}${{ matrix.ext }}
