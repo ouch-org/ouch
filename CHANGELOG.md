@@ -18,7 +18,11 @@ Categories Used:
 
 **Bullet points in chronological order by PR**
 
-## [Unreleased](https://github.com/ouch-org/ouch/compare/0.3.1...HEAD)
+## [Unreleased](https://github.com/ouch-org/ouch/compare/0.4.0...HEAD)
+
+This is currently empty.
+
+## [0.4.0](https://github.com/ouch-org/ouch/compare/0.3.1...0.4.0) (2022-11-20)
 
 ### New Features
 
