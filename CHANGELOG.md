@@ -106,6 +106,7 @@ Categories Used:
 - Show subcommand aliases on --help [\#275](https://github.com/ouch-org/ouch/pull/275) ([marcospb19](https://github.com/marcospb19))
 - Update dependencies [\#276](https://github.com/ouch-org/ouch/pull/276) ([figsoda](https://github.com/figsoda))
 - Rewrite progress module [\#280](https://github.com/ouch-org/ouch/pull/280) ([figsoda](https://github.com/figsoda))
+- Create scripts for benchmarking ouch [\#280](https://github.com/ouch-org/ouch/pull/280) ([figsoda](https://github.com/figsoda))
 
 ### Regression
 
