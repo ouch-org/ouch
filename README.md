@@ -132,16 +132,9 @@ yay -S ouch
 cargo install ouch
 ```
 
-## Using our script to download the latest binary
+## Download the latest release bundle
 
-Compiled for `x86_64` on _Linux_, _Mac OS_ and _Windows_, run with `curl` or `wget`.
-
-| Method    | Command                                                                             |
-|:---------:|:------------------------------------------------------------------------------------|
-| **curl**  | `curl -s https://raw.githubusercontent.com/ouch-org/ouch/master/install.sh \| sh`   |
-| **wget**  | `wget https://raw.githubusercontent.com/ouch-org/ouch/master/install.sh -O - \| sh` |
-
-The script will copy the [latest binary](https://github.com/ouch-org/ouch/releases) to `/usr/local/bin`.
+Check the [releases page](https://github.com/ouch-org/ouch/releases).
 
 ## Compiling from source code
 
