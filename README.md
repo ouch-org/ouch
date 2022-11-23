@@ -132,7 +132,7 @@ yay -S ouch
 cargo install ouch
 ```
 
-## Download the latest release tarball
+## Download the latest release bundle
 
 Check the [releases page](https://github.com/ouch-org/ouch/releases).
 
