@@ -6,7 +6,7 @@ edition = "2021"
 readme = "README.md"
 repository = "https://github.com/ouch-org/ouch"
 license = "MIT"
-keywords = ["decompression", "compression", "zip", "tar", "gzip", "accessibility", "a11y"]
+keywords = ["decompression", "compression", "cli"]
 categories = ["command-line-utilities", "compression", "encoding"]
 description = "A command-line utility for easily compressing and decompressing files and directories."
 
