@@ -154,21 +154,21 @@ These are available on all mainstream _Linux_ distributions and on _macOS_.
 
 # Benchmarks
 
-Comparison made decompressing `linux.tar.gz` and measured with
-[Hyperfine](https://github.com/sharkdp/hyperfine) and the values presented are the average (wall clock) elapsed time.
-
-| Tool         | `ouch` | [`tar`] | [`bsdtar`] |
-|:------------:|:------:|:-------:|:----------:|
-| Average time | 911 ms | 1102 ms |   829 ms   |
+Benchmark results are available [here](benchmarks/results.md).
+Performance of compressing and decompressing
+[Rust](https://github.com/rust-lang/rust) source code are measured and compared with
+[Hyperfine](https://github.com/sharkdp/hyperfine).
+The values presented are the average (wall clock) elapsed time.
 
 Note: `ouch` focuses heavily on usage ergonomics and nice error messages, but
 we plan on doing some optimization in the future.
 
 Versions used:
 
-- `ouch` _0.3.1_
+- `ouch` _0.4.0_
 - [`tar`] _1.34_
-- [`bsdtar`] _3.5.2_
+- [`unzip`][infozip] _6.00_
+- [`zip`][infozip] _3.0_
 
 # Contributing
 
@@ -180,4 +180,4 @@ Versions used:
 - Share it with a friend!
 
 [`tar`]: https://www.gnu.org/software/tar/
-[`bsdtar`]: https://www.freebsd.org/cgi/man.cgi?query=bsdtar&sektion=1&format=html
+[infozip]: http://www.info-zip.org/
