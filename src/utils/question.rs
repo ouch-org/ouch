@@ -14,7 +14,7 @@ use fs_err as fs;
 use super::{strip_cur_dir, to_utf};
 use crate::{
     accessible::is_running_in_accessible_mode,
-    error::{Error, Result},
+    error::{Error, FinalError, Result},
     utils::{self, colors},
 };
 
@@ -145,7 +145,17 @@ impl<'a> Confirmation<'a> {
             io::stdout().flush()?;
 
             let mut answer = String::new();
-            io::stdin().read_line(&mut answer)?;
+            let bytes_read = io::stdin().read_line(&mut answer)?;
+
+            if bytes_read == 0 {
+                let error = FinalError::with_title("Unexpected EOF when asking question.")
+                    .detail("When asking the user:")
+                    .detail(format!("  \"{message}\""))
+                    .detail("Expected 'y' or 'n' as answer, but found EOF instead.")
+                    .hint("If using Ouch in scripting, consider using `--yes` and `--no`.");
+
+                return Err(error.into());
+            }
 
             answer.make_ascii_lowercase();
             match answer.trim() {
