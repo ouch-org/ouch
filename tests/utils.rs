@@ -9,6 +9,7 @@ macro_rules! ouch {
     ($($e:expr),*) => {
         $crate::utils::cargo_bin()
             $(.arg($e))*
+            .arg("--yes")
             .unwrap();
     }
 }
