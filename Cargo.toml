@@ -30,6 +30,9 @@ tempfile = "3.3.0"
 xz2 = "0.1.7"
 zip = { version = "0.6.3", default-features = false, features = ["time"] }
 zstd = { version = "0.12.0", default-features = false }
+# zstd-sys > 2.0.1 unconditionally enables thin LTO and causes CI to fail
+# https://github.com/gyscos/zstd-rs/pull/155
+zstd-sys = "=2.0.1"
 
 [target.'cfg(unix)'.dependencies]
 time = { version = "0.3.17", default-features = false }
