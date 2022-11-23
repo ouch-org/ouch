@@ -102,12 +102,12 @@ function run_benches() {
 }
 
 function concatenate_results() {
-    cat tar_compression.md       > results.md ; echo "" >> results.md
-    cat tar_decompression.md    >> results.md ; echo "" >> results.md
-    cat tar_gz_compression.md   >> results.md ; echo "" >> results.md
-    cat tar_gz_decompression.md >> results.md ; echo "" >> results.md
-    cat zip_compression.md      >> results.md ; echo "" >> results.md
-    cat zip_decompression.md    >> results.md
+    cat tar_compression.md <(echo) \
+        tar_decompression.md <(echo) \
+        tar_gz_compression.md <(echo) \
+        tar_gz_decompression.md <(echo) \
+        zip_compression.md <(echo) \
+        zip_decompression.md > results.md
 }
 
 run_benches
