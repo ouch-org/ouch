@@ -236,10 +236,6 @@ pub fn run(
             // The directory that will contain the output files
             // We default to the current directory if the user didn't specify an output directory with --dir
             let output_dir = if let Some(dir) = output_dir {
-                if !utils::clear_path(&dir, question_policy)? {
-                    // User doesn't want to overwrite
-                    return Ok(());
-                }
                 utils::create_dir_if_non_existent(&dir)?;
                 dir
             } else {
