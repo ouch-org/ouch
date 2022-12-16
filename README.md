@@ -126,6 +126,12 @@ Formats can be chained:
 yay -S ouch
 ```
 
+## On Windows via Scoop
+
+```cmd
+scoop install ouch
+```
+
 ## From crates.io
 
 ```bash
