@@ -30,7 +30,7 @@ pub fn decompress_file(
     output_dir: &Path,
     output_file_path: PathBuf,
     question_policy: QuestionPolicy,
-    quiet: bool
+    quiet: bool,
 ) -> crate::Result<()> {
     assert!(output_dir.exists());
     let reader = fs::File::open(input_file_path)?;

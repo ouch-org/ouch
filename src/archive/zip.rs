@@ -138,8 +138,8 @@ pub fn build_archive_from_paths<W>(
     input_filenames: &[PathBuf],
     output_path: &Path,
     writer: W,
-    quiet: bool,
     file_visibility_policy: FileVisibilityPolicy,
+    quiet: bool,
 ) -> crate::Result<W>
 where
     W: Write + Seek,

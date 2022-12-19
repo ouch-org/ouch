@@ -45,7 +45,7 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) 
                 format_size(file.size(), DECIMAL),
             );
 
-        files_unpacked.push(file_path);
+            files_unpacked.push(file_path);
         }
     }
 
@@ -86,8 +86,8 @@ pub fn build_archive_from_paths<W>(
     input_filenames: &[PathBuf],
     output_path: &Path,
     writer: W,
-    quiet: bool,
     file_visibility_policy: FileVisibilityPolicy,
+    quiet: bool,
 ) -> crate::Result<W>
 where
     W: Write,

@@ -75,7 +75,7 @@ pub fn compress_files(
             io::copy(&mut reader, &mut writer)?;
         }
         Tar => {
-            archive::tar::build_archive_from_paths(&files, output_path, &mut writer, quiet, file_visibility_policy)?;
+            archive::tar::build_archive_from_paths(&files, output_path, &mut writer, file_visibility_policy, quiet)?;
             writer.flush()?;
         }
         Zip => {
@@ -89,7 +89,13 @@ pub fn compress_files(
 
             let mut vec_buffer = Cursor::new(vec![]);
 
-            archive::zip::build_archive_from_paths(&files, output_path, &mut vec_buffer, quiet, file_visibility_policy)?;
+            archive::zip::build_archive_from_paths(
+                &files,
+                output_path,
+                &mut vec_buffer,
+                file_visibility_policy,
+                quiet,
+            )?;
             vec_buffer.rewind()?;
             io::copy(&mut vec_buffer, &mut writer)?;
         }
