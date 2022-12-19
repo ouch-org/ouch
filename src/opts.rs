@@ -29,6 +29,10 @@ pub struct Opts {
     #[arg(short = 'H', long)]
     pub hidden: bool,
 
+    /// Silences output
+    #[arg(short = 'Q', long)]
+    pub quiet: bool,
+
     /// Ignores files matched by git's ignore files
     #[arg(short = 'g', long)]
     pub gitignore: bool,

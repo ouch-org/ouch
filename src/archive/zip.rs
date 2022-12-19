@@ -29,7 +29,7 @@ use crate::{
 
 /// Unpacks the archive given by `archive` into the folder given by `output_folder`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive<R>(mut archive: ZipArchive<R>, output_folder: &Path) -> crate::Result<Vec<PathBuf>>
+pub fn unpack_archive<R>(mut archive: ZipArchive<R>, output_folder: &Path, quiet: bool) -> crate::Result<Vec<PathBuf>>
 where
     R: Read + Seek,
 {
@@ -54,7 +54,9 @@ where
                 // importance for most users, but would generate lots of
                 // spoken text for users using screen readers, braille displays
                 // and so on
-                info!(inaccessible, "File {} extracted to \"{}\"", idx, file_path.display());
+                if !quiet {
+                    info!(inaccessible, "File {} extracted to \"{}\"", idx, file_path.display());
+                }
                 fs::create_dir_all(&file_path)?;
             }
             _is_file @ false => {
@@ -66,12 +68,14 @@ where
                 let file_path = strip_cur_dir(file_path.as_path());
 
                 // same reason is in _is_dir: long, often not needed text
-                info!(
-                    inaccessible,
-                    "{:?} extracted. ({})",
-                    file_path.display(),
-                    format_size(file.size(), DECIMAL),
-                );
+                if !quiet {
+                    info!(
+                        inaccessible,
+                        "{:?} extracted. ({})",
+                        file_path.display(),
+                        format_size(file.size(), DECIMAL),
+                    );
+                }
 
                 let mut output_file = fs::File::create(file_path)?;
                 io::copy(&mut file, &mut output_file)?;
@@ -134,6 +138,7 @@ pub fn build_archive_from_paths<W>(
     input_filenames: &[PathBuf],
     output_path: &Path,
     writer: W,
+    quiet: bool,
     file_visibility_policy: FileVisibilityPolicy,
 ) -> crate::Result<W>
 where
@@ -185,7 +190,9 @@ where
             // little importance for most users, but would generate lots of
             // spoken text for users using screen readers, braille displays
             // and so on
-            info!(inaccessible, "Compressing '{}'.", to_utf(path));
+            if !quiet {
+                info!(inaccessible, "Compressing '{}'.", to_utf(path));
+            }
 
             let metadata = match path.metadata() {
                 Ok(metadata) => metadata,
