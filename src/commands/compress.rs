@@ -32,6 +32,7 @@ pub fn compress_files(
     extensions: Vec<Extension>,
     output_file: fs::File,
     output_path: &Path,
+    quiet: bool,
     question_policy: QuestionPolicy,
     file_visibility_policy: FileVisibilityPolicy,
 ) -> crate::Result<bool> {
@@ -74,7 +75,7 @@ pub fn compress_files(
             io::copy(&mut reader, &mut writer)?;
         }
         Tar => {
-            archive::tar::build_archive_from_paths(&files, output_path, &mut writer, file_visibility_policy)?;
+            archive::tar::build_archive_from_paths(&files, output_path, &mut writer, file_visibility_policy, quiet)?;
             writer.flush()?;
         }
         Zip => {
@@ -88,7 +89,13 @@ pub fn compress_files(
 
             let mut vec_buffer = Cursor::new(vec![]);
 
-            archive::zip::build_archive_from_paths(&files, output_path, &mut vec_buffer, file_visibility_policy)?;
+            archive::zip::build_archive_from_paths(
+                &files,
+                output_path,
+                &mut vec_buffer,
+                file_visibility_policy,
+                quiet,
+            )?;
             vec_buffer.rewind()?;
             io::copy(&mut vec_buffer, &mut writer)?;
         }

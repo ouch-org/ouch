@@ -30,6 +30,7 @@ pub fn decompress_file(
     output_dir: &Path,
     output_file_path: PathBuf,
     question_policy: QuestionPolicy,
+    quiet: bool,
 ) -> crate::Result<()> {
     assert!(output_dir.exists());
     let reader = fs::File::open(input_file_path)?;
@@ -48,7 +49,7 @@ pub fn decompress_file(
     {
         let zip_archive = zip::ZipArchive::new(reader)?;
         let files = if let ControlFlow::Continue(files) = smart_unpack(
-            |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir),
+            |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, quiet),
             output_dir,
             &output_file_path,
             question_policy,
@@ -111,7 +112,7 @@ pub fn decompress_file(
         }
         Tar => {
             if let ControlFlow::Continue(files) = smart_unpack(
-                |output_dir| crate::archive::tar::unpack_archive(reader, output_dir),
+                |output_dir| crate::archive::tar::unpack_archive(reader, output_dir, quiet),
                 output_dir,
                 &output_file_path,
                 question_policy,
@@ -135,7 +136,7 @@ pub fn decompress_file(
             let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
 
             if let ControlFlow::Continue(files) = smart_unpack(
-                |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir),
+                |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, quiet),
                 output_dir,
                 &output_file_path,
                 question_policy,

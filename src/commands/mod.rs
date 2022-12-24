@@ -164,6 +164,7 @@ pub fn run(
                 formats,
                 output_file,
                 &output_path,
+                args.quiet,
                 question_policy,
                 file_visibility_policy,
             );
@@ -244,7 +245,14 @@ pub fn run(
 
             for ((input_path, formats), file_name) in files.iter().zip(formats).zip(output_paths) {
                 let output_file_path = output_dir.join(file_name); // Path used by single file format archives
-                decompress_file(input_path, formats, &output_dir, output_file_path, question_policy)?;
+                decompress_file(
+                    input_path,
+                    formats,
+                    &output_dir,
+                    output_file_path,
+                    question_policy,
+                    args.quiet,
+                )?;
             }
         }
         Subcommand::List { archives: files, tree } => {

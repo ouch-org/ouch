@@ -22,7 +22,7 @@ use crate::{
 
 /// Unpacks the archive given by `archive` into the folder given by `into`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path) -> crate::Result<Vec<PathBuf>> {
+pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) -> crate::Result<Vec<PathBuf>> {
     assert!(output_folder.read_dir().expect("dir exists").count() == 0);
     let mut archive = tar::Archive::new(reader);
 
@@ -37,15 +37,16 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path) -> crate::Res
         // importance for most users, but would generate lots of
         // spoken text for users using screen readers, braille displays
         // and so on
+        if !quiet {
+            info!(
+                inaccessible,
+                "{:?} extracted. ({})",
+                utils::strip_cur_dir(&output_folder.join(file.path()?)),
+                format_size(file.size(), DECIMAL),
+            );
 
-        info!(
-            inaccessible,
-            "{:?} extracted. ({})",
-            utils::strip_cur_dir(&output_folder.join(file.path()?)),
-            format_size(file.size(), DECIMAL),
-        );
-
-        files_unpacked.push(file_path);
+            files_unpacked.push(file_path);
+        }
     }
 
     Ok(files_unpacked)
@@ -86,6 +87,7 @@ pub fn build_archive_from_paths<W>(
     output_path: &Path,
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
+    quiet: bool,
 ) -> crate::Result<W>
 where
     W: Write,
@@ -118,7 +120,9 @@ where
             // little importance for most users, but would generate lots of
             // spoken text for users using screen readers, braille displays
             // and so on
-            info!(inaccessible, "Compressing '{}'.", utils::to_utf(path));
+            if !quiet {
+                info!(inaccessible, "Compressing '{}'.", utils::to_utf(path));
+            }
 
             if path.is_dir() {
                 builder.append_dir(path, path)?;
