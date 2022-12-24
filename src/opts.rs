@@ -26,15 +26,15 @@ pub struct Opts {
     pub accessible: bool,
 
     /// Ignores hidden files
-    #[arg(short = 'H', long)]
+    #[arg(short = 'H', long, global = true)]
     pub hidden: bool,
 
     /// Silences output
-    #[arg(short = 'q', long)]
+    #[arg(short = 'q', long, global = true)]
     pub quiet: bool,
 
     /// Ignores files matched by git's ignore files
-    #[arg(short = 'g', long)]
+    #[arg(short = 'g', long, global = true)]
     pub gitignore: bool,
 
     /// Ouch and claps subcommands
