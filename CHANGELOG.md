@@ -27,6 +27,7 @@ Categories Used:
 ### Improvements
 
 - Allow ouch to decompress archive into existing folder [\#321](https://github.com/ouch-org/ouch/pull/321) ([a-moreira](https://github.com/a-moreira))
+- Accept inserting subcommand-independent flags in any position [\#329](https://github.com/ouch-org/ouch/pull/329) ([marcospb19](https://github.com/marcospb19))
 
 ## [0.4.0](https://github.com/ouch-org/ouch/compare/0.3.1...0.4.0) (2022-11-20)
 
