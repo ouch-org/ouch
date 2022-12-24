@@ -20,6 +20,10 @@ Categories Used:
 
 ## [Unreleased](https://github.com/ouch-org/ouch/compare/0.4.0...HEAD)
 
+### New Features
+
+- Add cli option to (de)compress quietly [\#325](https://github.com/ouch-org/ouch/pull/325) ([a-moreira](https://github.com/a-moreira))
+
 ### Improvements
 
 - Allow ouch to decompress archive into existing folder [\#321](https://github.com/ouch-org/ouch/pull/321) ([a-moreira](https://github.com/a-moreira))
