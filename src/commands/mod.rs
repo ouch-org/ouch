@@ -259,7 +259,7 @@ pub fn run(
             let mut formats = vec![];
 
             for path in files.iter() {
-                let (_, file_formats) = extension::separate_known_extensions_from_name(path);
+                let file_formats = extension::extensions_from_path(path);
                 formats.push(file_formats);
             }
 

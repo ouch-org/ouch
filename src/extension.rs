@@ -1,6 +1,8 @@
 //! Our representation of all the supported compression formats.
 
-use std::{ffi::OsStr, fmt, path::Path};
+use std::{fmt, path::Path};
+
+use bstr::ByteSlice;
 
 use self::CompressionFormat::*;
 use crate::warning;
@@ -104,54 +106,61 @@ pub const SUPPORTED_EXTENSIONS: &[&str] = &[
     "zst",
 ];
 
+pub fn to_extension(ext: &[u8]) -> Option<Extension> {
+    Some(Extension::new(
+        match ext {
+            b"tar" => &[Tar],
+            b"tgz" => &[Tar, Gzip],
+            b"tbz" | b"tbz2" => &[Tar, Bzip],
+            b"tlz4" => &[Tar, Lz4],
+            b"txz" | b"tlzma" => &[Tar, Lzma],
+            b"tsz" => &[Tar, Snappy],
+            b"tzst" => &[Tar, Zstd],
+            b"zip" => &[Zip],
+            b"bz" | b"bz2" => &[Bzip],
+            b"gz" => &[Gzip],
+            b"lz4" => &[Lz4],
+            b"xz" | b"lzma" => &[Lzma],
+            b"sz" => &[Snappy],
+            b"zst" => &[Zstd],
+            _ => return None,
+        },
+        ext.to_str_lossy(),
+    ))
+}
+
+pub fn split_extension<'a>(name: &mut &'a [u8]) -> Option<&'a [u8]> {
+    let (new_name, ext) = name.rsplit_once_str(b".")?;
+    if matches!(new_name, b"" | b"." | b"..") {
+        return None;
+    }
+    *name = new_name;
+    Some(ext)
+}
+
 /// Extracts extensions from a path.
 ///
 /// Returns both the remaining path and the list of extension objects
-pub fn separate_known_extensions_from_name(mut path: &Path) -> (&Path, Vec<Extension>) {
+pub fn separate_known_extensions_from_name(path: &Path) -> (&Path, Vec<Extension>) {
     let mut extensions = vec![];
 
-    if let Some(file_stem) = path.file_stem().and_then(OsStr::to_str) {
-        let file_stem = file_stem.trim_matches('.');
+    let Some(mut name) = path.file_name().and_then(<[u8] as ByteSlice>::from_os_str) else {
+        return (path, extensions);
+    };
 
+    // While there is known extensions at the tail, grab them
+    while let Some(extension) = split_extension(&mut name).and_then(to_extension) {
+        extensions.insert(0, extension);
+    }
+
+    if let Ok(name) = name.to_str() {
+        let file_stem = name.trim_matches('.');
         if SUPPORTED_EXTENSIONS.contains(&file_stem) {
             warning!("Received a file with name '{file_stem}', but {file_stem} was expected as the extension.");
         }
     }
 
-    // While there is known extensions at the tail, grab them
-    while let Some(extension) = path.extension().and_then(OsStr::to_str) {
-        let formats: &[CompressionFormat] = match extension {
-            "tar" => &[Tar],
-            "tgz" => &[Tar, Gzip],
-            "tbz" | "tbz2" => &[Tar, Bzip],
-            "tlz4" => &[Tar, Lz4],
-            "txz" | "tlzma" => &[Tar, Lzma],
-            "tsz" => &[Tar, Snappy],
-            "tzst" => &[Tar, Zstd],
-            "zip" => &[Zip],
-            "bz" | "bz2" => &[Bzip],
-            "gz" => &[Gzip],
-            "lz4" => &[Lz4],
-            "xz" | "lzma" => &[Lzma],
-            "sz" => &[Snappy],
-            "zst" => &[Zstd],
-            _ => break,
-        };
-
-        let extension = Extension::new(formats, extension);
-        extensions.push(extension);
-
-        // Update for the next iteration
-        path = if let Some(stem) = path.file_stem() {
-            Path::new(stem)
-        } else {
-            Path::new("")
-        };
-    }
-    // Put the extensions in the correct order: left to right
-    extensions.reverse();
-
-    (path, extensions)
+    (name.to_path().unwrap(), extensions)
 }
 
 /// Extracts extensions from a path, return only the list of extension objects

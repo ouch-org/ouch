@@ -560,6 +560,7 @@ version = "0.4.0"
 dependencies = [
  "assert_cmd",
  "atty",
+ "bstr 1.1.0",
  "bzip2",
  "clap",
  "clap_complete",
