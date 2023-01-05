@@ -29,13 +29,13 @@ use crate::{
 
 /// Unpacks the archive given by `archive` into the folder given by `output_folder`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive<R>(mut archive: ZipArchive<R>, output_folder: &Path, quiet: bool) -> crate::Result<Vec<PathBuf>>
+pub fn unpack_archive<R>(mut archive: ZipArchive<R>, output_folder: &Path, quiet: bool) -> crate::Result<usize>
 where
     R: Read + Seek,
 {
     assert!(output_folder.read_dir().expect("dir exists").count() == 0);
 
-    let mut unpacked_files = Vec::with_capacity(archive.len());
+    let mut unpacked_files = 0;
 
     for idx in 0..archive.len() {
         let mut file = archive.by_index(idx)?;
@@ -87,7 +87,7 @@ where
         #[cfg(unix)]
         unix_set_permissions(&file_path, &file)?;
 
-        unpacked_files.push(file_path);
+        unpacked_files += 1;
     }
 
     Ok(unpacked_files)

@@ -22,15 +22,14 @@ use crate::{
 
 /// Unpacks the archive given by `archive` into the folder given by `into`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) -> crate::Result<Vec<PathBuf>> {
+pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) -> crate::Result<usize> {
     assert!(output_folder.read_dir().expect("dir exists").count() == 0);
     let mut archive = tar::Archive::new(reader);
 
-    let mut files_unpacked = vec![];
+    let mut files_unpacked = 0;
     for file in archive.entries()? {
         let mut file = file?;
 
-        let file_path = output_folder.join(file.path()?);
         file.unpack_in(output_folder)?;
 
         // This is printed for every file in the archive and has little
@@ -45,7 +44,7 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) 
                 file.size().bytes(),
             );
 
-            files_unpacked.push(file_path);
+            files_unpacked += 1;
         }
     }
 
