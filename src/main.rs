@@ -31,7 +31,7 @@ pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;
 
 fn main() {
     if let Err(err) = run() {
-        eprintln!("{}", err);
+        eprintln!("{err}");
         std::process::exit(EXIT_FAILURE);
     }
 }

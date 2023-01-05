@@ -76,7 +76,7 @@ impl Display for FinalError {
             if is_running_in_accessible_mode() {
                 write!(f, "\n{}hints:{}", *GREEN, *RESET)?;
                 for hint in &self.hints {
-                    write!(f, "\n{}", hint)?;
+                    write!(f, "\n{hint}")?;
                 }
             } else {
                 for hint in &self.hints {
@@ -138,7 +138,7 @@ impl fmt::Display for Error {
             Error::Custom { reason } => reason.clone(),
         };
 
-        write!(f, "{}", err)
+        write!(f, "{err}")
     }
 }
 

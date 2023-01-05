@@ -140,7 +140,7 @@ where
                 builder.append_file(path, file.file_mut()).map_err(|err| {
                     FinalError::with_title("Could not create archive")
                         .detail("Unexpected error while trying to read file")
-                        .detail(format!("Error: {}.", err))
+                        .detail(format!("Error: {err}."))
                 })?;
             }
         }
