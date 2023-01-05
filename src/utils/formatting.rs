@@ -20,7 +20,7 @@ impl Display for EscapedPathDisplay<'_> {
 
         let bstr = bstr::BStr::new(self.path.as_os_str().as_bytes());
 
-        write!(f, "{}", bstr)
+        write!(f, "{bstr}")
     }
 }
 
@@ -47,7 +47,7 @@ impl Display for EscapedPathDisplay<'_> {
 /// See <https://gist.github.com/marcospb19/ebce5572be26397cf08bbd0fd3b65ac1> for a comparison.
 pub fn to_utf(os_str: &Path) -> Cow<str> {
     let format = || {
-        let text = format!("{:?}", os_str);
+        let text = format!("{os_str:?}");
         Cow::Owned(text.trim_matches('"').to_string())
     };
 

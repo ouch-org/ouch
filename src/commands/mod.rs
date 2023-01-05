@@ -146,7 +146,7 @@ pub fn run(
                     "You are trying to compress a folder."
                 };
 
-                let error = FinalError::with_title(format!("Cannot compress to '{}'.", output_path))
+                let error = FinalError::with_title(format!("Cannot compress to '{output_path}'."))
                     .detail(first_detail_message)
                     .detail(format!(
                         "The compression format '{}' does not accept multiple files.",
@@ -154,8 +154,8 @@ pub fn run(
                     ))
                     .detail("Formats that bundle files into an archive are .tar and .zip.")
                     .hint(format!("Try inserting '.tar' or '.zip' before '{}'.", &formats[0]))
-                    .hint(format!("From: {}", output_path))
-                    .hint(format!("To:   {}", suggested_output_path));
+                    .hint(format!("From: {output_path}"))
+                    .hint(format!("To:   {suggested_output_path}"));
 
                 return Err(error.into());
             }
@@ -165,14 +165,12 @@ pub fn run(
                     "Cannot compress to '{}'.",
                     EscapedPathDisplay::new(&output_path)
                 ))
-                .detail(format!("Found the format '{}' in an incorrect position.", format))
+                .detail(format!("Found the format '{format}' in an incorrect position."))
                 .detail(format!(
-                    "'{}' can only be used at the start of the file extension.",
-                    format
+                    "'{format}' can only be used at the start of the file extension."
                 ))
                 .hint(format!(
-                    "If you wish to compress multiple files, start the extension with '{}'.",
-                    format
+                    "If you wish to compress multiple files, start the extension with '{format}'."
                 ))
                 .hint(format!(
                     "Otherwise, remove the last '{}' from '{}'.",

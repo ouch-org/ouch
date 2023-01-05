@@ -86,7 +86,7 @@ pub fn user_wants_to_continue(
             let path = to_utf(strip_cur_dir(path));
             let path = Some(&*path);
             let placeholder = Some("FILE");
-            Confirmation::new(&format!("Do you want to {} 'FILE'?", action), placeholder).ask(path)
+            Confirmation::new(&format!("Do you want to {action} 'FILE'?"), placeholder).ask(path)
         }
     }
 }
