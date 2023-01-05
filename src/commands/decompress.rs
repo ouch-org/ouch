@@ -48,7 +48,7 @@ pub fn decompress_file(
     }] = formats.as_slice()
     {
         let zip_archive = zip::ZipArchive::new(reader)?;
-        let files = if let ControlFlow::Continue(files) = smart_unpack(
+        let files_unpacked = if let ControlFlow::Continue(files) = smart_unpack(
             |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, quiet),
             output_dir,
             &output_file_path,
@@ -67,7 +67,7 @@ pub fn decompress_file(
             accessible,
             "Successfully decompressed archive in {} ({} files).",
             nice_directory_display(output_dir),
-            files.len()
+            files_unpacked
         );
 
         return Ok(());
@@ -108,7 +108,7 @@ pub fn decompress_file(
 
             io::copy(&mut reader, &mut writer)?;
 
-            vec![output_file_path]
+            1
         }
         Tar => {
             if let ControlFlow::Continue(files) = smart_unpack(
@@ -157,7 +157,7 @@ pub fn decompress_file(
         "Successfully decompressed archive in {}.",
         nice_directory_display(output_dir)
     );
-    info!(accessible, "Files unpacked: {}", files_unpacked.len());
+    info!(accessible, "Files unpacked: {}", files_unpacked);
 
     Ok(())
 }
@@ -168,11 +168,11 @@ pub fn decompress_file(
 ///   output_dir named after the archive (given by `output_file_path`)
 /// Note: This functions assumes that `output_dir` exists
 fn smart_unpack(
-    unpack_fn: impl FnOnce(&Path) -> crate::Result<Vec<PathBuf>>,
+    unpack_fn: impl FnOnce(&Path) -> crate::Result<usize>,
     output_dir: &Path,
     output_file_path: &Path,
     question_policy: QuestionPolicy,
-) -> crate::Result<ControlFlow<(), Vec<PathBuf>>> {
+) -> crate::Result<ControlFlow<(), usize>> {
     assert!(output_dir.exists());
     let temp_dir = tempfile::tempdir_in(output_dir)?;
     let temp_dir_path = temp_dir.path();
