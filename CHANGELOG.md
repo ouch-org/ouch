@@ -29,6 +29,19 @@ Categories Used:
 - Allow ouch to decompress archive into existing folder [\#321](https://github.com/ouch-org/ouch/pull/321) ([a-moreira](https://github.com/a-moreira))
 - Accept inserting subcommand-independent flags in any position [\#329](https://github.com/ouch-org/ouch/pull/329) ([marcospb19](https://github.com/marcospb19))
 - Improve extension parsing logic [\#330](https://github.com/ouch-org/ouch/pull/330) ([figsoda](https://github.com/figsoda))
+- Slight refactor when ensuring archive-only inputs [\#331](https://github.com/ouch-org/ouch/pull/331) ([vrmiguel](https://github.com/vrmiguel))
+- Use BStr to display possibly non-UTF8 byte sequences[\#332](https://github.com/ouch-org/ouch/pull/332) ([vrmiguel](https://github.com/vrmiguel))
+- Use ubyte instead of humansize #333  [\#333](https://github.com/ouch-org/ouch/pull/333) ([vrmiguel](https://github.com/vrmiguel))
+- Stop keeping track of the names of unpacked files  [\#334](https://github.com/ouch-org/ouch/pull/334) ([vrmiguel](https://github.com/vrmiguel))
+- Clean up [\#335](https://github.com/ouch-org/ouch/pull/335) ([figsoda](https://github.com/figsoda))
+
+### Bug fixes
+
+- Stop incorrectly asking to remove the parent dir [\#321](https://github.com/ouch-org/ouch/pull/321) ([a-moreira](https://github.com/a-moreira))
+
+### Tweaks
+
+- Add scoop install instructions to readme [\#323](https://github.com/ouch-org/ouch/pull/323) ([rasa](https://github.com/rasa))
 
 ## [0.4.0](https://github.com/ouch-org/ouch/compare/0.3.1...0.4.0) (2022-11-20)
 
