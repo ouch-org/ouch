@@ -18,7 +18,7 @@ use crate::{
     info,
     list::ListOptions,
     utils::{
-        self, pretty_format_list_of_paths, to_utf, try_infer_extension, user_wants_to_continue, EscapedUtf8Display,
+        self, pretty_format_list_of_paths, to_utf, try_infer_extension, user_wants_to_continue, EscapedPathDisplay,
         FileVisibilityPolicy,
     },
     warning, Opts, QuestionAction, QuestionPolicy, Subcommand,
@@ -116,7 +116,7 @@ pub fn run(
             let formats = extension::extensions_from_path(&output_path);
 
             let first_format = formats.first().ok_or_else(|| {
-                let output_path = EscapedUtf8Display::new(&output_path);
+                let output_path = EscapedPathDisplay::new(&output_path);
                 FinalError::with_title(format!("Cannot compress to '{output_path}'."))
                     .detail("You shall supply the compression format")
                     .hint("Try adding supported extensions (see --help):")
@@ -139,7 +139,7 @@ pub fn run(
                 // To          file.tar.bz.xz
                 let suggested_output_path = build_archive_file_suggestion(&output_path, ".tar")
                     .expect("output path should contain a compression format");
-                let output_path = EscapedUtf8Display::new(&output_path);
+                let output_path = EscapedPathDisplay::new(&output_path);
                 let first_detail_message = if is_multiple_inputs {
                     "You are trying to compress multiple files."
                 } else {
@@ -163,7 +163,7 @@ pub fn run(
             if let Some(format) = formats.iter().skip(1).find(|format| format.is_archive()) {
                 let error = FinalError::with_title(format!(
                     "Cannot compress to '{}'.",
-                    EscapedUtf8Display::new(&output_path)
+                    EscapedPathDisplay::new(&output_path)
                 ))
                 .detail(format!("Found the format '{}' in an incorrect position.", format))
                 .detail(format!(
@@ -177,7 +177,7 @@ pub fn run(
                 .hint(format!(
                     "Otherwise, remove the last '{}' from '{}'.",
                     format,
-                    EscapedUtf8Display::new(&output_path)
+                    EscapedPathDisplay::new(&output_path)
                 ));
 
                 return Err(error.into());
@@ -213,7 +213,7 @@ pub fn run(
                     eprintln!("{red}FATAL ERROR:\n", red = *colors::RED);
                     eprintln!(
                         "  Ouch failed to delete the file '{}'.",
-                        EscapedUtf8Display::new(&output_path)
+                        EscapedPathDisplay::new(&output_path)
                     );
                     eprintln!("  Please delete it manually.");
                     eprintln!("  This file is corrupted if compression didn't finished.");

@@ -1,27 +1,42 @@
 use std::{borrow::Cow, fmt::Display, path::Path};
 
-use bstr::BStr;
-
 use crate::CURRENT_DIRECTORY;
 
 /// Converts invalid UTF-8 bytes to the Unicode replacement codepoint (�) in its Display implementation.
-pub struct EscapedUtf8Display<'a> {
-    bstr: &'a BStr,
+pub struct EscapedPathDisplay<'a> {
+    path: &'a Path,
 }
 
-impl<'a> EscapedUtf8Display<'a> {
+impl<'a> EscapedPathDisplay<'a> {
     pub fn new(path: &'a Path) -> Self {
-        use std::os::unix::prelude::OsStrExt;
-
-        let bytes = path.as_os_str().as_bytes();
-
-        Self { bstr: BStr::new(bytes) }
+        Self { path }
     }
 }
 
-impl Display for EscapedUtf8Display<'_> {
+#[cfg(unix)]
+impl Display for EscapedPathDisplay<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.bstr)
+        use std::os::unix::prelude::OsStrExt;
+
+        let bstr = bstr::BStr::new(self.path.as_os_str().as_bytes());
+
+        write!(f, "{}", bstr)
+    }
+}
+
+#[cfg(windows)]
+impl Display for EscapedPathDisplay<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use std::{char, fmt::Write, os::windows::prelude::OsStrExt};
+
+        let utf16 = self.path.as_os_str().encode_wide();
+        let chars = char::decode_utf16(utf16).map(|decoded| decoded.unwrap_or(char::REPLACEMENT_CHARACTER));
+
+        for char in chars {
+            f.write_char(char)?;
+        }
+
+        Ok(())
     }
 }
 
