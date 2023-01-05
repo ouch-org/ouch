@@ -67,6 +67,31 @@ fn build_archive_file_suggestion(path: &Path, suggested_extension: &str) -> Opti
     None
 }
 
+/// In the context of listing archives, this function checks if `ouch` was told to list
+/// the contents of a compressed file that is not an archive
+fn check_for_non_archive_formats(files: &[PathBuf], formats: &[Vec<Extension>]) -> crate::Result<()> {
+    let mut not_archives = files
+        .iter()
+        .zip(formats)
+        .filter(|(_, formats)| !formats.first().map(Extension::is_archive).unwrap_or(false))
+        .map(|(path, _)| path)
+        .peekable();
+
+    if not_archives.peek().is_some() {
+        let not_archives: Vec<_> = not_archives.collect();
+        let error = FinalError::with_title("Cannot list archive contents")
+            .detail("Only archives can have their contents listed")
+            .detail(format!(
+                "Files are not archives: {}",
+                pretty_format_list_of_paths(&not_archives)
+            ));
+
+        return Err(error.into());
+    }
+
+    Ok(())
+}
+
 /// This function checks what command needs to be run and performs A LOT of ahead-of-time checks
 /// to assume everything is OK.
 ///
@@ -267,23 +292,8 @@ pub fn run(
                 return Ok(());
             }
 
-            let not_archives: Vec<PathBuf> = files
-                .iter()
-                .zip(&formats)
-                .filter(|(_, formats)| !formats.first().map(Extension::is_archive).unwrap_or(false))
-                .map(|(path, _)| path.clone())
-                .collect();
-
-            if !not_archives.is_empty() {
-                let error = FinalError::with_title("Cannot list archive contents")
-                    .detail("Only archives can have their contents listed")
-                    .detail(format!(
-                        "Files are not archives: {}",
-                        pretty_format_list_of_paths(&not_archives)
-                    ));
-
-                return Err(error.into());
-            }
+            // Ensure we were not told to list the content of a non-archive compressed file
+            check_for_non_archive_formats(&files, &formats)?;
 
             let list_options = ListOptions { tree };
 
