@@ -12,8 +12,8 @@ use std::{
 
 use filetime::{set_file_mtime, FileTime};
 use fs_err as fs;
-use humansize::{format_size, DECIMAL};
 use same_file::Handle;
+use ubyte::ToByteUnit;
 use zip::{self, read::ZipFile, DateTime, ZipArchive};
 
 use crate::{
@@ -73,7 +73,7 @@ where
                         inaccessible,
                         "{:?} extracted. ({})",
                         file_path.display(),
-                        format_size(file.size(), DECIMAL),
+                        file.size().bytes()
                     );
                 }
 

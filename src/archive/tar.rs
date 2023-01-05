@@ -9,8 +9,8 @@ use std::{
 };
 
 use fs_err as fs;
-use humansize::{format_size, DECIMAL};
 use same_file::Handle;
+use ubyte::ToByteUnit;
 
 use crate::{
     error::FinalError,
@@ -42,7 +42,7 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) 
                 inaccessible,
                 "{:?} extracted. ({})",
                 utils::strip_cur_dir(&output_folder.join(file.path()?)),
-                format_size(file.size(), DECIMAL),
+                file.size().bytes(),
             );
 
             files_unpacked.push(file_path);
