@@ -21,8 +21,8 @@ use crate::{
     info,
     list::FileInArchive,
     utils::{
-        self, cd_into_same_dir_as, get_invalid_utf8_paths, pretty_format_list_of_paths, strip_cur_dir, to_utf,
-        FileVisibilityPolicy,
+        self, cd_into_same_dir_as, get_invalid_utf8_paths, pretty_format_list_of_paths, strip_cur_dir,
+        EscapedUtf8Display, FileVisibilityPolicy,
     },
     warning,
 };
@@ -191,7 +191,7 @@ where
             // spoken text for users using screen readers, braille displays
             // and so on
             if !quiet {
-                info!(inaccessible, "Compressing '{}'.", to_utf(path));
+                info!(inaccessible, "Compressing '{}'.", EscapedUtf8Display::new(path));
             }
 
             let metadata = match path.metadata() {

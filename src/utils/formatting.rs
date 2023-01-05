@@ -1,6 +1,29 @@
-use std::{borrow::Cow, path::Path};
+use std::{borrow::Cow, fmt::Display, path::Path};
+
+use bstr::BStr;
 
 use crate::CURRENT_DIRECTORY;
+
+/// Converts invalid UTF-8 bytes to the Unicode replacement codepoint (�) in its Display implementation.
+pub struct EscapedUtf8Display<'a> {
+    bstr: &'a BStr,
+}
+
+impl<'a> EscapedUtf8Display<'a> {
+    pub fn new(path: &'a Path) -> Self {
+        use std::os::unix::prelude::OsStrExt;
+
+        let bytes = path.as_os_str().as_bytes();
+
+        Self { bstr: BStr::new(bytes) }
+    }
+}
+
+impl Display for EscapedUtf8Display<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.bstr)
+    }
+}
 
 /// Converts an OsStr to utf8 with custom formatting.
 ///
