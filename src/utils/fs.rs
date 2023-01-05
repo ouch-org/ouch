@@ -8,8 +8,8 @@ use std::{
 
 use fs_err as fs;
 
-use super::{to_utf, user_wants_to_overwrite};
-use crate::{extension::Extension, info, QuestionPolicy};
+use super::user_wants_to_overwrite;
+use crate::{extension::Extension, info, utils::EscapedPathDisplay, QuestionPolicy};
 
 /// Remove `path` asking the user to overwrite if necessary.
 ///
@@ -41,7 +41,7 @@ pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
         fs::create_dir_all(path)?;
         // creating a directory is an important change to the file system we
         // should always inform the user about
-        info!(accessible, "directory {} created.", to_utf(path));
+        info!(accessible, "directory {} created.", EscapedPathDisplay::new(path));
     }
     Ok(())
 }
