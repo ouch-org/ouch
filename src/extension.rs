@@ -1,11 +1,11 @@
 //! Our representation of all the supported compression formats.
 
-use std::{fmt, path::Path};
+use std::{ffi::OsStr, fmt, path::Path};
 
 use bstr::ByteSlice;
 
 use self::CompressionFormat::*;
-use crate::warning;
+use crate::{error::Error, warning};
 
 /// A wrapper around `CompressionFormat` that allows combinations like `tgz`
 #[derive(Debug, Clone, Eq)]
@@ -136,6 +136,22 @@ pub fn split_extension<'a>(name: &mut &'a [u8]) -> Option<&'a [u8]> {
     }
     *name = new_name;
     Some(ext)
+}
+
+pub fn parse_format(fmt: &OsStr) -> crate::Result<Vec<Extension>> {
+    let fmt = <[u8] as ByteSlice>::from_os_str(fmt).ok_or_else(|| Error::InvalidFormat {
+        reason: "Invalid UTF-8".into(),
+    })?;
+
+    let mut extensions = Vec::new();
+    for extension in fmt.split_str(b".") {
+        let extension = to_extension(extension).ok_or_else(|| Error::InvalidFormat {
+            reason: format!("Unsupported extension: {}", extension.to_str_lossy()),
+        })?;
+        extensions.push(extension);
+    }
+
+    Ok(extensions)
 }
 
 /// Extracts extensions from a path.

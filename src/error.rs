@@ -32,6 +32,8 @@ pub enum Error {
     WalkdirError { reason: String },
     /// Custom and unique errors are reported in this variant
     Custom { reason: FinalError },
+    /// Invalid format passed to `--format`
+    InvalidFormat { reason: String },
 }
 
 /// Alias to std's Result with ouch's Error
@@ -135,6 +137,7 @@ impl fmt::Display for Error {
                 FinalError::with_title(error_title.to_string()).detail("Permission denied")
             }
             Error::UnsupportedZipArchive(reason) => FinalError::with_title("Unsupported zip archive").detail(*reason),
+            Error::InvalidFormat { reason } => FinalError::with_title("Invalid archive format").detail(reason.clone()),
             Error::Custom { reason } => reason.clone(),
         };
 
