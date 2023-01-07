@@ -1,9 +1,12 @@
 //! Some implementation helpers related to the 'list' command.
 
-use std::path::{Path, PathBuf};
+use std::{
+    io::{stdout, Write},
+    path::{Path, PathBuf},
+};
 
 use self::tree::Tree;
-use crate::accessible::is_running_in_accessible_mode;
+use crate::{accessible::is_running_in_accessible_mode, utils::EscapedPathDisplay};
 
 /// Options controlling how archive contents should be listed
 #[derive(Debug, Clone, Copy)]
@@ -29,21 +32,16 @@ pub fn list_files(
     files: impl IntoIterator<Item = crate::Result<FileInArchive>>,
     list_options: ListOptions,
 ) -> crate::Result<()> {
-    println!("Archive: {}", archive.display());
+    let out = &mut stdout().lock();
+    let _ = writeln!(out, "Archive: {}", EscapedPathDisplay::new(archive));
 
     if list_options.tree {
-        let tree: Tree = files
-            .into_iter()
-            .map(|file| {
-                let file = file?;
-                Ok(file)
-            })
-            .collect::<crate::Result<Tree>>()?;
-        tree.print();
+        let tree = files.into_iter().collect::<crate::Result<Tree>>()?;
+        tree.print(out);
     } else {
         for file in files {
             let FileInArchive { path, is_dir } = file?;
-            print_entry(path.display(), is_dir);
+            print_entry(out, EscapedPathDisplay::new(&path), is_dir);
         }
     }
     Ok(())
@@ -51,24 +49,24 @@ pub fn list_files(
 
 /// Print an entry and highlight directories, either by coloring them
 /// if that's supported or by adding a trailing /
-fn print_entry(name: impl std::fmt::Display, is_dir: bool) {
+fn print_entry(out: &mut impl Write, name: impl std::fmt::Display, is_dir: bool) {
     use crate::utils::colors::*;
 
     if is_dir {
         // if colors are deactivated, print final / to mark directories
         if BLUE.is_empty() {
-            println!("{name}/");
+            let _ = writeln!(out, "{name}/");
         // if in ACCESSIBLE mode, use colors but print final / in case colors
         // aren't read out aloud with a screen reader or aren't printed on a
         // braille reader
         } else if is_running_in_accessible_mode() {
-            println!("{}{}{}/{}", *BLUE, *STYLE_BOLD, name, *ALL_RESET);
+            let _ = writeln!(out, "{}{}{}/{}", *BLUE, *STYLE_BOLD, name, *ALL_RESET);
         } else {
-            println!("{}{}{}{}", *BLUE, *STYLE_BOLD, name, *ALL_RESET);
+            let _ = writeln!(out, "{}{}{}{}", *BLUE, *STYLE_BOLD, name, *ALL_RESET);
         }
     } else {
         // not a dir -> just print the file name
-        println!("{name}");
+        let _ = writeln!(out, "{name}");
     }
 }
 
@@ -77,11 +75,18 @@ fn print_entry(name: impl std::fmt::Display, is_dir: bool) {
 /// we have to construct the tree structure ourselves to be able to
 /// display them as a tree
 mod tree {
-    use std::{ffi::OsString, iter::FromIterator, path};
+    use std::{
+        ffi::{OsStr, OsString},
+        io::Write,
+        iter::FromIterator,
+        path,
+    };
 
+    use bstr::{ByteSlice, ByteVec};
     use linked_hash_map::LinkedHashMap;
 
     use super::FileInArchive;
+    use crate::{utils::EscapedPathDisplay, warning};
 
     /// Directory tree
     #[derive(Debug, Default)]
@@ -115,26 +120,23 @@ mod tree {
                 match &self.file {
                     None => self.file = Some(file),
                     Some(file) => {
-                        eprintln!(
-                            "[warning] multiple files with the same name in a single directory ({})",
-                            file.path.display()
-                        )
+                        warning!(
+                            "multiple files with the same name in a single directory ({})",
+                            EscapedPathDisplay::new(&file.path),
+                        );
                     }
                 }
             }
         }
 
         /// Print the file tree using Unicode line characters
-        pub fn print(&self) {
+        pub fn print(&self, out: &mut impl Write) {
             for (i, (name, subtree)) in self.children.iter().enumerate() {
-                subtree.print_(name, String::new(), i == self.children.len() - 1);
+                subtree.print_(out, name, "", i == self.children.len() - 1);
             }
         }
         /// Print the tree by traversing it recursively
-        fn print_(&self, name: &OsString, mut prefix: String, last: bool) {
-            // Convert `name` to valid unicode
-            let name = name.to_string_lossy();
-
+        fn print_(&self, out: &mut impl Write, name: &OsStr, prefix: &str, last: bool) {
             // If there are no further elements in the parent directory, add
             // "└── " to the prefix, otherwise add "├── "
             let final_part = match last {
@@ -147,17 +149,18 @@ mod tree {
                 Some(FileInArchive { is_dir, .. }) => is_dir,
                 None => true,
             };
-            super::print_entry(name, is_dir);
+            super::print_entry(out, <Vec<u8> as ByteVec>::from_os_str_lossy(name).as_bstr(), is_dir);
 
             // Construct prefix for children, adding either a line if this isn't
             // the last entry in the parent dir or empty space if it is.
+            let mut prefix = prefix.to_owned();
             prefix.push_str(match last {
                 true => draw::PREFIX_EMPTY,
                 false => draw::PREFIX_LINE,
             });
             // Recursively print all children
             for (i, (name, subtree)) in self.children.iter().enumerate() {
-                subtree.print_(name, prefix.clone(), i == self.children.len() - 1);
+                subtree.print_(out, name, &prefix, i == self.children.len() - 1);
             }
         }
     }
