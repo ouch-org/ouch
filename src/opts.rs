@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{ffi::OsString, path::PathBuf};
 
 use clap::{Parser, ValueHint};
 
@@ -36,6 +36,10 @@ pub struct Opts {
     /// Ignores files matched by git's ignore files
     #[arg(short = 'g', long, global = true)]
     pub gitignore: bool,
+
+    /// Specify the format of the archive
+    #[arg(short, long, global = true)]
+    pub format: Option<OsString>,
 
     /// Ouch and claps subcommands
     #[command(subcommand)]
