@@ -14,8 +14,9 @@ pub struct Extension {
     /// One extension like "tgz" can be made of multiple CompressionFormats ([Tar, Gz])
     pub compression_formats: &'static [CompressionFormat],
     /// The input text for this extension, like "tgz", "tar" or "xz"
-    pub display_text: String,
+    display_text: String,
 }
+
 // The display_text should be ignored when comparing extensions
 impl PartialEq for Extension {
     fn eq(&self, other: &Self) -> bool {
@@ -70,7 +71,7 @@ pub enum CompressionFormat {
 
 impl CompressionFormat {
     /// Currently supported archive formats are .tar (and aliases to it) and .zip
-    pub fn is_archive_format(&self) -> bool {
+    fn is_archive_format(&self) -> bool {
         // Keep this match like that without a wildcard `_` so we don't forget to update it
         match self {
             Tar | Zip => true,
@@ -84,29 +85,12 @@ impl CompressionFormat {
     }
 }
 
-impl fmt::Display for CompressionFormat {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let text = match self {
-            Gzip => ".gz",
-            Bzip => ".bz",
-            Zstd => ".zst",
-            Lz4 => ".lz4",
-            Lzma => ".lzma",
-            Snappy => ".sz",
-            Tar => ".tar",
-            Zip => ".zip",
-        };
-
-        write!(f, "{text}")
-    }
-}
-
 pub const SUPPORTED_EXTENSIONS: &[&str] = &[
     "tar", "tgz", "tbz", "tlz4", "txz", "tzlma", "tsz", "tzst", "zip", "bz", "bz2", "gz", "lz4", "xz", "lzma", "sz",
     "zst",
 ];
 
-pub fn to_extension(ext: &[u8]) -> Option<Extension> {
+fn to_extension(ext: &[u8]) -> Option<Extension> {
     Some(Extension::new(
         match ext {
             b"tar" => &[Tar],
@@ -129,7 +113,7 @@ pub fn to_extension(ext: &[u8]) -> Option<Extension> {
     ))
 }
 
-pub fn split_extension<'a>(name: &mut &'a [u8]) -> Option<&'a [u8]> {
+fn split_extension<'a>(name: &mut &'a [u8]) -> Option<&'a [u8]> {
     let (new_name, ext) = name.rsplit_once_str(b".")?;
     if matches!(new_name, b"" | b"." | b"..") {
         return None;
