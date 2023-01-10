@@ -39,6 +39,7 @@ def compression_test_suite(tmp_dir: TemporaryDirectory):
 		"src.tar.bz",
 		"src.tar.bz2",
 		"src.tar.lzma",
+		"src.tar.lz4",
 	]
 
     expected_mime_types = [
@@ -47,7 +48,8 @@ def compression_test_suite(tmp_dir: TemporaryDirectory):
         "application/gzip",
         "application/x-bzip2",
         "application/x-bzip2",
-        "application/x-xz"
+        "application/x-xz",
+		"application/x-lz4",
     ]
 
     for (file, expected) in zip(files, expected_mime_types):
@@ -62,7 +64,7 @@ def open_and_checksum(path: str):
 def decompression_test_suite(tmp_dir: TemporaryDirectory):
     print("Running SHA3-384-based decompression test", end='')
 
-    formats = ["zip", "tar", "tar.gz", "tar.bz", "tar.bz2", "tar.lzma"]
+    formats = ["zip", "tar", "tar.gz", "tar.bz", "tar.bz2", "tar.lzma", "tar.lz4"]
 	
     for format in formats:
         # A temporary file filled with random content
@@ -101,7 +103,7 @@ def create_temp_file(directory: TemporaryDirectory) -> str:
 
 if __name__ == "__main__":
     compile_ouch()
-    
+
     # Build a temporary directory at the project's folder
     tmp_dir = TemporaryDirectory(dir=os.path.dirname(__file__))
 
