@@ -84,23 +84,6 @@ impl CompressionFormat {
     }
 }
 
-impl fmt::Display for CompressionFormat {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let text = match self {
-            Gzip => ".gz",
-            Bzip => ".bz",
-            Zstd => ".zst",
-            Lz4 => ".lz4",
-            Lzma => ".lz",
-            Snappy => ".sz",
-            Tar => ".tar",
-            Zip => ".zip",
-        };
-
-        write!(f, "{text}")
-    }
-}
-
 pub const SUPPORTED_EXTENSIONS: &[&str] = &[
     "tar", "tgz", "tbz", "tlz4", "txz", "tzlma", "tsz", "tzst", "zip", "bz", "bz2", "gz", "lz4", "xz", "lzma", "sz",
     "zst",
