@@ -14,6 +14,11 @@ def run(command: str):
     # Will raise an Exception if running the command fails
     check_call(command.split(), stdout=DEVNULL, stderr=STDOUT)
 
+def compile_ouch():
+    print("Compiling ouch", end='')
+    run("cargo build --release")
+    print("... done")
+
 def compress(to_be_compressed: str, destination: str):
     run(f"cargo run --release -- c {to_be_compressed} {destination}")
 
@@ -95,6 +100,8 @@ def create_temp_file(directory: TemporaryDirectory) -> str:
         return f.name
 
 if __name__ == "__main__":
+    compile_ouch()
+    
     # Build a temporary directory at the project's folder
     tmp_dir = TemporaryDirectory(dir=os.path.dirname(__file__))
 
