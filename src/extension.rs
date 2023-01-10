@@ -91,7 +91,7 @@ impl fmt::Display for CompressionFormat {
             Bzip => ".bz",
             Zstd => ".zst",
             Lz4 => ".lz4",
-            Lzma => ".lz",
+            Lzma => ".lzma",
             Snappy => ".sz",
             Tar => ".tar",
             Zip => ".zip",
