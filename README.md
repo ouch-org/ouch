@@ -123,7 +123,7 @@ Formats can be chained:
 ## On Arch Linux
 
 ```bash
-yay -S ouch
+pacman -S ouch
 ```
 
 ## On Windows via Scoop
