@@ -5,6 +5,9 @@
   <a href="https://github.com/ouch/ouch-org/blob/master/LICENSE">
     <img src="https://img.shields.io/crates/l/ouch?color=6090FF&style=flat-square" alt="License">
   </a>
+  <a href="https://repology.org/project/ouch/versions">
+    <img src="https://repology.org/badge/tiny-repos/ouch.svg" alt="Repology">
+  </a>
 </p>
 
 # Ouch!
@@ -20,7 +23,7 @@ It's a CLI tool for compressing and decompressing for various formats.
 - [Benchmarks](#benchmarks)
 - [Contributing](#contributing)
 
-# Features
+## Features
 
 1. Easy to use.
 2. Fast.
@@ -29,15 +32,17 @@ It's a CLI tool for compressing and decompressing for various formats.
 5. Accessibility mode ([see more](https://github.com/ouch-org/ouch/wiki/Accessibility)).
 6. Shell completions and man pages.
 
-# Usage
+## Usage
 
 Ouch has three main subcommands:
 
-- `ouch decompress` (alias `d`)
-- `ouch compress` (alias `c`)
-- `ouch list` (alias `l`)
+| Subcommand        | Alias    | Example                                             |
+|-------------------|----------|-----------------------------------------------------|
+| `ouch compress`   | `ouch c` | `ouch compress photo.img Pictures/ pictures.tar.gz` |
+| `ouch decompress` | `ouch d` | `ouch decompress games.tar.xz Games/`               |
+| `ouch list`       | `ouch l` | `ouch l videos.zip --tree`                          |
 
-## Decompressing
+### Decompressing
 
 Use the `decompress` subcommand, `ouch` will detect the extensions automatically.
 
@@ -55,7 +60,7 @@ The `-d/--dir` flag can be used to redirect decompression results to another dir
 ouch decompress summer_vacation.zip --dir pictures
 ```
 
-## Compressing
+### Compressing
 
 Pass input files to the `compress` subcommand, add the **output file** at the end.
 
@@ -69,7 +74,7 @@ ouch compress file.txt file.txt.lz4.zst
 
 `ouch` detects the extensions of the **output file** to decide what formats to use.
 
-## Listing
+### Listing
 
 ```sh
 ouch list archive.zip
@@ -102,7 +107,7 @@ Output:
    └── main.rs
 ```
 
-# Supported formats
+## Supported formats
 
 | Format    | `.tar` | `.zip` | `.gz` | `.xz`, `.lzma` | `.bz`, `.bz2` | `.lz4` | `.sz` | `.zst` |
 |:---------:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -116,29 +121,29 @@ Formats can be chained:
 - `.tar.gz.gz.gz.gz`
 - `.tar.gz.gz.gz.gz.zst.xz.bz.lz4`
 
-# Installation
+## Installation
 
 [![Packaging status](https://repology.org/badge/vertical-allrepos/ouch.svg)](https://repology.org/project/ouch/versions)
 
-## On Arch Linux
+### On Arch Linux
 
 ```bash
 pacman -S ouch
 ```
 
-## On Windows via Scoop
+### On Windows via Scoop
 
 ```cmd
 scoop install ouch
 ```
 
-## From crates.io
+### From crates.io
 
 ```bash
 cargo install ouch
 ```
 
-## Download the latest release bundle
+### Download the latest release bundle
 
 Check the [releases page](https://github.com/ouch-org/ouch/releases).
 
@@ -146,19 +151,17 @@ Check the [releases page](https://github.com/ouch-org/ouch/releases).
 
 Check the [wiki guide on compiling](https://github.com/ouch-org/ouch/wiki/Compiling-and-installing-from-source-code).
 
-# Dependencies
+## Dependencies
 
-If you installed `ouch` using the download script, you will need no dependencies (static MUSL binary).
-
-Otherwise, you'll need these libraries installed on your system:
+If `ouch` is not statically linked, the following libraries need to be installed in your system:
 
 * [liblzma](https://www.7-zip.org/sdk.html)
 * [libbz2](https://www.sourceware.org/bzip2/)
 * [libz](https://www.zlib.net/)
 
-These are available on all mainstream _Linux_ distributions and on _macOS_.
+These are available on all mainstream Unixes and often installed by default on Linux distributions and _macOS_.
 
-# Benchmarks
+## Benchmarks
 
 Benchmark results are available [here](benchmarks/results.md).
 Performance of compressing and decompressing
@@ -176,7 +179,7 @@ Versions used:
 - [`unzip`][infozip] _6.00_
 - [`zip`][infozip] _3.0_
 
-# Contributing
+## Contributing
 
 `ouch` is made out of voluntary work, contributors are very welcome! No contribution is too small and all contributions are valued.
 
