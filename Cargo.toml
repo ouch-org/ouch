@@ -14,11 +14,11 @@ description = "A command-line utility for easily compressing and decompressing f
 atty = "0.2.14"
 bstr = { version = "1.1.0", default-features = false, features = ["std"] }
 bzip2 = "0.4.4"
-clap = { version = "4.0.32", features = ["derive", "env"] }
+clap = { version = "4.1.4", features = ["derive", "env"] }
 filetime = "0.2.19"
 flate2 = { version = "1.0.25", default-features = false }
 fs-err = "2.9.0"
-ignore = "0.4.18"
+ignore = "0.4.20"
 libc = "0.2.139"
 linked-hash-map = "0.5.6"
 lzzzz = "1.0.4"
@@ -31,7 +31,7 @@ tempfile = "3.3.0"
 ubyte = { version = "0.10.3", default-features = false }
 xz2 = "0.1.7"
 zip = { version = "0.6.3", default-features = false, features = ["time"] }
-zstd = { version = "0.12.1", default-features = false }
+zstd = { version = "0.12.2", default-features = false }
 # zstd-sys > 2.0.1 unconditionally enables thin LTO and causes CI to fail
 # https://github.com/gyscos/zstd-rs/pull/155
 zstd-sys = "=2.0.1"
@@ -43,17 +43,17 @@ time = { version = "0.3.17", default-features = false }
 is_executable = "1.0.1"
 
 [build-dependencies]
-clap = { version = "4.0.32", features = ["derive", "env", "string"] }
-clap_complete = "4.0.7"
-clap_mangen = "0.2.6"
+clap = { version = "4.1.4", features = ["derive", "env", "string"] }
+clap_complete = "4.1.1"
+clap_mangen = "0.2.7"
 
 [dev-dependencies]
-assert_cmd = "2.0.7"
+assert_cmd = "2.0.8"
 infer = "0.12.0"
 parse-display = "0.8.0"
 proptest = "1.0.0"
 rand = { version = "0.8.5", default-features = false, features = ["small_rng", "std"] }
-test-strategy = "0.2.1"
+test-strategy = "0.3.0"
 
 [features]
 default = ["flate2/zlib", "zip/deflate-zlib", "zstd/thin"]
