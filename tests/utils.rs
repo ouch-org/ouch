@@ -80,7 +80,7 @@ pub fn assert_same_directory(x: impl Into<PathBuf>, y: impl Into<PathBuf>, prese
 
             (x, y) => {
                 panic!(
-                    "directories don't have the same number of entires\n  left: `{:?}`,\n right: `{:?}`",
+                    "directories don't have the same number of entries\n  left: `{:?}`,\n right: `{:?}`",
                     x.map(|x| x.path()),
                     y.map(|y| y.path()),
                 )

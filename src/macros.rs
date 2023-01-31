@@ -5,14 +5,14 @@
 /// There are essentially two different versions of the `info!()` macro:
 /// - `info!(accessible, ...)` should only be used for short, important
 ///   information which is expected to be useful for e.g. blind users whose
-///   text-to-speach systems read out every output line, which is why we
+///   text-to-speech systems read out every output line, which is why we
 ///   should reduce nonessential output to a minimum when running in
 ///   ACCESSIBLE mode
 /// - `info!(inaccessible, ...)` can be used more carelessly / for less
 ///   important information. A seeing user can easily skim through more lines
 ///   of output, so e.g. reporting every single processed file can be helpful,
 ///   while it would generate long and hard to navigate text for blind people
-///   who have to have each line of output read to them aloud, whithout to
+///   who have to have each line of output read to them aloud, without to
 ///   ability to skip some lines deemed not important like a seeing person would.
 #[macro_export]
 macro_rules! info {
