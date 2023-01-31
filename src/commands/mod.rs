@@ -366,7 +366,7 @@ fn check_mime_type(
             // File with no extension
             // Try to detect it automatically and prompt the user about it
             if let Some(detected_format) = try_infer_extension(path) {
-                // Infering the file extension can have unpredicted consequences (e.g. the user just
+                // Inferring the file extension can have unpredicted consequences (e.g. the user just
                 // mistyped, ...) which we should always inform the user about.
                 info!(
                     accessible,

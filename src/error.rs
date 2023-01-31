@@ -1,6 +1,6 @@
 //! Error types definitions.
 //!
-//! All usage errors will pass throught the Error enum, a lot of them in the Error::Custom.
+//! All usage errors will pass through the Error enum, a lot of them in the Error::Custom.
 
 use std::{
     borrow::Cow,
@@ -73,7 +73,7 @@ impl Display for FinalError {
         if !self.hints.is_empty() {
             // Separate by one blank line.
             writeln!(f)?;
-            // to reduce redundant output for text-to-speach systems, braille
+            // to reduce redundant output for text-to-speech systems, braille
             // displays and so on, only print "hints" once in ACCESSIBLE mode
             if is_running_in_accessible_mode() {
                 write!(f, "\n{}hints:{}", *GREEN, *RESET)?;
