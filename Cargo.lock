@@ -412,6 +412,7 @@ dependencies = [
  "flume",
  "libz-sys",
  "num_cpus",
+ "snap",
  "thiserror",
 ]
 

@@ -50,7 +50,7 @@ pub fn compress_files(
             Bzip => Box::new(bzip2::write::BzEncoder::new(encoder, Default::default())),
             Lz4 => Box::new(lzzzz::lz4f::WriteCompressor::new(encoder, Default::default())?),
             Lzma => Box::new(xz2::write::XzEncoder::new(encoder, 6)),
-            Snappy => Box::new(snap::write::FrameEncoder::new(encoder)),
+            Snappy => Box::new(gzp::par::compress::ParCompress::<gzp::snap::Snap>::builder().from_writer(encoder)),
             Zstd => {
                 let zstd_encoder = zstd::stream::write::Encoder::new(encoder, Default::default());
                 // Safety:
