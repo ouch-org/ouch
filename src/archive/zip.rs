@@ -219,10 +219,16 @@ where
                     options
                 };
 
-                let mut file = fs::File::open(entry.path())?;
+                let mut file = fs::File::open(path)?;
+                let large = file.metadata().map_or(
+                    true,
+                    |metadata| metadata.len() > 0xffffffff, // 4 GB
+                );
                 writer.start_file(
                     path.to_str().unwrap(),
-                    options.last_modified_time(get_last_modified_time(&file)),
+                    options
+                        .large_file(large)
+                        .last_modified_time(get_last_modified_time(&file)),
                 )?;
                 io::copy(&mut file, &mut writer)?;
             }
