@@ -714,7 +714,6 @@ dependencies = [
  "xz2",
  "zip",
  "zstd",
- "zstd-sys",
 ]
 
 [[package]]
