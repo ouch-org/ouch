@@ -8,11 +8,7 @@ use fs_err as fs;
 use crate::{
     archive,
     commands::warn_user_about_loading_zip_in_memory,
-    extension::{
-        split_first_compression_format,
-        CompressionFormat::{self, *},
-        Extension,
-    },
+    extension::{split_first_compression_format, CompressionFormat::*, Extension},
     utils::{user_wants_to_continue, FileVisibilityPolicy},
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
@@ -39,12 +35,18 @@ pub fn compress_files(
     // If the input files contain a directory, then the total size will be underestimated
     let file_writer = BufWriter::with_capacity(BUFFER_CAPACITY, output_file);
 
-    let mut writer: Box<dyn Write> = Box::new(file_writer);
+    let mut writer: Box<dyn Send + Write> = Box::new(file_writer);
 
     // Grab previous encoder and wrap it inside of a new one
-    let chain_writer_encoder = |format: &CompressionFormat, encoder: Box<dyn Write>| -> crate::Result<Box<dyn Write>> {
-        let encoder: Box<dyn Write> = match format {
-            Gzip => Box::new(flate2::write::GzEncoder::new(encoder, Default::default())),
+    let chain_writer_encoder = |format: &_, encoder| -> crate::Result<_> {
+        let encoder: Box<dyn Send + Write> = match format {
+            Gzip => Box::new(
+                // by default, ParCompress uses a default compression level of 3
+                // instead of the regular default that flate2 uses
+                gzp::par::compress::ParCompress::<gzp::deflate::Gzip>::builder()
+                    .compression_level(Default::default())
+                    .from_writer(encoder),
+            ),
             Bzip => Box::new(bzip2::write::BzEncoder::new(encoder, Default::default())),
             Lz4 => Box::new(lzzzz::lz4f::WriteCompressor::new(encoder, Default::default())?),
             Lzma => Box::new(xz2::write::XzEncoder::new(encoder, 6)),
