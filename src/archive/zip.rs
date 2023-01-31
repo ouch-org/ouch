@@ -145,7 +145,9 @@ where
     W: Write + Seek,
 {
     let mut writer = zip::ZipWriter::new(writer);
-    let options = zip::write::FileOptions::default();
+    // always use ZIP64 to allow compression of files larger than 4GB
+    // the format is widely supported and the extra 20B is negligible in most cases
+    let options = zip::write::FileOptions::default().large_file(true);
     let output_handle = Handle::from_path(output_path);
 
     #[cfg(not(unix))]
@@ -219,7 +221,7 @@ where
                     options
                 };
 
-                let mut file = fs::File::open(entry.path())?;
+                let mut file = fs::File::open(path)?;
                 writer.start_file(
                     path.to_str().unwrap(),
                     options.last_modified_time(get_last_modified_time(&file)),
