@@ -24,6 +24,10 @@ Categories Used:
 
 - Multi-threaded compression for gzip and snappy using gzp [\#348](https://github.com/ouch-org/ouch/pull/348) ([figsoda](https://github.com/figsoda))
 
+### Bug Fixes
+
+- Fix decompression of zip archives with files larger than 4GB [\#354](https://github.com/ouch-org/ouch/pull/354) ([figsoda](https://github.com/figsoda))
+
 ## [0.4.1](https://github.com/ouch-org/ouch/compare/0.4.0...0.4.1)
 
 ### New Features
