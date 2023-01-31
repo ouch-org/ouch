@@ -113,11 +113,12 @@ fn to_extension(ext: &[u8]) -> Option<Extension> {
     ))
 }
 
-fn split_extension<'a>(name: &mut &'a [u8]) -> Option<&'a [u8]> {
+fn split_extension(name: &mut &[u8]) -> Option<Extension> {
     let (new_name, ext) = name.rsplit_once_str(b".")?;
     if matches!(new_name, b"" | b"." | b"..") {
         return None;
     }
+    let ext = to_extension(ext)?;
     *name = new_name;
     Some(ext)
 }
@@ -149,7 +150,7 @@ pub fn separate_known_extensions_from_name(path: &Path) -> (&Path, Vec<Extension
     };
 
     // While there is known extensions at the tail, grab them
-    while let Some(extension) = split_extension(&mut name).and_then(to_extension) {
+    while let Some(extension) = split_extension(&mut name) {
         extensions.insert(0, extension);
     }
 
