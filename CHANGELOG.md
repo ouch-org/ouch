@@ -99,7 +99,7 @@ Categories Used:
 - Optimize `strip_cur_dir` [\#167](https://github.com/ouch-org/ouch/pull/167) ([vrmiguel](https://github.com/vrmiguel))
 - Improve zip errors when paths are not utf8 valid [\#181](https://github.com/ouch-org/ouch/pull/181) ([marcospb19](https://github.com/marcospb19))
 - Simplify/optimize several file inferring functions [\#204](https://github.com/ouch-org/ouch/pull/204) ([vrmiguel](https://github.com/vrmiguel))
-- List command: print file immediatly after it is processed [\#225](https://github.com/ouch-org/ouch/pull/225) ([sigmaSd](https://github.com/sigmaSd))
+- List command: print file immediately after it is processed [\#225](https://github.com/ouch-org/ouch/pull/225) ([sigmaSd](https://github.com/sigmaSd))
 - Use `Cow<'static, str>` in `FinalError` [\#246](https://github.com/ouch-org/ouch/pull/246) ([vrmiguel](https://github.com/vrmiguel))
 - Don't allocate when possible in `to_utf`, `nice_directory_display` [\#249](https://github.com/ouch-org/ouch/pull/249) ([vrmiguel](https://github.com/vrmiguel))
 - Allow overriding the completions output directory [\#251]](https://github.com/ouch-org/ouch/pull/251) ([jcgruenhage](https://github.com/jcgruenhage))
@@ -174,14 +174,14 @@ Categories Used:
 
 - Empty folders are ignored in archive compression formats [\#41](https://github.com/ouch-org/ouch/issues/41) ([GabrielSimonetto](https://github.com/GabrielSimonetto))
 - fix macOS executable paths [\#69](https://github.com/ouch-org/ouch/pull/69) ([vrmiguel](https://github.com/vrmiguel))
-- Print the format type when the format is in an incorrent position [\#84](https://github.com/ouch-org/ouch/pull/84) ([dcariotti](https://github.com/dcariotti))
+- Print the format type when the format is in an incorrect position [\#84](https://github.com/ouch-org/ouch/pull/84) ([dcariotti](https://github.com/dcariotti))
 - Compressing a single file to a single format that's not `tar` or `zip` panics [\#87](https://github.com/ouch-org/ouch/issues/87) & [\#89](https://github.com/ouch-org/ouch/pull/89) ([marcospb19](https://github.com/marcospb19))
 - Compression flag `--output` not working with single file compression [\#90](https://github.com/ouch-org/ouch/issues/90) & [\#93](https://github.com/ouch-org/ouch/pull/93) ([figsoda](https://github.com/figsoda))
 - Fix NO_COLOR issues, remove some dead code [\#66](https://github.com/ouch-org/ouch/issues/66), [\#62](https://github.com/ouch-org/ouch/issues/62), & [\#95](https://github.com/ouch-org/ouch/pull/95) ([figsoda](https://github.com/figsoda))
 - Add proper error message when using conflicting flags \(e.g. `--yes --no`\) [\#55](https://github.com/ouch-org/ouch/issues/55) & [\#99](https://github.com/ouch-org/ouch/pull/99) ([SpyrosRoum](https://github.com/SpyrosRoum))
 - Fix wrong archive format detection patterns [\#125](https://github.com/ouch-org/ouch/pull/125) ([SpyrosRoum](https://github.com/SpyrosRoum))
 - Decompressing file without extension gives bad error message [\#137](https://github.com/ouch-org/ouch/issues/137) ([marcospb19](https://github.com/marcospb19))
-- Fix decompression overwritting files without asking and failing on directories [\#141](https://github.com/ouch-org/ouch/pull/141) ([SpyrosRoum](https://github.com/SpyrosRoum))
+- Fix decompression overwriting files without asking and failing on directories [\#141](https://github.com/ouch-org/ouch/pull/141) ([SpyrosRoum](https://github.com/SpyrosRoum))
 
 ### Improvements
 
