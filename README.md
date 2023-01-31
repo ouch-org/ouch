@@ -106,15 +106,21 @@ Output:
 
 | Format    | `.tar` | `.zip` | `.gz` | `.xz`, `.lzma` | `.bz`, `.bz2` | `.lz4` | `.sz` | `.zst` |
 |:---------:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Supported | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Supported | ✓ | ✓¹ | ✓² | ✓ | ✓ | ✓ | ✓² | ✓ |
 
-And the aliases: `tgz`, `tbz`, `tbz2`, `tlz4`, `txz`, `tlzma`, `tsz`, `tzst`.
+✓: Supports compression and decompression.
+✓¹: Due to limitations of `.zip`, it doesn't support streaming (de)compression.
+✓²: Supported, and compression runs in parallel.
+
+`tar` aliases are also supported: `tgz`, `tbz`, `tbz2`, `tlz4`, `txz`, `tlzma`, `tsz`, `tzst`.
 
 Formats can be chained:
 
-- `.tar.gz`
-- `.tar.gz.gz.gz.gz`
-- `.tar.gz.gz.gz.gz.zst.xz.bz.lz4`
+- `.zst.gz`
+- `.tar.gz.gz`
+- `.tar.gz.gz.gz.zst.xz.bz.lz4`
+
+If the filename has no extensions, `Ouch` will try to infer the format by the [file signature](https://en.wikipedia.org/wiki/List_of_file_signatures).
 
 # Installation
 
