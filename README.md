@@ -109,7 +109,9 @@ Output:
 | Supported | ✓ | ✓¹ | ✓² | ✓ | ✓ | ✓ | ✓² | ✓ |
 
 ✓: Supports compression and decompression.
+
 ✓¹: Due to limitations of `.zip`, it doesn't support streaming (de)compression.
+
 ✓²: Supported, and compression runs in parallel.
 
 `tar` aliases are also supported: `tgz`, `tbz`, `tbz2`, `tlz4`, `txz`, `tlzma`, `tsz`, `tzst`.
