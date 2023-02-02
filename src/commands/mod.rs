@@ -13,6 +13,7 @@ use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelI
 use utils::colors;
 
 use crate::{
+    cli::{CliArgs, Subcommand},
     commands::{compress::compress_files, decompress::decompress_file, list::list_archive_contents},
     error::{Error, FinalError},
     extension::{self, flatten_compression_formats, parse_format, Extension, SUPPORTED_EXTENSIONS},
@@ -22,7 +23,7 @@ use crate::{
         self, pretty_format_list_of_paths, to_utf, try_infer_extension, user_wants_to_continue, EscapedPathDisplay,
         FileVisibilityPolicy,
     },
-    warning, Opts, QuestionAction, QuestionPolicy, Subcommand,
+    warning, QuestionAction, QuestionPolicy,
 };
 
 /// Warn the user that (de)compressing this .zip archive might freeze their system.
@@ -99,7 +100,7 @@ fn check_for_non_archive_formats(files: &[PathBuf], formats: &[Vec<Extension>]) 
 ///
 /// There are a lot of custom errors to give enough error description and explanation.
 pub fn run(
-    args: Opts,
+    args: CliArgs,
     question_policy: QuestionPolicy,
     file_visibility_policy: FileVisibilityPolicy,
 ) -> crate::Result<()> {

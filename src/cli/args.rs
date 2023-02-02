@@ -12,7 +12,7 @@ use clap::{Parser, ValueHint};
 #[command(about, version)]
 // Disable rustdoc::bare_urls because rustdoc parses URLs differently than Clap
 #[allow(rustdoc::bare_urls)]
-pub struct Opts {
+pub struct CliArgs {
     /// Skip [Y/n] questions positively
     #[arg(short, long, conflicts_with = "no", global = true)]
     pub yes: bool,
