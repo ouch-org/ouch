@@ -169,6 +169,8 @@ pub fn check_first_format_when_compressing<'a>(formats: &'a [Extension], output_
 }
 
 /// Check if compression is invalid because an archive format is necessary.
+///
+/// Non-archive formats don't support multiple file compression or folder compression.
 pub fn check_invalid_compression_with_non_archive_format(
     formats: &[Extension],
     output_path: &Path,
@@ -180,46 +182,48 @@ pub fn check_invalid_compression_with_non_archive_format(
     let is_some_input_a_folder = files.iter().any(|path| path.is_dir());
     let is_multiple_inputs = files.len() > 1;
 
-    // If first format is not archive, can't compress folder, or multiple files
-    if !first_format.is_archive() && (is_some_input_a_folder || is_multiple_inputs) {
-        let first_detail_message = if is_multiple_inputs {
-            "You are trying to compress multiple files."
-        } else {
-            "You are trying to compress a folder."
-        };
-
-        let (from_hint, to_hint) = if let Some(formats) = formats_from_flag {
-            let formats = formats.to_string_lossy();
-            (
-                format!("From: --format {formats}"),
-                format!("To:   --format tar.{formats}"),
-            )
-        } else {
-            // This piece of code creates a suggestion for compressing multiple files
-            // It says:
-            // Change from file.bz.xz
-            // To          file.tar.bz.xz
-            let suggested_output_path = build_archive_file_suggestion(output_path, ".tar")
-                .expect("output path should contain a compression format");
-
-            (
-                format!("From: {}", EscapedPathDisplay::new(output_path)),
-                format!("To:   {suggested_output_path}"),
-            )
-        };
-        let output_path = EscapedPathDisplay::new(output_path);
-
-        let error = FinalError::with_title(format!("Cannot compress to '{output_path}'."))
-            .detail(first_detail_message)
-            .detail(format!(
-                "The compression format '{first_format}' does not accept multiple files.",
-            ))
-            .detail("Formats that bundle files into an archive are tar and zip.")
-            .hint(format!("Try inserting 'tar.' or 'zip.' before '{first_format}'."))
-            .hint(from_hint)
-            .hint(to_hint);
-
-        return Err(error.into());
+    // If format is archive, nothing to check
+    // If there's no folder or multiple inputs, non-archive formats can handle it
+    if first_format.is_archive() || !is_some_input_a_folder && !is_multiple_inputs {
+        return Ok(());
     }
-    Ok(())
+
+    let first_detail_message = if is_multiple_inputs {
+        "You are trying to compress multiple files."
+    } else {
+        "You are trying to compress a folder."
+    };
+
+    let (from_hint, to_hint) = if let Some(formats) = formats_from_flag {
+        let formats = formats.to_string_lossy();
+        (
+            format!("From: --format {formats}"),
+            format!("To:   --format tar.{formats}"),
+        )
+    } else {
+        // This piece of code creates a suggestion for compressing multiple files
+        // It says:
+        // Change from file.bz.xz
+        // To          file.tar.bz.xz
+        let suggested_output_path = build_archive_file_suggestion(output_path, ".tar")
+            .expect("output path should contain a compression format");
+
+        (
+            format!("From: {}", EscapedPathDisplay::new(output_path)),
+            format!("To:   {suggested_output_path}"),
+        )
+    };
+    let output_path = EscapedPathDisplay::new(output_path);
+
+    let error = FinalError::with_title(format!("Cannot compress to '{output_path}'."))
+        .detail(first_detail_message)
+        .detail(format!(
+            "The compression format '{first_format}' does not accept multiple files.",
+        ))
+        .detail("Formats that bundle files into an archive are tar and zip.")
+        .hint(format!("Try inserting 'tar.' or 'zip.' before '{first_format}'."))
+        .hint(from_hint)
+        .hint(to_hint);
+
+    Err(error.into())
 }
