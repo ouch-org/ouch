@@ -1,3 +1,7 @@
+//! Checks for errors.
+
+#![warn(missing_docs)]
+
 use std::{
     ops::ControlFlow,
     path::{Path, PathBuf},
@@ -12,6 +16,12 @@ use crate::{
     warning, QuestionAction, QuestionPolicy, Result,
 };
 
+/// Check, for each file, if the mime type matches the detected extensions.
+///
+/// In case the file doesn't has any extensions, try to infer the format.
+///
+/// TODO: maybe the name of this should be "magic numbers" or "file signature",
+/// and not MIME.
 pub fn check_mime_type(
     files: &[PathBuf],
     formats: &mut [Vec<Extension>],
@@ -87,6 +97,7 @@ pub fn check_for_non_archive_formats(files: &[PathBuf], formats: &[Vec<Extension
     Ok(())
 }
 
+/// Show error if archive format is not the first format in the chain.
 pub fn check_archive_formats_position(formats: &[extension::Extension], output_path: &Path) -> Result<()> {
     if let Some(format) = formats.iter().skip(1).find(|format| format.is_archive()) {
         let error = FinalError::with_title(format!(
