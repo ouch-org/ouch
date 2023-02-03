@@ -10,11 +10,11 @@ use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelI
 use utils::colors;
 
 use crate::{
-    check::check_mime_type,
+    check::{check_for_non_archive_formats, check_mime_type},
     cli::Subcommand,
     commands::{compress::compress_files, decompress::decompress_file, list::list_archive_contents},
     error::{Error, FinalError},
-    extension::{self, build_archive_file_suggestion, parse_format, Extension},
+    extension::{self, build_archive_file_suggestion, parse_format},
     info,
     list::ListOptions,
     utils::{self, pretty_format_list_of_paths, to_utf, EscapedPathDisplay, FileVisibilityPolicy},
@@ -29,31 +29,6 @@ fn warn_user_about_loading_zip_in_memory() {
         \tCareful, you might run out of RAM if the archive is too large!";
 
     warning!("{}", ZIP_IN_MEMORY_LIMITATION_WARNING);
-}
-
-/// In the context of listing archives, this function checks if `ouch` was told to list
-/// the contents of a compressed file that is not an archive
-fn check_for_non_archive_formats(files: &[PathBuf], formats: &[Vec<Extension>]) -> crate::Result<()> {
-    let mut not_archives = files
-        .iter()
-        .zip(formats)
-        .filter(|(_, formats)| !formats.first().map(Extension::is_archive).unwrap_or(false))
-        .map(|(path, _)| path)
-        .peekable();
-
-    if not_archives.peek().is_some() {
-        let not_archives: Vec<_> = not_archives.collect();
-        let error = FinalError::with_title("Cannot list archive contents")
-            .detail("Only archives can have their contents listed")
-            .detail(format!(
-                "Files are not archives: {}",
-                pretty_format_list_of_paths(&not_archives)
-            ));
-
-        return Err(error.into());
-    }
-
-    Ok(())
 }
 
 /// This function checks what command needs to be run and performs A LOT of ahead-of-time checks
