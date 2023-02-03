@@ -10,7 +10,7 @@ use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelI
 use utils::colors;
 
 use crate::{
-    check::{check_for_non_archive_formats, check_mime_type},
+    check::{check_archive_formats_position, check_for_non_archive_formats, check_mime_type},
     cli::Subcommand,
     commands::{compress::compress_files, decompress::decompress_file, list::list_archive_contents},
     error::{Error, FinalError},
@@ -117,26 +117,7 @@ pub fn run(
                 return Err(error.into());
             }
 
-            if let Some(format) = formats.iter().skip(1).find(|format| format.is_archive()) {
-                let error = FinalError::with_title(format!(
-                    "Cannot compress to '{}'.",
-                    EscapedPathDisplay::new(&output_path)
-                ))
-                .detail(format!("Found the format '{format}' in an incorrect position."))
-                .detail(format!(
-                    "'{format}' can only be used at the start of the file extension."
-                ))
-                .hint(format!(
-                    "If you wish to compress multiple files, start the extension with '{format}'."
-                ))
-                .hint(format!(
-                    "Otherwise, remove the last '{}' from '{}'.",
-                    format,
-                    EscapedPathDisplay::new(&output_path)
-                ));
-
-                return Err(error.into());
-            }
+            check_archive_formats_position(&formats, &output_path)?;
 
             let output_file = match utils::ask_to_create_file(&output_path, question_policy)? {
                 Some(writer) => writer,

@@ -1,18 +1,22 @@
-use std::{ops::ControlFlow, path::PathBuf};
+use std::{
+    ops::ControlFlow,
+    path::{Path, PathBuf},
+};
 
 use crate::{
     error::FinalError,
+    extension,
     extension::Extension,
     info,
-    utils::{pretty_format_list_of_paths, try_infer_extension, user_wants_to_continue},
-    warning, QuestionAction, QuestionPolicy,
+    utils::{pretty_format_list_of_paths, try_infer_extension, user_wants_to_continue, EscapedPathDisplay},
+    warning, QuestionAction, QuestionPolicy, Result,
 };
 
 pub fn check_mime_type(
     files: &[PathBuf],
     formats: &mut [Vec<Extension>],
     question_policy: QuestionPolicy,
-) -> crate::Result<ControlFlow<()>> {
+) -> Result<ControlFlow<()>> {
     for (path, format) in files.iter().zip(formats.iter_mut()) {
         if format.is_empty() {
             // File with no extension
@@ -60,7 +64,7 @@ pub fn check_mime_type(
 
 /// In the context of listing archives, this function checks if `ouch` was told to list
 /// the contents of a compressed file that is not an archive
-pub fn check_for_non_archive_formats(files: &[PathBuf], formats: &[Vec<Extension>]) -> crate::Result<()> {
+pub fn check_for_non_archive_formats(files: &[PathBuf], formats: &[Vec<Extension>]) -> Result<()> {
     let mut not_archives = files
         .iter()
         .zip(formats)
@@ -80,5 +84,29 @@ pub fn check_for_non_archive_formats(files: &[PathBuf], formats: &[Vec<Extension
         return Err(error.into());
     }
 
+    Ok(())
+}
+
+pub fn check_archive_formats_position(formats: &[extension::Extension], output_path: &Path) -> Result<()> {
+    if let Some(format) = formats.iter().skip(1).find(|format| format.is_archive()) {
+        let error = FinalError::with_title(format!(
+            "Cannot compress to '{}'.",
+            EscapedPathDisplay::new(output_path)
+        ))
+        .detail(format!("Found the format '{format}' in an incorrect position."))
+        .detail(format!(
+            "'{format}' can only be used at the start of the file extension."
+        ))
+        .hint(format!(
+            "If you wish to compress multiple files, start the extension with '{format}'."
+        ))
+        .hint(format!(
+            "Otherwise, remove the last '{}' from '{}'.",
+            format,
+            EscapedPathDisplay::new(output_path)
+        ));
+
+        return Err(error.into());
+    }
     Ok(())
 }
