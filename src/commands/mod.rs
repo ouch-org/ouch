@@ -10,14 +10,14 @@ use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelI
 use utils::colors;
 
 use crate::{
-    check::{check_archive_formats_position, check_for_non_archive_formats, check_mime_type},
+    check,
     cli::Subcommand,
     commands::{compress::compress_files, decompress::decompress_file, list::list_archive_contents},
     error::{Error, FinalError},
     extension::{self, build_archive_file_suggestion, parse_format},
     info,
     list::ListOptions,
-    utils::{self, pretty_format_list_of_paths, to_utf, EscapedPathDisplay, FileVisibilityPolicy},
+    utils::{self, to_utf, EscapedPathDisplay, FileVisibilityPolicy},
     warning, CliArgs, QuestionPolicy,
 };
 
@@ -117,7 +117,7 @@ pub fn run(
                 return Err(error.into());
             }
 
-            check_archive_formats_position(&formats, &output_path)?;
+            check::check_archive_formats_position(&formats, &output_path)?;
 
             let output_file = match utils::ask_to_create_file(&output_path, question_policy)? {
                 Some(writer) => writer,
@@ -183,35 +183,11 @@ pub fn run(
                 }
             }
 
-            if let ControlFlow::Break(_) = check_mime_type(&files, &mut formats, question_policy)? {
+            if let ControlFlow::Break(_) = check::check_mime_type(&files, &mut formats, question_policy)? {
                 return Ok(());
             }
 
-            let files_missing_format: Vec<PathBuf> = files
-                .iter()
-                .zip(&formats)
-                .filter(|(_, formats)| formats.is_empty())
-                .map(|(input_path, _)| PathBuf::from(input_path))
-                .collect();
-
-            if let Some(path) = files_missing_format.first() {
-                let error = FinalError::with_title("Cannot decompress files without extensions")
-                    .detail(format!(
-                        "Files without supported extensions: {}",
-                        pretty_format_list_of_paths(&files_missing_format)
-                    ))
-                    .detail("Decompression formats are detected automatically by the file extension")
-                    .hint("Provide a file with a supported extension:")
-                    .hint("  ouch decompress example.tar.gz")
-                    .hint("")
-                    .hint("Or overwrite this option with the '--format' flag:")
-                    .hint(format!(
-                        "  ouch decompress {} --format tar.gz",
-                        EscapedPathDisplay::new(path),
-                    ));
-
-                return Err(error.into());
-            }
+            check::check_missing_formats_when_decompressing(&files, &formats)?;
 
             // The directory that will contain the output files
             // We default to the current directory if the user didn't specify an output directory with --dir
@@ -252,13 +228,13 @@ pub fn run(
                     formats.push(file_formats);
                 }
 
-                if let ControlFlow::Break(_) = check_mime_type(&files, &mut formats, question_policy)? {
+                if let ControlFlow::Break(_) = check::check_mime_type(&files, &mut formats, question_policy)? {
                     return Ok(());
                 }
             }
 
             // Ensure we were not told to list the content of a non-archive compressed file
-            check_for_non_archive_formats(&files, &formats)?;
+            check::check_for_non_archive_formats(&files, &formats)?;
 
             let list_options = ListOptions { tree };
 

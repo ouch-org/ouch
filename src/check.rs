@@ -9,7 +9,6 @@ use std::{
 
 use crate::{
     error::FinalError,
-    extension,
     extension::Extension,
     info,
     utils::{pretty_format_list_of_paths, try_infer_extension, user_wants_to_continue, EscapedPathDisplay},
@@ -98,7 +97,7 @@ pub fn check_for_non_archive_formats(files: &[PathBuf], formats: &[Vec<Extension
 }
 
 /// Show error if archive format is not the first format in the chain.
-pub fn check_archive_formats_position(formats: &[extension::Extension], output_path: &Path) -> Result<()> {
+pub fn check_archive_formats_position(formats: &[Extension], output_path: &Path) -> Result<()> {
     if let Some(format) = formats.iter().skip(1).find(|format| format.is_archive()) {
         let error = FinalError::with_title(format!(
             "Cannot compress to '{}'.",
@@ -116,6 +115,36 @@ pub fn check_archive_formats_position(formats: &[extension::Extension], output_p
             format,
             EscapedPathDisplay::new(output_path)
         ));
+
+        return Err(error.into());
+    }
+    Ok(())
+}
+
+/// Check if all provided files have formats to decompress.
+pub fn check_missing_formats_when_decompressing(files: &[PathBuf], formats: &[Vec<Extension>]) -> Result<()> {
+    let files_missing_format: Vec<PathBuf> = files
+        .iter()
+        .zip(formats)
+        .filter(|(_, format)| format.is_empty())
+        .map(|(input_path, _)| PathBuf::from(input_path))
+        .collect();
+
+    if let Some(path) = files_missing_format.first() {
+        let error = FinalError::with_title("Cannot decompress files without extensions")
+            .detail(format!(
+                "Files without supported extensions: {}",
+                pretty_format_list_of_paths(&files_missing_format)
+            ))
+            .detail("Decompression formats are detected automatically by the file extension")
+            .hint("Provide a file with a supported extension:")
+            .hint("  ouch decompress example.tar.gz")
+            .hint("")
+            .hint("Or overwrite this option with the '--format' flag:")
+            .hint(format!(
+                "  ouch decompress {} --format tar.gz",
+                EscapedPathDisplay::new(path),
+            ));
 
         return Err(error.into());
     }
