@@ -170,6 +170,21 @@ pub fn extensions_from_path(path: &Path) -> Vec<Extension> {
     extensions
 }
 
+// Panics if formats has an empty list of compression formats
+pub fn split_first_compression_format(formats: &[Extension]) -> (CompressionFormat, Vec<CompressionFormat>) {
+    let mut extensions: Vec<CompressionFormat> = flatten_compression_formats(formats);
+    let first_extension = extensions.remove(0);
+    (first_extension, extensions)
+}
+
+pub fn flatten_compression_formats(extensions: &[Extension]) -> Vec<CompressionFormat> {
+    extensions
+        .iter()
+        .flat_map(|extension| extension.compression_formats.iter())
+        .copied()
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -184,19 +199,4 @@ mod tests {
 
         assert_eq!(formats, vec![Tar, Gzip]);
     }
-}
-
-// Panics if formats has an empty list of compression formats
-pub fn split_first_compression_format(formats: &[Extension]) -> (CompressionFormat, Vec<CompressionFormat>) {
-    let mut extensions: Vec<CompressionFormat> = flatten_compression_formats(formats);
-    let first_extension = extensions.remove(0);
-    (first_extension, extensions)
-}
-
-pub fn flatten_compression_formats(extensions: &[Extension]) -> Vec<CompressionFormat> {
-    extensions
-        .iter()
-        .flat_map(|extension| extension.compression_formats.iter())
-        .copied()
-        .collect()
 }
