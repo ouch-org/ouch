@@ -185,8 +185,44 @@ pub fn flatten_compression_formats(extensions: &[Extension]) -> Vec<CompressionF
         .collect()
 }
 
+/// Builds a suggested output file in scenarios where the user tried to compress
+/// a folder into a non-archive compression format, for error message purposes
+///
+/// E.g.: `build_suggestion("file.bz.xz", ".tar")` results in `Some("file.tar.bz.xz")`
+pub fn build_archive_file_suggestion(path: &Path, suggested_extension: &str) -> Option<String> {
+    let path = path.to_string_lossy();
+    let mut rest = &*path;
+    let mut position_to_insert = 0;
+
+    // Walk through the path to find the first supported compression extension
+    while let Some(pos) = rest.find('.') {
+        // Use just the text located after the dot we found
+        rest = &rest[pos + 1..];
+        position_to_insert += pos + 1;
+
+        // If the string contains more chained extensions, clip to the immediate one
+        let maybe_extension = {
+            let idx = rest.find('.').unwrap_or(rest.len());
+            &rest[..idx]
+        };
+
+        // If the extension we got is a supported extension, generate the suggestion
+        // at the position we found
+        if SUPPORTED_EXTENSIONS.contains(&maybe_extension) {
+            let mut path = path.to_string();
+            path.insert_str(position_to_insert - 1, suggested_extension);
+
+            return Some(path);
+        }
+    }
+
+    None
+}
+
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+
     use super::*;
 
     #[test]
@@ -198,5 +234,26 @@ mod tests {
         let formats: Vec<CompressionFormat> = flatten_compression_formats(&extensions);
 
         assert_eq!(formats, vec![Tar, Gzip]);
+    }
+
+    #[test]
+    fn builds_suggestion_correctly() {
+        assert_eq!(build_archive_file_suggestion(Path::new("linux.png"), ".tar"), None);
+        assert_eq!(
+            build_archive_file_suggestion(Path::new("linux.xz.gz.zst"), ".tar").unwrap(),
+            "linux.tar.xz.gz.zst"
+        );
+        assert_eq!(
+            build_archive_file_suggestion(Path::new("linux.pkg.xz.gz.zst"), ".tar").unwrap(),
+            "linux.pkg.tar.xz.gz.zst"
+        );
+        assert_eq!(
+            build_archive_file_suggestion(Path::new("linux.pkg.zst"), ".tar").unwrap(),
+            "linux.pkg.tar.zst"
+        );
+        assert_eq!(
+            build_archive_file_suggestion(Path::new("linux.pkg.info.zst"), ".tar").unwrap(),
+            "linux.pkg.info.tar.zst"
+        );
     }
 }

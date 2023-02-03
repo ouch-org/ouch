@@ -4,10 +4,7 @@ mod compress;
 mod decompress;
 mod list;
 
-use std::{
-    ops::ControlFlow,
-    path::{Path, PathBuf},
-};
+use std::{ops::ControlFlow, path::PathBuf};
 
 use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use utils::colors;
@@ -17,7 +14,7 @@ use crate::{
     cli::Subcommand,
     commands::{compress::compress_files, decompress::decompress_file, list::list_archive_contents},
     error::{Error, FinalError},
-    extension::{self, parse_format, Extension},
+    extension::{self, build_archive_file_suggestion, parse_format, Extension},
     info,
     list::ListOptions,
     utils::{self, pretty_format_list_of_paths, to_utf, EscapedPathDisplay, FileVisibilityPolicy},
@@ -32,40 +29,6 @@ fn warn_user_about_loading_zip_in_memory() {
         \tCareful, you might run out of RAM if the archive is too large!";
 
     warning!("{}", ZIP_IN_MEMORY_LIMITATION_WARNING);
-}
-
-/// Builds a suggested output file in scenarios where the user tried to compress
-/// a folder into a non-archive compression format, for error message purposes
-///
-/// E.g.: `build_suggestion("file.bz.xz", ".tar")` results in `Some("file.tar.bz.xz")`
-fn build_archive_file_suggestion(path: &Path, suggested_extension: &str) -> Option<String> {
-    let path = path.to_string_lossy();
-    let mut rest = &*path;
-    let mut position_to_insert = 0;
-
-    // Walk through the path to find the first supported compression extension
-    while let Some(pos) = rest.find('.') {
-        // Use just the text located after the dot we found
-        rest = &rest[pos + 1..];
-        position_to_insert += pos + 1;
-
-        // If the string contains more chained extensions, clip to the immediate one
-        let maybe_extension = {
-            let idx = rest.find('.').unwrap_or(rest.len());
-            &rest[..idx]
-        };
-
-        // If the extension we got is a supported extension, generate the suggestion
-        // at the position we found
-        if extension::SUPPORTED_EXTENSIONS.contains(&maybe_extension) {
-            let mut path = path.to_string();
-            path.insert_str(position_to_insert - 1, suggested_extension);
-
-            return Some(path);
-        }
-    }
-
-    None
 }
 
 /// In the context of listing archives, this function checks if `ouch` was told to list
@@ -353,32 +316,4 @@ pub fn run(
         }
     }
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use std::path::Path;
-
-    use super::build_archive_file_suggestion;
-
-    #[test]
-    fn builds_suggestion_correctly() {
-        assert_eq!(build_archive_file_suggestion(Path::new("linux.png"), ".tar"), None);
-        assert_eq!(
-            build_archive_file_suggestion(Path::new("linux.xz.gz.zst"), ".tar").unwrap(),
-            "linux.tar.xz.gz.zst"
-        );
-        assert_eq!(
-            build_archive_file_suggestion(Path::new("linux.pkg.xz.gz.zst"), ".tar").unwrap(),
-            "linux.pkg.tar.xz.gz.zst"
-        );
-        assert_eq!(
-            build_archive_file_suggestion(Path::new("linux.pkg.zst"), ".tar").unwrap(),
-            "linux.pkg.tar.zst"
-        );
-        assert_eq!(
-            build_archive_file_suggestion(Path::new("linux.pkg.info.zst"), ".tar").unwrap(),
-            "linux.pkg.info.tar.zst"
-        );
-    }
 }
