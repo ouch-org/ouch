@@ -13,17 +13,15 @@ use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelI
 use utils::colors;
 
 use crate::{
-    cli::{CliArgs, Subcommand},
+    check::check_mime_type,
+    cli::Subcommand,
     commands::{compress::compress_files, decompress::decompress_file, list::list_archive_contents},
     error::{Error, FinalError},
-    extension::{self, flatten_compression_formats, parse_format, Extension, SUPPORTED_EXTENSIONS},
+    extension::{self, parse_format, Extension},
     info,
     list::ListOptions,
-    utils::{
-        self, pretty_format_list_of_paths, to_utf, try_infer_extension, user_wants_to_continue, EscapedPathDisplay,
-        FileVisibilityPolicy,
-    },
-    warning, QuestionAction, QuestionPolicy,
+    utils::{self, pretty_format_list_of_paths, to_utf, EscapedPathDisplay, FileVisibilityPolicy},
+    warning, CliArgs, QuestionPolicy,
 };
 
 /// Warn the user that (de)compressing this .zip archive might freeze their system.
@@ -59,7 +57,7 @@ fn build_archive_file_suggestion(path: &Path, suggested_extension: &str) -> Opti
 
         // If the extension we got is a supported extension, generate the suggestion
         // at the position we found
-        if SUPPORTED_EXTENSIONS.contains(&maybe_extension) {
+        if extension::SUPPORTED_EXTENSIONS.contains(&maybe_extension) {
             let mut path = path.to_string();
             path.insert_str(position_to_insert - 1, suggested_extension);
 
@@ -349,62 +347,12 @@ pub fn run(
                 if i > 0 {
                     println!();
                 }
-                let formats = flatten_compression_formats(&formats);
+                let formats = extension::flatten_compression_formats(&formats);
                 list_archive_contents(archive_path, formats, list_options, question_policy)?;
             }
         }
     }
     Ok(())
-}
-
-fn check_mime_type(
-    files: &[PathBuf],
-    formats: &mut [Vec<Extension>],
-    question_policy: QuestionPolicy,
-) -> crate::Result<ControlFlow<()>> {
-    for (path, format) in files.iter().zip(formats.iter_mut()) {
-        if format.is_empty() {
-            // File with no extension
-            // Try to detect it automatically and prompt the user about it
-            if let Some(detected_format) = try_infer_extension(path) {
-                // Inferring the file extension can have unpredicted consequences (e.g. the user just
-                // mistyped, ...) which we should always inform the user about.
-                info!(
-                    accessible,
-                    "Detected file: `{}` extension as `{}`",
-                    path.display(),
-                    detected_format
-                );
-                if user_wants_to_continue(path, question_policy, QuestionAction::Decompression)? {
-                    format.push(detected_format);
-                } else {
-                    return Ok(ControlFlow::Break(()));
-                }
-            }
-        } else if let Some(detected_format) = try_infer_extension(path) {
-            // File ending with extension
-            // Try to detect the extension and warn the user if it differs from the written one
-            let outer_ext = format.iter().next_back().unwrap();
-            if !outer_ext
-                .compression_formats
-                .ends_with(detected_format.compression_formats)
-            {
-                warning!(
-                    "The file extension: `{}` differ from the detected extension: `{}`",
-                    outer_ext,
-                    detected_format
-                );
-                if !user_wants_to_continue(path, question_policy, QuestionAction::Decompression)? {
-                    return Ok(ControlFlow::Break(()));
-                }
-            }
-        } else {
-            // NOTE: If this actually produces no false positives, we can upgrade it in the future
-            // to a warning and ask the user if he wants to continue decompressing.
-            info!(accessible, "Could not detect the extension of `{}`", path.display());
-        }
-    }
-    Ok(ControlFlow::Continue(()))
 }
 
 #[cfg(test)]
