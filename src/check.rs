@@ -150,3 +150,19 @@ pub fn check_missing_formats_when_decompressing(files: &[PathBuf], formats: &[Ve
     }
     Ok(())
 }
+
+/// Check if there is a first format when compressing, and returns it.
+pub fn check_first_format_when_compressing<'a>(formats: &'a [Extension], output_path: &Path) -> Result<&'a Extension> {
+    formats.first().ok_or_else(|| {
+        let output_path = EscapedPathDisplay::new(output_path);
+        FinalError::with_title(format!("Cannot compress to '{output_path}'."))
+            .detail("You shall supply the compression format")
+            .hint("Try adding supported extensions (see --help):")
+            .hint(format!("  ouch compress <FILES>... {output_path}.tar.gz"))
+            .hint(format!("  ouch compress <FILES>... {output_path}.zip"))
+            .hint("")
+            .hint("Alternatively, you can overwrite this option by using the '--format' flag:")
+            .hint(format!("  ouch compress <FILES>... {output_path} --format tar.gz"))
+            .into()
+    })
+}
