@@ -23,6 +23,7 @@ Categories Used:
 ### Improvements
 
 - Multi-threaded compression for gzip and snappy using gzp [\#348](https://github.com/ouch-org/ouch/pull/348) ([figsoda](https://github.com/figsoda))
+- Add `ls` as an alternative alias for listing [\#360](https://github.com/ouch-org/ouch/pull/360) ([orhun](https://github.com/orhun))
 
 ### Bug Fixes
 

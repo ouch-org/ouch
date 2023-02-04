@@ -35,7 +35,7 @@ Ouch has three main subcommands:
 
 - `ouch decompress` (alias `d`)
 - `ouch compress` (alias `c`)
-- `ouch list` (alias `l`)
+- `ouch list` (alias `l` or `ls`)
 
 ## Decompressing
 

@@ -72,7 +72,7 @@ pub enum Subcommand {
         output_dir: Option<PathBuf>,
     },
     /// List contents of an archive
-    #[command(visible_alias = "l")]
+    #[command(visible_aliases = ["l", "ls"])]
     List {
         /// Archives whose contents should be listed
         #[arg(required = true, num_args = 1..)]
