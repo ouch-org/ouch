@@ -5,14 +5,14 @@ use clap::{Parser, ValueHint};
 // Ouch command line options (docstrings below are part of --help)
 /// A command-line utility for easily compressing and decompressing files and directories.
 ///
-/// Supported formats: tar, zip, bz/bz2, gz, lz4, xz/lzma, zst.
+/// Supported formats: tar, zip, gz, xz/lzma, bz/bz2, lz4, sz, zst.
 ///
 /// Repository: https://github.com/ouch-org/ouch
 #[derive(Parser, Debug)]
 #[command(about, version)]
 // Disable rustdoc::bare_urls because rustdoc parses URLs differently than Clap
 #[allow(rustdoc::bare_urls)]
-pub struct Opts {
+pub struct CliArgs {
     /// Skip [Y/n] questions positively
     #[arg(short, long, conflicts_with = "no", global = true)]
     pub yes: bool,

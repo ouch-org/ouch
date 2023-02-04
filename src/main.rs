@@ -3,6 +3,7 @@ pub mod macros;
 
 pub mod accessible;
 pub mod archive;
+pub mod check;
 pub mod cli;
 pub mod commands;
 pub mod error;
@@ -10,14 +11,11 @@ pub mod extension;
 pub mod list;
 pub mod utils;
 
-/// CLI argparsing definitions, using `clap`.
-pub mod opts;
-
 use std::{env, path::PathBuf};
 
+use cli::CliArgs;
 use error::{Error, Result};
 use once_cell::sync::Lazy;
-use opts::{Opts, Subcommand};
 use utils::{QuestionAction, QuestionPolicy};
 
 // Used in BufReader and BufWriter to perform less syscalls
@@ -37,6 +35,6 @@ fn main() {
 }
 
 fn run() -> Result<()> {
-    let (args, skip_questions_positively, file_visibility_policy) = Opts::parse_args()?;
+    let (args, skip_questions_positively, file_visibility_policy) = CliArgs::parse_args()?;
     commands::run(args, skip_questions_positively, file_visibility_policy)
 }

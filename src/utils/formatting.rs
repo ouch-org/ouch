@@ -62,7 +62,7 @@ pub fn strip_cur_dir(source_path: &Path) -> &Path {
     source_path.strip_prefix(current_dir).unwrap_or(source_path)
 }
 
-/// Converts a slice of AsRef<OsStr> to comma separated String
+/// Converts a slice of `AsRef<OsStr>` to comma separated String
 ///
 /// Panics if the slice is empty.
 pub fn pretty_format_list_of_paths(os_strs: &[impl AsRef<Path>]) -> String {
