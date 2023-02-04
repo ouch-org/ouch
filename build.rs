@@ -27,7 +27,7 @@ use clap::{CommandFactory, ValueEnum};
 use clap_complete::{generate_to, Shell};
 use clap_mangen::Man;
 
-include!("src/opts.rs");
+include!("src/cli/args.rs");
 
 fn main() {
     println!("cargo:rerun-if-env-changed=OUCH_ARTIFACTS_FOLDER");
@@ -35,7 +35,7 @@ fn main() {
     if let Some(dir) = env::var_os("OUCH_ARTIFACTS_FOLDER") {
         let out = &Path::new(&dir);
         create_dir_all(out).unwrap();
-        let cmd = &mut Opts::command();
+        let cmd = &mut CliArgs::command();
 
         Man::new(cmd.clone())
             .render(&mut File::create(out.join("ouch.1")).unwrap())
