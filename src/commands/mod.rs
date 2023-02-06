@@ -129,10 +129,10 @@ pub fn run(
                     output_paths.push(file_output_path);
                     formats.push(file_formats);
                 }
-            }
 
-            if let ControlFlow::Break(_) = check::check_mime_type(&files, &mut formats, question_policy)? {
-                return Ok(());
+                if let ControlFlow::Break(_) = check::check_mime_type(&files, &mut formats, question_policy)? {
+                    return Ok(());
+                }
             }
 
             check::check_missing_formats_when_decompressing(&files, &formats)?;
