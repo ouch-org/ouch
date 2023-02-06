@@ -125,13 +125,14 @@ pub fn run(
                 }
             } else {
                 for path in files.iter() {
-                    let (file_output_path, file_formats) = extension::separate_known_extensions_from_name(path);
-                    output_paths.push(file_output_path);
-                    formats.push(file_formats);
-                }
+                    let (path, mut file_formats) = extension::separate_known_extensions_from_name(path);
 
-                if let ControlFlow::Break(_) = check::check_mime_type(&files, &mut formats, question_policy)? {
-                    return Ok(());
+                    if let ControlFlow::Break(_) = check::check_mime_type(path, &mut file_formats, question_policy)? {
+                        return Ok(());
+                    }
+
+                    output_paths.push(path);
+                    formats.push(file_formats);
                 }
             }
 
@@ -172,12 +173,13 @@ pub fn run(
                 }
             } else {
                 for path in files.iter() {
-                    let file_formats = extension::extensions_from_path(path);
-                    formats.push(file_formats);
-                }
+                    let mut file_formats = extension::extensions_from_path(path);
 
-                if let ControlFlow::Break(_) = check::check_mime_type(&files, &mut formats, question_policy)? {
-                    return Ok(());
+                    if let ControlFlow::Break(_) = check::check_mime_type(path, &mut file_formats, question_policy)? {
+                        return Ok(());
+                    }
+
+                    formats.push(file_formats);
                 }
             }
 
