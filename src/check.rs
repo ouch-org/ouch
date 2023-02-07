@@ -16,7 +16,7 @@ use crate::{
     warning, QuestionAction, QuestionPolicy, Result,
 };
 
-/// Check, for each file, if the mime type matches the detected extensions.
+/// Check if the mime type matches the detected extensions.
 ///
 /// In case the file doesn't has any extensions, try to infer the format.
 ///
