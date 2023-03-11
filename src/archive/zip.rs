@@ -13,6 +13,7 @@ use std::{
 use filetime::{set_file_mtime, FileTime};
 use fs_err as fs;
 use same_file::Handle;
+use time::OffsetDateTime;
 use ubyte::ToByteUnit;
 use zip::{self, read::ZipFile, DateTime, ZipArchive};
 
@@ -257,8 +258,8 @@ fn display_zip_comment_if_exists(file: &ZipFile) {
 fn get_last_modified_time(file: &fs::File) -> DateTime {
     file.metadata()
         .and_then(|metadata| metadata.modified())
-        .map_err(|_| ())
-        .and_then(|time| DateTime::from_time(time.into()))
+        .ok()
+        .and_then(|time| DateTime::try_from(OffsetDateTime::from(time)).ok())
         .unwrap_or_default()
 }
 
