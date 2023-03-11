@@ -29,13 +29,11 @@ same-file = "1.0.6"
 snap = "1.1.0"
 tar = "0.4.38"
 tempfile = "3.4.0"
+time = { version = "0.3.20", default-features = false }
 ubyte = { version = "0.10.3", default-features = false }
 xz2 = "0.1.7"
 zip = { version = "0.6.4", default-features = false, features = ["time"] }
 zstd = { version = "0.12.3", default-features = false }
-
-[target.'cfg(unix)'.dependencies]
-time = { version = "0.3.20", default-features = false }
 
 [target.'cfg(not(unix))'.dependencies]
 is_executable = "1.0.1"
