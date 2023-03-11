@@ -87,11 +87,13 @@ pub fn build_archive_from_paths<W>(
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
     quiet: bool,
+    tar_follow_symlinks: bool,
 ) -> crate::Result<W>
 where
     W: Write,
 {
     let mut builder = tar::Builder::new(writer);
+
     let output_handle = Handle::from_path(output_path);
 
     for filename in input_filenames {

@@ -73,6 +73,10 @@ pub enum Subcommand {
         /// conflicts with --level and --fast
         #[arg(long, group = "compression-level")]
         slow: bool,
+
+        /// Tar specific: add the symlink target to the archive instead of the symlink itself
+        #[arg(long)]
+        tar_follow_symlinks: bool,
     },
     /// Decompresses one or more files, optionally into another folder
     #[command(visible_alias = "d")]

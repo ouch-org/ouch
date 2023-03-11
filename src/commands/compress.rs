@@ -30,6 +30,7 @@ pub fn compress_files(
     output_file: fs::File,
     output_path: &Path,
     quiet: bool,
+    tar_follow_symlinks: bool,
     question_policy: QuestionPolicy,
     file_visibility_policy: FileVisibilityPolicy,
     level: Option<i16>,
@@ -103,7 +104,14 @@ pub fn compress_files(
             io::copy(&mut reader, &mut writer)?;
         }
         Tar => {
-            archive::tar::build_archive_from_paths(&files, output_path, &mut writer, file_visibility_policy, quiet)?;
+            archive::tar::build_archive_from_paths(
+                &files,
+                output_path,
+                &mut writer,
+                file_visibility_policy,
+                quiet,
+                tar_follow_symlinks,
+            )?;
             writer.flush()?;
         }
         Zip => {
