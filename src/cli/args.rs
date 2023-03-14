@@ -44,6 +44,10 @@ pub struct CliArgs {
     /// Ouch and claps subcommands
     #[command(subcommand)]
     pub cmd: Subcommand,
+
+    /// Compression raw level as each algo has
+    #[arg(short = 'r', long, global = true, default_value_t = u32::MAX)]
+    pub raw_level: u32,
 }
 
 #[derive(Parser, PartialEq, Eq, Debug)]
