@@ -31,7 +31,7 @@ pub fn compress_files(
     quiet: bool,
     question_policy: QuestionPolicy,
     file_visibility_policy: FileVisibilityPolicy,
-    raw_level: u32,
+    level: Option<i16>,
 ) -> crate::Result<bool> {
     // If the input files contain a directory, then the total size will be underestimated
     let file_writer = BufWriter::with_capacity(BUFFER_CAPACITY, output_file);
@@ -44,70 +44,37 @@ pub fn compress_files(
             Gzip => Box::new(
                 // by default, ParCompress uses a default compression level of 3
                 // instead of the regular default that flate2 uses
-                if raw_level == u32::MAX {
-                    gzp::par::compress::ParCompress::<gzp::deflate::Gzip>::builder()
-                        .compression_level(Default::default())
-                        .from_writer(encoder)
-                } else {
-                    gzp::par::compress::ParCompress::<gzp::deflate::Gzip>::builder()
-                        .compression_level(gzp::par::compress::Compression::new(raw_level))
-                        .from_writer(encoder)
-                },
+                gzp::par::compress::ParCompress::<gzp::deflate::Gzip>::builder()
+                    .compression_level(level.map_or_else(|| Default::default(), |l| gzp::Compression::new(l as u32)))
+                    .from_writer(encoder),
             ),
-            Bzip => {
-                if raw_level == u32::MAX {
-                    Box::new(bzip2::write::BzEncoder::new(encoder, Default::default()))
-                } else {
-                    Box::new(bzip2::write::BzEncoder::new(
-                        encoder,
-                        bzip2::Compression::new(raw_level),
+            Bzip => Box::new(bzip2::write::BzEncoder::new(
+                encoder,
+                level.map_or_else(|| Default::default(), |l| bzip2::Compression::new(l as u32)),
+            )),
+            Lz4 => Box::new(lzzzz::lz4f::WriteCompressor::new(
+                encoder,
+                lzzzz::lz4f::PreferencesBuilder::new()
+                    .compression_level(level.map_or_else(|| Default::default(), |l| l as i32))
+                    .build(),
+            )?),
+            Lzma => Box::new(xz2::write::XzEncoder::new(
+                encoder,
+                level.map_or_else(|| Default::default(), |l| l as u32),
+            )),
+            Snappy => Box::new(
+                gzp::par::compress::ParCompress::<gzp::snap::Snap>::builder()
+                    .compression_level(gzp::par::compress::Compression::new(
+                        level.map_or_else(|| Default::default(), |l| l as u32),
                     ))
-                }
-            }
-            Lz4 => {
-                if raw_level == u32::MAX {
-                    Box::new(lzzzz::lz4f::WriteCompressor::new(encoder, Default::default())?)
-                } else {
-                    Box::new(lzzzz::lz4f::WriteCompressor::new(
-                        encoder,
-                        lzzzz::lz4f::PreferencesBuilder::new()
-                            .compression_level(raw_level as i32)
-                            .build(),
-                    )?)
-                }
-            }
-            Lzma => {
-                if raw_level == u32::MAX {
-                    Box::new(xz2::write::XzEncoder::new(encoder, 6))
-                } else {
-                    Box::new(xz2::write::XzEncoder::new(encoder, raw_level))
-                }
-            }
-            Snappy => {
-                if raw_level == u32::MAX {
-                    Box::new(gzp::par::compress::ParCompress::<gzp::snap::Snap>::builder().from_writer(encoder))
-                } else {
-                    Box::new(
-                        gzp::par::compress::ParCompress::<gzp::snap::Snap>::builder()
-                            .compression_level(gzp::par::compress::Compression::new(raw_level))
-                            .from_writer(encoder),
-                    )
-                }
-            }
+                    .from_writer(encoder),
+            ),
             Zstd => {
-                if raw_level == u32::MAX {
-                    Box::new(
-                        zstd::stream::write::Encoder::new(encoder, Default::default())
-                            .unwrap()
-                            .auto_finish(),
-                    )
-                } else {
-                    Box::new(
-                        zstd::stream::write::Encoder::new(encoder, raw_level as i32)
-                            .unwrap()
-                            .auto_finish(),
-                    )
-                }
+                Box::new(
+                    zstd::stream::write::Encoder::new(encoder, level.map_or_else(|| Default::default(), |l| l as i32))
+                        .unwrap()
+                        .auto_finish(),
+                )
                 // Safety:
                 //     Encoder::new() can only fail if `level` is invalid, but Default::default()
                 //     is guaranteed to be valid

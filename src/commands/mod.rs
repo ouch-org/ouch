@@ -80,7 +80,7 @@ pub fn run(
                 args.quiet,
                 question_policy,
                 file_visibility_policy,
-                args.raw_level,
+                args.level,
             );
 
             if let Ok(true) = compress_result {
