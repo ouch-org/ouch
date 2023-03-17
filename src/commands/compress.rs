@@ -45,36 +45,36 @@ pub fn compress_files(
                 // by default, ParCompress uses a default compression level of 3
                 // instead of the regular default that flate2 uses
                 gzp::par::compress::ParCompress::<gzp::deflate::Gzip>::builder()
-                    .compression_level(level.map_or_else(Default::default, |l| {
-                        gzp::Compression::new(if l < 1 || l > 9 { 1 } else { l as u32 })
-                    }))
+                    .compression_level(
+                        level.map_or_else(Default::default, |l| gzp::Compression::new(num::clamp(l as u32, 1, 9))),
+                    )
                     .from_writer(encoder),
             ),
             Bzip => Box::new(bzip2::write::BzEncoder::new(
                 encoder,
                 level.map_or_else(Default::default, |l| {
-                    bzip2::Compression::new(if l < 1 || l > 9 { 1 } else { l as u32 })
+                    bzip2::Compression::new(num::clamp(l as u32, 1, 9))
                 }),
             )),
             Lz4 => Box::new(lzzzz::lz4f::WriteCompressor::new(
                 encoder,
                 lzzzz::lz4f::PreferencesBuilder::new()
-                    .compression_level(level.map_or(0, |l| if l < 1 || l > 12 { 0 } else { l as i32 }))
+                    .compression_level(level.map_or(0, |l| num::clamp(l as i32, 1, 12)))
                     .build(),
             )?),
             Lzma => Box::new(xz2::write::XzEncoder::new(
                 encoder,
-                level.map_or(6, |l| if l < 0 || l > 9 { 6 } else { l as u32 }),
+                level.map_or(6, |l| num::clamp(l as u32, 0, 9)),
             )),
             Snappy => Box::new(
                 gzp::par::compress::ParCompress::<gzp::snap::Snap>::builder()
                     .compression_level(gzp::par::compress::Compression::new(
-                        level.map_or_else(Default::default, |l| l as u32),
+                        level.map_or_else(Default::default, |l| num::clamp(l as u32, 0, 9)),
                     ))
                     .from_writer(encoder),
             ),
             Zstd => Box::new(
-                zstd::stream::write::Encoder::new(encoder, level.map_or(0, |l| l as i32))
+                zstd::stream::write::Encoder::new(encoder, level.map_or(0, |l| num::clamp(l as i32, 1, 22)))
                     .unwrap()
                     .auto_finish(),
             ),
