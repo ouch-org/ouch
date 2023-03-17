@@ -45,40 +45,41 @@ pub fn compress_files(
                 // by default, ParCompress uses a default compression level of 3
                 // instead of the regular default that flate2 uses
                 gzp::par::compress::ParCompress::<gzp::deflate::Gzip>::builder()
-                    .compression_level(level.map_or_else(|| Default::default(), |l| gzp::Compression::new(l as u32)))
+                    .compression_level(level.map_or_else(Default::default, |l| gzp::Compression::new(l as u32)))
                     .from_writer(encoder),
             ),
             Bzip => Box::new(bzip2::write::BzEncoder::new(
                 encoder,
-                level.map_or_else(|| Default::default(), |l| bzip2::Compression::new(l as u32)),
+                level.map_or_else(Default::default, |l| {
+                    if l < 1 || l > 9 {
+                        bzip2::Compression::new(1)
+                    } else {
+                        bzip2::Compression::new(l as u32)
+                    }
+                }),
             )),
             Lz4 => Box::new(lzzzz::lz4f::WriteCompressor::new(
                 encoder,
                 lzzzz::lz4f::PreferencesBuilder::new()
-                    .compression_level(level.map_or_else(|| Default::default(), |l| l as i32))
+                    .compression_level(level.map_or(0, |l| l as i32))
                     .build(),
             )?),
             Lzma => Box::new(xz2::write::XzEncoder::new(
                 encoder,
-                level.map_or_else(|| Default::default(), |l| l as u32),
+                level.map_or(6, |l| if l < 0 || l > 9 { 6 } else { l as u32 }),
             )),
             Snappy => Box::new(
                 gzp::par::compress::ParCompress::<gzp::snap::Snap>::builder()
                     .compression_level(gzp::par::compress::Compression::new(
-                        level.map_or_else(|| Default::default(), |l| l as u32),
+                        level.map_or_else(Default::default, |l| l as u32),
                     ))
                     .from_writer(encoder),
             ),
-            Zstd => {
-                Box::new(
-                    zstd::stream::write::Encoder::new(encoder, level.map_or_else(|| Default::default(), |l| l as i32))
-                        .unwrap()
-                        .auto_finish(),
-                )
-                // Safety:
-                //     Encoder::new() can only fail if `level` is invalid, but Default::default()
-                //     is guaranteed to be valid
-            }
+            Zstd => Box::new(
+                zstd::stream::write::Encoder::new(encoder, level.map_or(0, |l| l as i32))
+                    .unwrap()
+                    .auto_finish(),
+            ),
             Tar | Zip => unreachable!(),
         };
         Ok(encoder)

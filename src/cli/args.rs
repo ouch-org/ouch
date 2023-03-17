@@ -44,10 +44,6 @@ pub struct CliArgs {
     /// Ouch and claps subcommands
     #[command(subcommand)]
     pub cmd: Subcommand,
-
-    /// Compression raw level as each algo has
-    #[arg(short = 'l', long)]
-    pub level: Option<i16>,
 }
 
 #[derive(Parser, PartialEq, Eq, Debug)]
@@ -63,6 +59,10 @@ pub enum Subcommand {
         /// The resulting file. Its extensions can be used to specify the compression formats
         #[arg(required = true, value_hint = ValueHint::FilePath)]
         output: PathBuf,
+
+        /// Compression raw level as each algo has
+        #[arg(short, long)]
+        level: Option<i16>,
     },
     /// Decompresses one or more files, optionally into another folder
     #[command(visible_alias = "d")]
