@@ -45,23 +45,21 @@ pub fn compress_files(
                 // by default, ParCompress uses a default compression level of 3
                 // instead of the regular default that flate2 uses
                 gzp::par::compress::ParCompress::<gzp::deflate::Gzip>::builder()
-                    .compression_level(level.map_or_else(Default::default, |l| gzp::Compression::new(l as u32)))
+                    .compression_level(level.map_or_else(Default::default, |l| {
+                        gzp::Compression::new(if l < 1 || l > 9 { 1 } else { l as u32 })
+                    }))
                     .from_writer(encoder),
             ),
             Bzip => Box::new(bzip2::write::BzEncoder::new(
                 encoder,
                 level.map_or_else(Default::default, |l| {
-                    if l < 1 || l > 9 {
-                        bzip2::Compression::new(1)
-                    } else {
-                        bzip2::Compression::new(l as u32)
-                    }
+                    bzip2::Compression::new(if l < 1 || l > 9 { 1 } else { l as u32 })
                 }),
             )),
             Lz4 => Box::new(lzzzz::lz4f::WriteCompressor::new(
                 encoder,
                 lzzzz::lz4f::PreferencesBuilder::new()
-                    .compression_level(level.map_or(0, |l| l as i32))
+                    .compression_level(level.map_or(0, |l| if l < 1 || l > 12 { 0 } else { l as i32 }))
                     .build(),
             )?),
             Lzma => Box::new(xz2::write::XzEncoder::new(

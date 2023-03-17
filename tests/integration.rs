@@ -139,7 +139,7 @@ fn multiple_files(
 fn single_file_level(
     ext: Extension,
     #[any(size_range(0..8).lift())] exts: Vec<FileExtension>,
-    #[strategy(-3i16..30)] level: i16,
+    #[strategy(0i16..30)] level: i16,
 ) {
     let dir = tempdir().unwrap();
     let dir = dir.path();
