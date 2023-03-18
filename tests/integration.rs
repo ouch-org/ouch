@@ -103,7 +103,7 @@ fn single_empty_file(ext: Extension, #[any(size_range(0..8).lift())] exts: Vec<F
 fn single_file(
     ext: Extension,
     #[any(size_range(0..8).lift())] exts: Vec<FileExtension>,
-    #[strategy(0i16..30)] level: i16,
+    #[strategy(proptest::option::of(0i16..30))] level: Option<i16>,
 ) {
     let dir = tempdir().unwrap();
     let dir = dir.path();
@@ -113,7 +113,11 @@ fn single_file(
     let archive = &dir.join(format!("file.{}", merge_extensions(ext, exts)));
     let after = &dir.join("after");
     fs::write(before_file, []).unwrap();
-    ouch!("-A", "c", "-l", level.to_string(), before_file, archive);
+    if let Some(level) = level {
+        ouch!("-A", "c", "-l", level.to_string(), before_file, archive);
+    } else {
+        ouch!("-A", "c", before_file, archive);
+    }
     ouch!("-A", "d", archive, "-d", after);
     assert_same_directory(before, after, false);
 }

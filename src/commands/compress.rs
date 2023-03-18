@@ -57,7 +57,7 @@ pub fn compress_files(
             Lz4 => Box::new(lzzzz::lz4f::WriteCompressor::new(
                 encoder,
                 lzzzz::lz4f::PreferencesBuilder::new()
-                    .compression_level(level.map_or(0, |l| (l as i32).clamp(1, lzzzz::lz4f::CLEVEL_MAX)))
+                    .compression_level(level.map_or(1, |l| (l as i32).clamp(1, lzzzz::lz4f::CLEVEL_MAX)))
                     .build(),
             )?),
             Lzma => Box::new(xz2::write::XzEncoder::new(
@@ -71,16 +71,18 @@ pub fn compress_files(
                     ))
                     .from_writer(encoder),
             ),
-            Zstd => Box::new(
-                zstd::stream::write::Encoder::new(
+            Zstd => {
+                let zstd_encoder = zstd::stream::write::Encoder::new(
                     encoder,
-                    level.map_or(0, |l| {
+                    level.map_or(zstd::DEFAULT_COMPRESSION_LEVEL, |l| {
                         (l as i32).clamp(zstd::zstd_safe::min_c_level(), zstd::zstd_safe::max_c_level())
                     }),
-                )
-                .unwrap()
-                .auto_finish(),
-            ),
+                );
+                // Safety:
+                //     Encoder::new() can only fail if `level` is invalid, but Default::default()
+                //     is guaranteed to be valid
+                Box::new(zstd_encoder.unwrap().auto_finish())
+            }
             Tar | Zip => unreachable!(),
         };
         Ok(encoder)

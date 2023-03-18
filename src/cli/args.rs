@@ -60,7 +60,7 @@ pub enum Subcommand {
         #[arg(required = true, value_hint = ValueHint::FilePath)]
         output: PathBuf,
 
-        /// Compression raw level as each algo has
+        /// Compression level, applied to all formats
         #[arg(short, long)]
         level: Option<i16>,
     },
