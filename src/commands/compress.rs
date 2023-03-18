@@ -46,37 +46,40 @@ pub fn compress_files(
                 // instead of the regular default that flate2 uses
                 gzp::par::compress::ParCompress::<gzp::deflate::Gzip>::builder()
                     .compression_level(
-                        level.map_or_else(Default::default, |l| gzp::Compression::new(num::clamp(l as u32, 1, 9))),
+                        level.map_or_else(Default::default, |l| gzp::Compression::new((l as u32).clamp(0, 9))),
                     )
                     .from_writer(encoder),
             ),
             Bzip => Box::new(bzip2::write::BzEncoder::new(
                 encoder,
-                level.map_or_else(Default::default, |l| {
-                    bzip2::Compression::new(num::clamp(l as u32, 1, 9))
-                }),
+                level.map_or_else(Default::default, |l| bzip2::Compression::new((l as u32).clamp(1, 9))),
             )),
             Lz4 => Box::new(lzzzz::lz4f::WriteCompressor::new(
                 encoder,
                 lzzzz::lz4f::PreferencesBuilder::new()
-                    .compression_level(level.map_or(0, |l| num::clamp(l as i32, 1, 12)))
+                    .compression_level(level.map_or(0, |l| (l as i32).clamp(1, lzzzz::lz4f::CLEVEL_MAX)))
                     .build(),
             )?),
             Lzma => Box::new(xz2::write::XzEncoder::new(
                 encoder,
-                level.map_or(6, |l| num::clamp(l as u32, 0, 9)),
+                level.map_or(6, |l| (l as u32).clamp(0, 9)),
             )),
             Snappy => Box::new(
                 gzp::par::compress::ParCompress::<gzp::snap::Snap>::builder()
                     .compression_level(gzp::par::compress::Compression::new(
-                        level.map_or_else(Default::default, |l| num::clamp(l as u32, 0, 9)),
+                        level.map_or_else(Default::default, |l| (l as u32).clamp(0, 9)),
                     ))
                     .from_writer(encoder),
             ),
             Zstd => Box::new(
-                zstd::stream::write::Encoder::new(encoder, level.map_or(0, |l| num::clamp(l as i32, 1, 22)))
-                    .unwrap()
-                    .auto_finish(),
+                zstd::stream::write::Encoder::new(
+                    encoder,
+                    level.map_or(0, |l| {
+                        (l as i32).clamp(zstd::zstd_safe::min_c_level(), zstd::zstd_safe::max_c_level())
+                    }),
+                )
+                .unwrap()
+                .auto_finish(),
             ),
             Tar | Zip => unreachable!(),
         };
