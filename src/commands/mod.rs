@@ -45,6 +45,8 @@ pub fn run(
             files,
             output: output_path,
             level,
+            fast,
+            slow,
         } => {
             // After cleaning, if there are no input files left, exit
             if files.is_empty() {
@@ -81,7 +83,13 @@ pub fn run(
                 args.quiet,
                 question_policy,
                 file_visibility_policy,
-                level,
+                if fast {
+                    Some(0)
+                } else if slow {
+                    Some(i16::MAX)
+                } else {
+                    level
+                },
             );
 
             if let Ok(true) = compress_result {

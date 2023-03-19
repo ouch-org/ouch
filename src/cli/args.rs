@@ -61,8 +61,18 @@ pub enum Subcommand {
         output: PathBuf,
 
         /// Compression level, applied to all formats
-        #[arg(short, long)]
+        #[arg(short, long, group = "compression-level")]
         level: Option<i16>,
+
+        /// Fastest compression level possible,
+        /// conflicts with --level and --slow
+        #[arg(long, group = "compression-level")]
+        fast: bool,
+
+        /// Slowest (and best) compression level possible,
+        /// conflicts with --level and --fast
+        #[arg(long, group = "compression-level")]
+        slow: bool,
     },
     /// Decompresses one or more files, optionally into another folder
     #[command(visible_alias = "d")]
