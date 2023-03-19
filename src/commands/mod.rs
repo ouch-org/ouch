@@ -75,6 +75,14 @@ pub fn run(
                 None => return Ok(()),
             };
 
+            let level = if fast {
+                Some(0) // Lowest level of compression
+            } else if slow {
+                Some(i16::MAX) // Highest level of compression
+            } else {
+                level
+            };
+
             let compress_result = compress_files(
                 files,
                 formats,
@@ -83,13 +91,7 @@ pub fn run(
                 args.quiet,
                 question_policy,
                 file_visibility_policy,
-                if fast {
-                    Some(0)
-                } else if slow {
-                    Some(i16::MAX)
-                } else {
-                    level
-                },
+                level,
             );
 
             if let Ok(true) = compress_result {
