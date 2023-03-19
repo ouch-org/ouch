@@ -20,6 +20,12 @@ Categories Used:
 
 ## [Unreleased](https://github.com/ouch-org/ouch/compare/0.4.1...HEAD)
 
+### New Features
+
+- Add flags to configure the compression level
+  - `--level` to precisely set the compression level [\#372](https://github.com/ouch-org/ouch/pull/372) ([xgdgsc](https://github.com/xgdgsc))
+  - `--fast` and `--slow` [\#374](https://github.com/ouch-org/ouch/pull/374) ([figsoda](https://github.com/figsoda))
+
 ### Improvements
 
 - Multi-threaded compression for gzip and snappy using gzp [\#348](https://github.com/ouch-org/ouch/pull/348) ([figsoda](https://github.com/figsoda))
