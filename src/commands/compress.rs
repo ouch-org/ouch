@@ -79,8 +79,8 @@ pub fn compress_files(
                     }),
                 );
                 // Safety:
-                //     Encoder::new() can only fail if `level` is invalid, but Default::default()
-                //     is guaranteed to be valid
+                //     Encoder::new() can only fail if `level` is invalid, but the level
+                //     is `clamp`ed and therefore guaranteed to be valid
                 Box::new(zstd_encoder.unwrap().auto_finish())
             }
             Tar | Zip => unreachable!(),
