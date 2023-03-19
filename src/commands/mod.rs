@@ -76,7 +76,7 @@ pub fn run(
             };
 
             let level = if fast {
-                Some(0) // Lowest level of compression
+                Some(1) // Lowest level of compression
             } else if slow {
                 Some(i16::MAX) // Highest level of compression
             } else {
