@@ -44,6 +44,7 @@ pub fn run(
         Subcommand::Compress {
             files,
             output: output_path,
+            level,
         } => {
             // After cleaning, if there are no input files left, exit
             if files.is_empty() {
@@ -80,6 +81,7 @@ pub fn run(
                 args.quiet,
                 question_policy,
                 file_visibility_policy,
+                level,
             );
 
             if let Ok(true) = compress_result {
