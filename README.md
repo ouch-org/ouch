@@ -126,7 +126,9 @@ If the filename has no extensions, `Ouch` will try to infer the format by the [f
 
 # Installation
 
-[![Packaging status](https://repology.org/badge/vertical-allrepos/ouch.svg)](https://repology.org/project/ouch/versions)
+<a href="https://repology.org/project/ouch/versions">
+  <img align="right" src="https://repology.org/badge/vertical-allrepos/ouch.svg" alt="Packaging status" />
+</a>
 
 ## On Arch Linux
 
