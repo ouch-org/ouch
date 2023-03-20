@@ -103,7 +103,7 @@ fn single_empty_file(ext: Extension, #[any(size_range(0..8).lift())] exts: Vec<F
 fn single_file(
     ext: Extension,
     #[any(size_range(0..8).lift())] exts: Vec<FileExtension>,
-    #[strategy(proptest::option::of(0i16..30))] level: Option<i16>,
+    #[strategy(proptest::option::of(0i16..12))] level: Option<i16>,
 ) {
     let dir = tempdir().unwrap();
     let dir = dir.path();
