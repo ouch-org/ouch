@@ -44,7 +44,7 @@ clap_complete = "4.1.4"
 clap_mangen = "0.2.10"
 
 [dev-dependencies]
-assert_cmd = "2.0.8"
+assert_cmd = "2.0.10"
 infer = "0.13.0"
 parse-display = "0.8.0"
 proptest = "1.1.0"
