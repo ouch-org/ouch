@@ -45,6 +45,8 @@ pub fn run(
             files,
             output: output_path,
             level,
+            fast,
+            slow,
         } => {
             // After cleaning, if there are no input files left, exit
             if files.is_empty() {
@@ -71,6 +73,14 @@ pub fn run(
             let output_file = match utils::ask_to_create_file(&output_path, question_policy)? {
                 Some(writer) => writer,
                 None => return Ok(()),
+            };
+
+            let level = if fast {
+                Some(1) // Lowest level of compression
+            } else if slow {
+                Some(i16::MAX) // Highest level of compression
+            } else {
+                level
             };
 
             let compress_result = compress_files(
