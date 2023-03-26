@@ -84,7 +84,7 @@ jobs:
           rustup toolchain install stable nightly --profile minimal -t ${{ matrix.target }}
 
       - name: Test on stable
-        if: ! matrix.skip-test
+        if: ${{ ! matrix.skip-test }}
         run: |
           ${{ env.CARGO }} +stable test --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
 
