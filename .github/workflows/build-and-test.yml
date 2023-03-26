@@ -43,6 +43,10 @@ jobs:
             os: windows-latest
             ext: .exe
 
+          - target: aarch64-pc-windows-msvc
+            os: windows-latest
+            ext: .exe
+
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
 
