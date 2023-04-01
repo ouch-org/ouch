@@ -8,6 +8,7 @@ use std::{
     thread,
 };
 
+use file_type_enum::FileType;
 use fs_err as fs;
 use same_file::Handle;
 use ubyte::ToByteUnit;
@@ -93,6 +94,8 @@ where
     W: Write,
 {
     let mut builder = tar::Builder::new(writer);
+    builder.follow_symlinks(tar_follow_symlinks);
+    let mut archive_header = tar::Header::new_gnu();
 
     let output_handle = Handle::from_path(output_path);
 
@@ -107,7 +110,7 @@ where
             let path = entry.path();
 
             // If the output_path is the same as the input file, warn the user and skip the input (in order to avoid compression recursion)
-            if let Ok(ref handle) = output_handle {
+            if let Ok(handle) = &output_handle {
                 if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
                     warning!(
                         "The output file and the input file are the same: `{}`, skipping...",
@@ -125,9 +128,13 @@ where
                 info!(inaccessible, "Compressing '{}'.", EscapedPathDisplay::new(path));
             }
 
-            if path.is_dir() {
-                builder.append_dir(path, path)?;
+            let file_type = if tar_follow_symlinks {
+                FileType::from_path(path)
             } else {
+                FileType::from_symlink_path(path)
+            }?;
+
+            if file_type.is_regular() {
                 let mut file = match fs::File::open(path) {
                     Ok(f) => f,
                     Err(e) => {
@@ -144,6 +151,21 @@ where
                         .detail("Unexpected error while trying to read file")
                         .detail(format!("Error: {err}."))
                 })?;
+            } else if file_type.is_directory() {
+                builder.append_dir(path, path)?;
+            } else if file_type.is_symlink() {
+                let target_path = fs::read_link(path).map_err(|err| {
+                    FinalError::with_title("Could not create archive")
+                        .detail("Failed to follow symlink")
+                        .detail(format!("Error: {err}."))
+                })?;
+                builder.append_link(&mut archive_header, path, target_path)?;
+            } else {
+                warning!(
+                    r#"Unsupported file type "{}" at file "{}", skipping."#,
+                    file_type,
+                    path.display()
+                );
             }
         }
         env::set_current_dir(previous_location)?;
