@@ -52,7 +52,7 @@ pub fn list_archive_contents(
                 Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
                 Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
                 Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
-                Tar | Zip | Rar => unreachable!(),
+                Tar | Zip | Rar | SevenZip => unreachable!(),
             };
             Ok(decoder)
         };
@@ -77,7 +77,7 @@ pub fn list_archive_contents(
             let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
 
             Box::new(crate::archive::zip::list_archive(zip_archive))
-        }
+        },
         Rar => {
             if formats.len() > 1 {
                 let mut temp_file = tempfile::NamedTempFile::new()?;
@@ -86,6 +86,9 @@ pub fn list_archive_contents(
             } else {
                 Box::new(crate::archive::rar::list_archive(archive_path))
             }
+        },
+        SevenZip => {
+            unimplemented!(); // todo implement 7z list
         }
         Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {
             panic!("Not an archive! This should never happen, if it does, something is wrong with `CompressionFormat::is_archive()`. Please report this error!");

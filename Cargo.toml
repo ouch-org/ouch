@@ -34,6 +34,7 @@ unrar = "0.5.2"
 xz2 = "0.1.7"
 zip = { version = "0.6.6", default-features = false, features = ["time"] }
 zstd = { version = "0.13.0", default-features = false }
+sevenz-rust = {version = "0.2.9", features = ["compress"]}
 
 [target.'cfg(not(unix))'.dependencies]
 is_executable = "1.0.1"

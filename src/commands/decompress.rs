@@ -86,7 +86,7 @@ pub fn decompress_file(
             Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
             Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
             Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
-            Tar | Zip | Rar => unreachable!(),
+            Tar | Zip | Rar | SevenZip => unreachable!(),
         };
         Ok(decoder)
     };
@@ -145,7 +145,7 @@ pub fn decompress_file(
             } else {
                 return Ok(());
             }
-        }
+        },
         Rar => {
             type UnpackResult = crate::Result<usize>;
             let unpack_fn: Box<dyn FnOnce(&Path) -> UnpackResult> = if formats.len() > 1 {
@@ -163,6 +163,10 @@ pub fn decompress_file(
             } else {
                 return Ok(());
             }
+        },
+        SevenZip => {
+            sevenz_rust::decompress_file(input_file_path, output_dir).unwrap(); // todo error return
+            1
         }
     };
 
