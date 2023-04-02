@@ -16,3 +16,7 @@ artifacts/
 /benchmarks/input.*
 /benchmarks/*.md
 !/benchmarks/results.md
+
+# IDE-specific setting
+.vscode
+.idea
