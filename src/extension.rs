@@ -89,7 +89,7 @@ impl CompressionFormat {
 
 pub const SUPPORTED_EXTENSIONS: &[&str] = &[
     "tar", "tgz", "tbz", "tlz4", "txz", "tzlma", "tsz", "tzst", "zip", "bz", "bz2", "gz", "lz4", "xz", "lzma", "sz",
-    "zst", "72",
+    "zst", "7z",
 ];
 
 fn to_extension(ext: &[u8]) -> Option<Extension> {
