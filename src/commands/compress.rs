@@ -84,7 +84,7 @@ pub fn compress_files(
                 //     is `clamp`ed and therefore guaranteed to be valid
                 Box::new(zstd_encoder.unwrap().auto_finish())
             }
-            Tar | Zip => unreachable!(),
+            Tar | Zip | SevenZip => unreachable!(),
         };
         Ok(encoder)
     };
@@ -126,6 +126,11 @@ pub fn compress_files(
             )?;
             vec_buffer.rewind()?;
             io::copy(&mut vec_buffer, &mut writer)?;
+        },
+        SevenZip => {
+            for file in files.iter() {
+                sevenz_rust::compress_to_path(file.as_path(), output_path).unwrap(); // todo error return
+            }
         }
     }
 

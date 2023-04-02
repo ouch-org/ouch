@@ -67,6 +67,8 @@ pub enum CompressionFormat {
     Zstd,
     /// .zip
     Zip,
+    /// .7z
+    SevenZip,
 }
 
 impl CompressionFormat {
@@ -74,7 +76,7 @@ impl CompressionFormat {
     fn is_archive_format(&self) -> bool {
         // Keep this match like that without a wildcard `_` so we don't forget to update it
         match self {
-            Tar | Zip => true,
+            Tar | Zip | SevenZip => true,
             Gzip => false,
             Bzip => false,
             Lz4 => false,
@@ -87,7 +89,7 @@ impl CompressionFormat {
 
 pub const SUPPORTED_EXTENSIONS: &[&str] = &[
     "tar", "tgz", "tbz", "tlz4", "txz", "tzlma", "tsz", "tzst", "zip", "bz", "bz2", "gz", "lz4", "xz", "lzma", "sz",
-    "zst",
+    "zst", "72",
 ];
 
 fn to_extension(ext: &[u8]) -> Option<Extension> {
@@ -107,6 +109,7 @@ fn to_extension(ext: &[u8]) -> Option<Extension> {
             b"xz" | b"lzma" => &[Lzma],
             b"sz" => &[Snappy],
             b"zst" => &[Zstd],
+            b"7z" => &[SevenZip],
             _ => return None,
         },
         ext.to_str_lossy(),
