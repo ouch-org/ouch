@@ -7,7 +7,7 @@ use bstr::ByteSlice;
 use self::CompressionFormat::*;
 use crate::{error::Error, warning};
 
-pub const SUPPORTED_EXTENSIONS: &[&str] = &["tar", "zip", "bz", "bz2", "gz", "lz4", "xz", "lzma", "sz", "zst", "rar"];
+pub const SUPPORTED_EXTENSIONS: &[&str] = &["tar", "zip", "bz", "bz2", "gz", "lz4", "xz", "lzma", "sz", "zst", "rar", "7z"];
 pub const SUPPORTED_ALIASES: &[&str] = &["tgz", "tbz", "tlz4", "txz", "tzlma", "tsz", "tzst"];
 pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, gz, lz4, xz, lzma, sz, zst, rar";
 pub const PRETTY_SUPPORTED_ALIASES: &str = "tgz, tbz, tlz4, txz, tzlma, tsz, tzst";
@@ -74,6 +74,8 @@ pub enum CompressionFormat {
     Zip,
     /// .rar
     Rar,
+    /// .7z
+    SevenZip,
 }
 
 impl CompressionFormat {
@@ -81,7 +83,7 @@ impl CompressionFormat {
     fn is_archive_format(&self) -> bool {
         // Keep this match like that without a wildcard `_` so we don't forget to update it
         match self {
-            Tar | Zip | Rar => true,
+            Tar | Zip | Rar | SevenZip => true,
             Gzip => false,
             Bzip => false,
             Lz4 => false,
@@ -110,6 +112,7 @@ fn to_extension(ext: &[u8]) -> Option<Extension> {
             b"sz" => &[Snappy],
             b"zst" => &[Zstd],
             b"rar" => &[Rar],
+            b"7z" => &[SevenZip],
             _ => return None,
         },
         ext.to_str_lossy(),
