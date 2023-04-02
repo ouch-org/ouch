@@ -128,7 +128,8 @@ pub fn compress_files(
         },
         SevenZip => {
             for file in files.iter() {
-                sevenz_rust::compress_to_path(file.as_path(), output_path).unwrap(); // todo error return
+                sevenz_rust::compress_to_path(file.as_path(), output_path).unwrap();
+                // todo error return
             }
         }
     }
