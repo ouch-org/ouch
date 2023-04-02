@@ -145,7 +145,7 @@ pub fn decompress_file(
             } else {
                 return Ok(());
             }
-        },
+        }
         SevenZip => {
             sevenz_rust::decompress_file(input_file_path, output_dir).unwrap(); // todo error return
             1

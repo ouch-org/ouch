@@ -126,10 +126,11 @@ pub fn compress_files(
             )?;
             vec_buffer.rewind()?;
             io::copy(&mut vec_buffer, &mut writer)?;
-        },
+        }
         SevenZip => {
             for file in files.iter() {
-                sevenz_rust::compress_to_path(file.as_path(), output_path).unwrap(); // todo error return
+                sevenz_rust::compress_to_path(file.as_path(), output_path).unwrap();
+                // todo error return
             }
         }
     }
