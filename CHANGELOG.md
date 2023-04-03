@@ -26,6 +26,8 @@ Categories Used:
   - `--level` to precisely set the compression level [\#372](https://github.com/ouch-org/ouch/pull/372) ([xgdgsc](https://github.com/xgdgsc))
   - `--fast` and `--slow` [\#374](https://github.com/ouch-org/ouch/pull/374) ([figsoda](https://github.com/figsoda))
 
+- Add support for 7z [\#393](https://github.com/ouch-org/ouch/pull/393) ([MisileLab](https://github.com/misilelab))
+
 ### Improvements
 
 - Multi-threaded compression for gzip and snappy using gzp [\#348](https://github.com/ouch-org/ouch/pull/348) ([figsoda](https://github.com/figsoda))
