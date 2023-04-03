@@ -4,7 +4,7 @@ mod compress;
 mod decompress;
 mod list;
 
-use std::{ops::ControlFlow, path::PathBuf};
+use std::{ops::ControlFlow, path::{PathBuf, Path}, fs};
 
 use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use utils::colors;
@@ -20,6 +20,21 @@ use crate::{
     utils::{self, to_utf, EscapedPathDisplay, FileVisibilityPolicy},
     warning, CliArgs, QuestionPolicy,
 };
+
+/// Copy files from source to destination recursively.
+fn copy_recursively(source: impl AsRef<Path>, destination: impl AsRef<Path>) -> std::io::Result<()> {
+    fs::create_dir_all(&destination)?;
+    for entry in fs::read_dir(source)? {
+        let entry = entry?;
+        let filetype = entry.file_type()?;
+        if filetype.is_dir() {
+            copy_recursively(entry.path(), destination.as_ref().join(entry.file_name()))?;
+        } else {
+            fs::copy(entry.path(), destination.as_ref().join(entry.file_name()))?;
+        }
+    }
+    Ok(())
+}
 
 /// Warn the user that (de)compressing this .zip archive might freeze their system.
 fn warn_user_about_loading_zip_in_memory() {
