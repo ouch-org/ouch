@@ -13,6 +13,8 @@ use crate::{
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
+use super::copy_recursively;
+
 /// Compress files into `output_file`.
 ///
 /// # Arguments:
@@ -127,10 +129,18 @@ pub fn compress_files(
             return Ok(false);
         },
         SevenZip => {
-            for file in files.iter() {
-                sevenz_rust::compress_to_path(file.as_path(), output_path).unwrap();
-                // todo error return
+            let tmpdir = tempfile::tempdir()?;
+
+            for filep in files.iter() {
+                if filep.is_dir() {
+                    copy_recursively(filep, tmpdir.path()
+                        .join(filep.strip_prefix(std::env::current_dir()?).expect("copy folder error")))?;
+                } else {
+                    fs::copy(filep, tmpdir.path().join(filep.file_name().expect("no filename in file")))?;
+                }
             }
+
+            sevenz_rust::compress_to_path(tmpdir.path(), output_path).expect("can't compress 7zip archive");
         }
     }
 
