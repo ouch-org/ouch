@@ -16,6 +16,7 @@ bstr = { version = "1.4.0", default-features = false, features = ["std"] }
 bzip2 = "0.4.4"
 clap = { version = "4.2.1", features = ["derive", "env"] }
 filetime = "0.2.20"
+file_type_enum = "1.0.1"
 flate2 = { version = "1.0.25", default-features = false }
 fs-err = "2.9.0"
 gzp = { version = "0.11.3", default-features = false, features = ["snappy_default"] }

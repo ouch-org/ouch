@@ -386,6 +386,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "file_type_enum"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "40572854fb1aeb1129831dcbe487cdb8c9f930ace9ee6272e9fc8cfba975b170"
+
+[[package]]
 name = "filetime"
 version = "0.2.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -768,6 +774,7 @@ dependencies = [
  "clap",
  "clap_complete",
  "clap_mangen",
+ "file_type_enum",
  "filetime",
  "flate2",
  "fs-err",
