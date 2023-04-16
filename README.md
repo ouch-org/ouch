@@ -37,6 +37,13 @@ Ouch has three main subcommands:
 - `ouch compress` (alias `c`)
 - `ouch list` (alias `l` or `ls`)
 
+To see `help` for a specific command:
+
+```sh
+ouch help <COMMAND>
+ouch <COMMAND> --help  # equivalent
+```
+
 ## Decompressing
 
 Use the `decompress` subcommand, `ouch` will detect the extensions automatically.
