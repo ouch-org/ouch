@@ -85,7 +85,9 @@ pub fn list_archive_contents(
             sevenz_rust::decompress_file_with_extract_fn(archive_path, ".", |entry, _, _| {
                 a.borrow_mut().push(Ok(FileInArchive{path: entry.name().into(), is_dir: entry.is_directory()}));
                 Ok(true)
-            }).expect("failed to get 7z file list");
+            }).map_err(
+                |e| crate::Error::SevenzipError(e)
+            )?;
             Box::new(a.into_inner().into_iter())
         }
         Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {
