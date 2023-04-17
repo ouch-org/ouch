@@ -117,10 +117,7 @@ where
                     Err(e) => return Some(Err(e.into())),
                 };
 
-                let path = match file.enclosed_name() {
-                    Some(path) => path.to_owned(),
-                    None => return None,
-                };
+                let path = file.enclosed_name()?.to_owned();
                 let is_dir = file.is_dir();
 
                 Some(Ok(FileInArchive { path, is_dir }))
