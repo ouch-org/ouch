@@ -1,7 +1,7 @@
 use std::{
+    cell::RefCell,
     io::{self, BufReader, Read},
     path::Path,
-    cell::RefCell
 };
 
 use fs_err as fs;
@@ -83,11 +83,13 @@ pub fn list_archive_contents(
             let a = RefCell::new(Vec::new());
 
             sevenz_rust::decompress_file_with_extract_fn(archive_path, ".", |entry, _, _| {
-                a.borrow_mut().push(Ok(FileInArchive{path: entry.name().into(), is_dir: entry.is_directory()}));
+                a.borrow_mut().push(Ok(FileInArchive {
+                    path: entry.name().into(),
+                    is_dir: entry.is_directory(),
+                }));
                 Ok(true)
-            }).map_err(
-                |e| crate::Error::SevenzipError(e)
-            )?;
+            })
+            .map_err(|e| crate::Error::SevenzipError(e))?;
             Box::new(a.into_inner().into_iter())
         }
         Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {

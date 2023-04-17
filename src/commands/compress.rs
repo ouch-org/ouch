@@ -1,4 +1,5 @@
 use std::{
+    env::current_dir,
     io::{self, BufWriter, Cursor, Seek, Write},
     path::{Path, PathBuf},
 };
@@ -12,8 +13,6 @@ use crate::{
     utils::{user_wants_to_continue, FileVisibilityPolicy},
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
-
-use super::copy_recursively;
 
 /// Compress files into `output_file`.
 ///
@@ -130,18 +129,28 @@ pub fn compress_files(
             io::copy(&mut vec_buffer, &mut writer)?;
         }
         SevenZip => {
-            let tmpdir = tempfile::tempdir()?;
+            let mut writer =
+                sevenz_rust::SevenZWriter::create(output_path).map_err(|e| crate::Error::SevenzipError(e))?;
 
             for filep in files.iter() {
-                if filep.is_dir() {
-                    copy_recursively(filep, tmpdir.path()
-                        .join(filep.strip_prefix(std::env::current_dir()?).expect("copy folder error")))?;
-                } else {
-                    fs::copy(filep, tmpdir.path().join(filep.file_name().expect("no filename in file")))?;
-                }
+                writer
+                    .push_archive_entry::<std::fs::File>(
+                        sevenz_rust::SevenZWriter::<std::fs::File>::create_archive_entry(
+                            filep,
+                            filep
+                                .strip_prefix(current_dir()?)
+                                .expect("StripPrefix Failed")
+                                .as_os_str()
+                                .to_str()
+                                .unwrap()
+                                .to_string(),
+                        ),
+                        None,
+                    )
+                    .map_err(|e| crate::Error::SevenzipError(e))?;
             }
 
-            sevenz_rust::compress_to_path(tmpdir.path(), output_path).expect("can't compress 7zip archive");
+            writer.finish()?;
         }
     }
 
