@@ -34,6 +34,8 @@ pub enum Error {
     Custom { reason: FinalError },
     /// Invalid format passed to `--format`
     InvalidFormat { reason: String },
+    /// From sevenz_rust::Error
+    SevenzipError(sevenz_rust::Error)
 }
 
 /// Alias to std's Result with ouch's Error
@@ -139,6 +141,9 @@ impl fmt::Display for Error {
             Error::UnsupportedZipArchive(reason) => FinalError::with_title("Unsupported zip archive").detail(*reason),
             Error::InvalidFormat { reason } => FinalError::with_title("Invalid archive format").detail(reason.clone()),
             Error::Custom { reason } => reason.clone(),
+            Error::SevenzipError( reason ) => {
+                FinalError::with_title("7z error").detail(reason.to_string())
+            },
         };
 
         write!(f, "{err}")

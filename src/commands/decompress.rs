@@ -148,7 +148,7 @@ pub fn decompress_file(
         }
         SevenZip => {
             sevenz_rust::decompress_file(input_file_path, output_dir).expect("can't decompress");
-            1
+            fs::read_dir(output_dir)?.count()
         }
     };
 
