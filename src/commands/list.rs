@@ -1,5 +1,4 @@
 use std::{
-    cell::RefCell,
     io::{self, BufReader, Read},
     path::Path,
 };
@@ -89,17 +88,17 @@ pub fn list_archive_contents(
             }
         },
         SevenZip => {
-            let a = RefCell::new(Vec::new());
+            let mut a = Vec::new();
 
             sevenz_rust::decompress_file_with_extract_fn(archive_path, ".", |entry, _, _| {
-                a.borrow_mut().push(Ok(FileInArchive {
+                a.push(Ok(FileInArchive {
                     path: entry.name().into(),
                     is_dir: entry.is_directory(),
                 }));
                 Ok(true)
             })
             .map_err(|e| crate::Error::SevenzipError(e))?;
-            Box::new(a.into_inner().into_iter())
+            Box::new(a.into_iter())
         }
         Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {
             panic!("Not an archive! This should never happen, if it does, something is wrong with `CompressionFormat::is_archive()`. Please report this error!");
