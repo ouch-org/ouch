@@ -34,7 +34,7 @@ ubyte = { version = "0.10.3", default-features = false }
 xz2 = "0.1.7"
 zip = { version = "0.6.4", default-features = false, features = ["time"] }
 zstd = { version = "0.12.3", default-features = false }
-sevenz-rust = {version = "0.2.9", features = ["compress"]}
+sevenz-rust = {version = "0.2.10", features = ["compress"]}
 
 [target.'cfg(not(unix))'.dependencies]
 is_executable = "1.0.1"

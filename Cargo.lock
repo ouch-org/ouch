@@ -1182,9 +1182,9 @@ checksum = "71f2b4817415c6d4210bfe1c7bfcf4801b2d904cb4d0e1a8fdb651013c9e86b8"
 
 [[package]]
 name = "sevenz-rust"
-version = "0.2.9"
+version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a12eea80650ae08d8fe6f657d6249d757298bc7a241e00d190ac57cef0e74e02"
+checksum = "c1e99665d02305372743530ff8b84069ea54f4edee8eceb4c92f840e5664c7b3"
 dependencies = [
  "bit-set",
  "byteorder",
