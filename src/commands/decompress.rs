@@ -147,7 +147,13 @@ pub fn decompress_file(
             }
         }
         SevenZip => {
-            sevenz_rust::decompress_file(input_file_path, output_dir).map_err(|x| crate::Error::SevenzipError(x))?;
+            let mut count = 0;
+            sevenz_rust::decompress_file_with_extract_fn(input_file_path, output_dir, 
+            |entry, reader, dest| {
+                count += 1;
+                sevenz_rust::default_entry_extract_fn(entry, reader, dest)
+            }
+            ).map_err(|x| crate::Error::SevenzipError(x))?;
             fs::read_dir(output_dir)?.count()
         }
     };
