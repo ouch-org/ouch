@@ -154,7 +154,7 @@ pub fn decompress_file(
                 sevenz_rust::default_entry_extract_fn(entry, reader, dest)
             }
             ).map_err(|x| crate::Error::SevenzipError(x))?;
-            fs::read_dir(output_dir)?.count()
+            count
         }
     };
 
