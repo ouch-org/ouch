@@ -40,7 +40,7 @@ is_executable = "1.0.1"
 
 [build-dependencies]
 clap = { version = "4.2.4", features = ["derive", "env", "string"] }
-clap_complete = "4.2.0"
+clap_complete = "4.2.1"
 clap_mangen = "0.2.10"
 
 [dev-dependencies]
