@@ -147,14 +147,16 @@ pub fn decompress_file(
             }
         }
         SevenZip => {
-            let mut count = 0;
-            sevenz_rust::decompress_file_with_extract_fn(input_file_path, output_dir, 
-            |entry, reader, dest| {
-                count += 1;
-                sevenz_rust::default_entry_extract_fn(entry, reader, dest)
+            if let ControlFlow::Continue(files) = smart_unpack(
+                |output_dir| crate::archive::sevenz::decompress_sevenz(input_file_path, output_dir),
+                output_dir,
+                &output_file_path,
+                question_policy,
+            )? {
+                files
+            } else {
+                return Ok(());
             }
-            ).map_err(|x| crate::Error::SevenzipError(x))?;
-            count
         }
     };
 

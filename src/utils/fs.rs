@@ -86,6 +86,9 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
     fn is_zst(buf: &[u8]) -> bool {
         buf.starts_with(&[0x28, 0xB5, 0x2F, 0xFD])
     }
+    fn is_sevenz(buf: &[u8]) -> bool {
+        buf.starts_with(&[0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C])
+    }
 
     let buf = {
         let mut buf = [0; 270];
@@ -117,6 +120,8 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
         Some(Extension::new(&[Snappy], "sz"))
     } else if is_zst(&buf) {
         Some(Extension::new(&[Zstd], "zst"))
+    } else if is_sevenz(&buf) {
+        Some(Extension::new(&[SevenZip], "7z"))
     } else {
         None
     }

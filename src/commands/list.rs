@@ -79,6 +79,13 @@ pub fn list_archive_contents(
             Box::new(crate::archive::zip::list_archive(zip_archive))
         }
         SevenZip => {
+            if formats.len() > 1 {
+                warn_user_about_loading_zip_in_memory();
+                if !user_wants_to_continue(archive_path, question_policy, QuestionAction::Decompression)? {
+                    return Ok(());
+                }
+            }
+
             let mut a = Vec::new();
 
             sevenz_rust::decompress_file_with_extract_fn(archive_path, ".", |entry, _, _| {
@@ -88,7 +95,7 @@ pub fn list_archive_contents(
                 }));
                 Ok(true)
             })
-            .map_err(|e| crate::Error::SevenzipError(e))?;
+            .map_err(crate::Error::SevenzipError)?;
             Box::new(a.into_iter())
         }
         Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {
