@@ -91,6 +91,9 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
             && buf.starts_with(&[0x52, 0x61, 0x72, 0x21, 0x1A, 0x07])
             && (buf[6] == 0x00 || (buf.len() >= 8 && buf[6..=7] == [0x01, 0x00]))
     }
+    fn is_sevenz(buf: &[u8]) -> bool {
+        buf.starts_with(&[0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C])
+    }
 
     let buf = {
         let mut buf = [0; 270];
@@ -124,6 +127,8 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
         Some(Extension::new(&[Zstd], "zst"))
     } else if is_rar(&buf) {
         Some(Extension::new(&[Rar], "rar"))
+    } else if is_sevenz(&buf) {
+        Some(Extension::new(&[SevenZip], "7z"))
     } else {
         None
     }
