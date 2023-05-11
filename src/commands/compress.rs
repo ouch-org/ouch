@@ -1,5 +1,4 @@
 use std::{
-    env::current_dir,
     io::{self, BufWriter, Cursor, Seek, Write},
     path::{Path, PathBuf},
 };
@@ -128,28 +127,7 @@ pub fn compress_files(
             return Ok(false);
         },
         SevenZip => {
-            let mut writer =
-                sevenz_rust::SevenZWriter::create(output_path).map_err(|e| crate::Error::SevenzipError(e))?;
-
-            for filep in files.iter() {
-                writer
-                    .push_archive_entry::<std::fs::File>(
-                        sevenz_rust::SevenZWriter::<std::fs::File>::create_archive_entry(
-                            filep,
-                            filep
-                                .strip_prefix(current_dir()?)
-                                .expect("StripPrefix Failed")
-                                .as_os_str()
-                                .to_str()
-                                .unwrap()
-                                .to_string(),
-                        ),
-                        None,
-                    )
-                    .map_err(|e| crate::Error::SevenzipError(e))?;
-            }
-
-            writer.finish()?;
+            archive::sevenz::compress_sevenz(files, output_path)?;
         }
     }
 
