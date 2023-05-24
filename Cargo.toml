@@ -47,7 +47,7 @@ clap_mangen = "0.2.11"
 assert_cmd = "2.0.11"
 infer = "0.13.0"
 parse-display = "0.8.0"
-proptest = "1.1.0"
+proptest = "1.2.0"
 rand = { version = "0.8.5", default-features = false, features = ["small_rng", "std"] }
 test-strategy = "0.3.0"
 
