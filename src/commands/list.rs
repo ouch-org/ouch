@@ -95,17 +95,17 @@ pub fn list_archive_contents(
                 }
             }
 
-            let mut a = Vec::new();
+            let mut files = Vec::new();
 
             sevenz_rust::decompress_file_with_extract_fn(archive_path, ".", |entry, _, _| {
-                a.push(Ok(FileInArchive {
+                files.push(Ok(FileInArchive {
                     path: entry.name().into(),
                     is_dir: entry.is_directory(),
                 }));
                 Ok(true)
             })
             .map_err(crate::Error::SevenzipError)?;
-            Box::new(a.into_iter())
+            Box::new(files.into_iter())
         }
         Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {
             panic!("Not an archive! This should never happen, if it does, something is wrong with `CompressionFormat::is_archive()`. Please report this error!");
