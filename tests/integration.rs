@@ -16,6 +16,8 @@ use crate::utils::{assert_same_directory, write_random_content};
 #[derive(Arbitrary, Debug, Display)]
 #[display(style = "lowercase")]
 enum DirectoryExtension {
+    #[display("7z")]
+    SevenZ,
     Tar,
     Tbz,
     Tbz2,

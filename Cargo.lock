@@ -453,7 +453,7 @@ checksum = "d92d3a090e4eb905aa0c4376799d51ffe6bc184f0f8b27650a98c1f61ae466a6"
 dependencies = [
  "cfg-if",
  "filetime",
- "windows-sys",
+ "windows-sys 0.45.0",
 ]
 
 [[package]]
