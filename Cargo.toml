@@ -26,6 +26,7 @@ lz4_flex = "0.11.1"
 once_cell = "1.18.0"
 rayon = "1.8.0"
 same-file = "1.0.6"
+sevenz-rust = {version = "0.2.10", features = ["compress"]}
 snap = "1.1.0"
 tar = "0.4.40"
 tempfile = "3.8.1"
