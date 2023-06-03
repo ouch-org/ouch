@@ -86,7 +86,7 @@ pub fn decompress_file(
             Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
             Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
             Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
-            Tar | Zip => unreachable!(),
+            Tar | Zip => decoder,
         };
         Ok(decoder)
     };
