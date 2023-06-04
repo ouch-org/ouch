@@ -261,14 +261,14 @@ fn get_last_modified_time(file: &fs::File) -> DateTime {
 }
 
 fn set_last_modified_time(zip_file: &ZipFile, path: &Path) -> crate::Result<()> {
-    let modification_time_in_seconds = zip_file
-        .last_modified()
-        .to_time()
-        .expect("Zip archive contains a file with broken 'last modified time'")
-        .unix_timestamp();
+    let modification_time = zip_file.last_modified().to_time();
+
+    let Ok(time_in_seconds) = modification_time else {
+        return Ok(());
+    };
 
     // Zip does not support nanoseconds, so we can assume zero here
-    let modification_time = FileTime::from_unix_time(modification_time_in_seconds, 0);
+    let modification_time = FileTime::from_unix_time(time_in_seconds.unix_timestamp(), 0);
 
     set_file_mtime(path, modification_time)?;
 
