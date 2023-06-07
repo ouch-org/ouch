@@ -28,7 +28,7 @@ rayon = "1.7.0"
 same-file = "1.0.6"
 snap = "1.1.0"
 tar = "0.4.38"
-tempfile = "3.5.0"
+tempfile = "3.6.0"
 time = { version = "0.3.21", default-features = false }
 ubyte = { version = "0.10.3", default-features = false }
 xz2 = "0.1.7"
