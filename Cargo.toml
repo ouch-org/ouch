@@ -45,7 +45,7 @@ clap_mangen = "0.2.12"
 
 [dev-dependencies]
 assert_cmd = "2.0.11"
-infer = "0.13.0"
+infer = "0.14.0"
 parse-display = "0.8.0"
 proptest = "1.2.0"
 rand = { version = "0.8.5", default-features = false, features = ["small_rng", "std"] }
