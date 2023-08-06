@@ -18,7 +18,9 @@ Categories Used:
 
 **Bullet points in chronological order by PR**
 
-## [Unreleased](https://github.com/ouch-org/ouch/compare/0.4.1...HEAD)
+## [Unreleased](https://github.com/ouch-org/ouch/compare/0.4.2...HEAD)
+
+## [0.4.2](https://github.com/ouch-org/ouch/compare/0.4.1...0.4.2)
 
 ### New Features
 
@@ -50,8 +52,8 @@ Categories Used:
 - Improve extension parsing logic [\#330](https://github.com/ouch-org/ouch/pull/330) ([figsoda](https://github.com/figsoda))
 - Slight refactor when ensuring archive-only inputs [\#331](https://github.com/ouch-org/ouch/pull/331) ([vrmiguel](https://github.com/vrmiguel))
 - Use BStr to display possibly non-UTF8 byte sequences[\#332](https://github.com/ouch-org/ouch/pull/332) ([vrmiguel](https://github.com/vrmiguel))
-- Use ubyte instead of humansize #333  [\#333](https://github.com/ouch-org/ouch/pull/333) ([vrmiguel](https://github.com/vrmiguel))
-- Stop keeping track of the names of unpacked files  [\#334](https://github.com/ouch-org/ouch/pull/334) ([vrmiguel](https://github.com/vrmiguel))
+- Use ubyte instead of humansize #333 [\#333](https://github.com/ouch-org/ouch/pull/333) ([vrmiguel](https://github.com/vrmiguel))
+- Stop keeping track of the names of unpacked files [\#334](https://github.com/ouch-org/ouch/pull/334) ([vrmiguel](https://github.com/vrmiguel))
 - Clean up [\#335](https://github.com/ouch-org/ouch/pull/335) ([figsoda](https://github.com/figsoda))
 
 ### Bug fixes
