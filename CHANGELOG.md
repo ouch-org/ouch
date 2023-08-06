@@ -27,6 +27,7 @@ Categories Used:
 - Add flags to configure the compression level
   - `--level` to precisely set the compression level [\#372](https://github.com/ouch-org/ouch/pull/372) ([xgdgsc](https://github.com/xgdgsc))
   - `--fast` and `--slow` [\#374](https://github.com/ouch-org/ouch/pull/374) ([figsoda](https://github.com/figsoda))
+- Add `--format` option [\#341](https://github.com/ouch-org/ouch/pull/341) ([figsoda](https://github.com/figsoda))
 
 ### Improvements
 
@@ -36,8 +37,9 @@ Categories Used:
 ### Bug Fixes
 
 - Fix decompression of zip archives with files larger than 4GB [\#354](https://github.com/ouch-org/ouch/pull/354) ([figsoda](https://github.com/figsoda))
-
 - Fix handling of unknown extensions during decompression [\#355](https://github.com/ouch-org/ouch/pull/355) ([figsoda](https://github.com/figsoda))
+- Remove remaining mentions of `.lz` that refers to the LZMA format [\#344](https://github.com/ouch-org/ouch/pull/344) ([marcospb19](https://github.com/marcospb19))
+- Handle Zip when modification times are missing [\#433](https://github.com/ouch-org/ouch/pull/433) ([marcospb19](https://github.com/marcospb19))
 
 ## [0.4.1](https://github.com/ouch-org/ouch/compare/0.4.0...0.4.1)
 
