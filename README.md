@@ -2,7 +2,7 @@
   <a href="https://crates.io/crates/ouch">
     <img src="https://img.shields.io/crates/v/ouch?color=6090FF&style=flat-square" alt="Crates.io link">
   </a>
-  <a href="https://github.com/ouch/ouch-org/blob/master/LICENSE">
+  <a href="https://github.com/ouch-org/ouch/blob/main/LICENSE">
     <img src="https://img.shields.io/crates/l/ouch?color=6090FF&style=flat-square" alt="License">
   </a>
 </p>

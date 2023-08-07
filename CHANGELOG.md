@@ -18,13 +18,16 @@ Categories Used:
 
 **Bullet points in chronological order by PR**
 
-## [Unreleased](https://github.com/ouch-org/ouch/compare/0.4.1...HEAD)
+## [Unreleased](https://github.com/ouch-org/ouch/compare/0.4.2...HEAD)
+
+## [0.4.2](https://github.com/ouch-org/ouch/compare/0.4.1...0.4.2)
 
 ### New Features
 
 - Add flags to configure the compression level
   - `--level` to precisely set the compression level [\#372](https://github.com/ouch-org/ouch/pull/372) ([xgdgsc](https://github.com/xgdgsc))
   - `--fast` and `--slow` [\#374](https://github.com/ouch-org/ouch/pull/374) ([figsoda](https://github.com/figsoda))
+- Add `--format` option [\#341](https://github.com/ouch-org/ouch/pull/341) ([figsoda](https://github.com/figsoda))
 
 ### Improvements
 
@@ -34,8 +37,9 @@ Categories Used:
 ### Bug Fixes
 
 - Fix decompression of zip archives with files larger than 4GB [\#354](https://github.com/ouch-org/ouch/pull/354) ([figsoda](https://github.com/figsoda))
-
 - Fix handling of unknown extensions during decompression [\#355](https://github.com/ouch-org/ouch/pull/355) ([figsoda](https://github.com/figsoda))
+- Remove remaining mentions of `.lz` that refers to the LZMA format [\#344](https://github.com/ouch-org/ouch/pull/344) ([marcospb19](https://github.com/marcospb19))
+- Handle Zip when modification times are missing [\#433](https://github.com/ouch-org/ouch/pull/433) ([marcospb19](https://github.com/marcospb19))
 
 ## [0.4.1](https://github.com/ouch-org/ouch/compare/0.4.0...0.4.1)
 
@@ -50,8 +54,8 @@ Categories Used:
 - Improve extension parsing logic [\#330](https://github.com/ouch-org/ouch/pull/330) ([figsoda](https://github.com/figsoda))
 - Slight refactor when ensuring archive-only inputs [\#331](https://github.com/ouch-org/ouch/pull/331) ([vrmiguel](https://github.com/vrmiguel))
 - Use BStr to display possibly non-UTF8 byte sequences[\#332](https://github.com/ouch-org/ouch/pull/332) ([vrmiguel](https://github.com/vrmiguel))
-- Use ubyte instead of humansize #333  [\#333](https://github.com/ouch-org/ouch/pull/333) ([vrmiguel](https://github.com/vrmiguel))
-- Stop keeping track of the names of unpacked files  [\#334](https://github.com/ouch-org/ouch/pull/334) ([vrmiguel](https://github.com/vrmiguel))
+- Use ubyte instead of humansize #333 [\#333](https://github.com/ouch-org/ouch/pull/333) ([vrmiguel](https://github.com/vrmiguel))
+- Stop keeping track of the names of unpacked files [\#334](https://github.com/ouch-org/ouch/pull/334) ([vrmiguel](https://github.com/vrmiguel))
 - Clean up [\#335](https://github.com/ouch-org/ouch/pull/335) ([figsoda](https://github.com/figsoda))
 
 ### Bug fixes
@@ -179,7 +183,7 @@ Categories Used:
 - Migrate from `oof` to `clap` for argument parsing [\#105](https://github.com/ouch-org/ouch/issues/105) & [\#108](https://github.com/ouch-org/ouch/pull/108) ([SpyrosRoum](https://github.com/SpyrosRoum))
 - Shell completions & man page [\#122](https://github.com/ouch-org/ouch/pull/122) ([figsoda](https://github.com/figsoda))
 - Implement command 'list' to show archive contents [\#129](https://github.com/ouch-org/ouch/pull/129) ([AntonHermann](https://github.com/AntonHermann))
-- Print number of unpacked files by [\#130](https://github.com/ouch-org/ouch/pull/130) ([dcariotti](https://github.com/dcariotti))
+- Print number of unpacked files by [\#130](https://github.com/ouch-org/ouch/pull/130) ([boozec](https://github.com/boozec))
 
 **Disclaimer: _Our installation script does not support installing man pages and shell completions yet, but PRs are welcome!_**
 
@@ -187,7 +191,7 @@ Categories Used:
 
 - Empty folders are ignored in archive compression formats [\#41](https://github.com/ouch-org/ouch/issues/41) ([GabrielSimonetto](https://github.com/GabrielSimonetto))
 - fix macOS executable paths [\#69](https://github.com/ouch-org/ouch/pull/69) ([vrmiguel](https://github.com/vrmiguel))
-- Print the format type when the format is in an incorrect position [\#84](https://github.com/ouch-org/ouch/pull/84) ([dcariotti](https://github.com/dcariotti))
+- Print the format type when the format is in an incorrect position [\#84](https://github.com/ouch-org/ouch/pull/84) ([boozec](https://github.com/boozec))
 - Compressing a single file to a single format that's not `tar` or `zip` panics [\#87](https://github.com/ouch-org/ouch/issues/87) & [\#89](https://github.com/ouch-org/ouch/pull/89) ([marcospb19](https://github.com/marcospb19))
 - Compression flag `--output` not working with single file compression [\#90](https://github.com/ouch-org/ouch/issues/90) & [\#93](https://github.com/ouch-org/ouch/pull/93) ([figsoda](https://github.com/figsoda))
 - Fix NO_COLOR issues, remove some dead code [\#66](https://github.com/ouch-org/ouch/issues/66), [\#62](https://github.com/ouch-org/ouch/issues/62), & [\#95](https://github.com/ouch-org/ouch/pull/95) ([figsoda](https://github.com/figsoda))
@@ -206,7 +210,7 @@ Categories Used:
 - Omit "./" at the start of the path [\#109](https://github.com/ouch-org/ouch/pull/109) & [\#116](https://github.com/ouch-org/ouch/pull/116) ([exoego](https://github.com/exoego))
 - Introduce new enum for policy on how to handle y/n questions [\#124](https://github.com/ouch-org/ouch/issues/124) ([AntonHermann](https://github.com/AntonHermann))
 - Add missing docs [\#128](https://github.com/ouch-org/ouch/pull/128) ([GabrielSimonetto](https://github.com/GabrielSimonetto))
-- CI: Check the format with Github Action [\#126](https://github.com/ouch-org/ouch/pull/126) ([dcariotti](https://github.com/dcariotti))
+- CI: Check the format with Github Action [\#126](https://github.com/ouch-org/ouch/pull/126) ([boozec](https://github.com/boozec))
 - CI: Rewrite [\#135](https://github.com/ouch-org/ouch/pull/135) ([figsoda](https://github.com/figsoda))
 - Improving error messages and removing dead error treatment code [\#140](https://github.com/ouch-org/ouch/pull/140) ([marcospb19](https://github.com/marcospb19))
 
@@ -232,7 +236,7 @@ Categories Used:
 ### New Contributors
 
 - [@figsoda](https://github.com/figsoda) made their first contribution in #86
-- [@dcariotti](https://github.com/dcariotti) made their first contribution in #84
+- [@boozec](https://github.com/boozec) made their first contribution in #84
 - [@SpyrosRoum](https://github.com/SpyrosRoum) made their first contribution in #97
 - [@dnaka91](https://github.com/dnaka91) made their first contribution in #101
 - [@exoego](https://github.com/exoego) made their first contribution in #109
@@ -273,7 +277,7 @@ Categories Used:
 
 ### Improvements
 
-- Further testing to oof cli [\#38](https://github.com/ouch-org/ouch/pull/38) ([fabricio7p](https://github.com/fabricio7p))
+- Further testing to oof cli [\#38](https://github.com/ouch-org/ouch/pull/38) ([demfabris](https://github.com/demfabris))
 - Reuse Confirmation struct when checking for overwrite permission [\#42](https://github.com/ouch-org/ouch/pull/42) ([vrmiguel](https://github.com/vrmiguel))
 
 ## [0.1.5](https://github.com/ouch-org/ouch/compare/0.1.5-rc...0.1.5) (2021-05-27)
@@ -291,7 +295,7 @@ Categories Used:
 ### Improvements
 
 - Added compression and decompression tests for each current supported format [\#24](https://github.com/ouch-org/ouch/pull/24) ([marcospb19](https://github.com/marcospb19))
-- Add tests to oof [\#27](https://github.com/ouch-org/ouch/pull/27) ([fabricio7p](https://github.com/fabricio7p))
+- Add tests to oof [\#27](https://github.com/ouch-org/ouch/pull/27) ([demfabris](https://github.com/demfabris))
 
 ### Tweaks
 
@@ -299,7 +303,7 @@ Categories Used:
 
 ### New Contributors
 
-- [@fabricio7p](https://github.com/figsoda) made their first contribution in [\#27](https://github.com/ouch-org/ouch/pull/27)
+- [@demfabris](https://github.com/demfabris) made their first contribution in [\#27](https://github.com/ouch-org/ouch/pull/27)
 
 ## [0.1.5-rc](https://github.com/ouch-org/ouch/compare/0.1.4...0.1.5-rc) (2021-04-07)
 
