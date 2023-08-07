@@ -27,7 +27,7 @@ once_cell = "1.18.0"
 rayon = "1.7.0"
 same-file = "1.0.6"
 snap = "1.1.0"
-tar = "0.4.39"
+tar = "0.4.40"
 tempfile = "3.7.0"
 time = { version = "0.3.25", default-features = false }
 ubyte = { version = "0.10.3", default-features = false }
