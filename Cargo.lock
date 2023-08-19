@@ -776,9 +776,9 @@ dependencies = [
 
 [[package]]
 name = "nt-time"
-version = "0.4.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91dd7a30dbf611fc3c790404c9ef8e1631971a9dd020a45905c7685727e9cf43"
+checksum = "b1d4f129ec1833164165b1711c30b4fa4a2b12784ffefa9fe877b016704b7165"
 dependencies = [
  "chrono",
  "time",
@@ -1172,9 +1172,9 @@ dependencies = [
 
 [[package]]
 name = "sevenz-rust"
-version = "0.2.11"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bf83efe73d438a1aad929279a2fc0ff3fb32f841421c09a64f3d04c4d162a23"
+checksum = "33c7d45965e6557597a30e2d12e15d6a5f438bb7cbc11d5dbe89762541c0cd42"
 dependencies = [
  "bit-set",
  "byteorder",
