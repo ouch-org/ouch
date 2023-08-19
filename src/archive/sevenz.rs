@@ -1,8 +1,7 @@
 //! SevenZip archive format compress function
-use std::{
-    env::current_dir,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
+
+use crate::utils::strip_cur_dir;
 
 pub fn compress_sevenz(files: Vec<PathBuf>, output_path: &Path) -> crate::Result<bool> {
     let mut writer = sevenz_rust::SevenZWriter::create(output_path).map_err(crate::Error::SevenzipError)?;
@@ -10,11 +9,9 @@ pub fn compress_sevenz(files: Vec<PathBuf>, output_path: &Path) -> crate::Result
     for filep in files.iter() {
         writer
             .push_archive_entry::<std::fs::File>(
-                sevenz_rust::SevenZWriter::<std::fs::File>::create_archive_entry(
+                sevenz_rust::SevenZArchiveEntry::from_path(
                     filep,
-                    filep
-                        .strip_prefix(current_dir()?)
-                        .expect("StripPrefix Failed")
+                    strip_cur_dir(filep)
                         .as_os_str()
                         .to_str()
                         .unwrap()
