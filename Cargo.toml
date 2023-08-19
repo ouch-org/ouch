@@ -14,7 +14,7 @@ description = "A command-line utility for easily compressing and decompressing f
 atty = "0.2.14"
 bstr = { version = "1.6.0", default-features = false, features = ["std"] }
 bzip2 = "0.4.4"
-clap = { version = "4.3.22", features = ["derive", "env"] }
+clap = { version = "4.3.23", features = ["derive", "env"] }
 filetime = "0.2.22"
 flate2 = { version = "1.0.27", default-features = false }
 fs-err = "2.9.0"
@@ -39,7 +39,7 @@ zstd = { version = "0.12.4", default-features = false }
 is_executable = "1.0.1"
 
 [build-dependencies]
-clap = { version = "4.3.22", features = ["derive", "env", "string"] }
+clap = { version = "4.3.23", features = ["derive", "env", "string"] }
 clap_complete = "4.3.2"
 clap_mangen = "0.2.12"
 
