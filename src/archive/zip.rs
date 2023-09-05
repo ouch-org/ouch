@@ -14,7 +14,6 @@ use filetime::{set_file_mtime, FileTime};
 use fs_err as fs;
 use same_file::Handle;
 use time::OffsetDateTime;
-use ubyte::ToByteUnit;
 use zip::{self, read::ZipFile, DateTime, ZipArchive};
 
 use crate::{
@@ -22,7 +21,7 @@ use crate::{
     info,
     list::FileInArchive,
     utils::{
-        self, cd_into_same_dir_as, get_invalid_utf8_paths, pretty_format_list_of_paths, strip_cur_dir,
+        self, cd_into_same_dir_as, get_invalid_utf8_paths, pretty_format_list_of_paths, strip_cur_dir, Bytes,
         EscapedPathDisplay, FileVisibilityPolicy,
     },
     warning,
@@ -74,7 +73,7 @@ where
                         inaccessible,
                         "{:?} extracted. ({})",
                         file_path.display(),
-                        file.size().bytes()
+                        Bytes::new(file.size()),
                     );
                 }
 

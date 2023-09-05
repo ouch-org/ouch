@@ -10,13 +10,12 @@ use std::{
 
 use fs_err as fs;
 use same_file::Handle;
-use ubyte::ToByteUnit;
 
 use crate::{
     error::FinalError,
     info,
     list::FileInArchive,
-    utils::{self, EscapedPathDisplay, FileVisibilityPolicy},
+    utils::{self, Bytes, EscapedPathDisplay, FileVisibilityPolicy},
     warning,
 };
 
@@ -41,7 +40,7 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) 
                 inaccessible,
                 "{:?} extracted. ({})",
                 utils::strip_cur_dir(&output_folder.join(file.path()?)),
-                file.size().bytes(),
+                Bytes::new(file.size()),
             );
 
             files_unpacked += 1;
