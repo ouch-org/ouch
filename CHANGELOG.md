@@ -20,6 +20,10 @@ Categories Used:
 
 ## [Unreleased](https://github.com/ouch-org/ouch/compare/0.4.2...HEAD)
 
+### Bug Fixes
+
+- Fix size unit inconsistency [\#502](https://github.com/ouch-org/ouch/pull/502) ([marcospb19](https://github.com/marcospb19))
+
 ## [0.4.2](https://github.com/ouch-org/ouch/compare/0.4.1...0.4.2)
 
 ### New Features
