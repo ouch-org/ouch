@@ -137,13 +137,13 @@ pub fn run(
                 }
             } else {
                 for path in files.iter() {
-                    let (path, mut file_formats) = extension::separate_known_extensions_from_name(path);
+                    let (pathbase, mut file_formats) = extension::separate_known_extensions_from_name(path);
 
                     if let ControlFlow::Break(_) = check::check_mime_type(path, &mut file_formats, question_policy)? {
                         return Ok(());
                     }
 
-                    output_paths.push(path);
+                    output_paths.push(pathbase);
                     formats.push(file_formats);
                 }
             }
