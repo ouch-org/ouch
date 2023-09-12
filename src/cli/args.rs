@@ -53,7 +53,7 @@ pub enum Subcommand {
     #[command(visible_alias = "c")]
     Compress {
         /// Files to be compressed
-        #[arg(required = true, num_args = 1..)]
+        #[arg(required = true, value_hint = ValueHint::FilePath)]
         files: Vec<PathBuf>,
 
         /// The resulting file. Its extensions can be used to specify the compression formats
@@ -78,18 +78,18 @@ pub enum Subcommand {
     #[command(visible_alias = "d")]
     Decompress {
         /// Files to be decompressed
-        #[arg(required = true, num_args = 1..)]
+        #[arg(required = true, num_args = 1.., value_hint = ValueHint::FilePath)]
         files: Vec<PathBuf>,
 
         /// Place results in a directory other than the current one
-        #[arg(short = 'd', long = "dir", value_hint = ValueHint::DirPath)]
+        #[arg(short = 'd', long = "dir", value_hint = ValueHint::FilePath)]
         output_dir: Option<PathBuf>,
     },
     /// List contents of an archive
     #[command(visible_aliases = ["l", "ls"])]
     List {
         /// Archives whose contents should be listed
-        #[arg(required = true, num_args = 1..)]
+        #[arg(required = true, num_args = 1.., value_hint = ValueHint::FilePath)]
         archives: Vec<PathBuf>,
 
         /// Show archive contents as a tree

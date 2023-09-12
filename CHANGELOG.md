@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-_This changelog was created after v0.3.1 was released. As a result, there may be slight inaccuracies with versions <= v0.3.1._
+_This changelog was created after v0.3.1. As a result, there may be slight inaccuracies with prior versions._
 
 Categories Used:
 
@@ -23,6 +23,10 @@ Categories Used:
 ### Bug Fixes
 
 - Fix size unit inconsistency [\#502](https://github.com/ouch-org/ouch/pull/502) ([marcospb19](https://github.com/marcospb19))
+
+### Improvements
+
+- Hint completions generator to expand file paths [\#508](https://github.com/ouch-org/ouch/pull/508) ([marcospb19](https://github.com/marcospb19))
 
 ## [0.4.2](https://github.com/ouch-org/ouch/compare/0.4.1...0.4.2)
 
