@@ -1,5 +1,7 @@
 //! Macros used on ouch.
 
+use std::io;
+
 /// Macro that prints \[INFO\] messages, wraps [`eprintln`].
 ///
 /// There are essentially two different versions of the `info!()` macro:
@@ -19,24 +21,32 @@ macro_rules! info {
     // Accessible (short/important) info message.
     // Show info message even in ACCESSIBLE mode
     (accessible, $($arg:tt)*) => {{
-        use $crate::utils::colors::{YELLOW, RESET};
+        use ::std::io::{stderr, Write};
+
+        use $crate::{macros::stderr_check, utils::colors::{YELLOW, RESET}};
+
+        let mut stderr = stderr().lock();
 
         if $crate::accessible::is_running_in_accessible_mode() {
-            eprint!("{}Info:{} ", *YELLOW, *RESET);
+            stderr_check(write!(stderr, "{}Info:{} ", *YELLOW, *RESET));
         } else {
-            eprint!("{}[INFO]{} ", *YELLOW, *RESET);
+            stderr_check(write!(stderr, "{}[INFO]{} ", *YELLOW, *RESET));
         }
 
-        eprintln!($($arg)*);
+        stderr_check(writeln!(stderr, $($arg)*));
     }};
     // Inccessible (long/no important) info message.
     // Print info message if ACCESSIBLE is not turned on
     (inaccessible, $($arg:tt)*) => {{
-        use $crate::utils::colors::{YELLOW, RESET};
+        use ::std::io::{stderr, Write};
+
+        use $crate::{macros::stderr_check, utils::colors::{YELLOW, RESET}};
+
+        let mut stderr = stderr().lock();
 
         if !$crate::accessible::is_running_in_accessible_mode() {
-            eprint!("{}[INFO]{} ", *YELLOW, *RESET);
-            eprintln!($($arg)*);
+            stderr_check(write!(stderr, "{}[INFO]{} ", *YELLOW, *RESET));
+            stderr_check(writeln!(stderr, $($arg)*));
         }
     }};
 }
@@ -45,14 +55,22 @@ macro_rules! info {
 #[macro_export]
 macro_rules! warning {
     ($($arg:tt)*) => {{
-        use $crate::utils::colors::{ORANGE, RESET};
+        use ::std::io::{stderr, Write};
+
+        use $crate::{macros::stderr_check, utils::colors::{ORANGE, RESET}};
+
+        let mut stderr = stderr().lock();
 
         if $crate::accessible::is_running_in_accessible_mode() {
-            eprint!("{}Warning:{} ", *ORANGE, *RESET);
+            stderr_check(write!(stderr, "{}Warning:{} ", *ORANGE, *RESET));
         } else {
-            eprint!("{}[WARNING]{} ", *ORANGE, *RESET);
+            stderr_check(write!(stderr, "{}[WARNING]{} ", *ORANGE, *RESET));
         }
 
-        eprintln!($($arg)*);
+        stderr_check(writeln!(stderr, $($arg)*));
     }};
+}
+
+pub fn stderr_check(result: io::Result<()>) {
+    result.expect("failed printing to stderr");
 }
