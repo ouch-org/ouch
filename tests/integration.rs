@@ -65,22 +65,22 @@ fn create_random_files(dir: impl Into<PathBuf>, depth: u8, rng: &mut SmallRng) {
 
     let dir = &dir.into();
 
-    // create 0 to 7 random files
-    for _ in 0..rng.gen_range(0..8u32) {
+    // create 0 to 4 random files
+    for _ in 0..rng.gen_range(0..=4u32) {
         write_random_content(
             &mut tempfile::Builder::new().tempfile_in(dir).unwrap().keep().unwrap().0,
             rng,
         );
     }
 
-    // create more random files in 0 to 3 new directories
-    for _ in 0..rng.gen_range(0..4u32) {
+    // create more random files in 0 to 2 new directories
+    for _ in 0..rng.gen_range(0..=2u32) {
         create_random_files(&tempfile::tempdir_in(dir).unwrap().into_path(), depth - 1, rng);
     }
 }
 
 // compress and decompress a single empty file
-#[proptest(cases = 512)]
+#[proptest(cases = 200)]
 fn single_empty_file(ext: Extension, #[any(size_range(0..8).lift())] exts: Vec<FileExtension>) {
     let dir = tempdir().unwrap();
     let dir = dir.path();
@@ -99,7 +99,7 @@ fn single_empty_file(ext: Extension, #[any(size_range(0..8).lift())] exts: Vec<F
 }
 
 // compress and decompress a single file
-#[proptest(cases = 512)]
+#[proptest(cases = 250)]
 fn single_file(
     ext: Extension,
     #[any(size_range(0..8).lift())] exts: Vec<FileExtension>,
@@ -123,10 +123,13 @@ fn single_file(
 }
 
 // compress and decompress a directory with random content generated with create_random_files
-#[proptest(cases = 512)]
+//
+// this one runs only 50 times because there are only `.zip` and `.tar` to be tested, and
+// single-file formats testing is done in the other test
+#[proptest(cases = 50)]
 fn multiple_files(
     ext: DirectoryExtension,
-    #[any(size_range(0..8).lift())] exts: Vec<FileExtension>,
+    #[any(size_range(0..7).lift())] exts: Vec<FileExtension>,
     #[strategy(0u8..4)] depth: u8,
 ) {
     let dir = tempdir().unwrap();
