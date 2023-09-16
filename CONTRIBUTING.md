@@ -8,12 +8,32 @@ We follow the [Rust Official Code of Conduct](https://www.rust-lang.org/policies
 
 Create [an issue](https://github.com/ouch-org/ouch/issues) or go to [Ouch Discussions](https://github.com/ouch-org/ouch/discussions).
 
-# Adding a new feature
+# Adding a brand new feature
 
-Before creating a PR with a new feature, please, open an issue to suggest your addition.
+Before opening the PR, open an issue to discuss your addition, this increases the chance of your PR being accepted.
 
-This allows us to discuss the problem and solution, increasing the chance of your PR to be accepted.
+# PRs
 
-# Don't forget to
+- Pass all CI checks.
+- After opening the PR, add a [CHANGELOG.md] entry.
 
-- In your PR, add a CHANGELOG.md entry.
+# Updating UI tests
+
+In case you need to update the UI tests.
+
+- Run tests with `insta` to create the new snapshots:
+
+```sh
+cargo insta review # or
+cargo insta review -- ui # useful filter
+```
+
+- Now, review the diffs you just generated.
+
+```sh
+cargo insta review
+```
+
+- You can commit them now.
+
+[CHANGELOG.md]: https://github.com/ouch-org/ouch
