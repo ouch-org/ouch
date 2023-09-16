@@ -1,0 +1,14 @@
+---
+source: tests/ui.rs
+expression: "run_ouch(\"ouch decompress a\", dir)"
+---
+[ERROR] Cannot decompress files without extensions
+ - Files without supported extensions: <FOLDER>/a
+ - Decompression formats are detected automatically by the file extension
+
+hint: Provide a file with a supported extension:
+hint:   ouch decompress example.tar.gz
+hint: 
+hint: Or overwrite this option with the '--format' flag:
+hint:   ouch decompress <FOLDER>/a --format tar.gz
+

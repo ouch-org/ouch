@@ -1,0 +1,48 @@
+---
+source: tests/ui.rs
+expression: "output_to_string(ouch!(\"--help\"))"
+---
+A command-line utility for easily compressing and decompressing files and directories.
+
+Supported formats: tar, zip, gz, xz/lzma, bz/bz2, lz4, sz, zst.
+
+Repository: https://github.com/ouch-org/ouch
+
+Usage: ouch [OPTIONS] <COMMAND>
+
+Commands:
+  compress    Compress one or more files into one output file [aliases: c]
+  decompress  Decompresses one or more files, optionally into another folder [aliases: d]
+  list        List contents of an archive [aliases: l, ls]
+  help        Print this message or the help of the given subcommand(s)
+
+Options:
+  -y, --yes
+          Skip [Y/n] questions positively
+
+  -n, --no
+          Skip [Y/n] questions negatively
+
+  -A, --accessible
+          Activate accessibility mode, reducing visual noise
+          
+          [env: ACCESSIBLE=]
+
+  -H, --hidden
+          Ignores hidden files
+
+  -q, --quiet
+          Silences output
+
+  -g, --gitignore
+          Ignores files matched by git's ignore files
+
+  -f, --format <FORMAT>
+          Specify the format of the archive
+
+  -h, --help
+          Print help (see a summary with '-h')
+
+  -V, --version
+          Print version
+

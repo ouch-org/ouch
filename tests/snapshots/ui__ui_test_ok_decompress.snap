@@ -1,0 +1,8 @@
+---
+source: tests/ui.rs
+expression: "run_ouch(\"ouch decompress output.zst\", dir)"
+---
+[INFO] Failed to confirm the format of `output` by sniffing the contents, file might be misnamed
+[INFO] Successfully decompressed archive in current directory.
+[INFO] Files unpacked: 1
+
