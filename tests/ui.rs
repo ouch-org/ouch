@@ -8,8 +8,12 @@ mod utils;
 
 use std::{io, path::Path, process::Output};
 
+#[cfg(not(windows))]
 use insta::assert_display_snapshot as ui;
 
+// Don't run these on Windows
+#[cfg(windows)]
+use self::ignore as ui;
 use crate::utils::run_in;
 
 fn testdir() -> io::Result<(tempfile::TempDir, &'static Path)> {
@@ -37,9 +41,16 @@ fn run_ouch(argv: &str, dir: &Path) -> String {
 
 // remove random tempdir paths from snapshots to make them deterministic
 fn redact_paths(text: &str, path: &Path) -> String {
-    let path = format!("{}/", path.display());
+    let redacted = "<FOLDER>";
 
-    text.replace(&path, "<FOLDER>/")
+    let path = path.display();
+    let path = if cfg!(target_os = "macos") {
+        format!(r"/private{path}")
+    } else {
+        path.to_string()
+    };
+
+    text.replace(path.as_str(), redacted)
 }
 
 fn output_to_string(output: Output) -> String {
@@ -100,4 +111,12 @@ fn ui_test_ok_decompress() {
 fn ui_test_usage_help_flag() {
     ui!(output_to_string(ouch!("--help")));
     ui!(output_to_string(ouch!("-h")));
+}
+
+#[allow(unused)]
+#[macro_export]
+macro_rules! ignore {
+    ($expr:expr) => {{
+        $expr
+    }};
 }
