@@ -1,14 +1,12 @@
 ---
 source: tests/ui.rs
-expression: "run_ouch(\"ouch decompress a\", dir)"
+expression: "run_ouch(\"ouch decompress a b.unknown\", dir)"
 ---
 [ERROR] Cannot decompress files
+ - Files with unsupported extensions: <FOLDER>/b.unknown
  - Files with missing extensions: <FOLDER>/a
  - Decompression formats are detected automatically from file extension
 
 hint: Supported extensions are: tar, zip, bz, bz2, gz, lz4, xz, lzma, sz, zst
 hint: Supported aliases are: tgz, tbz, tlz4, txz, tzlma, tsz, tzst
-hint: 
-hint: Alternatively, you can pass an extension to the '--format' flag:
-hint:   ouch decompress <FOLDER>/a --format tar.gz
 
