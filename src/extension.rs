@@ -7,6 +7,11 @@ use bstr::ByteSlice;
 use self::CompressionFormat::*;
 use crate::{error::Error, warning};
 
+pub const SUPPORTED_EXTENSIONS: &[&str] = &["tar", "zip", "bz", "bz2", "gz", "lz4", "xz", "lzma", "sz", "zst"];
+pub const SUPPORTED_ALIASES: &[&str] = &["tgz", "tbz", "tlz4", "txz", "tzlma", "tsz", "tzst"];
+pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, gz, lz4, xz, lzma, sz, zst";
+pub const PRETTY_SUPPORTED_ALIASES: &str = "tgz, tbz, tlz4, txz, tzlma, tsz, tzst";
+
 /// A wrapper around `CompressionFormat` that allows combinations like `tgz`
 #[derive(Debug, Clone, Eq)]
 #[non_exhaustive]
@@ -85,11 +90,6 @@ impl CompressionFormat {
     }
 }
 
-pub const SUPPORTED_EXTENSIONS: &[&str] = &[
-    "tar", "tgz", "tbz", "tlz4", "txz", "tzlma", "tsz", "tzst", "zip", "bz", "bz2", "gz", "lz4", "xz", "lzma", "sz",
-    "zst",
-];
-
 fn to_extension(ext: &[u8]) -> Option<Extension> {
     Some(Extension::new(
         match ext {
@@ -156,7 +156,7 @@ pub fn separate_known_extensions_from_name(path: &Path) -> (&Path, Vec<Extension
 
     if let Ok(name) = name.to_str() {
         let file_stem = name.trim_matches('.');
-        if SUPPORTED_EXTENSIONS.contains(&file_stem) {
+        if SUPPORTED_EXTENSIONS.contains(&file_stem) || SUPPORTED_ALIASES.contains(&file_stem) {
             warning!("Received a file with name '{file_stem}', but {file_stem} was expected as the extension.");
         }
     }
@@ -208,7 +208,7 @@ pub fn build_archive_file_suggestion(path: &Path, suggested_extension: &str) -> 
 
         // If the extension we got is a supported extension, generate the suggestion
         // at the position we found
-        if SUPPORTED_EXTENSIONS.contains(&maybe_extension) {
+        if SUPPORTED_EXTENSIONS.contains(&maybe_extension) || SUPPORTED_ALIASES.contains(&maybe_extension) {
             let mut path = path.to_string();
             path.insert_str(position_to_insert - 1, suggested_extension);
 
@@ -227,7 +227,6 @@ mod tests {
 
     #[test]
     fn test_extensions_from_path() {
-        use CompressionFormat::*;
         let path = Path::new("bolovo.tar.gz");
 
         let extensions: Vec<Extension> = extensions_from_path(path);
