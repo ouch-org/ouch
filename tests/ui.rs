@@ -71,9 +71,11 @@ fn ui_test_err_compress_missing_extension() {
 fn ui_test_err_decompress_missing_extension() {
     let (_dropper, dir) = testdir().unwrap();
 
-    run_in(dir, "touch", "a").unwrap();
+    run_in(dir, "touch", "a b.unknown").unwrap();
 
     ui!(run_ouch("ouch decompress a", dir));
+    ui!(run_ouch("ouch decompress a b.unknown", dir));
+    ui!(run_ouch("ouch decompress b.unknown", dir));
 }
 
 #[test]
