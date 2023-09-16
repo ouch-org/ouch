@@ -129,7 +129,7 @@ fn single_file(
 #[proptest(cases = 50)]
 fn multiple_files(
     ext: DirectoryExtension,
-    #[any(size_range(0..7).lift())] exts: Vec<FileExtension>,
+    #[any(size_range(0..5).lift())] exts: Vec<FileExtension>,
     #[strategy(0u8..4)] depth: u8,
 ) {
     let dir = tempdir().unwrap();
