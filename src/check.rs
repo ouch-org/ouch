@@ -66,7 +66,11 @@ pub fn check_mime_type(
     } else {
         // NOTE: If this actually produces no false positives, we can upgrade it in the future
         // to a warning and ask the user if he wants to continue decompressing.
-        info!(accessible, "Could not detect the extension of `{}`", path.display());
+        info!(
+            accessible,
+            "Failed to confirm the format of `{}` by sniffing the contents, file might be misnamed",
+            path.display()
+        );
     }
     Ok(ControlFlow::Continue(()))
 }
