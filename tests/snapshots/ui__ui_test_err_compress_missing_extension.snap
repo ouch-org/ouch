@@ -1,0 +1,14 @@
+---
+source: tests/ui.rs
+expression: "run_ouch(\"ouch compress input output\", dir)"
+---
+[ERROR] Cannot compress to 'output'.
+ - You shall supply the compression format
+
+hint: Try adding supported extensions (see --help):
+hint:   ouch compress <FILES>... output.tar.gz
+hint:   ouch compress <FILES>... output.zip
+hint: 
+hint: Alternatively, you can overwrite this option by using the '--format' flag:
+hint:   ouch compress <FILES>... output --format tar.gz
+
