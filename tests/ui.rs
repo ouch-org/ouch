@@ -1,4 +1,7 @@
-// Snapshot tests for Ouch's output.
+/// Snapshot tests for Ouch's output.
+///
+/// See CONTRIBUTING.md for a brief guide on how to use [`insta`] for these tests.
+/// [`insta`]: https://docs.rs/insta
 
 #[macro_use]
 mod utils;
