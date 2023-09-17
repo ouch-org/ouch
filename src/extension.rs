@@ -33,20 +33,14 @@ pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, gz, lz4, xz, l
 pub const PRETTY_SUPPORTED_ALIASES: &str = "tgz, tbz, tlz4, txz, tzlma, tsz, tzst";
 
 /// A wrapper around `CompressionFormat` that allows combinations like `tgz`
-#[derive(Debug, Clone, Eq)]
+#[derive(Debug, Clone)]
+#[cfg_attr(test, derive(PartialEq))]
 #[non_exhaustive]
 pub struct Extension {
     /// One extension like "tgz" can be made of multiple CompressionFormats ([Tar, Gz])
     pub compression_formats: &'static [CompressionFormat],
     /// The input text for this extension, like "tgz", "tar" or "xz"
     display_text: String,
-}
-
-// The display_text should be ignored when comparing extensions
-impl PartialEq for Extension {
-    fn eq(&self, other: &Self) -> bool {
-        self.compression_formats == other.compression_formats
-    }
 }
 
 impl Extension {
@@ -260,6 +254,37 @@ mod tests {
         let formats: Vec<CompressionFormat> = flatten_compression_formats(&extensions);
 
         assert_eq!(formats, vec![Tar, Gzip]);
+    }
+
+    #[test]
+    fn test_separate_known_extensions_from_name() {
+        assert_eq!(
+            separate_known_extensions_from_name("file".as_ref()),
+            ("file".as_ref(), vec![])
+        );
+        assert_eq!(
+            separate_known_extensions_from_name("tar".as_ref()),
+            ("tar".as_ref(), vec![])
+        );
+        assert_eq!(
+            separate_known_extensions_from_name(".tar".as_ref()),
+            (".tar".as_ref(), vec![])
+        );
+        assert_eq!(
+            separate_known_extensions_from_name("file.tar".as_ref()),
+            ("file".as_ref(), vec![Extension::new(&[Tar], "tar")])
+        );
+        assert_eq!(
+            separate_known_extensions_from_name("file.tar.gz".as_ref()),
+            (
+                "file".as_ref(),
+                vec![Extension::new(&[Tar], "tar"), Extension::new(&[Gzip], "gz")]
+            )
+        );
+        assert_eq!(
+            separate_known_extensions_from_name(".tar.gz".as_ref()),
+            (".tar".as_ref(), vec![Extension::new(&[Gzip], "gz")])
+        );
     }
 
     #[test]
