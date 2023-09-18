@@ -17,7 +17,7 @@ use crate::{
     extension::{self, parse_format_flag},
     info,
     list::ListOptions,
-    utils::{self, path_to_str, EscapedPathDisplay, FileVisibilityPolicy},
+    utils::{self, path_to_str, FileVisibilityPolicy},
     warning, CliArgs, QuestionPolicy,
 };
 
@@ -117,10 +117,7 @@ pub fn run(
                 // out that we left a possibly CORRUPTED file at `output_path`
                 if utils::remove_file_or_dir(&output_path).is_err() {
                     eprintln!("{red}FATAL ERROR:\n", red = *colors::RED);
-                    eprintln!(
-                        "  Ouch failed to delete the file '{}'.",
-                        EscapedPathDisplay::new(&output_path)
-                    );
+                    eprintln!("  Ouch failed to delete the file '{}'.", &output_path.display());
                     eprintln!("  Please delete it manually.");
                     eprintln!("  This file is corrupted if compression didn't finished.");
 
@@ -140,7 +137,7 @@ pub fn run(
                 let format = parse_format_flag(&format)?;
                 for path in files.iter() {
                     let file_name = path.file_name().ok_or_else(|| Error::NotFound {
-                        error_title: format!("{} does not have a file name", EscapedPathDisplay::new(path)),
+                        error_title: format!("{} does not have a file name", path.display()),
                     })?;
                     output_paths.push(file_name.as_ref());
                     formats.push(format.clone());

@@ -12,7 +12,7 @@ use same_file::Handle;
 use crate::{
     error::FinalError,
     info,
-    utils::{self, cd_into_same_dir_as, Bytes, EscapedPathDisplay, FileVisibilityPolicy},
+    utils::{self, cd_into_same_dir_as, Bytes, FileVisibilityPolicy},
     warning,
 };
 
@@ -56,7 +56,7 @@ where
             // spoken text for users using screen readers, braille displays
             // and so on
             if !quiet {
-                info!(inaccessible, "Compressing '{}'.", EscapedPathDisplay::new(path));
+                info!(inaccessible, "Compressing '{}'.", path.display());
             }
 
             let metadata = match path.metadata() {

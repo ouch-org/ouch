@@ -14,7 +14,7 @@ use fs_err as fs;
 use crate::{
     accessible::is_running_in_accessible_mode,
     error::{Error, FinalError, Result},
-    utils::{self, colors, formatting::path_to_str, strip_cur_dir},
+    utils::{self, colors, path_to_str, strip_cur_dir},
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]

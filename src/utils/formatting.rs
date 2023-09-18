@@ -1,50 +1,11 @@
-use std::{borrow::Cow, cmp, ffi::OsStr, fmt::Display, path::Path};
+use std::{borrow::Cow, cmp, ffi::OsStr, path::Path};
 
 use crate::CURRENT_DIRECTORY;
 
-/// Converts invalid UTF-8 bytes to the Unicode replacement codepoint (�) in its Display implementation.
-pub struct EscapedPathDisplay<'a> {
-    path: &'a Path,
-}
-
-impl<'a> EscapedPathDisplay<'a> {
-    pub fn new(path: &'a Path) -> Self {
-        Self { path }
-    }
-}
-
-#[cfg(unix)]
-impl Display for EscapedPathDisplay<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use std::os::unix::prelude::OsStrExt;
-
-        let bstr = bstr::BStr::new(self.path.as_os_str().as_bytes());
-
-        write!(f, "{bstr}")
-    }
-}
-
-#[cfg(windows)]
-impl Display for EscapedPathDisplay<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use std::{char, fmt::Write, os::windows::prelude::OsStrExt};
-
-        let utf16 = self.path.as_os_str().encode_wide();
-        let chars = char::decode_utf16(utf16).map(|decoded| decoded.unwrap_or(char::REPLACEMENT_CHARACTER));
-
-        for char in chars {
-            f.write_char(char)?;
-        }
-
-        Ok(())
-    }
-}
-
 /// Converts an OsStr to utf8 with custom formatting.
 ///
-/// This is different from [`Path::display`].
-///
-/// See <https://gist.github.com/marcospb19/ebce5572be26397cf08bbd0fd3b65ac1> for a comparison.
+/// This is different from [`Path::display`], see
+/// <https://gist.github.com/marcospb19/ebce5572be26397cf08bbd0fd3b65ac1> for a comparison.
 pub fn path_to_str(path: &Path) -> Cow<str> {
     os_str_to_str(path.as_ref())
 }

@@ -15,7 +15,7 @@ use crate::{
     error::FinalError,
     info,
     list::FileInArchive,
-    utils::{self, Bytes, EscapedPathDisplay, FileVisibilityPolicy},
+    utils::{self, Bytes, FileVisibilityPolicy},
     warning,
 };
 
@@ -120,7 +120,7 @@ where
             // spoken text for users using screen readers, braille displays
             // and so on
             if !quiet {
-                info!(inaccessible, "Compressing '{}'.", EscapedPathDisplay::new(path));
+                info!(inaccessible, "Compressing '{}'.", path.display());
             }
 
             if path.is_dir() {

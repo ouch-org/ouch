@@ -13,7 +13,6 @@ pub use self::{
     file_visibility::FileVisibilityPolicy,
     formatting::{
         nice_directory_display, os_str_to_str, path_to_str, pretty_format_list_of_paths, strip_cur_dir, Bytes,
-        EscapedPathDisplay,
     },
     fs::{
         cd_into_same_dir_as, clear_path, create_dir_if_non_existent, is_symlink, remove_file_or_dir,

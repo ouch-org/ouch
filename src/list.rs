@@ -6,7 +6,7 @@ use std::{
 };
 
 use self::tree::Tree;
-use crate::{accessible::is_running_in_accessible_mode, utils::EscapedPathDisplay};
+use crate::accessible::is_running_in_accessible_mode;
 
 /// Options controlling how archive contents should be listed
 #[derive(Debug, Clone, Copy)]
@@ -33,7 +33,7 @@ pub fn list_files(
     list_options: ListOptions,
 ) -> crate::Result<()> {
     let out = &mut stdout().lock();
-    let _ = writeln!(out, "Archive: {}", EscapedPathDisplay::new(archive));
+    let _ = writeln!(out, "Archive: {}", archive.display());
 
     if list_options.tree {
         let tree = files.into_iter().collect::<crate::Result<Tree>>()?;
@@ -41,7 +41,7 @@ pub fn list_files(
     } else {
         for file in files {
             let FileInArchive { path, is_dir } = file?;
-            print_entry(out, EscapedPathDisplay::new(&path), is_dir);
+            print_entry(out, &path.display(), is_dir);
         }
     }
     Ok(())
@@ -85,7 +85,7 @@ mod tree {
     use linked_hash_map::LinkedHashMap;
 
     use super::FileInArchive;
-    use crate::{utils::EscapedPathDisplay, warning};
+    use crate::warning;
 
     /// Directory tree
     #[derive(Debug, Default)]
@@ -121,7 +121,7 @@ mod tree {
                     Some(file) => {
                         warning!(
                             "multiple files with the same name in a single directory ({})",
-                            EscapedPathDisplay::new(&file.path),
+                            &file.path.display(),
                         );
                     }
                 }

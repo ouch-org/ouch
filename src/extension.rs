@@ -148,9 +148,7 @@ fn split_extension(name: &mut &[u8]) -> Option<Extension> {
 }
 
 pub fn parse_format_flag(input: &OsStr) -> crate::Result<Vec<Extension>> {
-    let format = input.as_encoded_bytes();
-
-    let format = std::str::from_utf8(format).map_err(|_| Error::InvalidFormatFlag {
+    let format = input.to_str().ok_or_else(|| Error::InvalidFormatFlag {
         text: input.to_owned(),
         reason: "Invalid UTF-8.".to_string(),
     })?;

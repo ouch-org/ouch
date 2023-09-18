@@ -22,7 +22,7 @@ use crate::{
     list::FileInArchive,
     utils::{
         self, cd_into_same_dir_as, get_invalid_utf8_paths, pretty_format_list_of_paths, strip_cur_dir, Bytes,
-        EscapedPathDisplay, FileVisibilityPolicy,
+        FileVisibilityPolicy,
     },
     warning,
 };
@@ -191,7 +191,7 @@ where
             // spoken text for users using screen readers, braille displays
             // and so on
             if !quiet {
-                info!(inaccessible, "Compressing '{}'.", EscapedPathDisplay::new(path));
+                info!(inaccessible, "Compressing '{}'.", path.display());
             }
 
             let metadata = match path.metadata() {
