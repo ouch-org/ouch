@@ -6,7 +6,7 @@ use std::{iter::once, path::PathBuf};
 use fs_err as fs;
 use parse_display::Display;
 use proptest::sample::size_range;
-use rand::{rngs::SmallRng, Rng, RngCore as _, SeedableRng};
+use rand::{rngs::SmallRng, Rng, SeedableRng};
 use tempfile::tempdir;
 use test_strategy::{proptest, Arbitrary};
 
