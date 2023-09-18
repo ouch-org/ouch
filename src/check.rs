@@ -10,7 +10,7 @@ use std::{
 
 use crate::{
     error::FinalError,
-    extension::{build_archive_file_suggestion, Extension, PRETTY_SUPPORTED_ALIASES, PRETTY_SUPPORTED_EXTENSIONS},
+    extension::{build_archive_file_suggestion, Extension},
     info,
     utils::{pretty_format_list_of_paths, try_infer_extension, user_wants_to_continue, EscapedPathDisplay},
     warning, QuestionAction, QuestionPolicy, Result,
@@ -159,10 +159,8 @@ pub fn check_missing_formats_when_decompressing(files: &[PathBuf], formats: &[Ve
         ));
     }
 
-    error = error
-        .detail("Decompression formats are detected automatically from file extension")
-        .hint(format!("Supported extensions are: {}", PRETTY_SUPPORTED_EXTENSIONS))
-        .hint(format!("Supported aliases are: {}", PRETTY_SUPPORTED_ALIASES));
+    error = error.detail("Decompression formats are detected automatically from file extension");
+    error = error.hint_all_supported_formats();
 
     // If there's exactly one file, give a suggestion to use `--format`
     if let &[path] = files_with_broken_extension.as_slice() {

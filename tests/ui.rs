@@ -8,7 +8,7 @@ mod utils;
 
 use std::{ffi::OsStr, io, path::Path, process::Output};
 
-use insta::assert_display_snapshot as ui;
+use insta::assert_snapshot as ui;
 use regex::Regex;
 
 use crate::utils::create_files_in;
@@ -85,6 +85,29 @@ fn ui_test_err_missing_files() {
     ui!(run_ouch("ouch compress a b", dir));
     ui!(run_ouch("ouch decompress a b", dir));
     ui!(run_ouch("ouch list a b", dir));
+}
+
+#[test]
+fn ui_test_err_format_flag() {
+    let (_dropper, dir) = testdir().unwrap();
+
+    // prepare
+    create_files_in(dir, &["input"]);
+
+    ui!(run_ouch("ouch compress input output --format tar.gz.unknown", dir));
+    ui!(run_ouch("ouch compress input output --format targz", dir));
+    ui!(run_ouch("ouch compress input output --format .tar.$#!@.rest", dir));
+}
+
+#[test]
+fn ui_test_ok_format_flag() {
+    let (_dropper, dir) = testdir().unwrap();
+
+    // prepare
+    create_files_in(dir, &["input"]);
+
+    ui!(run_ouch("ouch compress input output1 --format tar.gz", dir));
+    ui!(run_ouch("ouch compress input output2 --format .tar.gz", dir));
 }
 
 #[test]

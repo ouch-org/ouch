@@ -9,17 +9,19 @@ mod formatting;
 mod fs;
 mod question;
 
-pub use file_visibility::FileVisibilityPolicy;
-pub use formatting::{
-    nice_directory_display, pretty_format_list_of_paths, strip_cur_dir, to_utf, Bytes, EscapedPathDisplay,
+pub use self::{
+    file_visibility::FileVisibilityPolicy,
+    formatting::{
+        nice_directory_display, os_str_to_str, path_to_str, pretty_format_list_of_paths, strip_cur_dir, Bytes,
+        EscapedPathDisplay,
+    },
+    fs::{
+        cd_into_same_dir_as, clear_path, create_dir_if_non_existent, is_symlink, remove_file_or_dir,
+        try_infer_extension,
+    },
+    question::{ask_to_create_file, user_wants_to_continue, user_wants_to_overwrite, QuestionAction, QuestionPolicy},
+    utf8::{get_invalid_utf8_paths, is_invalid_utf8},
 };
-pub use fs::{
-    cd_into_same_dir_as, clear_path, create_dir_if_non_existent, is_symlink, remove_file_or_dir, try_infer_extension,
-};
-pub use question::{
-    ask_to_create_file, user_wants_to_continue, user_wants_to_overwrite, QuestionAction, QuestionPolicy,
-};
-pub use utf8::{get_invalid_utf8_paths, is_invalid_utf8};
 
 mod utf8 {
     use std::{ffi::OsStr, path::PathBuf};

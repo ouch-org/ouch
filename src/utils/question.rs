@@ -11,11 +11,10 @@ use std::{
 
 use fs_err as fs;
 
-use super::{strip_cur_dir, to_utf};
 use crate::{
     accessible::is_running_in_accessible_mode,
     error::{Error, FinalError, Result},
-    utils::{self, colors},
+    utils::{self, colors, formatting::path_to_str, strip_cur_dir},
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -44,7 +43,7 @@ pub fn user_wants_to_overwrite(path: &Path, question_policy: QuestionPolicy) -> 
         QuestionPolicy::AlwaysYes => Ok(true),
         QuestionPolicy::AlwaysNo => Ok(false),
         QuestionPolicy::Ask => {
-            let path = to_utf(strip_cur_dir(path));
+            let path = path_to_str(strip_cur_dir(path));
             let path = Some(&*path);
             let placeholder = Some("FILE");
             Confirmation::new("Do you want to overwrite 'FILE'?", placeholder).ask(path)
@@ -83,7 +82,7 @@ pub fn user_wants_to_continue(
                 QuestionAction::Compression => "compress",
                 QuestionAction::Decompression => "decompress",
             };
-            let path = to_utf(strip_cur_dir(path));
+            let path = path_to_str(strip_cur_dir(path));
             let path = Some(&*path);
             let placeholder = Some("FILE");
             Confirmation::new(&format!("Do you want to {action} 'FILE'?"), placeholder).ask(path)

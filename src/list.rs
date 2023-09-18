@@ -78,7 +78,6 @@ mod tree {
     use std::{
         ffi::{OsStr, OsString},
         io::Write,
-        iter::FromIterator,
         path,
     };
 
