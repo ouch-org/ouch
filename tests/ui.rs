@@ -88,6 +88,29 @@ fn ui_test_err_missing_files() {
 }
 
 #[test]
+fn ui_test_err_format_flag() {
+    let (_dropper, dir) = testdir().unwrap();
+
+    // prepare
+    create_files_in(dir, &["input"]);
+
+    ui!(run_ouch("ouch compress input output --format tar.gz.unknown", dir));
+    ui!(run_ouch("ouch compress input output --format targz", dir));
+    ui!(run_ouch("ouch compress input output --format .tar.$#!@.rest", dir));
+}
+
+#[test]
+fn ui_test_ok_format_flag() {
+    let (_dropper, dir) = testdir().unwrap();
+
+    // prepare
+    create_files_in(dir, &["input"]);
+
+    ui!(run_ouch("ouch compress input output1 --format tar.gz", dir));
+    ui!(run_ouch("ouch compress input output2 --format .tar.gz", dir));
+}
+
+#[test]
 fn ui_test_ok_compress() {
     let (_dropper, dir) = testdir().unwrap();
 

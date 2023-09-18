@@ -1,0 +1,7 @@
+---
+source: tests/ui.rs
+expression: "run_ouch(\"ouch compress input output1 --format tar.gz\", dir)"
+---
+[INFO] Compressing 'input'.
+[INFO] Successfully compressed 'output1'.
+

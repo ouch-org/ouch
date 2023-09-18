@@ -37,6 +37,7 @@ fn info_with_accessibility(contents: String, accessible: bool) {
     });
 }
 
+#[track_caller]
 pub fn warning(contents: String) {
     logger_thread::send_log_message(PrintMessage {
         contents,
@@ -143,6 +144,16 @@ mod logger_thread {
             // Signal the shutdown
             send_shutdown_message();
             // Wait for confirmation
+            self.shutdown_barrier.wait();
+        }
+    }
+
+    #[cfg(test)]
+    // shutdown_and_wait must be called manually, but to keep 'em clean, in
+    // case of tests just do it on drop
+    impl Drop for LoggerThreadHandle {
+        fn drop(&mut self) {
+            send_shutdown_message();
             self.shutdown_barrier.wait();
         }
     }
