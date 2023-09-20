@@ -111,9 +111,9 @@ Output:
 
 # Supported formats
 
-| Format    | `.tar` | `.zip` | `.gz` | `.xz`, `.lzma` | `.bz`, `.bz2` | `.lz4` | `.sz` | `.zst` |
+| Format    | `.tar` | `.zip` | `.gz` | `.xz`, `.lzma` | `.bz`, `.bz2` | `.bz3` | `.lz4` | `.sz` | `.zst` |
 |:---------:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Supported | ✓ | ✓¹ | ✓² | ✓ | ✓ | ✓ | ✓² | ✓ |
+| Supported | ✓ | ✓¹ | ✓² | ✓ | ✓ | ✓ | ✓ | ✓² | ✓ |
 
 ✓: Supports compression and decompression.
 
@@ -171,6 +171,7 @@ Otherwise, you'll need these libraries installed on your system:
 
 * [liblzma](https://www.7-zip.org/sdk.html)
 * [libbz2](https://www.sourceware.org/bzip2/)
+* [libbz3](https://github.com/kspalaiologos/bzip3)
 * [libz](https://www.zlib.net/)
 
 These are available on all mainstream _Linux_ distributions and on _macOS_.

@@ -74,6 +74,9 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
     fn is_bz2(buf: &[u8]) -> bool {
         buf.starts_with(&[0x42, 0x5A, 0x68])
     }
+    fn is_bz3(buf: &[u8]) -> bool {
+        buf.starts_with(bzip3::MAGIC_NUMBER)
+    }
     fn is_xz(buf: &[u8]) -> bool {
         buf.starts_with(&[0xFD, 0x37, 0x7A, 0x58, 0x5A, 0x00])
     }
@@ -109,6 +112,8 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
         Some(Extension::new(&[Gzip], "gz"))
     } else if is_bz2(&buf) {
         Some(Extension::new(&[Bzip], "bz2"))
+    } else if is_bz3(&buf) {
+        Some(Extension::new(&[Bzip3], "bz3"))
     } else if is_xz(&buf) {
         Some(Extension::new(&[Lzma], "xz"))
     } else if is_lz4(&buf) {
