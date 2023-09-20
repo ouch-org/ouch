@@ -100,6 +100,7 @@ pub fn decompress_file(
         let decoder: Box<dyn Read> = match format {
             Gzip => Box::new(flate2::read::GzDecoder::new(decoder)),
             Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
+            Bzip3 => Box::new(bzip3::read::Bz3Decoder::new(decoder).unwrap()),
             Lz4 => Box::new(lz4_flex::frame::FrameDecoder::new(decoder)),
             Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
             Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
@@ -116,7 +117,7 @@ pub fn decompress_file(
     }
 
     let files_unpacked = match first_extension {
-        Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {
+        Gzip | Bzip | Bzip3 | Lz4 | Lzma | Snappy | Zstd => {
             reader = chain_reader_decoder(&first_extension, reader)?;
 
             let mut writer = match utils::ask_to_create_file(&output_file_path, question_policy)? {
