@@ -56,6 +56,10 @@ pub fn compress_files(
                 encoder,
                 level.map_or_else(Default::default, |l| bzip2::Compression::new((l as u32).clamp(1, 9))),
             )),
+            Bzip3 => Box::new(
+                // Unwrap is safe when using a valid block size
+                bzip3::write::Bz3Encoder::new(encoder, bytesize::ByteSize::mib(5).0 as usize).unwrap(),
+            ),
             Lz4 => Box::new(lz4_flex::frame::FrameEncoder::new(encoder).auto_finish()),
             Lzma => Box::new(xz2::write::XzEncoder::new(
                 encoder,
@@ -91,7 +95,7 @@ pub fn compress_files(
     }
 
     match first_format {
-        Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {
+        Gzip | Bzip | Bzip3 | Lz4 | Lzma | Snappy | Zstd => {
             writer = chain_writer_encoder(&first_format, writer)?;
             let mut reader = fs::File::open(&files[0]).unwrap();
 

@@ -111,9 +111,9 @@ Output:
 
 # Supported formats
 
-| Format    | `.tar` | `.zip` | `7z` | `.gz` | `.xz`, `.lzma` | `.bz`, `.bz2` | `.lz4` | `.sz` (Snappy) | `.zst` | `.rar` |
-|:---------:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Supported | ✓ | ✓¹ | ✓¹ | ✓² | ✓ | ✓ | ✓ | ✓² | ✓² | ✓³ |
+| Format    | `.tar` | `.zip` | `7z` | `.gz` | `.xz`, `.lzma` | `.bz`, `.bz2` | `.bz3` | `.lz4` | `.sz` (Snappy) | `.zst` | `.rar` |
+|:---------:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Supported | ✓ | ✓¹ | ✓¹ | ✓² | ✓ | ✓ | ✓ | ✓ | ✓² | ✓² | ✓³ |
 
 ✓: Supports compression and decompression.
 
@@ -176,7 +176,9 @@ Otherwise, you'll need these libraries installed on your system:
 
 * [liblzma](https://www.7-zip.org/sdk.html)
 * [libbz2](https://www.sourceware.org/bzip2)
+* [libbz3](https://github.com/kspalaiologos/bzip3)
 * [libz](https://www.zlib.net)
+>>>>>>> 066184e (Add support for bzip3)
 
 These should be available in your system's package manager.
 
