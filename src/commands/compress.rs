@@ -97,7 +97,7 @@ pub fn compress_files(
     match first_format {
         Gzip | Bzip | Bzip3 | Lz4 | Lzma | Snappy | Zstd => {
             writer = chain_writer_encoder(&first_format, writer)?;
-            let mut reader = fs::File::open(&files[0]).unwrap();
+            let mut reader = fs::File::open(&files[0])?;
 
             io::copy(&mut reader, &mut writer)?;
         }
