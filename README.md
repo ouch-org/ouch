@@ -178,7 +178,6 @@ Otherwise, you'll need these libraries installed on your system:
 * [libbz2](https://www.sourceware.org/bzip2)
 * [libbz3](https://github.com/kspalaiologos/bzip3)
 * [libz](https://www.zlib.net)
->>>>>>> 066184e (Add support for bzip3)
 
 These should be available in your system's package manager.
 

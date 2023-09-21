@@ -200,6 +200,18 @@ impl From<std::io::Error> for Error {
     }
 }
 
+impl From<bzip3::Error> for Error {
+    fn from(err: bzip3::Error) -> Self {
+        use bzip3::Error as Bz3Error;
+        match err {
+            Bz3Error::Io(inner) => inner.into(),
+            Bz3Error::BlockSize | Bz3Error::ProcessBlock(_) | Bz3Error::InvalidSignature => {
+                FinalError::with_title("bzip3 error").detail(err.to_string()).into()
+            }
+        }
+    }
+}
+
 impl From<zip::result::ZipError> for Error {
     fn from(err: zip::result::ZipError) -> Self {
         use zip::result::ZipError;
