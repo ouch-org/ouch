@@ -70,10 +70,15 @@ jobs:
           popd
           echo CARGO=cross >> $GITHUB_ENV
 
+      - name: Install dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install llvm-dev libclang-dev clang
+
       - name: Install dependencies (x86_64-unknown-linux-musl)
         if: matrix.target == 'x86_64-unknown-linux-musl'
         run: |
-          sudo apt-get update
           sudo apt-get install musl-tools
 
       - name: Set up extra cargo flags
