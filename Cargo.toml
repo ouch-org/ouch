@@ -15,7 +15,7 @@ atty = "0.2.14"
 bstr = { version = "1.10.0", default-features = false, features = ["std"] }
 bytesize = "1.3.0"
 bzip2 = "0.4.4"
-bzip3 = "0.8.1"
+bzip3 = { git = "https://github.com/bczhc/bzip3-rs", rev = "094b80c321732636f32733cc72f05ac3deffbe88", features = ["bundled"] }
 clap = { version = "4.5.20", features = ["derive", "env"] }
 filetime_creation = "0.2"
 flate2 = { version = "1.0.30", default-features = false }
