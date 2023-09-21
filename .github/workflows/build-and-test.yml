@@ -122,7 +122,6 @@ jobs:
             target/${{ matrix.target }}/release/ouch.exe
             artifacts/
 
-
   clippy-rustfmt:
     name: clippy-rustfmt
     runs-on: ubuntu-latest
