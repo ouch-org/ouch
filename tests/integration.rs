@@ -21,6 +21,7 @@ enum DirectoryExtension {
     Tar,
     Tbz,
     Tbz2,
+    Tbz3,
     Tgz,
     Tlz4,
     Tlzma,
@@ -36,6 +37,7 @@ enum DirectoryExtension {
 enum FileExtension {
     Bz,
     Bz2,
+    Bz3,
     Gz,
     Lz4,
     Lzma,
