@@ -1,16 +1,27 @@
-use std::{env, io::Write, path::PathBuf};
+// This warning is unavoidable when reusing testing utils.
+#![allow(dead_code)]
+
+use std::{
+    env,
+    ffi::OsStr,
+    io,
+    io::Write,
+    path::{Path, PathBuf},
+    process::Output,
+};
 
 use assert_cmd::Command;
 use fs_err as fs;
 use rand::{Rng, RngCore};
 
+// Run ouch with the provided arguments, returns `assert_cmd::Output`
 #[macro_export]
 macro_rules! ouch {
     ($($e:expr),*) => {
         $crate::utils::cargo_bin()
             $(.arg($e))*
             .arg("--yes")
-            .unwrap();
+            .unwrap()
     }
 }
 
@@ -27,10 +38,20 @@ pub fn cargo_bin() -> Command {
         .unwrap_or_else(|| Command::cargo_bin("ouch").expect("Failed to find ouch executable"))
 }
 
+/// Run a command inside of another folder.
+///
+/// example: `run_in("/tmp", "touch", "a b c")`
+pub fn run_in(folder: impl AsRef<Path>, bin: impl AsRef<OsStr>, args: &str) -> io::Result<Output> {
+    Command::new(bin)
+        .args(args.split_whitespace())
+        .current_dir(folder)
+        .output()
+}
+
 // write random content to a file
 pub fn write_random_content(file: &mut impl Write, rng: &mut impl RngCore) {
     let mut data = Vec::new();
-    data.resize(rng.gen_range(0..8192), 0);
+    data.resize(rng.gen_range(0..4096), 0);
     rng.fill_bytes(&mut data);
     file.write_all(&data).unwrap();
 }

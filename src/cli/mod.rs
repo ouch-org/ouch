@@ -20,7 +20,7 @@ impl CliArgs {
     /// And:
     ///   1. Make paths absolute.
     ///   2. Checks the QuestionPolicy.
-    pub fn parse_args() -> crate::Result<(Self, QuestionPolicy, FileVisibilityPolicy)> {
+    pub fn parse_and_validate_args() -> crate::Result<(Self, QuestionPolicy, FileVisibilityPolicy)> {
         let mut args = Self::parse();
 
         set_accessible(args.accessible);

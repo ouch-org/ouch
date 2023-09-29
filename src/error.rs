@@ -167,14 +167,6 @@ impl From<std::io::Error> for Error {
     }
 }
 
-impl From<lzzzz::lz4f::Error> for Error {
-    fn from(err: lzzzz::lz4f::Error) -> Self {
-        Self::Lz4Error {
-            reason: err.to_string(),
-        }
-    }
-}
-
 impl From<zip::result::ZipError> for Error {
     fn from(err: zip::result::ZipError) -> Self {
         use zip::result::ZipError;

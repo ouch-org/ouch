@@ -55,12 +55,7 @@ pub fn compress_files(
                 encoder,
                 level.map_or_else(Default::default, |l| bzip2::Compression::new((l as u32).clamp(1, 9))),
             )),
-            Lz4 => Box::new(lzzzz::lz4f::WriteCompressor::new(
-                encoder,
-                lzzzz::lz4f::PreferencesBuilder::new()
-                    .compression_level(level.map_or(1, |l| (l as i32).clamp(1, lzzzz::lz4f::CLEVEL_MAX)))
-                    .build(),
-            )?),
+            Lz4 => Box::new(lz4_flex::frame::FrameEncoder::new(encoder).auto_finish()),
             Lzma => Box::new(xz2::write::XzEncoder::new(
                 encoder,
                 level.map_or(6, |l| (l as u32).clamp(0, 9)),

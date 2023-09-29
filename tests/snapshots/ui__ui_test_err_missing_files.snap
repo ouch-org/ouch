@@ -1,0 +1,7 @@
+---
+source: tests/ui.rs
+expression: "run_ouch(\"ouch compress a b\", dir)"
+---
+[ERROR] failed to canonicalize path `a`
+ - File not found
+

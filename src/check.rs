@@ -10,7 +10,7 @@ use std::{
 
 use crate::{
     error::FinalError,
-    extension::{build_archive_file_suggestion, Extension},
+    extension::{build_archive_file_suggestion, Extension, PRETTY_SUPPORTED_ALIASES, PRETTY_SUPPORTED_EXTENSIONS},
     info,
     utils::{pretty_format_list_of_paths, try_infer_extension, user_wants_to_continue, EscapedPathDisplay},
     warning, QuestionAction, QuestionPolicy, Result,
@@ -66,7 +66,11 @@ pub fn check_mime_type(
     } else {
         // NOTE: If this actually produces no false positives, we can upgrade it in the future
         // to a warning and ask the user if he wants to continue decompressing.
-        info!(accessible, "Could not detect the extension of `{}`", path.display());
+        info!(
+            accessible,
+            "Failed to confirm the format of `{}` by sniffing the contents, file might be misnamed",
+            path.display()
+        );
     }
     Ok(ControlFlow::Continue(()))
 }
@@ -123,32 +127,55 @@ pub fn check_archive_formats_position(formats: &[Extension], output_path: &Path)
 
 /// Check if all provided files have formats to decompress.
 pub fn check_missing_formats_when_decompressing(files: &[PathBuf], formats: &[Vec<Extension>]) -> Result<()> {
-    let files_missing_format: Vec<PathBuf> = files
+    let files_with_broken_extension: Vec<&PathBuf> = files
         .iter()
         .zip(formats)
         .filter(|(_, format)| format.is_empty())
-        .map(|(input_path, _)| PathBuf::from(input_path))
+        .map(|(input_path, _)| input_path)
         .collect();
 
-    if let Some(path) = files_missing_format.first() {
-        let error = FinalError::with_title("Cannot decompress files without extensions")
-            .detail(format!(
-                "Files without supported extensions: {}",
-                pretty_format_list_of_paths(&files_missing_format)
-            ))
-            .detail("Decompression formats are detected automatically by the file extension")
-            .hint("Provide a file with a supported extension:")
-            .hint("  ouch decompress example.tar.gz")
+    if files_with_broken_extension.is_empty() {
+        return Ok(());
+    }
+
+    let (files_with_unsupported_extensions, files_missing_extension): (Vec<&PathBuf>, Vec<&PathBuf>) =
+        files_with_broken_extension
+            .iter()
+            .partition(|path| path.extension().is_some());
+
+    let mut error = FinalError::with_title("Cannot decompress files");
+
+    if !files_with_unsupported_extensions.is_empty() {
+        error = error.detail(format!(
+            "Files with unsupported extensions: {}",
+            pretty_format_list_of_paths(&files_with_unsupported_extensions)
+        ));
+    }
+
+    if !files_missing_extension.is_empty() {
+        error = error.detail(format!(
+            "Files with missing extensions: {}",
+            pretty_format_list_of_paths(&files_missing_extension)
+        ));
+    }
+
+    error = error
+        .detail("Decompression formats are detected automatically from file extension")
+        .hint(format!("Supported extensions are: {}", PRETTY_SUPPORTED_EXTENSIONS))
+        .hint(format!("Supported aliases are: {}", PRETTY_SUPPORTED_ALIASES));
+
+    // If there's exactly one file, give a suggestion to use `--format`
+    if let &[path] = files_with_broken_extension.as_slice() {
+        error = error
             .hint("")
-            .hint("Or overwrite this option with the '--format' flag:")
+            .hint("Alternatively, you can pass an extension to the '--format' flag:")
             .hint(format!(
                 "  ouch decompress {} --format tar.gz",
                 EscapedPathDisplay::new(path),
             ));
-
-        return Err(error.into());
     }
-    Ok(())
+
+    Err(error.into())
 }
 
 /// Check if there is a first format when compressing, and returns it.

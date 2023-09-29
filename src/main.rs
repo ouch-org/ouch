@@ -35,6 +35,6 @@ fn main() {
 }
 
 fn run() -> Result<()> {
-    let (args, skip_questions_positively, file_visibility_policy) = CliArgs::parse_args()?;
+    let (args, skip_questions_positively, file_visibility_policy) = CliArgs::parse_and_validate_args()?;
     commands::run(args, skip_questions_positively, file_visibility_policy)
 }
