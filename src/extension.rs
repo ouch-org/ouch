@@ -159,9 +159,7 @@ pub fn separate_known_extensions_from_name(path: &Path) -> (&Path, Vec<Extension
 
     if let Ok(name) = name.to_str() {
         let file_stem = name.trim_matches('.');
-        if 
-      
-      _EXTENSIONS.contains(&file_stem) || SUPPORTED_ALIASES.contains(&file_stem) {
+        if _EXTENSIONS.contains(&file_stem) || SUPPORTED_ALIASES.contains(&file_stem) {
             warning!("Received a file with name '{file_stem}', but {file_stem} was expected as the extension.");
         }
     }
