@@ -75,6 +75,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install musl-tools
+          sudo ln -s "/usr/bin/g++" "/usr/bin/musl-g++"
 
       - name: Set up extra cargo flags
         if: matrix.no-zstd-thin

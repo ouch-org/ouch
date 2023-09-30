@@ -178,6 +178,14 @@ impl From<zip::result::ZipError> for Error {
     }
 }
 
+impl From<unrar::error::UnrarError> for Error {
+    fn from(err: unrar::error::UnrarError) -> Self {
+        Self::Custom {
+            reason: FinalError::with_title("Unexpected error in rar archive").detail(format!("{:?}", err.code)),
+        }
+    }
+}
+
 impl From<ignore::Error> for Error {
     fn from(err: ignore::Error) -> Self {
         Self::WalkdirError {

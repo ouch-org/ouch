@@ -86,7 +86,7 @@ pub fn decompress_file(
             Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
             Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
             Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
-            Tar | Zip => unreachable!(),
+            Tar | Zip | Rar => unreachable!(),
         };
         Ok(decoder)
     };
@@ -141,6 +141,24 @@ pub fn decompress_file(
                 &output_file_path,
                 question_policy,
             )? {
+                files
+            } else {
+                return Ok(());
+            }
+        }
+        Rar => {
+            type UnpackResult = crate::Result<usize>;
+            let unpack_fn: Box<dyn FnOnce(&Path) -> UnpackResult> = if formats.len() > 1 {
+                let mut temp_file = tempfile::NamedTempFile::new()?;
+                io::copy(&mut reader, &mut temp_file)?;
+                Box::new(move |output_dir| crate::archive::rar::unpack_archive(temp_file.path(), output_dir, quiet))
+            } else {
+                Box::new(|output_dir| crate::archive::rar::unpack_archive(input_file_path, output_dir, quiet))
+            };
+
+            if let ControlFlow::Continue(files) =
+                smart_unpack(unpack_fn, output_dir, &output_file_path, question_policy)?
+            {
                 files
             } else {
                 return Ok(());

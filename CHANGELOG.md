@@ -19,6 +19,8 @@ Categories Used:
 **Bullet points in chronological order by PR**
 
 ## [Unreleased](https://github.com/ouch-org/ouch/compare/0.4.2...HEAD)
+- Add support for listing and decompressing `.rar` archives
+- Fix mime type detection
 
 ### Bug Fixes
 
