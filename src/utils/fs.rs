@@ -86,6 +86,11 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
     fn is_zst(buf: &[u8]) -> bool {
         buf.starts_with(&[0x28, 0xB5, 0x2F, 0xFD])
     }
+    fn is_rar(buf: &[u8]) -> bool {
+        buf.len() >= 7
+            && buf.starts_with(&[0x52, 0x61, 0x72, 0x21, 0x1A, 0x07])
+            && (buf[6] == 0x00 || (buf.len() >= 8 && buf[6..=7] == [0x01, 0x00]))
+    }
 
     let buf = {
         let mut buf = [0; 270];
@@ -117,6 +122,8 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
         Some(Extension::new(&[Snappy], "sz"))
     } else if is_zst(&buf) {
         Some(Extension::new(&[Zstd], "zst"))
+    } else if is_rar(&buf) {
+        Some(Extension::new(&[Rar], "rar"))
     } else {
         None
     }

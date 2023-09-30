@@ -1,7 +1,10 @@
 #[macro_use]
 mod utils;
 
-use std::{iter::once, path::PathBuf};
+use std::{
+    iter::once,
+    path::{Path, PathBuf},
+};
 
 use fs_err as fs;
 use parse_display::Display;
@@ -143,4 +146,27 @@ fn multiple_files(
     ouch!("-A", "c", before_dir, archive);
     ouch!("-A", "d", archive, "-d", after);
     assert_same_directory(before, after, !matches!(ext, DirectoryExtension::Zip));
+}
+
+// test .rar decompression
+fn test_unpack_rar_single(input: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    let dir = tempdir()?;
+    let dirpath = dir.path();
+    let unpacked_path = &dirpath.join("testfile.txt");
+    ouch!("-A", "d", input, "-d", dirpath);
+    let content = fs::read_to_string(unpacked_path)?;
+    assert_eq!(content, "Testing 123\n");
+
+    Ok(())
+}
+
+#[test]
+fn unpack_rar() -> Result<(), Box<dyn std::error::Error>> {
+    let mut datadir = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR")?);
+    datadir.push("tests/data");
+    ["testfile.rar3.rar.gz", "testfile.rar5.rar"]
+        .iter()
+        .try_for_each(|path| test_unpack_rar_single(&datadir.join(path)))?;
+
+    Ok(())
 }
