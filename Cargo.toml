@@ -58,3 +58,4 @@ default = ["flate2/zlib", "gzp/deflate_zlib", "zip/deflate-zlib", "zstd/thin"]
 lto = true
 codegen-units = 1
 opt-level = 3
+strip = true
