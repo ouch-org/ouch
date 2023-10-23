@@ -17,9 +17,9 @@ jobs:
     strategy:
       matrix:
         include:
-          # - target: aarch64-unknown-linux-gnu
-          #   os: ubuntu-latest
-          #   no-zstd-thin: true
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            no-zstd-thin: true
 
           # - target: aarch64-unknown-linux-musl
           #   os: ubuntu-latest
