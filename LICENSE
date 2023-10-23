@@ -20,7 +20,18 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
+---
+
 Copyright notices from other projects:
 
-Copyright (c) 2019 Bojan
-https://github.com/bojand/infer
+Infer crate (MIT LICENSE):
+> Copyright (c) 2019 Bojan
+> Code at https://github.com/bojand/infer
+
+Bzip3-rs crate (LGPL 3.0):
+> Code for this crate is available at https://github.com/bczhc/bzip3-rs
+> See its license at https://github.com/bczhc/bzip3-rs/blob/master/LICENSE
+
+Bzip3 library (LGPL 3.0):
+> Code for this library is available at https://github.com/kspalaiologos/bzip3
+> See its license at https://github.com/kspalaiologos/bzip3/blob/master/LICENSE
