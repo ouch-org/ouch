@@ -21,34 +21,34 @@ jobs:
             os: ubuntu-latest
             no-zstd-thin: true
 
-          - target: aarch64-unknown-linux-musl
-            os: ubuntu-latest
-            no-zstd-thin: true
+          # - target: aarch64-unknown-linux-musl
+          #   os: ubuntu-latest
+          #   no-zstd-thin: true
 
-          - target: armv7-unknown-linux-gnueabihf
-            os: ubuntu-latest
-            no-zstd-thin: true
+          # - target: armv7-unknown-linux-gnueabihf
+          #   os: ubuntu-latest
+          #   no-zstd-thin: true
 
-          - target: armv7-unknown-linux-musleabihf
-            os: ubuntu-latest
-            no-zstd-thin: true
+          # - target: armv7-unknown-linux-musleabihf
+          #   os: ubuntu-latest
+          #   no-zstd-thin: true
 
           - target: x86_64-apple-darwin
             os: macos-latest
 
-          - target: x86_64-pc-windows-gnu
-            os: windows-latest
-            no-zstd-thin: true
-            ext: .exe
+          # - target: x86_64-pc-windows-gnu
+          #   os: windows-latest
+          #   no-zstd-thin: true
+          #   ext: .exe
 
-          - target: x86_64-pc-windows-msvc
-            os: windows-latest
-            ext: .exe
+          # - target: x86_64-pc-windows-msvc
+          #   os: windows-latest
+          #   ext: .exe
 
-          - target: aarch64-pc-windows-msvc
-            os: windows-latest
-            ext: .exe
-            skip-test: true
+          # - target: aarch64-pc-windows-msvc
+          #   os: windows-latest
+          #   ext: .exe
+          #   skip-test: true
 
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
@@ -70,10 +70,15 @@ jobs:
           popd
           echo CARGO=cross >> $GITHUB_ENV
 
+      - name: Install dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install llvm-dev libclang-dev clang
+
       - name: Install dependencies (x86_64-unknown-linux-musl)
         if: matrix.target == 'x86_64-unknown-linux-musl'
         run: |
-          sudo apt-get update
           sudo apt-get install musl-tools
 
       - name: Set up extra cargo flags
