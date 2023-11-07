@@ -20,7 +20,7 @@ flate2 = { version = "1.0.28", default-features = false }
 fs-err = "2.9.0"
 gzp = { version = "0.11.3", default-features = false, features = ["snappy_default"] }
 ignore = "0.4.20"
-libc = "0.2.149"
+libc = "0.2.150"
 linked-hash-map = "0.5.6"
 lz4_flex = "0.11.1"
 once_cell = "1.18.0"
