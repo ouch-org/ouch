@@ -17,7 +17,7 @@ bzip2 = "0.4.4"
 clap = { version = "4.4.8", features = ["derive", "env"] }
 filetime = "0.2.22"
 flate2 = { version = "1.0.28", default-features = false }
-fs-err = "2.10.0"
+fs-err = "2.11.0"
 gzp = { version = "0.11.3", default-features = false, features = ["snappy_default"] }
 ignore = "0.4.20"
 libc = "0.2.150"
