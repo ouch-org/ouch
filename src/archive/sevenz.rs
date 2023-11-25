@@ -1,11 +1,12 @@
 //! SevenZip archive format compress function
+
 use std::{
-    env,
-    fs::File,
+    env, io,
     io::{Read, Seek, Write},
     path::{Path, PathBuf},
 };
 
+use fs_err as fs;
 use same_file::Handle;
 
 use crate::{
@@ -24,12 +25,14 @@ pub fn compress_sevenz<W>(
 where
     W: Write + Seek,
 {
-    let mut writer = sevenz_rust::SevenZWriter::new(writer).map_err(crate::Error::SevenzipError)?;
+    let mut writer = sevenz_rust::SevenZWriter::new(writer)?;
     let output_handle = Handle::from_path(output_path);
+
     for filename in files {
         let previous_location = cd_into_same_dir_as(filename)?;
 
-        // Safe unwrap, input shall be treated before
+        // Unwrap safety:
+        //   paths should be canonicalized by now, and the root directory rejected.
         let filename = filename.file_name().unwrap();
 
         for entry in file_visibility_policy.build_walker(filename) {
@@ -37,7 +40,7 @@ where
             let path = entry.path();
 
             // If the output_path is the same as the input file, warn the user and skip the input (in order to avoid compression recursion)
-            if let Ok(ref handle) = output_handle {
+            if let Ok(handle) = &output_handle {
                 if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
                     warning!(
                         "The output file and the input file are the same: `{}`, skipping...",
@@ -67,22 +70,15 @@ where
                 }
             };
 
-            if metadata.is_dir() {
-                writer
-                    .push_archive_entry::<std::fs::File>(
-                        sevenz_rust::SevenZArchiveEntry::from_path(path, path.to_str().unwrap().to_owned()),
-                        None,
-                    )
-                    .map_err(crate::Error::SevenzipError)?;
+            let entry_name = path.to_str().unwrap().to_owned();
+            let entry = sevenz_rust::SevenZArchiveEntry::from_path(path, entry_name);
+            let entry_data = if metadata.is_dir() {
+                None
             } else {
-                let reader = File::open(path)?;
-                writer
-                    .push_archive_entry::<std::fs::File>(
-                        sevenz_rust::SevenZArchiveEntry::from_path(path, path.to_str().unwrap().to_owned()),
-                        Some(reader),
-                    )
-                    .map_err(crate::Error::SevenzipError)?;
-            }
+                Some(fs::File::open(path)?)
+            };
+
+            writer.push_archive_entry::<fs::File>(entry, entry_data)?;
         }
 
         env::set_current_dir(previous_location)?;
@@ -97,7 +93,7 @@ where
     R: Read + Seek,
 {
     let mut count: usize = 0;
-    sevenz_rust::decompress_with_extract_fn(reader, output_path, |entry, reader, dest| {
+    sevenz_rust::decompress_with_extract_fn(reader, output_path, |entry, reader, path| {
         count += 1;
         // Manually handle writing all files from 7z archive, due to library exluding empty files
         use std::io::BufWriter;
@@ -107,10 +103,6 @@ where
         let file_path = output_path.join(entry.name());
 
         if entry.is_directory() {
-            // This is printed for every file in the archive and has little
-            // importance for most users, but would generate lots of
-            // spoken text for users using screen readers, braille displays
-            // and so on
             if !quiet {
                 info!(
                     inaccessible,
@@ -119,12 +111,10 @@ where
                     file_path.display()
                 );
             }
-            let dir = dest;
-            if !dir.exists() {
-                std::fs::create_dir_all(dir)?;
+            if !path.exists() {
+                fs::create_dir_all(path)?;
             }
         } else {
-            // same reason is in _is_dir: long, often not needed text
             if !quiet {
                 info!(
                     inaccessible,
@@ -133,27 +123,28 @@ where
                     Bytes::new(entry.size()),
                 );
             }
-            let path = dest;
-            path.parent().and_then(|p| {
-                if !p.exists() {
-                    std::fs::create_dir_all(p).ok()
-                } else {
-                    None
+
+            if let Some(parent) = path.parent() {
+                if !parent.exists() {
+                    fs::create_dir_all(parent)?;
                 }
-            });
-            let file = File::create(path)?;
+            }
+
+            let file = fs::File::create(path)?;
             let mut writer = BufWriter::new(file);
-            std::io::copy(reader, &mut writer)?;
+            io::copy(reader, &mut writer)?;
+
             ft::set_file_handle_times(
-                writer.get_ref(),
+                writer.get_ref().file(),
                 Some(ft::FileTime::from_system_time(entry.access_date().into())),
                 Some(ft::FileTime::from_system_time(entry.last_modified_date().into())),
                 Some(ft::FileTime::from_system_time(entry.creation_date().into())),
             )
             .unwrap_or_default();
         }
+
         Ok(true)
-    })
-    .map_err(crate::Error::SevenzipError)?;
+    })?;
+
     Ok(count)
 }

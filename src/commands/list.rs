@@ -103,8 +103,7 @@ pub fn list_archive_contents(
                     is_dir: entry.is_directory(),
                 }));
                 Ok(true)
-            })
-            .map_err(crate::Error::SevenzipError)?;
+            })?;
             Box::new(files.into_iter())
         }
         Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {

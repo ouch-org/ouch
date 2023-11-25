@@ -96,7 +96,8 @@ where
     for filename in input_filenames {
         let previous_location = utils::cd_into_same_dir_as(filename)?;
 
-        // Safe unwrap, input shall be treated before
+        // Unwrap safety:
+        //   paths should be canonicalized by now, and the root directory rejected.
         let filename = filename.file_name().unwrap();
 
         for entry in file_visibility_policy.build_walker(filename) {
@@ -104,7 +105,7 @@ where
             let path = entry.path();
 
             // If the output_path is the same as the input file, warn the user and skip the input (in order to avoid compression recursion)
-            if let Ok(ref handle) = output_handle {
+            if let Ok(handle) = &output_handle {
                 if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
                     warning!(
                         "The output file and the input file are the same: `{}`, skipping...",
