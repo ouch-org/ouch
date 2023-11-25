@@ -7,7 +7,9 @@ use bstr::ByteSlice;
 use self::CompressionFormat::*;
 use crate::{error::Error, warning};
 
-pub const SUPPORTED_EXTENSIONS: &[&str] = &["tar", "zip", "bz", "bz2", "gz", "lz4", "xz", "lzma", "sz", "zst", "rar", "7z"];
+pub const SUPPORTED_EXTENSIONS: &[&str] = &[
+    "tar", "zip", "bz", "bz2", "gz", "lz4", "xz", "lzma", "sz", "zst", "rar", "7z",
+];
 pub const SUPPORTED_ALIASES: &[&str] = &["tgz", "tbz", "tlz4", "txz", "tzlma", "tsz", "tzst"];
 pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, gz, lz4, xz, lzma, sz, zst, rar";
 pub const PRETTY_SUPPORTED_ALIASES: &str = "tgz, tbz, tlz4, txz, tzlma, tsz, tzst";

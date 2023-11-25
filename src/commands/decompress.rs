@@ -7,7 +7,7 @@ use std::{
 use fs_err as fs;
 
 use crate::{
-    commands::{warn_user_about_loading_zip_in_memory, warn_user_about_loading_sevenz_in_memory},
+    commands::{warn_user_about_loading_sevenz_in_memory, warn_user_about_loading_zip_in_memory},
     extension::{
         split_first_compression_format,
         CompressionFormat::{self, *},
@@ -145,7 +145,7 @@ pub fn decompress_file(
             } else {
                 return Ok(());
             }
-        },
+        }
         Rar => {
             type UnpackResult = crate::Result<usize>;
             let unpack_fn: Box<dyn FnOnce(&Path) -> UnpackResult> = if formats.len() > 1 {
@@ -163,7 +163,7 @@ pub fn decompress_file(
             } else {
                 return Ok(());
             }
-        },
+        }
         SevenZip => {
             if formats.len() > 1 {
                 warn_user_about_loading_sevenz_in_memory();

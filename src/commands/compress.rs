@@ -5,6 +5,7 @@ use std::{
 
 use fs_err as fs;
 
+use super::warn_user_about_loading_sevenz_in_memory;
 use crate::{
     archive,
     commands::warn_user_about_loading_zip_in_memory,
@@ -12,8 +13,6 @@ use crate::{
     utils::{user_wants_to_continue, FileVisibilityPolicy},
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
-
-use super::warn_user_about_loading_sevenz_in_memory;
 
 /// Compress files into `output_file`.
 ///
@@ -123,13 +122,12 @@ pub fn compress_files(
             )?;
             vec_buffer.rewind()?;
             io::copy(&mut vec_buffer, &mut writer)?;
-        },
+        }
         Rar => {
             archive::rar::no_compression_notice();
             return Ok(false);
-        },
+        }
         SevenZip => {
-
             if !formats.is_empty() {
                 warn_user_about_loading_sevenz_in_memory();
 

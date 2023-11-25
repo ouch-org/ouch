@@ -22,7 +22,8 @@ use utils::{QuestionAction, QuestionPolicy};
 const BUFFER_CAPACITY: usize = 1024 * 32;
 
 /// Current directory or empty directory
-static CURRENT_DIRECTORY: Lazy<PathBuf> = Lazy::new(|| std::fs::canonicalize(env::current_dir().unwrap_or_default()).unwrap_or_default());
+static CURRENT_DIRECTORY: Lazy<PathBuf> =
+    Lazy::new(|| std::fs::canonicalize(env::current_dir().unwrap_or_default()).unwrap_or_default());
 
 /// The status code returned from `ouch` on error
 pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;

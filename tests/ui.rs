@@ -83,7 +83,6 @@ fn ui_test_err_decompress_missing_extension() {
 
     #[cfg(windows)]
     run_in(dir, "cmd", "/C copy nul b.unknown").unwrap();
-    
 
     ui!(run_ouch("ouch decompress a", dir));
     ui!(run_ouch("ouch decompress a b.unknown", dir));
