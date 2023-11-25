@@ -62,11 +62,7 @@ fn ui_test_err_compress_missing_extension() {
     let (_dropper, dir) = testdir().unwrap();
 
     // prepare
-    #[cfg(not(windows))]
     run_in(dir, "touch", "input").unwrap();
-
-    #[cfg(windows)]
-    run_in(dir, "cmd", "/C copy nul input").unwrap();
 
     ui!(run_ouch("ouch compress input output", dir));
 }
@@ -75,14 +71,7 @@ fn ui_test_err_compress_missing_extension() {
 fn ui_test_err_decompress_missing_extension() {
     let (_dropper, dir) = testdir().unwrap();
 
-    #[cfg(not(windows))]
     run_in(dir, "touch", "a b.unknown").unwrap();
-
-    #[cfg(windows)]
-    run_in(dir, "cmd", "/C copy nul a").unwrap();
-
-    #[cfg(windows)]
-    run_in(dir, "cmd", "/C copy nul b.unknown").unwrap();
 
     ui!(run_ouch("ouch decompress a", dir));
     ui!(run_ouch("ouch decompress a b.unknown", dir));
@@ -103,11 +92,7 @@ fn ui_test_ok_compress() {
     let (_dropper, dir) = testdir().unwrap();
 
     // prepare
-    #[cfg(not(windows))]
     run_in(dir, "touch", "input").unwrap();
-
-    #[cfg(windows)]
-    run_in(dir, "cmd", "/C copy nul input").unwrap();
 
     ui!(run_ouch("ouch compress input output.zip", dir));
     ui!(run_ouch("ouch compress input output.gz", dir));
@@ -118,7 +103,6 @@ fn ui_test_ok_decompress() {
     let (_dropper, dir) = testdir().unwrap();
 
     // prepare
-    #[cfg(not(windows))]
     run_in(dir, "touch", "input").unwrap();
     run_ouch("ouch compress input output.zst", dir);
 
