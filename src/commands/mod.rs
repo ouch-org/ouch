@@ -31,6 +31,16 @@ fn warn_user_about_loading_zip_in_memory() {
     warning!("{}", ZIP_IN_MEMORY_LIMITATION_WARNING);
 }
 
+/// Warn the user that (de)compressing this .7z archive might freeze their system.
+fn warn_user_about_loading_sevenz_in_memory() {
+    const SEVENZ_IN_MEMORY_LIMITATION_WARNING: &str = "\n\
+        \tThe format '.7z' is limited and cannot be (de)compressed using encoding streams.\n\
+        \tWhen using '.7z' with other formats, (de)compression must be done in-memory\n\
+        \tCareful, you might run out of RAM if the archive is too large!";
+
+    warning!("{}", SEVENZ_IN_MEMORY_LIMITATION_WARNING);
+}
+
 /// This function checks what command needs to be run and performs A LOT of ahead-of-time checks
 /// to assume everything is OK.
 ///

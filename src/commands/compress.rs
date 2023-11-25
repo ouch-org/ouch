@@ -13,6 +13,8 @@ use crate::{
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
+use super::warn_user_about_loading_sevenz_in_memory;
+
 /// Compress files into `output_file`.
 ///
 /// # Arguments:
@@ -127,7 +129,19 @@ pub fn compress_files(
             return Ok(false);
         },
         SevenZip => {
-            archive::sevenz::compress_sevenz(files, output_path)?;
+
+            if !formats.is_empty() {
+                warn_user_about_loading_sevenz_in_memory();
+
+                if !user_wants_to_continue(output_path, question_policy, QuestionAction::Compression)? {
+                    return Ok(false);
+                }
+            }
+
+            let mut vec_buffer = Cursor::new(vec![]);
+            archive::sevenz::compress_sevenz(&files, output_path, &mut vec_buffer, file_visibility_policy, quiet)?;
+            vec_buffer.rewind()?;
+            io::copy(&mut vec_buffer, &mut writer)?;
         }
     }
 

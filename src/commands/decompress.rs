@@ -7,7 +7,7 @@ use std::{
 use fs_err as fs;
 
 use crate::{
-    commands::warn_user_about_loading_zip_in_memory,
+    commands::{warn_user_about_loading_zip_in_memory, warn_user_about_loading_sevenz_in_memory},
     extension::{
         split_first_compression_format,
         CompressionFormat::{self, *},
@@ -165,8 +165,19 @@ pub fn decompress_file(
             }
         },
         SevenZip => {
+            if formats.len() > 1 {
+                warn_user_about_loading_sevenz_in_memory();
+
+                if !user_wants_to_continue(input_file_path, question_policy, QuestionAction::Decompression)? {
+                    return Ok(());
+                }
+            }
+
+            let mut vec = vec![];
+            io::copy(&mut reader, &mut vec)?;
+
             if let ControlFlow::Continue(files) = smart_unpack(
-                |output_dir| crate::archive::sevenz::decompress_sevenz(input_file_path, output_dir),
+                |output_dir| crate::archive::sevenz::decompress_sevenz(io::Cursor::new(vec), output_dir, quiet),
                 output_dir,
                 &output_file_path,
                 question_policy,
