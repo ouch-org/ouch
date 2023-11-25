@@ -10,6 +10,7 @@ use fs_err as fs;
 use same_file::Handle;
 
 use crate::{
+    error::FinalError,
     info,
     utils::{self, cd_into_same_dir_as, Bytes, EscapedPathDisplay, FileVisibilityPolicy},
     warning,
@@ -70,8 +71,12 @@ where
                 }
             };
 
-            let entry_name = path.to_str().unwrap().to_owned();
-            let entry = sevenz_rust::SevenZArchiveEntry::from_path(path, entry_name);
+            let entry_name = path.to_str().ok_or_else(|| {
+                FinalError::with_title("7z requires that all entry names are valid UTF-8")
+                    .detail(format!("File at '{path:?}' has a non-UTF-8 name"))
+            })?;
+
+            let entry = sevenz_rust::SevenZArchiveEntry::from_path(path, entry_name.to_owned());
             let entry_data = if metadata.is_dir() {
                 None
             } else {

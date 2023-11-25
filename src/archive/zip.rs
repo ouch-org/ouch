@@ -209,8 +209,13 @@ where
             #[cfg(unix)]
             let options = options.unix_permissions(metadata.permissions().mode());
 
+            let entry_name = path.to_str().ok_or_else(|| {
+                FinalError::with_title("Zip requires that all directories names are valid UTF-8")
+                    .detail(format!("File at '{path:?}' has a non-UTF-8 name"))
+            })?;
+
             if metadata.is_dir() {
-                writer.add_directory(path.to_str().unwrap().to_owned(), options)?;
+                writer.add_directory(entry_name, options)?;
             } else {
                 #[cfg(not(unix))]
                 let options = if is_executable::is_executable(path) {
@@ -220,10 +225,11 @@ where
                 };
 
                 let mut file = fs::File::open(path)?;
-                writer.start_file(
-                    path.to_str().unwrap(),
-                    options.last_modified_time(get_last_modified_time(&file)),
-                )?;
+
+                // Updated last modified time
+                let last_modified_time = options.last_modified_time(get_last_modified_time(&file));
+
+                writer.start_file(entry_name, last_modified_time)?;
                 io::copy(&mut file, &mut writer)?;
             }
         }
