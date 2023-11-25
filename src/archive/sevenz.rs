@@ -2,14 +2,15 @@
 use std::{
     env,
     fs::File,
-    path::{Path, PathBuf}, io::{Write, Seek, Read},
+    io::{Read, Seek, Write},
+    path::{Path, PathBuf},
 };
 
 use same_file::Handle;
 
 use crate::{
     info,
-    utils::{self, cd_into_same_dir_as, EscapedPathDisplay, FileVisibilityPolicy, Bytes},
+    utils::{self, cd_into_same_dir_as, Bytes, EscapedPathDisplay, FileVisibilityPolicy},
     warning,
 };
 
@@ -21,8 +22,8 @@ pub fn compress_sevenz<W>(
     quiet: bool,
 ) -> crate::Result<W>
 where
-W: Write + Seek {
-
+    W: Write + Seek,
+{
     let mut writer = sevenz_rust::SevenZWriter::new(writer).map_err(crate::Error::SevenzipError)?;
     let output_handle = Handle::from_path(output_path);
     for filename in files {
@@ -91,8 +92,10 @@ W: Write + Seek {
     Ok(bytes)
 }
 
-pub fn decompress_sevenz<R>(reader: R, output_path: &Path, quiet: bool) -> crate::Result<usize> 
-where R: Read+ Seek {
+pub fn decompress_sevenz<R>(reader: R, output_path: &Path, quiet: bool) -> crate::Result<usize>
+where
+    R: Read + Seek,
+{
     let mut count: usize = 0;
     sevenz_rust::decompress_with_extract_fn(reader, output_path, |entry, reader, dest| {
         count += 1;
@@ -102,15 +105,20 @@ where R: Read+ Seek {
         use filetime_creation as ft;
 
         let file_path = output_path.join(entry.name());
-        
+
         if entry.is_directory() {
-                // This is printed for every file in the archive and has little
-                // importance for most users, but would generate lots of
-                // spoken text for users using screen readers, braille displays
-                // and so on
-                if !quiet {
-                    info!(inaccessible, "File {} extracted to \"{}\"", entry.name(), file_path.display());
-                }
+            // This is printed for every file in the archive and has little
+            // importance for most users, but would generate lots of
+            // spoken text for users using screen readers, braille displays
+            // and so on
+            if !quiet {
+                info!(
+                    inaccessible,
+                    "File {} extracted to \"{}\"",
+                    entry.name(),
+                    file_path.display()
+                );
+            }
             let dir = dest;
             if !dir.exists() {
                 std::fs::create_dir_all(dir)?;

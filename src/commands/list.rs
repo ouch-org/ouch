@@ -77,7 +77,7 @@ pub fn list_archive_contents(
             let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
 
             Box::new(crate::archive::zip::list_archive(zip_archive))
-        },
+        }
         Rar => {
             if formats.len() > 1 {
                 let mut temp_file = tempfile::NamedTempFile::new()?;
@@ -86,7 +86,7 @@ pub fn list_archive_contents(
             } else {
                 Box::new(crate::archive::rar::list_archive(archive_path))
             }
-        },
+        }
         SevenZip => {
             if formats.len() > 1 {
                 warn_user_about_loading_zip_in_memory();
