@@ -189,6 +189,12 @@ impl From<unrar::error::UnrarError> for Error {
     }
 }
 
+impl From<sevenz_rust::Error> for Error {
+    fn from(err: sevenz_rust::Error) -> Self {
+        Self::SevenzipError(err)
+    }
+}
+
 impl From<ignore::Error> for Error {
     fn from(err: ignore::Error) -> Self {
         Self::WalkdirError {
