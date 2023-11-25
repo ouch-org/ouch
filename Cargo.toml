@@ -15,7 +15,7 @@ atty = "0.2.14"
 bstr = { version = "1.8.0", default-features = false, features = ["std"] }
 bzip2 = "0.4.4"
 clap = { version = "4.4.8", features = ["derive", "env"] }
-filetime = "0.2.22"
+filetime_creation = "0.1"
 flate2 = { version = "1.0.28", default-features = false }
 fs-err = "2.11.0"
 gzp = { version = "0.11.3", default-features = false, features = ["snappy_default"] }

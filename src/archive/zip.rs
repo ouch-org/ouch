@@ -10,7 +10,7 @@ use std::{
     thread,
 };
 
-use filetime::{set_file_mtime, FileTime};
+use filetime_creation::{set_file_mtime, FileTime};
 use fs_err as fs;
 use same_file::Handle;
 use time::OffsetDateTime;
