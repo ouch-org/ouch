@@ -91,18 +91,14 @@ jobs:
           OUCH_ARTIFACTS_FOLDER: artifacts
           RUSTFLAGS: -C strip=symbols
 
-      - name: Upload binary
+      - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: ouch-${{ matrix.target }}${{ matrix.ext }}
-          path: target/${{ matrix.target }}/release/ouch${{ matrix.ext }}
+          path: |
+            target/${{ matrix.target }}/release/ouch${{ matrix.ext }}
+            artifacts/
 
-      - name: Upload artifacts (musl)
-        if: matrix.target == 'x86_64-unknown-linux-musl'
-        uses: actions/upload-artifact@v3
-        with:
-          name: artifacts
-          path: artifacts
 
   clippy-rustfmt:
     name: clippy-rustfmt
