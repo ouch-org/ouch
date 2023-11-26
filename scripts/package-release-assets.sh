@@ -6,10 +6,11 @@ mkdir release
 cd artifacts
 
 for dir in ouch-*; do
-    cp -r artifacts "$dir/completions"
+    cp -r "$dir/artifacts" "$dir/completions"
     mkdir "$dir/man"
     mv "$dir"/completions/*.1 "$dir/man"
     cp ../{README.md,LICENSE,CHANGELOG.md} "$dir"
+    rm -r "$dir/artifacts"
 
     if [[ "$dir" = *.exe ]]; then
         target=${dir%.exe}
