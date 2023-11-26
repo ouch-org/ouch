@@ -1,2 +1,2 @@
 [build.env]
-passthrough = ["RUSTFLAGS"]
+passthrough = ["RUSTFLAGS", "OUCH_ARTIFACTS_FOLDER"]
