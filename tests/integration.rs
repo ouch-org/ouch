@@ -108,7 +108,11 @@ fn single_empty_file(ext: Extension, #[any(size_range(0..8).lift())] exts: Vec<F
 fn single_file(
     ext: Extension,
     #[any(size_range(0..8).lift())] exts: Vec<FileExtension>,
-    #[strategy(proptest::option::of(0i16..12))] level: Option<i16>,
+    #[cfg_attr(not(target_arch = "arm"), strategy(proptest::option::of(0i16..12)))]
+    // Decrease the value of --level flag for `arm` systems, because our GitHub
+    // Actions CI runs QEMU which makes the memory consumption higher.
+    #[cfg_attr(target_arch = "arm", strategy(proptest::option::of(0i16..8)))]
+    level: Option<i16>,
 ) {
     let dir = tempdir().unwrap();
     let dir = dir.path();
