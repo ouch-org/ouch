@@ -19,12 +19,25 @@ Categories Used:
 **Bullet points in chronological order by PR**
 
 ## [Unreleased](https://github.com/ouch-org/ouch/compare/0.4.2...HEAD)
-- Add support for listing and decompressing `.rar` archives
-- Fix mime type detection
+
+### New Features
+
+### Bug Fixes
+
+### Improvements
+
+### Tweaks
+
+## [0.5.0](https://github.com/ouch-org/ouch/compare/0.4.2...0.5.0)
+
+### New Features
+
+- Add support for listing and decompressing `.rar` archives [\#529](https://github.com/ouch-org/ouch/pull/529) ([lmkra](https://github.com/lmkra))
 - Add support for 7z [\#555](https://github.com/ouch-org/ouch/pull/555) ([Flat](https://github.com/flat) & [MissileLab](https://github.com/MisileLab))
 
 ### Bug Fixes
 
+- Fix mime type detection [\#555](https://github.com/ouch-org/ouch/pull/555) ([MissileLab](https://github.com/MisileLab))
 - Fix size unit inconsistency [\#502](https://github.com/ouch-org/ouch/pull/502) ([marcospb19](https://github.com/marcospb19))
 
 ### Improvements
