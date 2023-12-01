@@ -37,7 +37,7 @@ Categories Used:
 
 ### Bug Fixes
 
-- Fix mime type detection [\#555](https://github.com/ouch-org/ouch/pull/555) ([MissileLab](https://github.com/MisileLab))
+- Fix mime type detection [\#529](https://github.com/ouch-org/ouch/pull/529) ([lmkra](https://github.com/lmkra))
 - Fix size unit inconsistency [\#502](https://github.com/ouch-org/ouch/pull/502) ([marcospb19](https://github.com/marcospb19))
 
 ### Improvements
