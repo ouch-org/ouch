@@ -146,6 +146,7 @@ pub fn decompress_file(
                 return Ok(());
             }
         }
+        #[cfg(feature = "unrar")]
         Rar => {
             type UnpackResult = crate::Result<usize>;
             let unpack_fn: Box<dyn FnOnce(&Path) -> UnpackResult> = if formats.len() > 1 {
@@ -163,6 +164,10 @@ pub fn decompress_file(
             } else {
                 return Ok(());
             }
+        }
+        #[cfg(not(feature = "unrar"))]
+        Rar => {
+            return Err(crate::archive::rar_stub::no_support());
         }
         SevenZip => {
             if formats.len() > 1 {

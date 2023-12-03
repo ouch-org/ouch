@@ -36,6 +36,9 @@ pub enum Error {
     InvalidFormat { reason: String },
     /// From sevenz_rust::Error
     SevenzipError(sevenz_rust::Error),
+    /// Recognised but unsupported format
+    // currently only RAR when built without the `unrar` feature
+    UnsupportedFormat { reason: String },
 }
 
 /// Alias to std's Result with ouch's Error
@@ -142,6 +145,9 @@ impl fmt::Display for Error {
             Error::InvalidFormat { reason } => FinalError::with_title("Invalid archive format").detail(reason.clone()),
             Error::Custom { reason } => reason.clone(),
             Error::SevenzipError(reason) => FinalError::with_title("7z error").detail(reason.to_string()),
+            Error::UnsupportedFormat { reason } => {
+                FinalError::with_title("Recognised but unsupported format").detail(reason.clone())
+            }
         };
 
         write!(f, "{err}")
@@ -181,6 +187,7 @@ impl From<zip::result::ZipError> for Error {
     }
 }
 
+#[cfg(feature = "unrar")]
 impl From<unrar::error::UnrarError> for Error {
     fn from(err: unrar::error::UnrarError) -> Self {
         Self::Custom {

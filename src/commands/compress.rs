@@ -124,8 +124,11 @@ pub fn compress_files(
             io::copy(&mut vec_buffer, &mut writer)?;
         }
         Rar => {
-            archive::rar::no_compression_notice();
-            return Ok(false);
+            #[cfg(feature = "unrar")]
+            return Err(archive::rar::no_compression());
+
+            #[cfg(not(feature = "unrar"))]
+            return Err(archive::rar_stub::no_support());
         }
         SevenZip => {
             if !formats.is_empty() {

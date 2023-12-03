@@ -4,7 +4,7 @@ use std::path::Path;
 
 use unrar::{self, Archive};
 
-use crate::{info, list::FileInArchive, warning};
+use crate::{error::Error, info, list::FileInArchive};
 
 /// Unpacks the archive given by `archive_path` into the folder given by `output_folder`.
 /// Assumes that output_folder is empty
@@ -49,8 +49,8 @@ pub fn list_archive(archive_path: &Path) -> impl Iterator<Item = crate::Result<F
         })
 }
 
-pub fn no_compression_notice() {
-    const MESSAGE: &str = "Creating '.rar' archives is not supported due to licensing restrictions";
-
-    warning!("{}", MESSAGE);
+pub fn no_compression() -> Error {
+    Error::UnsupportedFormat {
+        reason: "Creating RAR archives is not allowed due to licensing restrictions.".into(),
+    }
 }

@@ -78,6 +78,7 @@ pub fn list_archive_contents(
 
             Box::new(crate::archive::zip::list_archive(zip_archive))
         }
+        #[cfg(feature = "unrar")]
         Rar => {
             if formats.len() > 1 {
                 let mut temp_file = tempfile::NamedTempFile::new()?;
@@ -86,6 +87,10 @@ pub fn list_archive_contents(
             } else {
                 Box::new(crate::archive::rar::list_archive(archive_path))
             }
+        }
+        #[cfg(not(feature = "unrar"))]
+        Rar => {
+            return Err(crate::archive::rar_stub::no_support());
         }
         SevenZip => {
             if formats.len() > 1 {
