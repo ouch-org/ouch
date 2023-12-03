@@ -65,9 +65,17 @@ fn ui_test_err_decompress_missing_extension() {
 
     run_in(dir, "touch", "a b.unknown").unwrap();
 
-    ui!(run_ouch("ouch decompress a", dir));
-    ui!(run_ouch("ouch decompress a b.unknown", dir));
-    ui!(run_ouch("ouch decompress b.unknown", dir));
+    let name = {
+        let suffix = if cfg!(feature = "unrar") {
+            "with_rar"
+        } else {
+            "without_rar"
+        };
+        format!("ui_test_err_decompress_missing_extension_{suffix}")
+    };
+    ui!(format!("{name}-1"), run_ouch("ouch decompress a", dir));
+    ui!(format!("{name}-2"), run_ouch("ouch decompress a b.unknown", dir));
+    ui!(format!("{name}-3"), run_ouch("ouch decompress b.unknown", dir));
 }
 
 #[test]

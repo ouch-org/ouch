@@ -8,10 +8,28 @@ use self::CompressionFormat::*;
 use crate::{error::Error, warning};
 
 pub const SUPPORTED_EXTENSIONS: &[&str] = &[
-    "tar", "zip", "bz", "bz2", "gz", "lz4", "xz", "lzma", "sz", "zst", "rar", "7z",
+    "tar",
+    "zip",
+    "bz",
+    "bz2",
+    "gz",
+    "lz4",
+    "xz",
+    "lzma",
+    "sz",
+    "zst",
+    #[cfg(feature = "unrar")]
+    "rar",
+    "7z",
 ];
+
 pub const SUPPORTED_ALIASES: &[&str] = &["tgz", "tbz", "tlz4", "txz", "tzlma", "tsz", "tzst"];
-pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, gz, lz4, xz, lzma, sz, zst, rar";
+
+#[cfg(not(feature = "unrar"))]
+pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, gz, lz4, xz, lzma, sz, zst, 7z";
+#[cfg(feature = "unrar")]
+pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, gz, lz4, xz, lzma, sz, zst, rar, 7z";
+
 pub const PRETTY_SUPPORTED_ALIASES: &str = "tgz, tbz, tlz4, txz, tzlma, tsz, tzst";
 
 /// A wrapper around `CompressionFormat` that allows combinations like `tgz`
@@ -74,6 +92,7 @@ pub enum CompressionFormat {
     Zstd,
     /// .zip
     Zip,
+    // even if built without RAR support, we still want to recognise the format
     /// .rar
     Rar,
     /// .7z
