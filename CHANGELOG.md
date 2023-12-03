@@ -26,6 +26,8 @@ Categories Used:
 
 ### Improvements
 
+- Explicitly declare feature flags `use_zlib` & `use_zstd_thin` [\#564](https://github.com/ouch-org/ouch/pull/564) ([cyqsimon](https://github.com/cyqsimon))
+
 ### Tweaks
 
 ## [0.5.0](https://github.com/ouch-org/ouch/compare/0.4.2...0.5.0)
