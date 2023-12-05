@@ -164,17 +164,19 @@ Check the [releases page](https://github.com/ouch-org/ouch/releases).
 
 Check the [wiki guide on compiling](https://github.com/ouch-org/ouch/wiki/Compiling-and-installing-from-source-code).
 
-# Dependencies
+# Runtime Dependencies
 
-If you installed `ouch` using the download script, you will need no dependencies (static MUSL binary).
+When `ouch` gives a linking error, it means you're missing a runtime dependency.
+
+If you're downloading binaries from the [releases page](https://github.com/ouch-org/ouch/releases), try the `musl` variants, those are static binaries that require no runtime dependencies.
 
 Otherwise, you'll need these libraries installed on your system:
 
 * [liblzma](https://www.7-zip.org/sdk.html)
-* [libbz2](https://www.sourceware.org/bzip2/)
-* [libz](https://www.zlib.net/)
+* [libbz2](https://www.sourceware.org/bzip2)
+* [libz](https://www.zlib.net)
 
-These are available on all mainstream _Linux_ distributions and on _macOS_.
+These should be available in your system's package manager.
 
 # Benchmarks
 
@@ -196,12 +198,14 @@ Versions used:
 
 # Contributing
 
-`ouch` is made out of voluntary work, contributors are very welcome! No contribution is too small and all contributions are valued.
+`ouch` is made out of voluntary work, contributors are very welcome! Contributions of all sizes are appreciated.
 
 - Open an [issue](https://github.com/ouch-org/ouch/issues).
 - Package it for your favorite distribution or package manager.
-- Open a pull request.
 - Share it with a friend!
+- Open a pull request.
+
+If you're creating a Pull Request, check [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 [`tar`]: https://www.gnu.org/software/tar/
 [infozip]: http://www.info-zip.org/
