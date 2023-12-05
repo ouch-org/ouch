@@ -1,4 +1,4 @@
-name: manual-release
+name: create-draft-release-with-artifacts
 
 on:
   workflow_dispatch:
