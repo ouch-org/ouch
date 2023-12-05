@@ -111,25 +111,26 @@ Output:
 
 # Supported formats
 
-| Format    | `.tar` | `.zip` | `7z` | `.gz` | `.xz`, `.lzma` | `.bz`, `.bz2` | `.lz4` | `.sz` (Snappy) | `.zst` |
-|:---------:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Supported | ✓ | ✓¹ | ✓ | ✓² | ✓ | ✓ | ✓ | ✓² | ✓ |
+| Format    | `.tar` | `.zip` | `7z` | `.gz` | `.xz`, `.lzma` | `.bz`, `.bz2` | `.lz4` | `.sz` (Snappy) | `.zst` | `.rar` |
+|:---------:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Supported | ✓ | ✓¹ | ✓¹ | ✓² | ✓ | ✓ | ✓ | ✓² | ✓ | ✓³ |
 
 ✓: Supports compression and decompression.
 
-✓¹: Due to limitations of `.zip`, it doesn't support streaming (de)compression.
+✓¹: Due to limitations of the compression format itself, (de)compression can't be done with streaming.
 
 ✓²: Supported, and compression runs in parallel.
+
+✓³: Due to Rar's restrictive license, only decompression and listing can be supported.
 
 `tar` aliases are also supported: `tgz`, `tbz`, `tbz2`, `tlz4`, `txz`, `tlzma`, `tsz`, `tzst`.
 
 Formats can be chained:
 
-- `.zst.gz`
-- `.tar.gz.gz`
-- `.tar.gz.gz.gz.zst.xz.bz.lz4`
+- `.tar.gz`
+- `.tar.gz.xz.zst.gz.lz4.sz`
 
-If the filename has no extensions, `Ouch` will try to infer the format by the [file signature](https://en.wikipedia.org/wiki/List_of_file_signatures).
+If the filename has no extensions, `Ouch` will try to infer the format by the [file signature](https://en.wikipedia.org/wiki/List_of_file_signatures) and ask the user for confirmation.
 
 # Installation
 
