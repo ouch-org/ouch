@@ -111,7 +111,7 @@ Output:
 
 # Supported formats
 
-| Format    | `.tar` | `.zip` | `.gz` | `.xz`, `.lzma` | `.bz`, `.bz2` | `.lz4` | `.sz` | `.zst` |
+| Format    | `.tar` | `.zip` | `.gz` | `.xz`, `.lzma` | `.bz`, `.bz2` | `.lz4` | `.sz` (Snappy) | `.zst` |
 |:---------:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | Supported | ✓ | ✓¹ | ✓² | ✓ | ✓ | ✓ | ✓² | ✓ |
 
