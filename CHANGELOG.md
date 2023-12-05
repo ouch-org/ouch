@@ -18,17 +18,25 @@ Categories Used:
 
 **Bullet points in chronological order by PR**
 
-## [Unreleased](https://github.com/ouch-org/ouch/compare/0.4.2...HEAD)
+## [Unreleased](https://github.com/ouch-org/ouch/compare/0.5.1...HEAD)
 
 ### New Features
 
 ### Bug Fixes
+
+### Tweaks
+
+### Improvements
+
+## [0.5.1](https://github.com/ouch-org/ouch/compare/0.5.0...0.5.1)
 
 ### Improvements
 
 - Explicitly declare feature flags `use_zlib` & `use_zstd_thin` [\#564](https://github.com/ouch-org/ouch/pull/564) ([cyqsimon](https://github.com/cyqsimon))
 
 ### Tweaks
+
+- Mention support for `7z` and `rar` in help message.
 
 ## [0.5.0](https://github.com/ouch-org/ouch/compare/0.4.2...0.5.0)
 
