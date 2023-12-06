@@ -166,7 +166,7 @@ Check the [wiki guide on compiling](https://github.com/ouch-org/ouch/wiki/Compil
 
 # Runtime Dependencies
 
-When `ouch` gives a linking error, it means you're missing a runtime dependency.
+If running `ouch` results in a linking error, it means you're missing a runtime dependency.
 
 If you're downloading binaries from the [releases page](https://github.com/ouch-org/ouch/releases), try the `musl` variants, those are static binaries that require no runtime dependencies.
 
