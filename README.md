@@ -121,7 +121,9 @@ Output:
 
 ✓²: Supported, and compression runs in parallel.
 
-✓³: Due to Rar's restrictive license, only decompression and listing can be supported.
+✓³: Due to RAR's restrictive license, only decompression and listing can be supported.
+If you wish to exclude non-free code from your build, you can disable RAR support
+by building without the `unrar` feature.
 
 `tar` aliases are also supported: `tgz`, `tbz`, `tbz2`, `tlz4`, `txz`, `tlzma`, `tsz`, `tzst`.
 
