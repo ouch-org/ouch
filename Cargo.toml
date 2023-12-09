@@ -55,7 +55,7 @@ regex = "1.10.2"
 test-strategy = "0.3.1"
 
 [features]
-default = ["use_zlib", "use_zstd_thin"]
+default = ["use_zlib", "use_zstd_thin", "unrar"]
 use_zlib = ["flate2/zlib", "gzp/deflate_zlib", "zip/deflate-zlib"]
 use_zstd_thin = ["zstd/thin"]
 
