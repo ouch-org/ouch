@@ -26,6 +26,8 @@ Categories Used:
 
 ### Tweaks
 
+- CI refactor [\#578](https://github.com/ouch-org/ouch/pull/578) ([cyqsimon](https://github.com/cyqsimon))
+
 ### Improvements
 
 ## [0.5.1](https://github.com/ouch-org/ouch/compare/0.5.0...0.5.1)
