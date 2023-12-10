@@ -6,9 +6,10 @@
 #[macro_use]
 mod utils;
 
-use std::{io, path::Path, process::Output};
+use std::{ffi::OsStr, io, path::Path, process::Output};
 
 use insta::assert_display_snapshot as ui;
+use regex::Regex;
 
 use crate::utils::run_in;
 
@@ -35,18 +36,13 @@ fn run_ouch(argv: &str, dir: &Path) -> String {
     redact_paths(&output_to_string(output), dir)
 }
 
-// remove random tempdir paths from snapshots to make them deterministic
-fn redact_paths(text: &str, path: &Path) -> String {
-    let redacted = "<FOLDER>";
+/// Remove random tempdir paths from snapshots to make them deterministic.
+fn redact_paths(text: &str, dir: &Path) -> String {
+    let dir_name = dir.file_name().and_then(OsStr::to_str).unwrap();
 
-    let path = path.display();
-    let path = if cfg!(target_os = "macos") {
-        format!(r"/private{path}")
-    } else {
-        path.to_string()
-    };
-
-    text.replace(path.as_str(), redacted)
+    // this regex should be good as long as the path does not contain whitespace characters
+    let re = Regex::new(&format!(r"\S*[/\\]{dir_name}[/\\]")).unwrap();
+    re.replace_all(text, "<TMP_DIR>/").into()
 }
 
 fn output_to_string(output: Output) -> String {
@@ -107,6 +103,11 @@ fn ui_test_ok_decompress() {
 
 #[test]
 fn ui_test_usage_help_flag() {
-    ui!(output_to_string(ouch!("--help")));
-    ui!(output_to_string(ouch!("-h")));
+    insta::with_settings!({filters => vec![
+        // binary name is `ouch.exe` on Windows and `ouch` on everywhere else
+        (r"(Usage:.*\b)ouch(\.exe)?\b", "${1}<OUCH_BIN>"),
+    ]}, {
+        ui!(output_to_string(ouch!("--help")));
+        ui!(output_to_string(ouch!("-h")));
+    });
 }
