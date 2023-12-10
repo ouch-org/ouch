@@ -17,51 +17,48 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - x86_64-unknown-linux-musl
+          - x86_64-pc-windows-gnu
+          - x86_64-pc-windows-msvc
+          - x86_64-apple-darwin
+          - aarch64-unknown-linux-gnu
+          - aarch64-unknown-linux-musl
+          - armv7-unknown-linux-gnueabihf
+          - armv7-unknown-linux-musleabihf
+          - aarch64-pc-windows-msvc
+        feature-use-zlib: [true, false]
+        feature-use-zstd-thin: [true, false]
+
         include:
-          - target: aarch64-unknown-linux-gnu
-            os: ubuntu-latest
-            no-zstd-thin: true
-
-          - target: aarch64-unknown-linux-musl
-            os: ubuntu-latest
-            no-zstd-thin: true
-
-          - target: armv7-unknown-linux-gnueabihf
-            os: ubuntu-latest
-            no-zstd-thin: true
-
-          - target: armv7-unknown-linux-musleabihf
-            os: ubuntu-latest
-            no-zstd-thin: true
-
-          - target: x86_64-apple-darwin
-            os: macos-latest
-
+          # default runner
+          - os: ubuntu-latest
+          # runner overrides
           - target: x86_64-pc-windows-gnu
             os: windows-latest
-            no-zstd-thin: true
-            ext: .exe
-
           - target: x86_64-pc-windows-msvc
             os: windows-latest
-            ext: .exe
-
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          # targets that require cross
+          - target: aarch64-unknown-linux-gnu
+            use-cross: true
+          - target: aarch64-unknown-linux-musl
+            use-cross: true
+          - target: armv7-unknown-linux-gnueabihf
+            use-cross: true
+          - target: armv7-unknown-linux-musleabihf
+            use-cross: true
           - target: aarch64-pc-windows-msvc
-            os: windows-latest
-            ext: .exe
-
-          - target: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
-
-          - target: x86_64-unknown-linux-musl
-            os: ubuntu-latest
+            use-cross: true
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install cross (non-x86_64 linux)
-        if: matrix.target != 'x86_64-unknown-linux-gnu' && runner.os == 'Linux'
+      - name: Install cross
+        if: matrix.use-cross
         run: |
           pushd "$(mktemp -d)"
           wget https://github.com/cross-rs/cross/releases/download/v0.2.4/cross-x86_64-unknown-linux-musl.tar.gz
@@ -70,10 +67,24 @@ jobs:
           popd
           echo CARGO=cross >> $GITHUB_ENV
 
-      - name: Set up extra cargo flags
-        if: matrix.no-zstd-thin
+      - name: Concatenate features
+        id: concat-features
+        shell: bash
         run: |
-          echo "EXTRA_CARGO_FLAGS=--no-default-features --features use_zlib" >> $GITHUB_ENV
+          FEATURES=()
+          if [[ ${{ matrix.feature-use-zlib }} == true ]]; then FEATURES+=(use_zlib); fi
+          if [[ ${{ matrix.feature-use-zstd-thin }} == true ]]; then FEATURES+=(use_zstd_thin); fi
+          IFS=','
+          echo "FEATURES=${FEATURES[*]}" >> $GITHUB_OUTPUT
+
+      - name: Set up extra cargo flags
+        env:
+          FEATURES: ${{steps.concat-features.outputs.FEATURES}}
+        shell: bash
+        run: |
+          FLAGS="--no-default-features"
+          if [[ -n "$FEATURES" ]]; then FLAGS+=" --features $FEATURES"; fi
+          echo "EXTRA_CARGO_FLAGS=$FLAGS" >> $GITHUB_ENV
 
       - name: Install Rust
         run: |
@@ -93,9 +104,10 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ouch-${{ matrix.target }}${{ matrix.ext }}
+          name: ouch-${{ matrix.target }}-${{ steps.concat-features.outputs.FEATURES }}
           path: |
-            target/${{ matrix.target }}/release/ouch${{ matrix.ext }}
+            target/${{ matrix.target }}/release/ouch
+            target/${{ matrix.target }}/release/ouch.exe
             artifacts/
 
 
