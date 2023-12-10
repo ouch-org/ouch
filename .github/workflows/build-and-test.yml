@@ -48,7 +48,6 @@ jobs:
           - target: aarch64-pc-windows-msvc
             os: windows-latest
             ext: .exe
-            skip-test: true
 
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
@@ -80,7 +79,6 @@ jobs:
           rustup toolchain install stable nightly --profile minimal -t ${{ matrix.target }}
 
       - name: Test on stable
-        if: ${{ ! matrix.skip-test }}
         run: |
           ${{ env.CARGO }} +stable test --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
 
