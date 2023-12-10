@@ -8,7 +8,7 @@ Supported formats: tar, zip, gz, 7z, xz/lzma, bz/bz2, lz4, sz (Snappy), zst and 
 
 Repository: https://github.com/ouch-org/ouch
 
-Usage: ouch [OPTIONS] <COMMAND>
+Usage: <OUCH_BIN> [OPTIONS] <COMMAND>
 
 Commands:
   compress    Compress one or more files into one output file [aliases: c]
