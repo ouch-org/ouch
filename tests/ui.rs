@@ -8,12 +8,8 @@ mod utils;
 
 use std::{io, path::Path, process::Output};
 
-#[cfg(not(windows))]
 use insta::assert_display_snapshot as ui;
 
-// Don't run these on Windows
-#[cfg(windows)]
-use self::ignore as ui;
 use crate::utils::run_in;
 
 fn testdir() -> io::Result<(tempfile::TempDir, &'static Path)> {
@@ -113,12 +109,4 @@ fn ui_test_ok_decompress() {
 fn ui_test_usage_help_flag() {
     ui!(output_to_string(ouch!("--help")));
     ui!(output_to_string(ouch!("-h")));
-}
-
-#[allow(unused)]
-#[macro_export]
-macro_rules! ignore {
-    ($expr:expr) => {{
-        $expr
-    }};
 }
