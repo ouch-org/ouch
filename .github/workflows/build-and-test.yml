@@ -18,16 +18,18 @@ jobs:
       fail-fast: false
       matrix:
         target:
+          # native
           - x86_64-unknown-linux-gnu
           - x86_64-unknown-linux-musl
           - x86_64-pc-windows-gnu
           - x86_64-pc-windows-msvc
+          - aarch64-pc-windows-msvc
           - x86_64-apple-darwin
+          # cross
           - aarch64-unknown-linux-gnu
           - aarch64-unknown-linux-musl
           - armv7-unknown-linux-gnueabihf
           - armv7-unknown-linux-musleabihf
-          - aarch64-pc-windows-msvc
         feature-use-zlib: [true, false]
         feature-use-zstd-thin: [true, false]
 
@@ -39,6 +41,8 @@ jobs:
             os: windows-latest
           - target: x86_64-pc-windows-msvc
             os: windows-latest
+          - target: aarch64-pc-windows-msvc
+            os: windows-latest
           - target: x86_64-apple-darwin
             os: macos-latest
           # targets that require cross
@@ -49,8 +53,6 @@ jobs:
           - target: armv7-unknown-linux-gnueabihf
             use-cross: true
           - target: armv7-unknown-linux-musleabihf
-            use-cross: true
-          - target: aarch64-pc-windows-msvc
             use-cross: true
 
     steps:
@@ -91,6 +93,8 @@ jobs:
           rustup toolchain install stable nightly --profile minimal -t ${{ matrix.target }}
 
       - name: Test on stable
+        # there's no way to run tests for ARM64 Windows for now
+        if: matrix.target != 'aarch64-pc-windows-msvc'
         run: |
           ${{ env.CARGO }} +stable test --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
 
