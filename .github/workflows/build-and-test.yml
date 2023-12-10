@@ -15,6 +15,7 @@ jobs:
     env:
       CARGO: cargo
     strategy:
+      fail-fast: false
       matrix:
         include:
           - target: aarch64-unknown-linux-gnu
