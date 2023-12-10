@@ -20,12 +20,12 @@ jobs:
         target:
           # native
           - x86_64-unknown-linux-gnu
-          - x86_64-unknown-linux-musl
           - x86_64-pc-windows-gnu
           - x86_64-pc-windows-msvc
           - aarch64-pc-windows-msvc
           - x86_64-apple-darwin
           # cross
+          - x86_64-unknown-linux-musl
           - aarch64-unknown-linux-gnu
           - aarch64-unknown-linux-musl
           - armv7-unknown-linux-gnueabihf
@@ -45,7 +45,9 @@ jobs:
             os: windows-latest
           - target: x86_64-apple-darwin
             os: macos-latest
-          # targets that require cross
+          # targets that use cross
+          - target: x86_64-unknown-linux-musl
+            use-cross: true
           - target: aarch64-unknown-linux-gnu
             use-cross: true
           - target: aarch64-unknown-linux-musl
