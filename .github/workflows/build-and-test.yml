@@ -32,6 +32,7 @@ jobs:
           - armv7-unknown-linux-musleabihf
         feature-use-zlib: [true, false]
         feature-use-zstd-thin: [true, false]
+        feature-unrar: [true, false]
 
         include:
           # default runner
@@ -78,6 +79,7 @@ jobs:
           FEATURES=()
           if [[ ${{ matrix.feature-use-zlib }} == true ]]; then FEATURES+=(use_zlib); fi
           if [[ ${{ matrix.feature-use-zstd-thin }} == true ]]; then FEATURES+=(use_zstd_thin); fi
+          if [[ ${{ matrix.feature-unrar }} == true ]]; then FEATURES+=(unrar); fi
           IFS=','
           echo "FEATURES=${FEATURES[*]}" >> $GITHUB_OUTPUT
 
