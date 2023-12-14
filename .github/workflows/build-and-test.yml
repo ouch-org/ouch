@@ -108,7 +108,7 @@ jobs:
           RUSTFLAGS: -C strip=symbols
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ouch-${{ matrix.target }}-${{ steps.concat-features.outputs.FEATURES }}
           path: |
