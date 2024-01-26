@@ -99,6 +99,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
+          prefix-key: "v1"
           key: "${{ matrix.target }}-${{ matrix.feature-unrar }}-${{ matrix.feature-use-zstd-thin }}-${{ matrix.feature-unrar }}"
 
       - name: Test on stable
