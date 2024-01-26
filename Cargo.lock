@@ -466,6 +466,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "filetime_creation"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c25b5d475550e559de5b0c0084761c65325444e3b6c9e298af9cefe7a9ef3a5f"
+dependencies = [
+ "cfg-if",
+ "filetime",
+ "windows-sys 0.52.0",
+]
+
+[[package]]
 name = "flate2"
 version = "1.0.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -832,7 +843,7 @@ dependencies = [
  "clap",
  "clap_complete",
  "clap_mangen",
- "filetime_creation",
+ "filetime_creation 0.2.0",
  "flate2",
  "fs-err",
  "gzp",
@@ -1176,7 +1187,7 @@ dependencies = [
  "bit-set",
  "byteorder",
  "crc",
- "filetime_creation",
+ "filetime_creation 0.1.7",
  "js-sys",
  "lzma-rust",
  "nt-time",
