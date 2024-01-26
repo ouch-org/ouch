@@ -99,7 +99,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          key: "${{ matrix.target }}-${{ join(matrix.feature-use-zlib, '_') }}-${{ join(matrix.feature-use-zstd-thin, '_') }}-${{ join(matrix.feature-unrar, '_') }}"
+          key: "${{ matrix.target }}-${{ matrix.feature-unrar }}-${{ matrix.feature-use-zstd-thin }}-${{ matrix.feature-unrar }}"
 
       - name: Test on stable
         # there's no way to run tests for ARM64 Windows for now
