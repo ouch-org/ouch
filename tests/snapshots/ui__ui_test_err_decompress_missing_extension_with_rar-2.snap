@@ -8,5 +8,5 @@ expression: "run_ouch(\"ouch decompress a b.unknown\", dir)"
  - Decompression formats are detected automatically from file extension
 
 hint: Supported extensions are: tar, zip, bz, bz2, gz, lz4, xz, lzma, sz, zst, rar, 7z
-hint: Supported aliases are: tgz, tbz, tlz4, txz, tzlma, tsz, tzst
+hint: Supported aliases are: tgz, tbz, tlz4, txz, tzlma, tsz, tzst, zstd, tzstd
 
