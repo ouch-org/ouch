@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - ciCaching # TODO: Remove before merging
     tags:
       - "[0-9]+.[0-9]+.[0-9]+"
   pull_request:
@@ -95,6 +96,10 @@ jobs:
       - name: Install Rust
         run: |
           rustup toolchain install stable nightly --profile minimal -t ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: "${{ matrix.target }}-${{ env.EXTRA_CARGO_FLAGS }}"
 
       - name: Test on stable
         # there's no way to run tests for ARM64 Windows for now
