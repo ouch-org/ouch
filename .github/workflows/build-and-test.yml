@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - ciCaching # TODO: Remove before merging
     tags:
       - "[0-9]+.[0-9]+.[0-9]+"
   pull_request:
