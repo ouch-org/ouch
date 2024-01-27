@@ -12,7 +12,7 @@ use test_strategy::{proptest, Arbitrary};
 
 use crate::utils::{assert_same_directory, write_random_content};
 
-// tar and zip extensions
+/// tar and zip extensions
 #[derive(Arbitrary, Debug, Display)]
 #[display(style = "lowercase")]
 enum DirectoryExtension {
@@ -30,7 +30,7 @@ enum DirectoryExtension {
     Zip,
 }
 
-// extensions of single file compression formats
+/// Extensions of single file compression formats
 #[derive(Arbitrary, Debug, Display)]
 #[display(style = "lowercase")]
 enum FileExtension {
@@ -51,7 +51,7 @@ enum Extension {
     File(FileExtension),
 }
 
-// converts a list of extension structs to string
+/// Converts a list of extension structs to string
 fn merge_extensions(ext: impl ToString, exts: Vec<FileExtension>) -> String {
     once(ext.to_string())
         .chain(exts.into_iter().map(|x| x.to_string()))
@@ -59,7 +59,7 @@ fn merge_extensions(ext: impl ToString, exts: Vec<FileExtension>) -> String {
         .join(".")
 }
 
-// create random nested directories and files under the specified directory
+/// Create random nested directories and files under the specified directory
 fn create_random_files(dir: impl Into<PathBuf>, depth: u8, rng: &mut SmallRng) {
     if depth == 0 {
         return;
@@ -81,7 +81,7 @@ fn create_random_files(dir: impl Into<PathBuf>, depth: u8, rng: &mut SmallRng) {
     }
 }
 
-// compress and decompress a single empty file
+/// Compress and decompress a single empty file
 #[proptest(cases = 200)]
 fn single_empty_file(ext: Extension, #[any(size_range(0..8).lift())] exts: Vec<FileExtension>) {
     let dir = tempdir().unwrap();
@@ -100,7 +100,7 @@ fn single_empty_file(ext: Extension, #[any(size_range(0..8).lift())] exts: Vec<F
     assert_same_directory(before, after, false);
 }
 
-// compress and decompress a single file
+/// Compress and decompress a single file
 #[proptest(cases = 250)]
 fn single_file(
     ext: Extension,
@@ -128,10 +128,10 @@ fn single_file(
     assert_same_directory(before, after, false);
 }
 
-// compress and decompress a directory with random content generated with create_random_files
-//
-// this one runs only 50 times because there are only `.zip` and `.tar` to be tested, and
-// single-file formats testing is done in the other test
+/// Compress and decompress a directory with random content generated with create_random_files
+///
+/// This one runs only 50 times because there are only `.zip` and `.tar` to be tested, and
+/// single-file formats testing is done in the other test
 #[proptest(cases = 50)]
 fn multiple_files(
     ext: DirectoryExtension,

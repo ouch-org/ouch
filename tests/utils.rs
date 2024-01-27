@@ -11,7 +11,7 @@ use assert_cmd::Command;
 use fs_err as fs;
 use rand::{Rng, RngCore};
 
-// Run ouch with the provided arguments, returns `assert_cmd::Output`
+/// Run ouch with the provided arguments, returns [`assert_cmd::Output`]
 #[macro_export]
 macro_rules! ouch {
     ($($e:expr),*) => {
@@ -49,15 +49,15 @@ pub fn create_files_in(dir: &Path, files: &[&str]) {
     } 
  }
 
-// write random content to a file
+/// Write random content to a file
 pub fn write_random_content(file: &mut impl Write, rng: &mut impl RngCore) {
     let mut data = vec![0; rng.gen_range(0..4096)];
     rng.fill_bytes(&mut data);
     file.write_all(&data).unwrap();
 }
 
-// check that two directories have the exact same content recursively
-// checks equility of file types if preserve_permissions is true, ignored on non-unix
+/// Check that two directories have the exact same content recursively.
+/// Checks equility of file types if preserve_permissions is true, ignored on non-unix
 // Silence clippy warning that triggers because of the `#[cfg(unix)]` on Windows.
 #[allow(clippy::only_used_in_recursion)]
 pub fn assert_same_directory(x: impl Into<PathBuf>, y: impl Into<PathBuf>, preserve_permissions: bool) {

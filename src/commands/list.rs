@@ -13,8 +13,8 @@ use crate::{
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
-// File at input_file_path is opened for reading, example: "archive.tar.gz"
-// formats contains each format necessary for decompression, example: [Gz, Tar] (in decompression order)
+/// File at input_file_path is opened for reading, example: "archive.tar.gz"
+/// formats contains each format necessary for decompression, example: [Gz, Tar] (in decompression order)
 pub fn list_archive_contents(
     archive_path: &Path,
     formats: Vec<CompressionFormat>,
