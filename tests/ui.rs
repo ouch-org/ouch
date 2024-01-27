@@ -11,7 +11,7 @@ use std::{ffi::OsStr, io, path::Path, process::Output};
 use insta::assert_display_snapshot as ui;
 use regex::Regex;
 
-use crate::utils::run_in;
+use crate::utils::create_files_in;
 
 fn testdir() -> io::Result<(tempfile::TempDir, &'static Path)> {
     let dir = tempfile::tempdir()?;
@@ -54,7 +54,7 @@ fn ui_test_err_compress_missing_extension() {
     let (_dropper, dir) = testdir().unwrap();
 
     // prepare
-    run_in(dir, "touch", "input").unwrap();
+    create_files_in(dir, &["input"]);
 
     ui!(run_ouch("ouch compress input output", dir));
 }
@@ -63,7 +63,7 @@ fn ui_test_err_compress_missing_extension() {
 fn ui_test_err_decompress_missing_extension() {
     let (_dropper, dir) = testdir().unwrap();
 
-    run_in(dir, "touch", "a b.unknown").unwrap();
+    create_files_in(dir, &["a", "b.unknown"]);
 
     let name = {
         let suffix = if cfg!(feature = "unrar") {
@@ -92,7 +92,7 @@ fn ui_test_ok_compress() {
     let (_dropper, dir) = testdir().unwrap();
 
     // prepare
-    run_in(dir, "touch", "input").unwrap();
+    create_files_in(dir, &["input"]);
 
     ui!(run_ouch("ouch compress input output.zip", dir));
     ui!(run_ouch("ouch compress input output.gz", dir));
@@ -103,7 +103,7 @@ fn ui_test_ok_decompress() {
     let (_dropper, dir) = testdir().unwrap();
 
     // prepare
-    run_in(dir, "touch", "input").unwrap();
+    create_files_in(dir, &["input"]);
     run_ouch("ouch compress input output.zst", dir);
 
     ui!(run_ouch("ouch decompress output.zst", dir));

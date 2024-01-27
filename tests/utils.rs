@@ -3,11 +3,8 @@
 
 use std::{
     env,
-    ffi::OsStr,
-    io,
     io::Write,
     path::{Path, PathBuf},
-    process::Output,
 };
 
 use assert_cmd::Command;
@@ -38,15 +35,19 @@ pub fn cargo_bin() -> Command {
         .unwrap_or_else(|| Command::cargo_bin("ouch").expect("Failed to find ouch executable"))
 }
 
-/// Run a command inside of another folder.
+/// Creates files in the specified directory.
 ///
-/// example: `run_in("/tmp", "touch", "a b c")`
-pub fn run_in(folder: impl AsRef<Path>, bin: impl AsRef<OsStr>, args: &str) -> io::Result<Output> {
-    Command::new(bin)
-        .args(args.split_whitespace())
-        .current_dir(folder)
-        .output()
-}
+/// ## Example
+/// 
+/// ```no_run
+/// let (_dropper, dir) = testdir().unwrap();
+/// create_files_in(dir, &["file1.txt", "file2.txt"]);
+/// ```
+pub fn create_files_in(dir: &Path, files: &[&str]) {
+    for f in files {
+     std::fs::File::create(dir.join(f)).unwrap();
+    } 
+ }
 
 // write random content to a file
 pub fn write_random_content(file: &mut impl Write, rng: &mut impl RngCore) {
