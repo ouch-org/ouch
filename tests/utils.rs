@@ -58,6 +58,8 @@ pub fn write_random_content(file: &mut impl Write, rng: &mut impl RngCore) {
 
 // check that two directories have the exact same content recursively
 // checks equility of file types if preserve_permissions is true, ignored on non-unix
+// Silence clippy warning that triggers because of the `#[cfg(unix)]` on Windows.
+#[allow(clippy::only_used_in_recursion)]
 pub fn assert_same_directory(x: impl Into<PathBuf>, y: impl Into<PathBuf>, preserve_permissions: bool) {
     fn read_dir(dir: impl Into<PathBuf>) -> impl Iterator<Item = fs::DirEntry> {
         let mut dir: Vec<_> = fs::read_dir(dir).unwrap().map(|entry| entry.unwrap()).collect();
