@@ -197,7 +197,7 @@ pub fn extensions_from_path(path: &Path) -> Vec<Extension> {
     extensions
 }
 
-// Panics if formats has an empty list of compression formats
+/// Panics if formats has an empty list of compression formats
 pub fn split_first_compression_format(formats: &[Extension]) -> (CompressionFormat, Vec<CompressionFormat>) {
     let mut extensions: Vec<CompressionFormat> = flatten_compression_formats(formats);
     let first_extension = extensions.remove(0);

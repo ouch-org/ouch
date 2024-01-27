@@ -18,12 +18,12 @@ use crate::{
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
-// Decompress a file
-//
-// File at input_file_path is opened for reading, example: "archive.tar.gz"
-// formats contains each format necessary for decompression, example: [Gz, Tar] (in decompression order)
-// output_dir it's where the file will be decompressed to, this function assumes that the directory exists
-// output_file_path is only used when extracting single file formats, not archive formats like .tar or .zip
+/// Decompress a file
+///
+/// File at input_file_path is opened for reading, example: "archive.tar.gz"
+/// formats contains each format necessary for decompression, example: [Gz, Tar] (in decompression order)
+/// output_dir it's where the file will be decompressed to, this function assumes that the directory exists
+/// output_file_path is only used when extracting single file formats, not archive formats like .tar or .zip
 pub fn decompress_file(
     input_file_path: &Path,
     formats: Vec<Extension>,
