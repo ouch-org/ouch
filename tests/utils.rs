@@ -51,8 +51,7 @@ pub fn create_files_in(dir: &Path, files: &[&str]) {
 
 // write random content to a file
 pub fn write_random_content(file: &mut impl Write, rng: &mut impl RngCore) {
-    let mut data = Vec::new();
-    data.resize(rng.gen_range(0..4096), 0);
+    let mut data = vec![0; rng.gen_range(0..4096)];
     rng.fill_bytes(&mut data);
     file.write_all(&data).unwrap();
 }
