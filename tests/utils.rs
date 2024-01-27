@@ -38,16 +38,16 @@ pub fn cargo_bin() -> Command {
 /// Creates files in the specified directory.
 ///
 /// ## Example
-/// 
+///
 /// ```no_run
 /// let (_dropper, dir) = testdir().unwrap();
 /// create_files_in(dir, &["file1.txt", "file2.txt"]);
 /// ```
 pub fn create_files_in(dir: &Path, files: &[&str]) {
     for f in files {
-     std::fs::File::create(dir.join(f)).unwrap();
-    } 
- }
+        std::fs::File::create(dir.join(f)).unwrap();
+    }
+}
 
 /// Write random content to a file
 pub fn write_random_content(file: &mut impl Write, rng: &mut impl RngCore) {
