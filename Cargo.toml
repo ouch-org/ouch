@@ -48,7 +48,7 @@ clap_mangen = "0.2.19"
 assert_cmd = "2.0.13"
 infer = "0.15.0"
 insta = { version = "1.34.0", features = ["filters"] }
-parse-display = "0.8.2"
+parse-display = "0.9.0"
 proptest = "1.4.0"
 rand = { version = "0.8.5", default-features = false, features = ["small_rng", "std"] }
 regex = "1.10.3"
