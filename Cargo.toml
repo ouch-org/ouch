@@ -29,7 +29,7 @@ same-file = "1.0.6"
 sevenz-rust = { version = "0.5.4", features = ["compress"] }
 snap = "1.1.1"
 tar = "0.4.40"
-tempfile = "3.10.0"
+tempfile = "3.10.1"
 time = { version = "0.3.34", default-features = false }
 unrar = { version = "0.5.2", optional = true }
 xz2 = "0.1.7"
