@@ -142,6 +142,7 @@ impl<'a> Confirmation<'a> {
                     *colors::RESET
                 );
             }
+            let _stdout_lock = io::stdout().lock();
             io::stdout().flush()?;
 
             let mut answer = String::new();

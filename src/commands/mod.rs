@@ -4,7 +4,7 @@ mod compress;
 mod decompress;
 mod list;
 
-use std::{ops::ControlFlow, path::PathBuf};
+use std::{ops::ControlFlow, path::PathBuf, sync::{mpsc::channel, Arc, Condvar, Mutex}};
 
 use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use utils::colors;
@@ -17,7 +17,7 @@ use crate::{
     extension::{self, parse_format},
     info,
     list::ListOptions,
-    utils::{self, to_utf, EscapedPathDisplay, FileVisibilityPolicy},
+    utils::{self, io::PrintMessage, to_utf, EscapedPathDisplay, FileVisibilityPolicy},
     warning, CliArgs, QuestionPolicy,
 };
 
@@ -169,6 +169,27 @@ pub fn run(
                 PathBuf::from(".")
             };
 
+            let (log_sender, log_receiver) = channel::<PrintMessage>();
+
+            let pair = Arc::new((Mutex::new(false), Condvar::new()));
+            let pair2 = Arc::clone(&pair);
+
+            // Log received messages until all senders are dropped
+            rayon::spawn(move || {
+                loop {
+                    let msg = log_receiver.recv();
+                    if let Ok(msg) = msg {
+                        println!("{}", msg.contents);
+                    } else {
+                        let (lock, cvar) = &*pair2;
+                        let mut flushed = lock.lock().unwrap();
+                        *flushed = true;
+                        cvar.notify_one();
+                        break;
+                    }
+                }
+            });
+
             files
                 .par_iter()
                 .zip(formats)
@@ -182,8 +203,20 @@ pub fn run(
                         output_file_path,
                         question_policy,
                         args.quiet,
+                        log_sender.clone(),
                     )
                 })?;
+
+                // Drop our sender clones so when all threads are done, no clones are left
+                drop(log_sender);
+
+                // Prevent the main thread from exiting until the background thread handling the
+                // logging has set `flushed` to true.
+                let (lock, cvar) = &*pair;
+                let mut flushed = lock.lock().unwrap();
+                while !*flushed {
+                    flushed = cvar.wait(flushed).unwrap();
+                }
         }
         Subcommand::List { archives: files, tree } => {
             let mut formats = vec![];
