@@ -7,6 +7,7 @@ pub mod colors;
 mod file_visibility;
 mod formatting;
 mod fs;
+pub mod io;
 mod question;
 
 pub use file_visibility::FileVisibilityPolicy;
