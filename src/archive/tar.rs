@@ -21,7 +21,12 @@ use crate::{
 
 /// Unpacks the archive given by `archive` into the folder given by `into`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool, log_sender: Sender<PrintMessage>) -> crate::Result<usize> {
+pub fn unpack_archive(
+    reader: Box<dyn Read>,
+    output_folder: &Path,
+    quiet: bool,
+    log_sender: Sender<PrintMessage>,
+) -> crate::Result<usize> {
     assert!(output_folder.read_dir().expect("dir exists").count() == 0);
     let mut archive = tar::Archive::new(reader);
 
@@ -36,14 +41,16 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool, 
         // spoken text for users using screen readers, braille displays
         // and so on
         if !quiet {
-            log_sender.send(PrintMessage { 
-                contents: format!(
-                    "{:?} extracted. ({})",
-                    utils::strip_cur_dir(&output_folder.join(file.path()?)),
-                    Bytes::new(file.size()),
-                ), 
-                accessible: false 
-            }).unwrap();
+            log_sender
+                .send(PrintMessage {
+                    contents: format!(
+                        "{:?} extracted. ({})",
+                        utils::strip_cur_dir(&output_folder.join(file.path()?)),
+                        Bytes::new(file.size()),
+                    ),
+                    accessible: false,
+                })
+                .unwrap();
 
             files_unpacked += 1;
         }
