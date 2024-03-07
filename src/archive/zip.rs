@@ -6,7 +6,7 @@ use std::{
     env,
     io::{self, prelude::*},
     path::{Path, PathBuf},
-    sync::mpsc,
+    sync::mpsc::{self, Sender},
     thread,
 };
 
@@ -21,15 +21,20 @@ use crate::{
     info,
     list::FileInArchive,
     utils::{
-        self, cd_into_same_dir_as, get_invalid_utf8_paths, pretty_format_list_of_paths, strip_cur_dir, Bytes,
-        EscapedPathDisplay, FileVisibilityPolicy,
+        self, cd_into_same_dir_as, get_invalid_utf8_paths, io::PrintMessage, pretty_format_list_of_paths,
+        strip_cur_dir, Bytes, EscapedPathDisplay, FileVisibilityPolicy,
     },
     warning,
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `output_folder`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive<R>(mut archive: ZipArchive<R>, output_folder: &Path, quiet: bool) -> crate::Result<usize>
+pub fn unpack_archive<R>(
+    mut archive: ZipArchive<R>,
+    output_folder: &Path,
+    quiet: bool,
+    log_sender: Sender<PrintMessage>,
+) -> crate::Result<usize>
 where
     R: Read + Seek,
 {
@@ -55,7 +60,12 @@ where
                 // spoken text for users using screen readers, braille displays
                 // and so on
                 if !quiet {
-                    info!(inaccessible, "File {} extracted to \"{}\"", idx, file_path.display());
+                    log_sender
+                        .send(PrintMessage {
+                            contents: format!("File {} extracted to \"{}\"", idx, file_path.display()),
+                            accessible: false,
+                        })
+                        .unwrap();
                 }
                 fs::create_dir_all(&file_path)?;
             }
@@ -69,12 +79,12 @@ where
 
                 // same reason is in _is_dir: long, often not needed text
                 if !quiet {
-                    info!(
-                        inaccessible,
-                        "{:?} extracted. ({})",
-                        file_path.display(),
-                        Bytes::new(file.size()),
-                    );
+                    log_sender
+                        .send(PrintMessage {
+                            contents: format!("{:?} extracted. ({})", file_path.display(), Bytes::new(file.size()),),
+                            accessible: false,
+                        })
+                        .unwrap();
                 }
 
                 let mut output_file = fs::File::create(file_path)?;

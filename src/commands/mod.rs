@@ -4,7 +4,11 @@ mod compress;
 mod decompress;
 mod list;
 
-use std::{ops::ControlFlow, path::PathBuf, sync::{mpsc::channel, Arc, Condvar, Mutex}};
+use std::{
+    ops::ControlFlow,
+    path::PathBuf,
+    sync::{mpsc::channel, Arc, Condvar, Mutex},
+};
 
 use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use utils::colors;
@@ -176,11 +180,21 @@ pub fn run(
 
             // Log received messages until all senders are dropped
             rayon::spawn(move || {
+                let mut buffer = Vec::<String>::with_capacity(10);
+
                 loop {
                     let msg = log_receiver.recv();
                     if let Ok(msg) = msg {
-                        println!("{}", msg.contents);
+                        if buffer.len() == 10 {
+                            let mut tmp = buffer.join("\n");
+                            tmp.push_str(&msg.contents);
+                            println!("{}", tmp);
+                            buffer.clear();
+                        } else {
+                            buffer.push(msg.contents);
+                        }
                     } else {
+                        println!("{}", buffer.join("\n"));
                         let (lock, cvar) = &*pair2;
                         let mut flushed = lock.lock().unwrap();
                         *flushed = true;
@@ -207,16 +221,16 @@ pub fn run(
                     )
                 })?;
 
-                // Drop our sender clones so when all threads are done, no clones are left
-                drop(log_sender);
+            // Drop our sender clones so when all threads are done, no clones are left
+            drop(log_sender);
 
-                // Prevent the main thread from exiting until the background thread handling the
-                // logging has set `flushed` to true.
-                let (lock, cvar) = &*pair;
-                let mut flushed = lock.lock().unwrap();
-                while !*flushed {
-                    flushed = cvar.wait(flushed).unwrap();
-                }
+            // Prevent the main thread from exiting until the background thread handling the
+            // logging has set `flushed` to true.
+            let (lock, cvar) = &*pair;
+            let mut flushed = lock.lock().unwrap();
+            while !*flushed {
+                flushed = cvar.wait(flushed).unwrap();
+            }
         }
         Subcommand::List { archives: files, tree } => {
             let mut formats = vec![];

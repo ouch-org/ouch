@@ -1,7 +1,8 @@
 use std::{
     io::{self, BufReader, Read},
     ops::ControlFlow,
-    path::{Path, PathBuf}, sync::mpsc::Sender,
+    path::{Path, PathBuf},
+    sync::mpsc::Sender,
 };
 
 use fs_err as fs;
@@ -50,7 +51,7 @@ pub fn decompress_file(
     {
         let zip_archive = zip::ZipArchive::new(reader)?;
         let files_unpacked = if let ControlFlow::Continue(files) = smart_unpack(
-            |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, quiet),
+            |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, quiet, log_sender.clone()),
             output_dir,
             &output_file_path,
             question_policy,
@@ -65,14 +66,16 @@ pub fn decompress_file(
         // having a final status message is important especially in an accessibility context
         // as screen readers may not read a commands exit code, making it hard to reason
         // about whether the command succeeded without such a message
-        log_sender.send(PrintMessage { 
-            contents: format!(
-                "Successfully decompressed archive in {} ({} files).",
-                nice_directory_display(output_dir),
-                files_unpacked
-            ), 
-            accessible: true
-        }).unwrap();
+        log_sender
+            .send(PrintMessage {
+                contents: format!(
+                    "Successfully decompressed archive in {} ({} files).",
+                    nice_directory_display(output_dir),
+                    files_unpacked
+                ),
+                accessible: true,
+            })
+            .unwrap();
 
         return Ok(());
     }
@@ -141,7 +144,7 @@ pub fn decompress_file(
             let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
 
             if let ControlFlow::Continue(files) = smart_unpack(
-                |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, quiet),
+                |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, quiet, log_sender.clone()),
                 output_dir,
                 &output_file_path,
                 question_policy,
@@ -163,9 +166,13 @@ pub fn decompress_file(
                 Box::new(|output_dir| crate::archive::rar::unpack_archive(input_file_path, output_dir, quiet))
             };
 
-            if let ControlFlow::Continue(files) =
-                smart_unpack(unpack_fn, output_dir, &output_file_path, question_policy, log_sender.clone())?
-            {
+            if let ControlFlow::Continue(files) = smart_unpack(
+                unpack_fn,
+                output_dir,
+                &output_file_path,
+                question_policy,
+                log_sender.clone(),
+            )? {
                 files
             } else {
                 return Ok(());
@@ -205,17 +212,21 @@ pub fn decompress_file(
     // having a final status message is important especially in an accessibility context
     // as screen readers may not read a commands exit code, making it hard to reason
     // about whether the command succeeded without such a message
-    log_sender.send(PrintMessage { 
-        contents: format!(
-            "Successfully decompressed archive in {}.",
-            nice_directory_display(output_dir)
-        ), 
-        accessible: true 
-    }).unwrap();
-    log_sender.send(PrintMessage { 
-        contents: format!("Files unpacked: {}", files_unpacked), 
-        accessible: true 
-    }).unwrap();
+    log_sender
+        .send(PrintMessage {
+            contents: format!(
+                "Successfully decompressed archive in {}.",
+                nice_directory_display(output_dir)
+            ),
+            accessible: true,
+        })
+        .unwrap();
+    log_sender
+        .send(PrintMessage {
+            contents: format!("Files unpacked: {}", files_unpacked),
+            accessible: true,
+        })
+        .unwrap();
 
     Ok(())
 }
@@ -236,13 +247,15 @@ fn smart_unpack(
     let temp_dir = tempfile::tempdir_in(output_dir)?;
     let temp_dir_path = temp_dir.path();
 
-    log_sender.send(PrintMessage { 
-        contents: format!(
-            "Created temporary directory {} to hold decompressed elements.",
-            nice_directory_display(temp_dir_path)
-        ), 
-        accessible: true 
-    }).unwrap();
+    log_sender
+        .send(PrintMessage {
+            contents: format!(
+                "Created temporary directory {} to hold decompressed elements.",
+                nice_directory_display(temp_dir_path)
+            ),
+            accessible: true,
+        })
+        .unwrap();
 
     let files = unpack_fn(temp_dir_path)?;
 
@@ -261,14 +274,16 @@ fn smart_unpack(
         }
         fs::rename(&file_path, &correct_path)?;
 
-        log_sender.send(PrintMessage { 
-            contents: format!(
-                "Successfully moved {} to {}.",
-                nice_directory_display(&file_path),
-                nice_directory_display(&correct_path)
-            ), 
-            accessible: true
-        }).unwrap();
+        log_sender
+            .send(PrintMessage {
+                contents: format!(
+                    "Successfully moved {} to {}.",
+                    nice_directory_display(&file_path),
+                    nice_directory_display(&correct_path)
+                ),
+                accessible: true,
+            })
+            .unwrap();
     } else {
         // Multiple files in the root directory, so:
         // Rename the temporary directory to the archive name, which is output_file_path
@@ -277,14 +292,16 @@ fn smart_unpack(
             return Ok(ControlFlow::Break(()));
         }
         fs::rename(temp_dir_path, output_file_path)?;
-        log_sender.send(PrintMessage { 
-            contents: format!(
-                "Successfully moved {} to {}.",
-                nice_directory_display(temp_dir_path),
-                nice_directory_display(output_file_path)
-            ),
-            accessible: true 
-        }).unwrap();
+        log_sender
+            .send(PrintMessage {
+                contents: format!(
+                    "Successfully moved {} to {}.",
+                    nice_directory_display(temp_dir_path),
+                    nice_directory_display(output_file_path)
+                ),
+                accessible: true,
+            })
+            .unwrap();
     }
 
     Ok(ControlFlow::Continue(files))
