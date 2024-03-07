@@ -36,6 +36,7 @@ Categories Used:
 
 - Fix logging IO bottleneck [\#642](https://github.com/ouch-org/ouch/pull/642) ([AntoniosBarotsis](https://github.com/AntoniosBarotsis))
 - Support decompression  over stdin [\#692](https://github.com/ouch-org/ouch/pull/692) ([rcorre](https://github.com/rcorre))
+- Make `--format` more forgiving with the formatting of the provided format [\#519](https://github.com/ouch-org/ouch/pull/519) ([marcospb19](https://github.com/marcospb19))
 
 ## [0.5.1](https://github.com/ouch-org/ouch/compare/0.5.0...0.5.1)
 
