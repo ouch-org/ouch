@@ -1,39 +1,48 @@
 Thanks for your interest in contributing to `ouch`!
 
-# Code of Conduct
+# Table of contents:
+
+- [Code of Conduct](#code-of-conduct)
+- [I want to ask a question or provide feedback](#i-want-to-ask-a-question-or-provide-feedback)
+- [Adding a new feature](#adding-a-new-feature)
+- [PRs](#prs)
+- [Dealing with UI tests](#dealing-with-ui-tests)
+
+## Code of Conduct
 
 We follow the [Rust Official Code of Conduct](https://www.rust-lang.org/policies/code-of-conduct).
 
-# I want to ask a question or provide feedback
+## I want to ask a question or provide feedback
 
 Create [an issue](https://github.com/ouch-org/ouch/issues) or go to [Ouch Discussions](https://github.com/ouch-org/ouch/discussions).
 
-# Adding a brand new feature
+## Adding a new feature
 
 Before opening the PR, open an issue to discuss your addition, this increases the chance of your PR being accepted.
 
-# PRs
+## PRs
 
 - Pass all CI checks.
 - After opening the PR, add a [CHANGELOG.md] entry.
 
-# Updating UI tests
+[CHANGELOG.md]: https://github.com/ouch-org/ouch
 
-In case you need to update the UI tests.
+## Dealing with UI tests
 
-- Run tests with `insta` to create the new snapshots:
+We use snapshots to do UI testing and guarantee a consistent output, this way, you can catch accidental changes or see what output changed in the PR diff.
+
+- Run tests with `cargo` normally, or with a filter:
 
 ```sh
-cargo insta review # or
-cargo insta review -- ui # useful filter
+cargo test
+# Only run UI tests
+cargo test -- ui
 ```
 
-- Now, review the diffs you just generated.
+- If some UI test failed, you should review it:
 
 ```sh
 cargo insta review
 ```
 
-- You can commit them now.
-
-[CHANGELOG.md]: https://github.com/ouch-org/ouch
+- After addressing all, you should be able to `git add` and `commit` accordingly.
