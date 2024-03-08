@@ -26,7 +26,7 @@ jobs:
         run: scripts/package-release-assets.sh
 
       - name: Create release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           draft: true
           name: manual release ${{ github.event.inputs.run_id }}
