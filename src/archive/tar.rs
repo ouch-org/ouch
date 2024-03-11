@@ -13,9 +13,8 @@ use same_file::Handle;
 
 use crate::{
     error::FinalError,
-    info,
     list::FileInArchive,
-    utils::{self, io::PrintMessage, Bytes, EscapedPathDisplay, FileVisibilityPolicy},
+    utils::{self, message::PrintMessage, Bytes, EscapedPathDisplay, FileVisibilityPolicy},
     warning,
 };
 
@@ -95,6 +94,7 @@ pub fn build_archive_from_paths<W>(
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
     quiet: bool,
+    log_sender: Sender<PrintMessage>,
 ) -> crate::Result<W>
 where
     W: Write,
@@ -129,7 +129,12 @@ where
             // spoken text for users using screen readers, braille displays
             // and so on
             if !quiet {
-                info!(inaccessible, "Compressing '{}'.", EscapedPathDisplay::new(path));
+                log_sender
+                    .send(PrintMessage {
+                        contents: format!("Compressing '{}'.", EscapedPathDisplay::new(path)),
+                        accessible: false,
+                    })
+                    .unwrap();
             }
 
             if path.is_dir() {

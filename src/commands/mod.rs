@@ -21,7 +21,7 @@ use crate::{
     extension::{self, parse_format},
     info,
     list::ListOptions,
-    utils::{self, io::PrintMessage, to_utf, EscapedPathDisplay, FileVisibilityPolicy},
+    utils::{self, message::PrintMessage, to_utf, EscapedPathDisplay, FileVisibilityPolicy},
     warning, CliArgs, QuestionPolicy,
 };
 
@@ -54,6 +54,45 @@ pub fn run(
     question_policy: QuestionPolicy,
     file_visibility_policy: FileVisibilityPolicy,
 ) -> crate::Result<()> {
+    let (log_sender, log_receiver) = channel::<PrintMessage>();
+
+    let pair = Arc::new((Mutex::new(false), Condvar::new()));
+    let pair2 = Arc::clone(&pair);
+
+    // Log received messages until all senders are dropped
+    rayon::spawn(move || {
+        const BUFFER_SIZE: usize = 10;
+        let mut buffer = Vec::<String>::with_capacity(BUFFER_SIZE);
+
+        loop {
+            let msg = log_receiver.recv();
+
+            // Senders are still active
+            if let Ok(msg) = msg {
+                // Print messages if buffer is full otherwise append to it
+                if buffer.len() == BUFFER_SIZE {
+                    let mut tmp = buffer.join("\n");
+                    tmp.push_str(&msg.contents);
+
+                    println!("{}", tmp);
+                    buffer.clear();
+                } else {
+                    buffer.push(msg.contents);
+                }
+            } else {
+                // All senders have been dropped
+                println!("{}", buffer.join("\n"));
+
+                // Wake up the main thread
+                let (lock, cvar) = &*pair2;
+                let mut flushed = lock.lock().unwrap();
+                *flushed = true;
+                cvar.notify_one();
+                break;
+            }
+        }
+    });
+
     match args.cmd {
         Subcommand::Compress {
             files,
@@ -106,6 +145,7 @@ pub fn run(
                 question_policy,
                 file_visibility_policy,
                 level,
+                log_sender.clone(),
             );
 
             if let Ok(true) = compress_result {
@@ -113,7 +153,12 @@ pub fn run(
                 // having a final status message is important especially in an accessibility context
                 // as screen readers may not read a commands exit code, making it hard to reason
                 // about whether the command succeeded without such a message
-                info!(accessible, "Successfully compressed '{}'.", to_utf(&output_path));
+                log_sender
+                    .send(PrintMessage {
+                        contents: format!("Successfully compressed '{}'.", to_utf(&output_path)),
+                        accessible: true,
+                    })
+                    .unwrap();
             } else {
                 // If Ok(false) or Err() occurred, delete incomplete file at `output_path`
                 //
@@ -153,7 +198,7 @@ pub fn run(
                 for path in files.iter() {
                     let (pathbase, mut file_formats) = extension::separate_known_extensions_from_name(path);
 
-                    if let ControlFlow::Break(_) = check::check_mime_type(path, &mut file_formats, question_policy)? {
+                    if let ControlFlow::Break(_) = check::check_mime_type(path, &mut file_formats, question_policy, log_sender.clone())? {
                         return Ok(());
                     }
 
@@ -167,42 +212,11 @@ pub fn run(
             // The directory that will contain the output files
             // We default to the current directory if the user didn't specify an output directory with --dir
             let output_dir = if let Some(dir) = output_dir {
-                utils::create_dir_if_non_existent(&dir)?;
+                utils::create_dir_if_non_existent(&dir, log_sender.clone())?;
                 dir
             } else {
                 PathBuf::from(".")
             };
-
-            let (log_sender, log_receiver) = channel::<PrintMessage>();
-
-            let pair = Arc::new((Mutex::new(false), Condvar::new()));
-            let pair2 = Arc::clone(&pair);
-
-            // Log received messages until all senders are dropped
-            rayon::spawn(move || {
-                let mut buffer = Vec::<String>::with_capacity(10);
-
-                loop {
-                    let msg = log_receiver.recv();
-                    if let Ok(msg) = msg {
-                        if buffer.len() == 10 {
-                            let mut tmp = buffer.join("\n");
-                            tmp.push_str(&msg.contents);
-                            println!("{}", tmp);
-                            buffer.clear();
-                        } else {
-                            buffer.push(msg.contents);
-                        }
-                    } else {
-                        println!("{}", buffer.join("\n"));
-                        let (lock, cvar) = &*pair2;
-                        let mut flushed = lock.lock().unwrap();
-                        *flushed = true;
-                        cvar.notify_one();
-                        break;
-                    }
-                }
-            });
 
             files
                 .par_iter()
@@ -220,17 +234,6 @@ pub fn run(
                         log_sender.clone(),
                     )
                 })?;
-
-            // Drop our sender clones so when all threads are done, no clones are left
-            drop(log_sender);
-
-            // Prevent the main thread from exiting until the background thread handling the
-            // logging has set `flushed` to true.
-            let (lock, cvar) = &*pair;
-            let mut flushed = lock.lock().unwrap();
-            while !*flushed {
-                flushed = cvar.wait(flushed).unwrap();
-            }
         }
         Subcommand::List { archives: files, tree } => {
             let mut formats = vec![];
@@ -244,7 +247,7 @@ pub fn run(
                 for path in files.iter() {
                     let mut file_formats = extension::extensions_from_path(path);
 
-                    if let ControlFlow::Break(_) = check::check_mime_type(path, &mut file_formats, question_policy)? {
+                    if let ControlFlow::Break(_) = check::check_mime_type(path, &mut file_formats, question_policy, log_sender.clone())? {
                         return Ok(());
                     }
 
@@ -266,5 +269,15 @@ pub fn run(
             }
         }
     }
+
+    // Drop our sender so when all threads are done, no clones are left
+    drop(log_sender);
+
+    // Prevent the main thread from exiting until the background thread handling the
+    // logging has set `flushed` to true.
+    let (lock, cvar) = &*pair;
+    let guard = lock.lock().unwrap();
+    let _flushed = cvar.wait(guard).unwrap();
+
     Ok(())
 }

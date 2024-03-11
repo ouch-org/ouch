@@ -14,8 +14,7 @@ use crate::{
         CompressionFormat::{self, *},
         Extension,
     },
-    info,
-    utils::{self, io::PrintMessage, nice_directory_display, user_wants_to_continue},
+    utils::{self, message::PrintMessage, nice_directory_display, user_wants_to_continue},
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
@@ -161,9 +160,14 @@ pub fn decompress_file(
             let unpack_fn: Box<dyn FnOnce(&Path) -> UnpackResult> = if formats.len() > 1 {
                 let mut temp_file = tempfile::NamedTempFile::new()?;
                 io::copy(&mut reader, &mut temp_file)?;
-                Box::new(move |output_dir| crate::archive::rar::unpack_archive(temp_file.path(), output_dir, quiet))
+                let log_sender_clone = log_sender.clone();
+                Box::new(move |output_dir| {
+                    crate::archive::rar::unpack_archive(temp_file.path(), output_dir, quiet, log_sender_clone)
+                })
             } else {
-                Box::new(|output_dir| crate::archive::rar::unpack_archive(input_file_path, output_dir, quiet))
+                Box::new(|output_dir| {
+                    crate::archive::rar::unpack_archive(input_file_path, output_dir, quiet, log_sender.clone())
+                })
             };
 
             if let ControlFlow::Continue(files) = smart_unpack(
@@ -195,7 +199,14 @@ pub fn decompress_file(
             io::copy(&mut reader, &mut vec)?;
 
             if let ControlFlow::Continue(files) = smart_unpack(
-                |output_dir| crate::archive::sevenz::decompress_sevenz(io::Cursor::new(vec), output_dir, quiet),
+                |output_dir| {
+                    crate::archive::sevenz::decompress_sevenz(
+                        io::Cursor::new(vec),
+                        output_dir,
+                        quiet,
+                        log_sender.clone(),
+                    )
+                },
                 output_dir,
                 &output_file_path,
                 question_policy,

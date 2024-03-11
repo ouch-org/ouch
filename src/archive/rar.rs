@@ -1,14 +1,19 @@
 //! Contains RAR-specific building and unpacking functions
 
-use std::path::Path;
+use std::{path::Path, sync::mpsc::Sender};
 
-use unrar::{self, Archive};
+use unrar::Archive;
 
-use crate::{error::Error, info, list::FileInArchive};
+use crate::{error::Error, list::FileInArchive, utils::message::PrintMessage};
 
 /// Unpacks the archive given by `archive_path` into the folder given by `output_folder`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive(archive_path: &Path, output_folder: &Path, quiet: bool) -> crate::Result<usize> {
+pub fn unpack_archive(
+    archive_path: &Path,
+    output_folder: &Path,
+    quiet: bool,
+    log_sender: Sender<PrintMessage>,
+) -> crate::Result<usize> {
     assert!(output_folder.read_dir().expect("dir exists").count() == 0);
 
     let mut archive = Archive::new(archive_path).open_for_processing()?;
@@ -18,12 +23,12 @@ pub fn unpack_archive(archive_path: &Path, output_folder: &Path, quiet: bool) ->
         let entry = header.entry();
         archive = if entry.is_file() {
             if !quiet {
-                info!(
-                    inaccessible,
-                    "{} extracted. ({})",
-                    entry.filename.display(),
-                    entry.unpacked_size
-                );
+                log_sender
+                    .send(PrintMessage {
+                        contents: format!("{} extracted. ({})", entry.filename.display(), entry.unpacked_size),
+                        accessible: false,
+                    })
+                    .unwrap();
             }
             unpacked += 1;
             header.extract_with_base(output_folder)?

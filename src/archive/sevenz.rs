@@ -1,9 +1,10 @@
 //! SevenZip archive format compress function
 
 use std::{
-    env, io,
-    io::{Read, Seek, Write},
+    env,
+    io::{self, Read, Seek, Write},
     path::{Path, PathBuf},
+    sync::mpsc::Sender,
 };
 
 use fs_err as fs;
@@ -11,8 +12,7 @@ use same_file::Handle;
 
 use crate::{
     error::FinalError,
-    info,
-    utils::{self, cd_into_same_dir_as, Bytes, EscapedPathDisplay, FileVisibilityPolicy},
+    utils::{self, cd_into_same_dir_as, message::PrintMessage, Bytes, EscapedPathDisplay, FileVisibilityPolicy},
     warning,
 };
 
@@ -22,6 +22,7 @@ pub fn compress_sevenz<W>(
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
     quiet: bool,
+    log_sender: Sender<PrintMessage>,
 ) -> crate::Result<W>
 where
     W: Write + Seek,
@@ -56,7 +57,12 @@ where
             // spoken text for users using screen readers, braille displays
             // and so on
             if !quiet {
-                info!(inaccessible, "Compressing '{}'.", EscapedPathDisplay::new(path));
+                log_sender
+                    .send(PrintMessage {
+                        contents: format!("Compressing '{}'.", EscapedPathDisplay::new(path)),
+                        accessible: false,
+                    })
+                    .unwrap();
             }
 
             let metadata = match path.metadata() {
@@ -93,7 +99,12 @@ where
     Ok(bytes)
 }
 
-pub fn decompress_sevenz<R>(reader: R, output_path: &Path, quiet: bool) -> crate::Result<usize>
+pub fn decompress_sevenz<R>(
+    reader: R,
+    output_path: &Path,
+    quiet: bool,
+    log_sender: Sender<PrintMessage>,
+) -> crate::Result<usize>
 where
     R: Read + Seek,
 {
@@ -109,24 +120,24 @@ where
 
         if entry.is_directory() {
             if !quiet {
-                info!(
-                    inaccessible,
-                    "File {} extracted to \"{}\"",
-                    entry.name(),
-                    file_path.display()
-                );
+                log_sender
+                    .send(PrintMessage {
+                        contents: format!("File {} extracted to \"{}\"", entry.name(), file_path.display()),
+                        accessible: false,
+                    })
+                    .unwrap();
             }
             if !path.exists() {
                 fs::create_dir_all(path)?;
             }
         } else {
             if !quiet {
-                info!(
-                    inaccessible,
-                    "{:?} extracted. ({})",
-                    file_path.display(),
-                    Bytes::new(entry.size()),
-                );
+                log_sender
+                    .send(PrintMessage {
+                        contents: format!("{:?} extracted. ({})", file_path.display(), Bytes::new(entry.size()),),
+                        accessible: false,
+                    })
+                    .unwrap();
             }
 
             if let Some(parent) = path.parent() {
