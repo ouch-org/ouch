@@ -20,7 +20,8 @@ use crate::{
     error::FinalError,
     list::FileInArchive,
     utils::{
-        self, cd_into_same_dir_as, get_invalid_utf8_paths, message::PrintMessage, pretty_format_list_of_paths, strip_cur_dir, Bytes, EscapedPathDisplay, FileVisibilityPolicy
+        self, cd_into_same_dir_as, get_invalid_utf8_paths, message::PrintMessage, pretty_format_list_of_paths,
+        strip_cur_dir, Bytes, EscapedPathDisplay, FileVisibilityPolicy,
     },
     warning,
 };
@@ -145,7 +146,7 @@ pub fn build_archive_from_paths<W>(
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
     quiet: bool,
-    log_sender: Sender<PrintMessage>
+    log_sender: Sender<PrintMessage>,
 ) -> crate::Result<W>
 where
     W: Write + Seek,
@@ -202,12 +203,10 @@ where
             if !quiet {
                 log_sender
                     .send(PrintMessage {
-                        contents: format!(
-                            "Compressing '{}'.",
-                            EscapedPathDisplay::new(path)
-                        ),
+                        contents: format!("Compressing '{}'.", EscapedPathDisplay::new(path)),
                         accessible: false,
-                    }).unwrap();
+                    })
+                    .unwrap();
             }
 
             let metadata = match path.metadata() {

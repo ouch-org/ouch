@@ -5,13 +5,17 @@
 use std::{
     ffi::OsString,
     ops::ControlFlow,
-    path::{Path, PathBuf}, sync::mpsc::Sender,
+    path::{Path, PathBuf},
+    sync::mpsc::Sender,
 };
 
 use crate::{
     error::FinalError,
     extension::{build_archive_file_suggestion, Extension, PRETTY_SUPPORTED_ALIASES, PRETTY_SUPPORTED_EXTENSIONS},
-    utils::{message::PrintMessage, pretty_format_list_of_paths, try_infer_extension, user_wants_to_continue, EscapedPathDisplay},
+    utils::{
+        message::PrintMessage, pretty_format_list_of_paths, try_infer_extension, user_wants_to_continue,
+        EscapedPathDisplay,
+    },
     warning, QuestionAction, QuestionPolicy, Result,
 };
 
@@ -25,7 +29,7 @@ pub fn check_mime_type(
     path: &Path,
     formats: &mut Vec<Extension>,
     question_policy: QuestionPolicy,
-    log_sender: Sender<PrintMessage>
+    log_sender: Sender<PrintMessage>,
 ) -> Result<ControlFlow<()>> {
     if formats.is_empty() {
         // File with no extension
@@ -35,13 +39,10 @@ pub fn check_mime_type(
             // mistyped, ...) which we should always inform the user about.
             log_sender
                 .send(PrintMessage {
-                    contents: format!(
-                        "Detected file: `{}` extension as `{}`",
-                        path.display(),
-                        detected_format
-                    ),
+                    contents: format!("Detected file: `{}` extension as `{}`", path.display(), detected_format),
                     accessible: true,
-                }).unwrap();
+                })
+                .unwrap();
             if user_wants_to_continue(path, question_policy, QuestionAction::Decompression)? {
                 formats.push(detected_format);
             } else {
@@ -76,7 +77,8 @@ pub fn check_mime_type(
                     path.display()
                 ),
                 accessible: true,
-            }).unwrap();
+            })
+            .unwrap();
     }
     Ok(ControlFlow::Continue(()))
 }
