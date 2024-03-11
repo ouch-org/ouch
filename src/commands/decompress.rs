@@ -14,7 +14,11 @@ use crate::{
         CompressionFormat::{self, *},
         Extension,
     },
-    utils::{self, message::PrintMessage, nice_directory_display, user_wants_to_continue},
+    utils::{
+        self,
+        message::{MessageLevel, PrintMessage},
+        nice_directory_display, user_wants_to_continue,
+    },
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
@@ -73,6 +77,7 @@ pub fn decompress_file(
                     files_unpacked
                 ),
                 accessible: true,
+                level: MessageLevel::Info,
             })
             .unwrap();
 
@@ -230,12 +235,14 @@ pub fn decompress_file(
                 nice_directory_display(output_dir)
             ),
             accessible: true,
+            level: MessageLevel::Info,
         })
         .unwrap();
     log_sender
         .send(PrintMessage {
             contents: format!("Files unpacked: {}", files_unpacked),
             accessible: true,
+            level: MessageLevel::Info,
         })
         .unwrap();
 
@@ -265,6 +272,7 @@ fn smart_unpack(
                 nice_directory_display(temp_dir_path)
             ),
             accessible: true,
+            level: MessageLevel::Info,
         })
         .unwrap();
 
@@ -293,6 +301,7 @@ fn smart_unpack(
                     nice_directory_display(&correct_path)
                 ),
                 accessible: true,
+                level: MessageLevel::Info,
             })
             .unwrap();
     } else {
@@ -311,6 +320,7 @@ fn smart_unpack(
                     nice_directory_display(output_file_path)
                 ),
                 accessible: true,
+                level: MessageLevel::Info,
             })
             .unwrap();
     }

@@ -4,7 +4,11 @@ use std::{path::Path, sync::mpsc::Sender};
 
 use unrar::Archive;
 
-use crate::{error::Error, list::FileInArchive, utils::message::PrintMessage};
+use crate::{
+    error::Error,
+    list::FileInArchive,
+    utils::message::{MessageLevel, PrintMessage},
+};
 
 /// Unpacks the archive given by `archive_path` into the folder given by `output_folder`.
 /// Assumes that output_folder is empty
@@ -27,6 +31,7 @@ pub fn unpack_archive(
                     .send(PrintMessage {
                         contents: format!("{} extracted. ({})", entry.filename.display(), entry.unpacked_size),
                         accessible: false,
+                        level: MessageLevel::Info,
                     })
                     .unwrap();
             }

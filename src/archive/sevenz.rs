@@ -12,7 +12,11 @@ use same_file::Handle;
 
 use crate::{
     error::FinalError,
-    utils::{self, cd_into_same_dir_as, message::PrintMessage, Bytes, EscapedPathDisplay, FileVisibilityPolicy},
+    utils::{
+        self, cd_into_same_dir_as,
+        message::{MessageLevel, PrintMessage},
+        Bytes, EscapedPathDisplay, FileVisibilityPolicy,
+    },
     warning,
 };
 
@@ -44,10 +48,16 @@ where
             // If the output_path is the same as the input file, warn the user and skip the input (in order to avoid compression recursion)
             if let Ok(handle) = &output_handle {
                 if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
-                    warning!(
-                        "The output file and the input file are the same: `{}`, skipping...",
-                        output_path.display()
-                    );
+                    log_sender
+                        .send(PrintMessage {
+                            contents: format!(
+                                "The output file and the input file are the same: `{}`, skipping...",
+                                output_path.display()
+                            ),
+                            accessible: true,
+                            level: MessageLevel::Warning,
+                        })
+                        .unwrap();
                     continue;
                 }
             }
@@ -61,6 +71,7 @@ where
                     .send(PrintMessage {
                         contents: format!("Compressing '{}'.", EscapedPathDisplay::new(path)),
                         accessible: false,
+                        level: MessageLevel::Info,
                     })
                     .unwrap();
             }
@@ -124,6 +135,7 @@ where
                     .send(PrintMessage {
                         contents: format!("File {} extracted to \"{}\"", entry.name(), file_path.display()),
                         accessible: false,
+                        level: MessageLevel::Info,
                     })
                     .unwrap();
             }
@@ -136,6 +148,7 @@ where
                     .send(PrintMessage {
                         contents: format!("{:?} extracted. ({})", file_path.display(), Bytes::new(entry.size()),),
                         accessible: false,
+                        level: MessageLevel::Info,
                     })
                     .unwrap();
             }

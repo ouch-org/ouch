@@ -20,8 +20,9 @@ use crate::{
     error::FinalError,
     list::FileInArchive,
     utils::{
-        self, cd_into_same_dir_as, get_invalid_utf8_paths, message::PrintMessage, pretty_format_list_of_paths,
-        strip_cur_dir, Bytes, EscapedPathDisplay, FileVisibilityPolicy,
+        self, cd_into_same_dir_as, get_invalid_utf8_paths,
+        message::{MessageLevel, PrintMessage},
+        pretty_format_list_of_paths, strip_cur_dir, Bytes, EscapedPathDisplay, FileVisibilityPolicy,
     },
     warning,
 };
@@ -63,6 +64,7 @@ where
                         .send(PrintMessage {
                             contents: format!("File {} extracted to \"{}\"", idx, file_path.display()),
                             accessible: false,
+                            level: MessageLevel::Info,
                         })
                         .unwrap();
                 }
@@ -82,6 +84,7 @@ where
                         .send(PrintMessage {
                             contents: format!("{:?} extracted. ({})", file_path.display(), Bytes::new(file.size()),),
                             accessible: false,
+                            level: MessageLevel::Info,
                         })
                         .unwrap();
                 }
@@ -188,10 +191,17 @@ where
             // If the output_path is the same as the input file, warn the user and skip the input (in order to avoid compression recursion)
             if let Ok(handle) = &output_handle {
                 if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
-                    warning!(
-                        "The output file and the input file are the same: `{}`, skipping...",
-                        output_path.display()
-                    );
+                    log_sender
+                        .send(PrintMessage {
+                            contents: format!(
+                                "The output file and the input file are the same: `{}`, skipping...",
+                                output_path.display()
+                            ),
+                            accessible: true,
+                            level: MessageLevel::Warning,
+                        })
+                        .unwrap();
+
                     continue;
                 }
             }
@@ -205,6 +215,7 @@ where
                     .send(PrintMessage {
                         contents: format!("Compressing '{}'.", EscapedPathDisplay::new(path)),
                         accessible: false,
+                        level: MessageLevel::Info,
                     })
                     .unwrap();
             }
@@ -273,6 +284,7 @@ fn display_zip_comment_if_exists(file: &ZipFile, log_sender: Sender<PrintMessage
             .send(PrintMessage {
                 contents: format!("Found comment in {}: {}", file.name(), comment),
                 accessible: true,
+                level: MessageLevel::Info,
             })
             .unwrap();
     }

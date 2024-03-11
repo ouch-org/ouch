@@ -13,8 +13,8 @@ use crate::{
     error::FinalError,
     extension::{build_archive_file_suggestion, Extension, PRETTY_SUPPORTED_ALIASES, PRETTY_SUPPORTED_EXTENSIONS},
     utils::{
-        message::PrintMessage, pretty_format_list_of_paths, try_infer_extension, user_wants_to_continue,
-        EscapedPathDisplay,
+        message::{MessageLevel, PrintMessage},
+        pretty_format_list_of_paths, try_infer_extension, user_wants_to_continue, EscapedPathDisplay,
     },
     warning, QuestionAction, QuestionPolicy, Result,
 };
@@ -41,6 +41,7 @@ pub fn check_mime_type(
                 .send(PrintMessage {
                     contents: format!("Detected file: `{}` extension as `{}`", path.display(), detected_format),
                     accessible: true,
+                    level: MessageLevel::Info,
                 })
                 .unwrap();
             if user_wants_to_continue(path, question_policy, QuestionAction::Decompression)? {
@@ -58,11 +59,16 @@ pub fn check_mime_type(
             .compression_formats
             .ends_with(detected_format.compression_formats)
         {
-            warning!(
-                "The file extension: `{}` differ from the detected extension: `{}`",
-                outer_ext,
-                detected_format
-            );
+            log_sender
+                .send(PrintMessage {
+                    contents: format!(
+                        "The file extension: `{}` differ from the detected extension: `{}`",
+                        outer_ext, detected_format
+                    ),
+                    accessible: true,
+                    level: MessageLevel::Warning,
+                })
+                .unwrap();
             if !user_wants_to_continue(path, question_policy, QuestionAction::Decompression)? {
                 return Ok(ControlFlow::Break(()));
             }
@@ -77,6 +83,7 @@ pub fn check_mime_type(
                     path.display()
                 ),
                 accessible: true,
+                level: MessageLevel::Info,
             })
             .unwrap();
     }
