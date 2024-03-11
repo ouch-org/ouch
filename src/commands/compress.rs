@@ -128,7 +128,7 @@ pub fn compress_files(
                 &mut vec_buffer,
                 file_visibility_policy,
                 quiet,
-                log_sender.clone()
+                log_sender.clone(),
             )?;
             vec_buffer.rewind()?;
             io::copy(&mut vec_buffer, &mut writer)?;

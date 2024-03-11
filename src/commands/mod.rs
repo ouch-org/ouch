@@ -19,7 +19,6 @@ use crate::{
     commands::{compress::compress_files, decompress::decompress_file, list::list_archive_contents},
     error::{Error, FinalError},
     extension::{self, parse_format},
-    info,
     list::ListOptions,
     utils::{self, message::PrintMessage, to_utf, EscapedPathDisplay, FileVisibilityPolicy},
     warning, CliArgs, QuestionPolicy,
@@ -198,7 +197,9 @@ pub fn run(
                 for path in files.iter() {
                     let (pathbase, mut file_formats) = extension::separate_known_extensions_from_name(path);
 
-                    if let ControlFlow::Break(_) = check::check_mime_type(path, &mut file_formats, question_policy, log_sender.clone())? {
+                    if let ControlFlow::Break(_) =
+                        check::check_mime_type(path, &mut file_formats, question_policy, log_sender.clone())?
+                    {
                         return Ok(());
                     }
 
@@ -247,7 +248,9 @@ pub fn run(
                 for path in files.iter() {
                     let mut file_formats = extension::extensions_from_path(path);
 
-                    if let ControlFlow::Break(_) = check::check_mime_type(path, &mut file_formats, question_policy, log_sender.clone())? {
+                    if let ControlFlow::Break(_) =
+                        check::check_mime_type(path, &mut file_formats, question_policy, log_sender.clone())?
+                    {
                         return Ok(());
                     }
 
