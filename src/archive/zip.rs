@@ -14,15 +14,13 @@ use filetime_creation::{set_file_mtime, FileTime};
 use fs_err as fs;
 use same_file::Handle;
 use time::OffsetDateTime;
-use zip::{self, read::ZipFile, DateTime, ZipArchive};
+use zip::{read::ZipFile, DateTime, ZipArchive};
 
 use crate::{
     error::FinalError,
-    info,
     list::FileInArchive,
     utils::{
-        self, cd_into_same_dir_as, get_invalid_utf8_paths, io::PrintMessage, pretty_format_list_of_paths,
-        strip_cur_dir, Bytes, EscapedPathDisplay, FileVisibilityPolicy,
+        self, cd_into_same_dir_as, get_invalid_utf8_paths, message::PrintMessage, pretty_format_list_of_paths, strip_cur_dir, Bytes, EscapedPathDisplay, FileVisibilityPolicy
     },
     warning,
 };
@@ -51,7 +49,7 @@ where
 
         let file_path = output_folder.join(file_path);
 
-        display_zip_comment_if_exists(&file);
+        display_zip_comment_if_exists(&file, log_sender.clone());
 
         match file.name().ends_with('/') {
             _is_dir @ true => {
@@ -147,6 +145,7 @@ pub fn build_archive_from_paths<W>(
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
     quiet: bool,
+    log_sender: Sender<PrintMessage>
 ) -> crate::Result<W>
 where
     W: Write + Seek,
@@ -201,7 +200,14 @@ where
             // spoken text for users using screen readers, braille displays
             // and so on
             if !quiet {
-                info!(inaccessible, "Compressing '{}'.", EscapedPathDisplay::new(path));
+                log_sender
+                    .send(PrintMessage {
+                        contents: format!(
+                            "Compressing '{}'.",
+                            EscapedPathDisplay::new(path)
+                        ),
+                        accessible: false,
+                    }).unwrap();
             }
 
             let metadata = match path.metadata() {
@@ -251,7 +257,7 @@ where
     Ok(bytes)
 }
 
-fn display_zip_comment_if_exists(file: &ZipFile) {
+fn display_zip_comment_if_exists(file: &ZipFile, log_sender: Sender<PrintMessage>) {
     let comment = file.comment();
     if !comment.is_empty() {
         // Zip file comments seem to be pretty rare, but if they are used,
@@ -264,7 +270,12 @@ fn display_zip_comment_if_exists(file: &ZipFile) {
         // the future, maybe asking the user if he wants to display the comment
         // (informing him of its size) would be sensible for both normal and
         // accessibility mode..
-        info!(accessible, "Found comment in {}: {}", file.name(), comment);
+        log_sender
+            .send(PrintMessage {
+                contents: format!("Found comment in {}: {}", file.name(), comment),
+                accessible: true,
+            })
+            .unwrap();
     }
 }
 

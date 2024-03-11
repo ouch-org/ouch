@@ -1,6 +1,7 @@
 use std::{
     io::{self, BufWriter, Cursor, Seek, Write},
     path::{Path, PathBuf},
+    sync::mpsc::Sender,
 };
 
 use fs_err as fs;
@@ -10,7 +11,7 @@ use crate::{
     archive,
     commands::warn_user_about_loading_zip_in_memory,
     extension::{split_first_compression_format, CompressionFormat::*, Extension},
-    utils::{user_wants_to_continue, FileVisibilityPolicy},
+    utils::{message::PrintMessage, user_wants_to_continue, FileVisibilityPolicy},
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
@@ -34,6 +35,7 @@ pub fn compress_files(
     question_policy: QuestionPolicy,
     file_visibility_policy: FileVisibilityPolicy,
     level: Option<i16>,
+    log_sender: Sender<PrintMessage>,
 ) -> crate::Result<bool> {
     // If the input files contain a directory, then the total size will be underestimated
     let file_writer = BufWriter::with_capacity(BUFFER_CAPACITY, output_file);
@@ -99,7 +101,14 @@ pub fn compress_files(
             io::copy(&mut reader, &mut writer)?;
         }
         Tar => {
-            archive::tar::build_archive_from_paths(&files, output_path, &mut writer, file_visibility_policy, quiet)?;
+            archive::tar::build_archive_from_paths(
+                &files,
+                output_path,
+                &mut writer,
+                file_visibility_policy,
+                quiet,
+                log_sender.clone(),
+            )?;
             writer.flush()?;
         }
         Zip => {
@@ -119,6 +128,7 @@ pub fn compress_files(
                 &mut vec_buffer,
                 file_visibility_policy,
                 quiet,
+                log_sender.clone()
             )?;
             vec_buffer.rewind()?;
             io::copy(&mut vec_buffer, &mut writer)?;
@@ -140,7 +150,14 @@ pub fn compress_files(
             }
 
             let mut vec_buffer = Cursor::new(vec![]);
-            archive::sevenz::compress_sevenz(&files, output_path, &mut vec_buffer, file_visibility_policy, quiet)?;
+            archive::sevenz::compress_sevenz(
+                &files,
+                output_path,
+                &mut vec_buffer,
+                file_visibility_policy,
+                quiet,
+                log_sender.clone(),
+            )?;
             vec_buffer.rewind()?;
             io::copy(&mut vec_buffer, &mut writer)?;
         }

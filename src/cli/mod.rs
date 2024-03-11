@@ -5,7 +5,6 @@ mod args;
 use std::{
     io,
     path::{Path, PathBuf},
-    vec::Vec,
 };
 
 use clap::Parser;

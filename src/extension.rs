@@ -248,8 +248,6 @@ pub fn build_archive_file_suggestion(path: &Path, suggested_extension: &str) -> 
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
-
     use super::*;
 
     #[test]
