@@ -9,7 +9,10 @@ use std::{
 
 use fs_err as fs;
 
-use super::{message::PrintMessage, user_wants_to_overwrite};
+use super::{
+    message::{MessageLevel, PrintMessage},
+    user_wants_to_overwrite,
+};
 use crate::{extension::Extension, utils::EscapedPathDisplay, QuestionPolicy};
 
 /// Remove `path` asking the user to overwrite if necessary.
@@ -46,6 +49,7 @@ pub fn create_dir_if_non_existent(path: &Path, log_sender: Sender<PrintMessage>)
             .send(PrintMessage {
                 contents: format!("Directory {} created.", EscapedPathDisplay::new(path)),
                 accessible: true,
+                level: MessageLevel::Info,
             })
             .unwrap();
     }

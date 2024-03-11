@@ -19,4 +19,11 @@
 pub struct PrintMessage {
     pub contents: String,
     pub accessible: bool,
+    pub level: MessageLevel,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum MessageLevel {
+    Info,
+    Warning,
 }
