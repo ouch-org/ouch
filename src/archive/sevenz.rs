@@ -17,7 +17,6 @@ use crate::{
         message::{MessageLevel, PrintMessage},
         Bytes, EscapedPathDisplay, FileVisibilityPolicy,
     },
-    warning,
 };
 
 pub fn compress_sevenz<W>(

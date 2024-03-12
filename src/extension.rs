@@ -8,7 +8,6 @@ use self::CompressionFormat::*;
 use crate::{
     error::Error,
     utils::message::{MessageLevel, PrintMessage},
-    warning,
 };
 
 pub const SUPPORTED_EXTENSIONS: &[&str] = &[

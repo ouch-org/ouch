@@ -136,7 +136,7 @@ pub fn decompress_file(
         }
         Zip => {
             if formats.len() > 1 {
-                warn_user_about_loading_zip_in_memory();
+                warn_user_about_loading_zip_in_memory(log_sender.clone());
 
                 if !user_wants_to_continue(input_file_path, question_policy, QuestionAction::Decompression)? {
                     return Ok(());
@@ -193,7 +193,7 @@ pub fn decompress_file(
         }
         SevenZip => {
             if formats.len() > 1 {
-                warn_user_about_loading_sevenz_in_memory();
+                warn_user_about_loading_sevenz_in_memory(log_sender.clone());
 
                 if !user_wants_to_continue(input_file_path, question_policy, QuestionAction::Decompression)? {
                     return Ok(());
