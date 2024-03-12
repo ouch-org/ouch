@@ -4,15 +4,11 @@ use std::{
     env,
     io::Read,
     path::{Path, PathBuf},
-    sync::mpsc::Sender,
 };
 
 use fs_err as fs;
 
-use super::{
-    message::{MessageLevel, PrintMessage},
-    user_wants_to_overwrite,
-};
+use super::{logger::Logger, user_wants_to_overwrite};
 use crate::{extension::Extension, utils::EscapedPathDisplay, QuestionPolicy};
 
 /// Remove `path` asking the user to overwrite if necessary.
@@ -40,18 +36,12 @@ pub fn remove_file_or_dir(path: &Path) -> crate::Result<()> {
 }
 
 /// Creates a directory at the path, if there is nothing there.
-pub fn create_dir_if_non_existent(path: &Path, log_sender: Sender<PrintMessage>) -> crate::Result<()> {
+pub fn create_dir_if_non_existent(path: &Path, logger: Logger) -> crate::Result<()> {
     if !path.exists() {
         fs::create_dir_all(path)?;
         // creating a directory is an important change to the file system we
         // should always inform the user about
-        log_sender
-            .send(PrintMessage {
-                contents: format!("Directory {} created.", EscapedPathDisplay::new(path)),
-                accessible: true,
-                level: MessageLevel::Info,
-            })
-            .unwrap();
+        logger.info(format!("Directory {} created.", EscapedPathDisplay::new(path)), true);
     }
     Ok(())
 }

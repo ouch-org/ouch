@@ -6,15 +6,13 @@ use std::{
     ffi::OsString,
     ops::ControlFlow,
     path::{Path, PathBuf},
-    sync::mpsc::Sender,
 };
 
 use crate::{
     error::FinalError,
     extension::{build_archive_file_suggestion, Extension, PRETTY_SUPPORTED_ALIASES, PRETTY_SUPPORTED_EXTENSIONS},
     utils::{
-        message::{MessageLevel, PrintMessage},
-        pretty_format_list_of_paths, try_infer_extension, user_wants_to_continue, EscapedPathDisplay,
+        logger::Logger, pretty_format_list_of_paths, try_infer_extension, user_wants_to_continue, EscapedPathDisplay,
     },
     QuestionAction, QuestionPolicy, Result,
 };
@@ -29,7 +27,7 @@ pub fn check_mime_type(
     path: &Path,
     formats: &mut Vec<Extension>,
     question_policy: QuestionPolicy,
-    log_sender: Sender<PrintMessage>,
+    logger: Logger,
 ) -> Result<ControlFlow<()>> {
     if formats.is_empty() {
         // File with no extension
@@ -37,13 +35,11 @@ pub fn check_mime_type(
         if let Some(detected_format) = try_infer_extension(path) {
             // Inferring the file extension can have unpredicted consequences (e.g. the user just
             // mistyped, ...) which we should always inform the user about.
-            log_sender
-                .send(PrintMessage {
-                    contents: format!("Detected file: `{}` extension as `{}`", path.display(), detected_format),
-                    accessible: true,
-                    level: MessageLevel::Info,
-                })
-                .unwrap();
+            logger.info(
+                format!("Detected file: `{}` extension as `{}`", path.display(), detected_format),
+                true,
+            );
+
             if user_wants_to_continue(path, question_policy, QuestionAction::Decompression)? {
                 formats.push(detected_format);
             } else {
@@ -59,16 +55,11 @@ pub fn check_mime_type(
             .compression_formats
             .ends_with(detected_format.compression_formats)
         {
-            log_sender
-                .send(PrintMessage {
-                    contents: format!(
-                        "The file extension: `{}` differ from the detected extension: `{}`",
-                        outer_ext, detected_format
-                    ),
-                    accessible: true,
-                    level: MessageLevel::Warning,
-                })
-                .unwrap();
+            logger.warning(format!(
+                "The file extension: `{}` differ from the detected extension: `{}`",
+                outer_ext, detected_format
+            ));
+
             if !user_wants_to_continue(path, question_policy, QuestionAction::Decompression)? {
                 return Ok(ControlFlow::Break(()));
             }
@@ -76,16 +67,13 @@ pub fn check_mime_type(
     } else {
         // NOTE: If this actually produces no false positives, we can upgrade it in the future
         // to a warning and ask the user if he wants to continue decompressing.
-        log_sender
-            .send(PrintMessage {
-                contents: format!(
-                    "Failed to confirm the format of `{}` by sniffing the contents, file might be misnamed",
-                    path.display()
-                ),
-                accessible: true,
-                level: MessageLevel::Info,
-            })
-            .unwrap();
+        logger.info(
+            format!(
+                "Failed to confirm the format of `{}` by sniffing the contents, file might be misnamed",
+                path.display()
+            ),
+            true,
+        );
     }
     Ok(ControlFlow::Continue(()))
 }

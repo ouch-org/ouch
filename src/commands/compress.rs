@@ -1,7 +1,6 @@
 use std::{
     io::{self, BufWriter, Cursor, Seek, Write},
     path::{Path, PathBuf},
-    sync::mpsc::Sender,
 };
 
 use fs_err as fs;
@@ -11,7 +10,7 @@ use crate::{
     archive,
     commands::warn_user_about_loading_zip_in_memory,
     extension::{split_first_compression_format, CompressionFormat::*, Extension},
-    utils::{message::PrintMessage, user_wants_to_continue, FileVisibilityPolicy},
+    utils::{logger::Logger, user_wants_to_continue, FileVisibilityPolicy},
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
@@ -35,7 +34,7 @@ pub fn compress_files(
     question_policy: QuestionPolicy,
     file_visibility_policy: FileVisibilityPolicy,
     level: Option<i16>,
-    log_sender: Sender<PrintMessage>,
+    logger: Logger,
 ) -> crate::Result<bool> {
     // If the input files contain a directory, then the total size will be underestimated
     let file_writer = BufWriter::with_capacity(BUFFER_CAPACITY, output_file);
@@ -107,13 +106,13 @@ pub fn compress_files(
                 &mut writer,
                 file_visibility_policy,
                 quiet,
-                log_sender.clone(),
+                logger.clone(),
             )?;
             writer.flush()?;
         }
         Zip => {
             if !formats.is_empty() {
-                warn_user_about_loading_zip_in_memory(log_sender.clone());
+                warn_user_about_loading_zip_in_memory(logger.clone());
 
                 if !user_wants_to_continue(output_path, question_policy, QuestionAction::Compression)? {
                     return Ok(false);
@@ -128,7 +127,7 @@ pub fn compress_files(
                 &mut vec_buffer,
                 file_visibility_policy,
                 quiet,
-                log_sender.clone(),
+                logger.clone(),
             )?;
             vec_buffer.rewind()?;
             io::copy(&mut vec_buffer, &mut writer)?;
@@ -142,7 +141,7 @@ pub fn compress_files(
         }
         SevenZip => {
             if !formats.is_empty() {
-                warn_user_about_loading_sevenz_in_memory(log_sender.clone());
+                warn_user_about_loading_sevenz_in_memory(logger.clone());
 
                 if !user_wants_to_continue(output_path, question_policy, QuestionAction::Compression)? {
                     return Ok(false);
@@ -156,7 +155,7 @@ pub fn compress_files(
                 &mut vec_buffer,
                 file_visibility_policy,
                 quiet,
-                log_sender.clone(),
+                logger.clone(),
             )?;
             vec_buffer.rewind()?;
             io::copy(&mut vec_buffer, &mut writer)?;

@@ -1,14 +1,11 @@
 //! Our representation of all the supported compression formats.
 
-use std::{ffi::OsStr, fmt, path::Path, sync::mpsc::Sender};
+use std::{ffi::OsStr, fmt, path::Path};
 
 use bstr::ByteSlice;
 
 use self::CompressionFormat::*;
-use crate::{
-    error::Error,
-    utils::message::{MessageLevel, PrintMessage},
-};
+use crate::{error::Error, utils::logger::Logger};
 
 pub const SUPPORTED_EXTENSIONS: &[&str] = &[
     "tar",
@@ -172,7 +169,7 @@ pub fn parse_format(fmt: &OsStr) -> crate::Result<Vec<Extension>> {
 /// Extracts extensions from a path.
 ///
 /// Returns both the remaining path and the list of extension objects
-pub fn separate_known_extensions_from_name(path: &Path, log_sender: Sender<PrintMessage>) -> (&Path, Vec<Extension>) {
+pub fn separate_known_extensions_from_name(path: &Path, logger: Logger) -> (&Path, Vec<Extension>) {
     let mut extensions = vec![];
 
     let Some(mut name) = path.file_name().and_then(<[u8] as ByteSlice>::from_os_str) else {
@@ -187,15 +184,9 @@ pub fn separate_known_extensions_from_name(path: &Path, log_sender: Sender<Print
     if let Ok(name) = name.to_str() {
         let file_stem = name.trim_matches('.');
         if SUPPORTED_EXTENSIONS.contains(&file_stem) || SUPPORTED_ALIASES.contains(&file_stem) {
-            log_sender
-                .send(PrintMessage {
-                    contents: format!(
-                        "Received a file with name '{file_stem}', but {file_stem} was expected as the extension."
-                    ),
-                    accessible: true,
-                    level: MessageLevel::Warning,
-                })
-                .unwrap();
+            logger.warning(format!(
+                "Received a file with name '{file_stem}', but {file_stem} was expected as the extension."
+            ));
         }
     }
 
@@ -203,8 +194,8 @@ pub fn separate_known_extensions_from_name(path: &Path, log_sender: Sender<Print
 }
 
 /// Extracts extensions from a path, return only the list of extension objects
-pub fn extensions_from_path(path: &Path, log_sender: Sender<PrintMessage>) -> Vec<Extension> {
-    let (_, extensions) = separate_known_extensions_from_name(path, log_sender);
+pub fn extensions_from_path(path: &Path, logger: Logger) -> Vec<Extension> {
+    let (_, extensions) = separate_known_extensions_from_name(path, logger);
     extensions
 }
 
@@ -260,14 +251,16 @@ pub fn build_archive_file_suggestion(path: &Path, suggested_extension: &str) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::utils::logger::PrintMessage;
 
     #[test]
     fn test_extensions_from_path() {
         let (log_sender, _log_receiver) = std::sync::mpsc::channel::<PrintMessage>();
+        let logger = Logger::new(log_sender);
 
         let path = Path::new("bolovo.tar.gz");
 
-        let extensions: Vec<Extension> = extensions_from_path(path, log_sender);
+        let extensions: Vec<Extension> = extensions_from_path(path, logger);
         let formats: Vec<CompressionFormat> = flatten_compression_formats(&extensions);
 
         assert_eq!(formats, vec![Tar, Gzip]);
