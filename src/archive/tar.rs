@@ -4,7 +4,7 @@ use std::{
     env,
     io::prelude::*,
     path::{Path, PathBuf},
-    sync::mpsc::{self, Receiver, Sender},
+    sync::mpsc::{self, Receiver},
     thread,
 };
 
@@ -14,11 +14,7 @@ use same_file::Handle;
 use crate::{
     error::FinalError,
     list::FileInArchive,
-    utils::{
-        self,
-        message::{MessageLevel, PrintMessage},
-        Bytes, EscapedPathDisplay, FileVisibilityPolicy,
-    },
+    utils::{self, logger::Logger, Bytes, EscapedPathDisplay, FileVisibilityPolicy},
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `into`.
@@ -27,7 +23,7 @@ pub fn unpack_archive(
     reader: Box<dyn Read>,
     output_folder: &Path,
     quiet: bool,
-    log_sender: Sender<PrintMessage>,
+    logger: Logger,
 ) -> crate::Result<usize> {
     assert!(output_folder.read_dir().expect("dir exists").count() == 0);
     let mut archive = tar::Archive::new(reader);
@@ -43,17 +39,14 @@ pub fn unpack_archive(
         // spoken text for users using screen readers, braille displays
         // and so on
         if !quiet {
-            log_sender
-                .send(PrintMessage {
-                    contents: format!(
-                        "{:?} extracted. ({})",
-                        utils::strip_cur_dir(&output_folder.join(file.path()?)),
-                        Bytes::new(file.size()),
-                    ),
-                    accessible: false,
-                    level: MessageLevel::Info,
-                })
-                .unwrap();
+            logger.info(
+                format!(
+                    "{:?} extracted. ({})",
+                    utils::strip_cur_dir(&output_folder.join(file.path()?)),
+                    Bytes::new(file.size()),
+                ),
+                false,
+            );
 
             files_unpacked += 1;
         }
@@ -98,7 +91,7 @@ pub fn build_archive_from_paths<W>(
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
     quiet: bool,
-    log_sender: Sender<PrintMessage>,
+    logger: Logger,
 ) -> crate::Result<W>
 where
     W: Write,
@@ -120,16 +113,10 @@ where
             // If the output_path is the same as the input file, warn the user and skip the input (in order to avoid compression recursion)
             if let Ok(handle) = &output_handle {
                 if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
-                    log_sender
-                        .send(PrintMessage {
-                            contents: format!(
-                                "The output file and the input file are the same: `{}`, skipping...",
-                                output_path.display()
-                            ),
-                            accessible: true,
-                            level: MessageLevel::Warning,
-                        })
-                        .unwrap();
+                    logger.warning(format!(
+                        "The output file and the input file are the same: `{}`, skipping...",
+                        output_path.display()
+                    ));
 
                     continue;
                 }
@@ -140,13 +127,7 @@ where
             // spoken text for users using screen readers, braille displays
             // and so on
             if !quiet {
-                log_sender
-                    .send(PrintMessage {
-                        contents: format!("Compressing '{}'.", EscapedPathDisplay::new(path)),
-                        accessible: false,
-                        level: MessageLevel::Info,
-                    })
-                    .unwrap();
+                logger.info(format!("Compressing '{}'.", EscapedPathDisplay::new(path)), false);
             }
 
             if path.is_dir() {

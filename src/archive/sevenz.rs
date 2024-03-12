@@ -4,7 +4,6 @@ use std::{
     env,
     io::{self, Read, Seek, Write},
     path::{Path, PathBuf},
-    sync::mpsc::Sender,
 };
 
 use fs_err as fs;
@@ -12,11 +11,7 @@ use same_file::Handle;
 
 use crate::{
     error::FinalError,
-    utils::{
-        self, cd_into_same_dir_as,
-        message::{MessageLevel, PrintMessage},
-        Bytes, EscapedPathDisplay, FileVisibilityPolicy,
-    },
+    utils::{self, cd_into_same_dir_as, logger::Logger, Bytes, EscapedPathDisplay, FileVisibilityPolicy},
 };
 
 pub fn compress_sevenz<W>(
@@ -25,7 +20,7 @@ pub fn compress_sevenz<W>(
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
     quiet: bool,
-    log_sender: Sender<PrintMessage>,
+    logger: Logger,
 ) -> crate::Result<W>
 where
     W: Write + Seek,
@@ -47,16 +42,11 @@ where
             // If the output_path is the same as the input file, warn the user and skip the input (in order to avoid compression recursion)
             if let Ok(handle) = &output_handle {
                 if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
-                    log_sender
-                        .send(PrintMessage {
-                            contents: format!(
-                                "The output file and the input file are the same: `{}`, skipping...",
-                                output_path.display()
-                            ),
-                            accessible: true,
-                            level: MessageLevel::Warning,
-                        })
-                        .unwrap();
+                    logger.warning(format!(
+                        "The output file and the input file are the same: `{}`, skipping...",
+                        output_path.display()
+                    ));
+
                     continue;
                 }
             }
@@ -66,13 +56,7 @@ where
             // spoken text for users using screen readers, braille displays
             // and so on
             if !quiet {
-                log_sender
-                    .send(PrintMessage {
-                        contents: format!("Compressing '{}'.", EscapedPathDisplay::new(path)),
-                        accessible: false,
-                        level: MessageLevel::Info,
-                    })
-                    .unwrap();
+                logger.info(format!("Compressing '{}'.", EscapedPathDisplay::new(path)), false);
             }
 
             let metadata = match path.metadata() {
@@ -109,12 +93,7 @@ where
     Ok(bytes)
 }
 
-pub fn decompress_sevenz<R>(
-    reader: R,
-    output_path: &Path,
-    quiet: bool,
-    log_sender: Sender<PrintMessage>,
-) -> crate::Result<usize>
+pub fn decompress_sevenz<R>(reader: R, output_path: &Path, quiet: bool, logger: Logger) -> crate::Result<usize>
 where
     R: Read + Seek,
 {
@@ -130,26 +109,20 @@ where
 
         if entry.is_directory() {
             if !quiet {
-                log_sender
-                    .send(PrintMessage {
-                        contents: format!("File {} extracted to \"{}\"", entry.name(), file_path.display()),
-                        accessible: false,
-                        level: MessageLevel::Info,
-                    })
-                    .unwrap();
+                logger.info(
+                    format!("File {} extracted to \"{}\"", entry.name(), file_path.display()),
+                    false,
+                );
             }
             if !path.exists() {
                 fs::create_dir_all(path)?;
             }
         } else {
             if !quiet {
-                log_sender
-                    .send(PrintMessage {
-                        contents: format!("{:?} extracted. ({})", file_path.display(), Bytes::new(entry.size()),),
-                        accessible: false,
-                        level: MessageLevel::Info,
-                    })
-                    .unwrap();
+                logger.info(
+                    format!("{:?} extracted. ({})", file_path.display(), Bytes::new(entry.size())),
+                    false,
+                );
             }
 
             if let Some(parent) = path.parent() {

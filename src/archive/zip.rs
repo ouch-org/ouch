@@ -6,7 +6,7 @@ use std::{
     env,
     io::{self, prelude::*},
     path::{Path, PathBuf},
-    sync::mpsc::{self, Sender},
+    sync::mpsc,
     thread,
 };
 
@@ -20,9 +20,8 @@ use crate::{
     error::FinalError,
     list::FileInArchive,
     utils::{
-        self, cd_into_same_dir_as, get_invalid_utf8_paths,
-        message::{MessageLevel, PrintMessage},
-        pretty_format_list_of_paths, strip_cur_dir, Bytes, EscapedPathDisplay, FileVisibilityPolicy,
+        self, cd_into_same_dir_as, get_invalid_utf8_paths, logger::Logger, pretty_format_list_of_paths, strip_cur_dir,
+        Bytes, EscapedPathDisplay, FileVisibilityPolicy,
     },
 };
 
@@ -32,7 +31,7 @@ pub fn unpack_archive<R>(
     mut archive: ZipArchive<R>,
     output_folder: &Path,
     quiet: bool,
-    log_sender: Sender<PrintMessage>,
+    logger: Logger,
 ) -> crate::Result<usize>
 where
     R: Read + Seek,
@@ -50,7 +49,7 @@ where
 
         let file_path = output_folder.join(file_path);
 
-        display_zip_comment_if_exists(&file, log_sender.clone());
+        display_zip_comment_if_exists(&file, logger.clone());
 
         match file.name().ends_with('/') {
             _is_dir @ true => {
@@ -59,13 +58,7 @@ where
                 // spoken text for users using screen readers, braille displays
                 // and so on
                 if !quiet {
-                    log_sender
-                        .send(PrintMessage {
-                            contents: format!("File {} extracted to \"{}\"", idx, file_path.display()),
-                            accessible: false,
-                            level: MessageLevel::Info,
-                        })
-                        .unwrap();
+                    logger.info(format!("File {} extracted to \"{}\"", idx, file_path.display()), false);
                 }
                 fs::create_dir_all(&file_path)?;
             }
@@ -79,13 +72,10 @@ where
 
                 // same reason is in _is_dir: long, often not needed text
                 if !quiet {
-                    log_sender
-                        .send(PrintMessage {
-                            contents: format!("{:?} extracted. ({})", file_path.display(), Bytes::new(file.size()),),
-                            accessible: false,
-                            level: MessageLevel::Info,
-                        })
-                        .unwrap();
+                    logger.info(
+                        format!("{:?} extracted. ({})", file_path.display(), Bytes::new(file.size())),
+                        false,
+                    );
                 }
 
                 let mut output_file = fs::File::create(file_path)?;
@@ -148,7 +138,7 @@ pub fn build_archive_from_paths<W>(
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
     quiet: bool,
-    log_sender: Sender<PrintMessage>,
+    logger: Logger,
 ) -> crate::Result<W>
 where
     W: Write + Seek,
@@ -190,18 +180,10 @@ where
             // If the output_path is the same as the input file, warn the user and skip the input (in order to avoid compression recursion)
             if let Ok(handle) = &output_handle {
                 if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
-                    log_sender
-                        .send(PrintMessage {
-                            contents: format!(
-                                "The output file and the input file are the same: `{}`, skipping...",
-                                output_path.display()
-                            ),
-                            accessible: true,
-                            level: MessageLevel::Warning,
-                        })
-                        .unwrap();
-
-                    continue;
+                    logger.warning(format!(
+                        "The output file and the input file are the same: `{}`, skipping...",
+                        output_path.display()
+                    ));
                 }
             }
 
@@ -210,13 +192,7 @@ where
             // spoken text for users using screen readers, braille displays
             // and so on
             if !quiet {
-                log_sender
-                    .send(PrintMessage {
-                        contents: format!("Compressing '{}'.", EscapedPathDisplay::new(path)),
-                        accessible: false,
-                        level: MessageLevel::Info,
-                    })
-                    .unwrap();
+                logger.info(format!("Compressing '{}'.", EscapedPathDisplay::new(path)), false);
             }
 
             let metadata = match path.metadata() {
@@ -266,7 +242,7 @@ where
     Ok(bytes)
 }
 
-fn display_zip_comment_if_exists(file: &ZipFile, log_sender: Sender<PrintMessage>) {
+fn display_zip_comment_if_exists(file: &ZipFile, logger: Logger) {
     let comment = file.comment();
     if !comment.is_empty() {
         // Zip file comments seem to be pretty rare, but if they are used,
@@ -279,13 +255,7 @@ fn display_zip_comment_if_exists(file: &ZipFile, log_sender: Sender<PrintMessage
         // the future, maybe asking the user if he wants to display the comment
         // (informing him of its size) would be sensible for both normal and
         // accessibility mode..
-        log_sender
-            .send(PrintMessage {
-                contents: format!("Found comment in {}: {}", file.name(), comment),
-                accessible: true,
-                level: MessageLevel::Info,
-            })
-            .unwrap();
+        logger.info(format!("Found comment in {}: {}", file.name(), comment), true);
     }
 }
 

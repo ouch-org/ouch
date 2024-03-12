@@ -7,17 +7,13 @@ mod list;
 use std::{
     ops::ControlFlow,
     path::PathBuf,
-    sync::{
-        mpsc::{channel, Sender},
-        Arc, Condvar, Mutex,
-    },
+    sync::{mpsc::channel, Arc, Condvar, Mutex},
 };
 
 use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use utils::colors;
 
 use crate::{
-    accessible::is_running_in_accessible_mode,
     check,
     cli::Subcommand,
     commands::{compress::compress_files, decompress::decompress_file, list::list_archive_contents},
@@ -26,42 +22,30 @@ use crate::{
     list::ListOptions,
     utils::{
         self,
-        message::{MessageLevel, PrintMessage},
+        logger::{map_message, Logger, PrintMessage},
         to_utf, EscapedPathDisplay, FileVisibilityPolicy,
     },
     CliArgs, QuestionPolicy,
 };
 
 /// Warn the user that (de)compressing this .zip archive might freeze their system.
-fn warn_user_about_loading_zip_in_memory(log_sender: Sender<PrintMessage>) {
+fn warn_user_about_loading_zip_in_memory(logger: Logger) {
     const ZIP_IN_MEMORY_LIMITATION_WARNING: &str = "\n\
         \tThe format '.zip' is limited and cannot be (de)compressed using encoding streams.\n\
         \tWhen using '.zip' with other formats, (de)compression must be done in-memory\n\
         \tCareful, you might run out of RAM if the archive is too large!";
 
-    log_sender
-        .send(PrintMessage {
-            contents: ZIP_IN_MEMORY_LIMITATION_WARNING.to_string(),
-            accessible: true,
-            level: MessageLevel::Warning,
-        })
-        .unwrap();
+    logger.warning(ZIP_IN_MEMORY_LIMITATION_WARNING.to_string());
 }
 
 /// Warn the user that (de)compressing this .7z archive might freeze their system.
-fn warn_user_about_loading_sevenz_in_memory(log_sender: Sender<PrintMessage>) {
+fn warn_user_about_loading_sevenz_in_memory(logger: Logger) {
     const SEVENZ_IN_MEMORY_LIMITATION_WARNING: &str = "\n\
         \tThe format '.7z' is limited and cannot be (de)compressed using encoding streams.\n\
         \tWhen using '.7z' with other formats, (de)compression must be done in-memory\n\
         \tCareful, you might run out of RAM if the archive is too large!";
 
-    log_sender
-        .send(PrintMessage {
-            contents: SEVENZ_IN_MEMORY_LIMITATION_WARNING.to_string(),
-            accessible: true,
-            level: MessageLevel::Warning,
-        })
-        .unwrap();
+    logger.warning(SEVENZ_IN_MEMORY_LIMITATION_WARNING.to_string());
 }
 
 /// This function checks what command needs to be run and performs A LOT of ahead-of-time checks
@@ -74,42 +58,15 @@ pub fn run(
     file_visibility_policy: FileVisibilityPolicy,
 ) -> crate::Result<()> {
     let (log_sender, log_receiver) = channel::<PrintMessage>();
+    let logger = Logger::new(log_sender);
 
     let pair = Arc::new((Mutex::new(false), Condvar::new()));
     let pair2 = Arc::clone(&pair);
 
     // Log received messages until all senders are dropped
     rayon::spawn(move || {
-        use utils::colors::{ORANGE, RESET, YELLOW};
-
         const BUFFER_SIZE: usize = 10;
         let mut buffer = Vec::<String>::with_capacity(BUFFER_SIZE);
-
-        // TODO: Move this out to utils
-        fn map_message(msg: &PrintMessage) -> Option<String> {
-            match msg.level {
-                MessageLevel::Info => {
-                    if msg.accessible {
-                        if is_running_in_accessible_mode() {
-                            Some(format!("{}Info:{} {}", *YELLOW, *RESET, msg.contents))
-                        } else {
-                            Some(format!("{}[INFO]{} {}", *YELLOW, *RESET, msg.contents))
-                        }
-                    } else if !is_running_in_accessible_mode() {
-                        Some(format!("{}[INFO]{} {}", *YELLOW, *RESET, msg.contents))
-                    } else {
-                        None
-                    }
-                }
-                MessageLevel::Warning => {
-                    if is_running_in_accessible_mode() {
-                        Some(format!("{}Warning:{} ", *ORANGE, *RESET))
-                    } else {
-                        Some(format!("{}[WARNING]{} ", *ORANGE, *RESET))
-                    }
-                }
-            }
-        }
 
         loop {
             let msg = log_receiver.recv();
@@ -124,16 +81,14 @@ pub fn run(
                         tmp.push_str(&msg);
                     }
 
-                    // TODO: Send this to stderr
-                    println!("{}", tmp);
+                    eprintln!("{}", tmp);
                     buffer.clear();
                 } else if let Some(msg) = map_message(&msg) {
                     buffer.push(msg);
                 }
             } else {
                 // All senders have been dropped
-                // TODO: Send this to stderr
-                println!("{}", buffer.join("\n"));
+                eprintln!("{}", buffer.join("\n"));
 
                 // Wake up the main thread
                 let (lock, cvar) = &*pair2;
@@ -164,7 +119,7 @@ pub fn run(
                     let parsed_formats = parse_format(&formats)?;
                     (Some(formats), parsed_formats)
                 }
-                None => (None, extension::extensions_from_path(&output_path, log_sender.clone())),
+                None => (None, extension::extensions_from_path(&output_path, logger.clone())),
             };
 
             check::check_invalid_compression_with_non_archive_format(
@@ -197,7 +152,7 @@ pub fn run(
                 question_policy,
                 file_visibility_policy,
                 level,
-                log_sender.clone(),
+                logger.clone(),
             );
 
             if let Ok(true) = compress_result {
@@ -205,13 +160,7 @@ pub fn run(
                 // having a final status message is important especially in an accessibility context
                 // as screen readers may not read a commands exit code, making it hard to reason
                 // about whether the command succeeded without such a message
-                log_sender
-                    .send(PrintMessage {
-                        contents: format!("Successfully compressed '{}'.", to_utf(&output_path)),
-                        accessible: true,
-                        level: MessageLevel::Info,
-                    })
-                    .unwrap();
+                logger.info(format!("Successfully compressed '{}'.", to_utf(&output_path)), true);
             } else {
                 // If Ok(false) or Err() occurred, delete incomplete file at `output_path`
                 //
@@ -250,10 +199,10 @@ pub fn run(
             } else {
                 for path in files.iter() {
                     let (pathbase, mut file_formats) =
-                        extension::separate_known_extensions_from_name(path, log_sender.clone());
+                        extension::separate_known_extensions_from_name(path, logger.clone());
 
                     if let ControlFlow::Break(_) =
-                        check::check_mime_type(path, &mut file_formats, question_policy, log_sender.clone())?
+                        check::check_mime_type(path, &mut file_formats, question_policy, logger.clone())?
                     {
                         return Ok(());
                     }
@@ -268,7 +217,7 @@ pub fn run(
             // The directory that will contain the output files
             // We default to the current directory if the user didn't specify an output directory with --dir
             let output_dir = if let Some(dir) = output_dir {
-                utils::create_dir_if_non_existent(&dir, log_sender.clone())?;
+                utils::create_dir_if_non_existent(&dir, logger.clone())?;
                 dir
             } else {
                 PathBuf::from(".")
@@ -287,7 +236,7 @@ pub fn run(
                         output_file_path,
                         question_policy,
                         args.quiet,
-                        log_sender.clone(),
+                        logger.clone(),
                     )
                 })?;
         }
@@ -301,10 +250,10 @@ pub fn run(
                 }
             } else {
                 for path in files.iter() {
-                    let mut file_formats = extension::extensions_from_path(path, log_sender.clone());
+                    let mut file_formats = extension::extensions_from_path(path, logger.clone());
 
                     if let ControlFlow::Break(_) =
-                        check::check_mime_type(path, &mut file_formats, question_policy, log_sender.clone())?
+                        check::check_mime_type(path, &mut file_formats, question_policy, logger.clone())?
                     {
                         return Ok(());
                     }
@@ -323,13 +272,15 @@ pub fn run(
                     println!();
                 }
                 let formats = extension::flatten_compression_formats(&formats);
-                list_archive_contents(archive_path, formats, list_options, question_policy, log_sender.clone())?;
+                list_archive_contents(archive_path, formats, list_options, question_policy, logger.clone())?;
             }
         }
     }
 
-    // Drop our sender so when all threads are done, no clones are left
-    drop(log_sender);
+    // Drop our sender so when all threads are done, no clones are left.
+    // This is needed, otherwise the logging thread will never exit since we would be keeping a
+    // sender alive here.
+    drop(logger);
 
     // Prevent the main thread from exiting until the background thread handling the
     // logging has set `flushed` to true.
