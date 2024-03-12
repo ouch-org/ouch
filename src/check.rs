@@ -16,7 +16,7 @@ use crate::{
         message::{MessageLevel, PrintMessage},
         pretty_format_list_of_paths, try_infer_extension, user_wants_to_continue, EscapedPathDisplay,
     },
-    warning, QuestionAction, QuestionPolicy, Result,
+    QuestionAction, QuestionPolicy, Result,
 };
 
 /// Check if the mime type matches the detected extensions.

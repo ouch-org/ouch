@@ -29,7 +29,7 @@ use crate::{
         message::{MessageLevel, PrintMessage},
         to_utf, EscapedPathDisplay, FileVisibilityPolicy,
     },
-    warning, CliArgs, QuestionPolicy,
+    CliArgs, QuestionPolicy,
 };
 
 /// Warn the user that (de)compressing this .zip archive might freeze their system.
@@ -41,7 +41,7 @@ fn warn_user_about_loading_zip_in_memory(log_sender: Sender<PrintMessage>) {
 
     log_sender
         .send(PrintMessage {
-            contents: format!("{}", ZIP_IN_MEMORY_LIMITATION_WARNING),
+            contents: ZIP_IN_MEMORY_LIMITATION_WARNING.to_string(),
             accessible: true,
             level: MessageLevel::Warning,
         })
@@ -57,7 +57,7 @@ fn warn_user_about_loading_sevenz_in_memory(log_sender: Sender<PrintMessage>) {
 
     log_sender
         .send(PrintMessage {
-            contents: format!("{}", SEVENZ_IN_MEMORY_LIMITATION_WARNING),
+            contents: SEVENZ_IN_MEMORY_LIMITATION_WARNING.to_string(),
             accessible: true,
             level: MessageLevel::Warning,
         })
@@ -323,7 +323,7 @@ pub fn run(
                     println!();
                 }
                 let formats = extension::flatten_compression_formats(&formats);
-                list_archive_contents(archive_path, formats, list_options, question_policy)?;
+                list_archive_contents(archive_path, formats, list_options, question_policy, log_sender.clone())?;
             }
         }
     }

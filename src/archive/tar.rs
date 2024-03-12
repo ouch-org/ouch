@@ -19,7 +19,6 @@ use crate::{
         message::{MessageLevel, PrintMessage},
         Bytes, EscapedPathDisplay, FileVisibilityPolicy,
     },
-    warning,
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `into`.

@@ -24,7 +24,6 @@ use crate::{
         message::{MessageLevel, PrintMessage},
         pretty_format_list_of_paths, strip_cur_dir, Bytes, EscapedPathDisplay, FileVisibilityPolicy,
     },
-    warning,
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `output_folder`.
