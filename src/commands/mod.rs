@@ -22,7 +22,7 @@ use crate::{
     list::ListOptions,
     utils::{
         self,
-        logger::{info_accessible, map_message, setup_channel, warning, LogReceiver},
+        logger::{info_accessible, setup_channel, spawn_logger_thread, warning},
         to_utf, EscapedPathDisplay, FileVisibilityPolicy,
     },
     CliArgs, QuestionPolicy,
@@ -251,40 +251,4 @@ fn run_cmd(
             Ok(())
         }
     }
-}
-
-fn spawn_logger_thread(log_receiver: LogReceiver, synchronization_pair: Arc<(Mutex<bool>, Condvar)>) {
-    rayon::spawn(move || {
-        const BUFFER_CAPACITY: usize = 10;
-        let mut buffer = Vec::<String>::with_capacity(BUFFER_CAPACITY);
-
-        loop {
-            let msg = log_receiver.recv().expect("Failed to receive log message");
-
-            let is_shutdown_message = msg.is_none();
-
-            // Append message to buffer
-            if let Some(msg) = msg.as_ref().and_then(map_message) {
-                buffer.push(msg);
-            }
-
-            let should_flush = buffer.len() == BUFFER_CAPACITY || is_shutdown_message;
-
-            if should_flush {
-                let text = buffer.join("\n");
-                eprintln!("{text}");
-                buffer.clear();
-            }
-
-            if is_shutdown_message {
-                break;
-            }
-        }
-
-        // Wake up the main thread
-        let (lock, cvar) = &*synchronization_pair;
-        let mut flushed = lock.lock().unwrap();
-        *flushed = true;
-        cvar.notify_one();
-    });
 }
