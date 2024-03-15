@@ -18,6 +18,8 @@ use error::{Error, Result};
 use once_cell::sync::Lazy;
 use utils::{QuestionAction, QuestionPolicy};
 
+use crate::utils::logger::spawn_logger_thread;
+
 // Used in BufReader and BufWriter to perform less syscalls
 const BUFFER_CAPACITY: usize = 1024 * 32;
 
@@ -28,7 +30,11 @@ static CURRENT_DIRECTORY: Lazy<PathBuf> = Lazy::new(|| env::current_dir().unwrap
 pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;
 
 fn main() {
-    if let Err(err) = run() {
+    let handler = spawn_logger_thread();
+    let result = run();
+    handler.shutdown_and_wait();
+
+    if let Err(err) = result {
         eprintln!("{err}");
         std::process::exit(EXIT_FAILURE);
     }
