@@ -18,7 +18,7 @@ use crate::{
     list::ListOptions,
     utils::{
         self,
-        logger::{info_accessible, spawn_logger_thread, warning},
+        logger::{info_accessible, warning},
         to_utf, EscapedPathDisplay, FileVisibilityPolicy,
     },
     CliArgs, QuestionPolicy,
@@ -49,18 +49,6 @@ fn warn_user_about_loading_sevenz_in_memory() {
 ///
 /// There are a lot of custom errors to give enough error description and explanation.
 pub fn run(
-    args: CliArgs,
-    question_policy: QuestionPolicy,
-    file_visibility_policy: FileVisibilityPolicy,
-) -> crate::Result<()> {
-    let handler = spawn_logger_thread();
-    run_cmd(args, question_policy, file_visibility_policy)?;
-    handler.shutdown_and_wait();
-
-    Ok(())
-}
-
-fn run_cmd(
     args: CliArgs,
     question_policy: QuestionPolicy,
     file_visibility_policy: FileVisibilityPolicy,
