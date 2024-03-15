@@ -7,7 +7,7 @@ mod list;
 use std::{
     ops::ControlFlow,
     path::PathBuf,
-    sync::{mpsc, Arc, Condvar, Mutex, OnceLock},
+    sync::{Arc, Condvar, Mutex},
 };
 
 use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
@@ -22,30 +22,30 @@ use crate::{
     list::ListOptions,
     utils::{
         self,
-        logger::{map_message, setup_channel, PrintMessage},
+        logger::{info_accessible, map_message, setup_channel, warning},
         to_utf, EscapedPathDisplay, FileVisibilityPolicy,
     },
     CliArgs, QuestionPolicy,
 };
 
 /// Warn the user that (de)compressing this .zip archive might freeze their system.
-fn warn_user_about_loading_zip_in_memory(logger: Logger) {
+fn warn_user_about_loading_zip_in_memory() {
     const ZIP_IN_MEMORY_LIMITATION_WARNING: &str = "\n\
         \tThe format '.zip' is limited and cannot be (de)compressed using encoding streams.\n\
         \tWhen using '.zip' with other formats, (de)compression must be done in-memory\n\
         \tCareful, you might run out of RAM if the archive is too large!";
 
-    logger.warning(ZIP_IN_MEMORY_LIMITATION_WARNING.to_string());
+    warning(ZIP_IN_MEMORY_LIMITATION_WARNING.to_string());
 }
 
 /// Warn the user that (de)compressing this .7z archive might freeze their system.
-fn warn_user_about_loading_sevenz_in_memory(logger: Logger) {
+fn warn_user_about_loading_sevenz_in_memory() {
     const SEVENZ_IN_MEMORY_LIMITATION_WARNING: &str = "\n\
         \tThe format '.7z' is limited and cannot be (de)compressed using encoding streams.\n\
         \tWhen using '.7z' with other formats, (de)compression must be done in-memory\n\
         \tCareful, you might run out of RAM if the archive is too large!";
 
-    logger.warning(SEVENZ_IN_MEMORY_LIMITATION_WARNING.to_string());
+    warning(SEVENZ_IN_MEMORY_LIMITATION_WARNING.to_string());
 }
 
 /// This function checks what command needs to be run and performs A LOT of ahead-of-time checks
@@ -272,7 +272,7 @@ pub fn run(
     // Drop our sender so when all threads are done, no clones are left.
     // This is needed, otherwise the logging thread will never exit since we would be keeping a
     // sender alive here.
-    drop(logger);
+    todo!();
 
     // Prevent the main thread from exiting until the background thread handling the
     // logging has set `flushed` to true.

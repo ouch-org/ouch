@@ -104,7 +104,7 @@ pub fn compress_files(
         }
         Zip => {
             if !formats.is_empty() {
-                warn_user_about_loading_zip_in_memory(logger.clone());
+                warn_user_about_loading_zip_in_memory();
 
                 if !user_wants_to_continue(output_path, question_policy, QuestionAction::Compression)? {
                     return Ok(false);
@@ -132,7 +132,7 @@ pub fn compress_files(
         }
         SevenZip => {
             if !formats.is_empty() {
-                warn_user_about_loading_sevenz_in_memory(logger.clone());
+                warn_user_about_loading_sevenz_in_memory();
 
                 if !user_wants_to_continue(output_path, question_policy, QuestionAction::Compression)? {
                     return Ok(false);

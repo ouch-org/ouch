@@ -9,7 +9,11 @@ use std::{
 use fs_err as fs;
 
 use super::user_wants_to_overwrite;
-use crate::{extension::Extension, utils::EscapedPathDisplay, QuestionPolicy};
+use crate::{
+    extension::Extension,
+    utils::{logger::info_accessible, EscapedPathDisplay},
+    QuestionPolicy,
+};
 
 /// Remove `path` asking the user to overwrite if necessary.
 ///

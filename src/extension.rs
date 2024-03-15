@@ -5,7 +5,7 @@ use std::{ffi::OsStr, fmt, path::Path};
 use bstr::ByteSlice;
 
 use self::CompressionFormat::*;
-use crate::{error::Error, utils::logger::Logger};
+use crate::{error::Error, utils::logger::warning};
 
 pub const SUPPORTED_EXTENSIONS: &[&str] = &[
     "tar",
@@ -184,7 +184,7 @@ pub fn separate_known_extensions_from_name(path: &Path) -> (&Path, Vec<Extension
     if let Ok(name) = name.to_str() {
         let file_stem = name.trim_matches('.');
         if SUPPORTED_EXTENSIONS.contains(&file_stem) || SUPPORTED_ALIASES.contains(&file_stem) {
-            logger.warning(format!(
+            warning(format!(
                 "Received a file with name '{file_stem}', but {file_stem} was expected as the extension."
             ));
         }
@@ -251,13 +251,9 @@ pub fn build_archive_file_suggestion(path: &Path, suggested_extension: &str) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::logger::PrintMessage;
 
     #[test]
     fn test_extensions_from_path() {
-        let (log_sender, _log_receiver) = std::sync::mpsc::channel::<PrintMessage>();
-        let logger = Logger::new(log_sender);
-
         let path = Path::new("bolovo.tar.gz");
 
         let extensions: Vec<Extension> = extensions_from_path(path);

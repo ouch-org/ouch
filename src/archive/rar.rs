@@ -4,7 +4,7 @@ use std::path::Path;
 
 use unrar::Archive;
 
-use crate::{error::Error, list::FileInArchive, utils::logger::Logger};
+use crate::{error::Error, list::FileInArchive, utils::logger::info};
 
 /// Unpacks the archive given by `archive_path` into the folder given by `output_folder`.
 /// Assumes that output_folder is empty
@@ -18,7 +18,7 @@ pub fn unpack_archive(archive_path: &Path, output_folder: &Path, quiet: bool) ->
         let entry = header.entry();
         archive = if entry.is_file() {
             if !quiet {
-                logger.info(format!(
+                info(format!(
                     "{} extracted. ({})",
                     entry.filename.display(),
                     entry.unpacked_size
