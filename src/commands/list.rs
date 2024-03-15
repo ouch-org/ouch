@@ -9,7 +9,7 @@ use crate::{
     commands::warn_user_about_loading_zip_in_memory,
     extension::CompressionFormat::{self, *},
     list::{self, FileInArchive, ListOptions},
-    utils::{logger::Logger, user_wants_to_continue},
+    utils::user_wants_to_continue,
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
@@ -20,7 +20,6 @@ pub fn list_archive_contents(
     formats: Vec<CompressionFormat>,
     list_options: ListOptions,
     question_policy: QuestionPolicy,
-    logger: Logger,
 ) -> crate::Result<()> {
     let reader = fs::File::open(archive_path)?;
 

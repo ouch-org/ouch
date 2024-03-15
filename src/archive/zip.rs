@@ -20,19 +20,14 @@ use crate::{
     error::FinalError,
     list::FileInArchive,
     utils::{
-        self, cd_into_same_dir_as, get_invalid_utf8_paths, logger::Logger, pretty_format_list_of_paths, strip_cur_dir,
-        Bytes, EscapedPathDisplay, FileVisibilityPolicy,
+        self, cd_into_same_dir_as, get_invalid_utf8_paths, pretty_format_list_of_paths, strip_cur_dir, Bytes,
+        EscapedPathDisplay, FileVisibilityPolicy,
     },
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `output_folder`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive<R>(
-    mut archive: ZipArchive<R>,
-    output_folder: &Path,
-    quiet: bool,
-    logger: Logger,
-) -> crate::Result<usize>
+pub fn unpack_archive<R>(mut archive: ZipArchive<R>, output_folder: &Path, quiet: bool) -> crate::Result<usize>
 where
     R: Read + Seek,
 {
@@ -49,7 +44,7 @@ where
 
         let file_path = output_folder.join(file_path);
 
-        display_zip_comment_if_exists(&file, logger.clone());
+        display_zip_comment_if_exists(&file);
 
         match file.name().ends_with('/') {
             _is_dir @ true => {
@@ -58,7 +53,7 @@ where
                 // spoken text for users using screen readers, braille displays
                 // and so on
                 if !quiet {
-                    logger.info(format!("File {} extracted to \"{}\"", idx, file_path.display()), false);
+                    logger.info(format!("File {} extracted to \"{}\"", idx, file_path.display()));
                 }
                 fs::create_dir_all(&file_path)?;
             }
@@ -72,10 +67,11 @@ where
 
                 // same reason is in _is_dir: long, often not needed text
                 if !quiet {
-                    logger.info(
-                        format!("{:?} extracted. ({})", file_path.display(), Bytes::new(file.size())),
-                        false,
-                    );
+                    logger.info(format!(
+                        "{:?} extracted. ({})",
+                        file_path.display(),
+                        Bytes::new(file.size())
+                    ));
                 }
 
                 let mut output_file = fs::File::create(file_path)?;
@@ -138,7 +134,6 @@ pub fn build_archive_from_paths<W>(
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
     quiet: bool,
-    logger: Logger,
 ) -> crate::Result<W>
 where
     W: Write + Seek,
@@ -192,7 +187,7 @@ where
             // spoken text for users using screen readers, braille displays
             // and so on
             if !quiet {
-                logger.info(format!("Compressing '{}'.", EscapedPathDisplay::new(path)), false);
+                logger.info(format!("Compressing '{}'.", EscapedPathDisplay::new(path)));
             }
 
             let metadata = match path.metadata() {
@@ -242,7 +237,7 @@ where
     Ok(bytes)
 }
 
-fn display_zip_comment_if_exists(file: &ZipFile, logger: Logger) {
+fn display_zip_comment_if_exists(file: &ZipFile) {
     let comment = file.comment();
     if !comment.is_empty() {
         // Zip file comments seem to be pretty rare, but if they are used,
@@ -255,7 +250,7 @@ fn display_zip_comment_if_exists(file: &ZipFile, logger: Logger) {
         // the future, maybe asking the user if he wants to display the comment
         // (informing him of its size) would be sensible for both normal and
         // accessibility mode..
-        logger.info(format!("Found comment in {}: {}", file.name(), comment), true);
+        info_accessible(format!("Found comment in {}: {}", file.name(), comment));
     }
 }
 

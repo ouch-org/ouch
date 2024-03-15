@@ -14,17 +14,12 @@ use same_file::Handle;
 use crate::{
     error::FinalError,
     list::FileInArchive,
-    utils::{self, logger::Logger, Bytes, EscapedPathDisplay, FileVisibilityPolicy},
+    utils::{self, Bytes, EscapedPathDisplay, FileVisibilityPolicy},
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `into`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive(
-    reader: Box<dyn Read>,
-    output_folder: &Path,
-    quiet: bool,
-    logger: Logger,
-) -> crate::Result<usize> {
+pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) -> crate::Result<usize> {
     assert!(output_folder.read_dir().expect("dir exists").count() == 0);
     let mut archive = tar::Archive::new(reader);
 
@@ -39,14 +34,11 @@ pub fn unpack_archive(
         // spoken text for users using screen readers, braille displays
         // and so on
         if !quiet {
-            logger.info(
-                format!(
-                    "{:?} extracted. ({})",
-                    utils::strip_cur_dir(&output_folder.join(file.path()?)),
-                    Bytes::new(file.size()),
-                ),
-                false,
-            );
+            logger.info(format!(
+                "{:?} extracted. ({})",
+                utils::strip_cur_dir(&output_folder.join(file.path()?)),
+                Bytes::new(file.size()),
+            ));
 
             files_unpacked += 1;
         }
@@ -91,7 +83,6 @@ pub fn build_archive_from_paths<W>(
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
     quiet: bool,
-    logger: Logger,
 ) -> crate::Result<W>
 where
     W: Write,
@@ -127,7 +118,7 @@ where
             // spoken text for users using screen readers, braille displays
             // and so on
             if !quiet {
-                logger.info(format!("Compressing '{}'.", EscapedPathDisplay::new(path)), false);
+                logger.info(format!("Compressing '{}'.", EscapedPathDisplay::new(path)));
             }
 
             if path.is_dir() {

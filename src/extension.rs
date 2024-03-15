@@ -169,7 +169,7 @@ pub fn parse_format(fmt: &OsStr) -> crate::Result<Vec<Extension>> {
 /// Extracts extensions from a path.
 ///
 /// Returns both the remaining path and the list of extension objects
-pub fn separate_known_extensions_from_name(path: &Path, logger: Logger) -> (&Path, Vec<Extension>) {
+pub fn separate_known_extensions_from_name(path: &Path) -> (&Path, Vec<Extension>) {
     let mut extensions = vec![];
 
     let Some(mut name) = path.file_name().and_then(<[u8] as ByteSlice>::from_os_str) else {
@@ -194,8 +194,8 @@ pub fn separate_known_extensions_from_name(path: &Path, logger: Logger) -> (&Pat
 }
 
 /// Extracts extensions from a path, return only the list of extension objects
-pub fn extensions_from_path(path: &Path, logger: Logger) -> Vec<Extension> {
-    let (_, extensions) = separate_known_extensions_from_name(path, logger);
+pub fn extensions_from_path(path: &Path) -> Vec<Extension> {
+    let (_, extensions) = separate_known_extensions_from_name(path);
     extensions
 }
 
@@ -260,7 +260,7 @@ mod tests {
 
         let path = Path::new("bolovo.tar.gz");
 
-        let extensions: Vec<Extension> = extensions_from_path(path, logger);
+        let extensions: Vec<Extension> = extensions_from_path(path);
         let formats: Vec<CompressionFormat> = flatten_compression_formats(&extensions);
 
         assert_eq!(formats, vec![Tar, Gzip]);

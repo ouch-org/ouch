@@ -7,7 +7,7 @@ mod list;
 use std::{
     ops::ControlFlow,
     path::PathBuf,
-    sync::{mpsc::channel, Arc, Condvar, Mutex},
+    sync::{mpsc, Arc, Condvar, Mutex, OnceLock},
 };
 
 use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
@@ -22,7 +22,7 @@ use crate::{
     list::ListOptions,
     utils::{
         self,
-        logger::{map_message, Logger, PrintMessage},
+        logger::{map_message, setup_channel, PrintMessage},
         to_utf, EscapedPathDisplay, FileVisibilityPolicy,
     },
     CliArgs, QuestionPolicy,
@@ -57,8 +57,7 @@ pub fn run(
     question_policy: QuestionPolicy,
     file_visibility_policy: FileVisibilityPolicy,
 ) -> crate::Result<()> {
-    let (log_sender, log_receiver) = channel::<PrintMessage>();
-    let logger = Logger::new(log_sender);
+    let log_receiver = setup_channel();
 
     let pair = Arc::new((Mutex::new(false), Condvar::new()));
     let pair2 = Arc::clone(&pair);
@@ -119,7 +118,7 @@ pub fn run(
                     let parsed_formats = parse_format(&formats)?;
                     (Some(formats), parsed_formats)
                 }
-                None => (None, extension::extensions_from_path(&output_path, logger.clone())),
+                None => (None, extension::extensions_from_path(&output_path)),
             };
 
             check::check_invalid_compression_with_non_archive_format(
@@ -152,7 +151,6 @@ pub fn run(
                 question_policy,
                 file_visibility_policy,
                 level,
-                logger.clone(),
             );
 
             if let Ok(true) = compress_result {
@@ -160,7 +158,7 @@ pub fn run(
                 // having a final status message is important especially in an accessibility context
                 // as screen readers may not read a commands exit code, making it hard to reason
                 // about whether the command succeeded without such a message
-                logger.info(format!("Successfully compressed '{}'.", to_utf(&output_path)), true);
+                info_accessible(format!("Successfully compressed '{}'.", to_utf(&output_path)));
             } else {
                 // If Ok(false) or Err() occurred, delete incomplete file at `output_path`
                 //
@@ -198,12 +196,9 @@ pub fn run(
                 }
             } else {
                 for path in files.iter() {
-                    let (pathbase, mut file_formats) =
-                        extension::separate_known_extensions_from_name(path, logger.clone());
+                    let (pathbase, mut file_formats) = extension::separate_known_extensions_from_name(path);
 
-                    if let ControlFlow::Break(_) =
-                        check::check_mime_type(path, &mut file_formats, question_policy, logger.clone())?
-                    {
+                    if let ControlFlow::Break(_) = check::check_mime_type(path, &mut file_formats, question_policy)? {
                         return Ok(());
                     }
 
@@ -217,7 +212,7 @@ pub fn run(
             // The directory that will contain the output files
             // We default to the current directory if the user didn't specify an output directory with --dir
             let output_dir = if let Some(dir) = output_dir {
-                utils::create_dir_if_non_existent(&dir, logger.clone())?;
+                utils::create_dir_if_non_existent(&dir)?;
                 dir
             } else {
                 PathBuf::from(".")
@@ -236,7 +231,6 @@ pub fn run(
                         output_file_path,
                         question_policy,
                         args.quiet,
-                        logger.clone(),
                     )
                 })?;
         }
@@ -250,11 +244,9 @@ pub fn run(
                 }
             } else {
                 for path in files.iter() {
-                    let mut file_formats = extension::extensions_from_path(path, logger.clone());
+                    let mut file_formats = extension::extensions_from_path(path);
 
-                    if let ControlFlow::Break(_) =
-                        check::check_mime_type(path, &mut file_formats, question_policy, logger.clone())?
-                    {
+                    if let ControlFlow::Break(_) = check::check_mime_type(path, &mut file_formats, question_policy)? {
                         return Ok(());
                     }
 
@@ -272,7 +264,7 @@ pub fn run(
                     println!();
                 }
                 let formats = extension::flatten_compression_formats(&formats);
-                list_archive_contents(archive_path, formats, list_options, question_policy, logger.clone())?;
+                list_archive_contents(archive_path, formats, list_options, question_policy)?;
             }
         }
     }

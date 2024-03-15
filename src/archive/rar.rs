@@ -8,7 +8,7 @@ use crate::{error::Error, list::FileInArchive, utils::logger::Logger};
 
 /// Unpacks the archive given by `archive_path` into the folder given by `output_folder`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive(archive_path: &Path, output_folder: &Path, quiet: bool, logger: Logger) -> crate::Result<usize> {
+pub fn unpack_archive(archive_path: &Path, output_folder: &Path, quiet: bool) -> crate::Result<usize> {
     assert!(output_folder.read_dir().expect("dir exists").count() == 0);
 
     let mut archive = Archive::new(archive_path).open_for_processing()?;
@@ -18,10 +18,11 @@ pub fn unpack_archive(archive_path: &Path, output_folder: &Path, quiet: bool, lo
         let entry = header.entry();
         archive = if entry.is_file() {
             if !quiet {
-                logger.info(
-                    format!("{} extracted. ({})", entry.filename.display(), entry.unpacked_size),
-                    false,
-                );
+                logger.info(format!(
+                    "{} extracted. ({})",
+                    entry.filename.display(),
+                    entry.unpacked_size
+                ));
             }
             unpacked += 1;
             header.extract_with_base(output_folder)?

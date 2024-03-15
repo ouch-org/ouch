@@ -11,9 +11,7 @@ use std::{
 use crate::{
     error::FinalError,
     extension::{build_archive_file_suggestion, Extension, PRETTY_SUPPORTED_ALIASES, PRETTY_SUPPORTED_EXTENSIONS},
-    utils::{
-        logger::Logger, pretty_format_list_of_paths, try_infer_extension, user_wants_to_continue, EscapedPathDisplay,
-    },
+    utils::{pretty_format_list_of_paths, try_infer_extension, user_wants_to_continue, EscapedPathDisplay},
     QuestionAction, QuestionPolicy, Result,
 };
 
@@ -27,7 +25,6 @@ pub fn check_mime_type(
     path: &Path,
     formats: &mut Vec<Extension>,
     question_policy: QuestionPolicy,
-    logger: Logger,
 ) -> Result<ControlFlow<()>> {
     if formats.is_empty() {
         // File with no extension
@@ -35,10 +32,11 @@ pub fn check_mime_type(
         if let Some(detected_format) = try_infer_extension(path) {
             // Inferring the file extension can have unpredicted consequences (e.g. the user just
             // mistyped, ...) which we should always inform the user about.
-            logger.info(
-                format!("Detected file: `{}` extension as `{}`", path.display(), detected_format),
-                true,
-            );
+            info_accessible(format!(
+                "Detected file: `{}` extension as `{}`",
+                path.display(),
+                detected_format
+            ));
 
             if user_wants_to_continue(path, question_policy, QuestionAction::Decompression)? {
                 formats.push(detected_format);
@@ -67,13 +65,10 @@ pub fn check_mime_type(
     } else {
         // NOTE: If this actually produces no false positives, we can upgrade it in the future
         // to a warning and ask the user if he wants to continue decompressing.
-        logger.info(
-            format!(
-                "Failed to confirm the format of `{}` by sniffing the contents, file might be misnamed",
-                path.display()
-            ),
-            true,
-        );
+        info_accessible(format!(
+            "Failed to confirm the format of `{}` by sniffing the contents, file might be misnamed",
+            path.display()
+        ));
     }
     Ok(ControlFlow::Continue(()))
 }
