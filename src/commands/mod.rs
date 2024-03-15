@@ -57,19 +57,17 @@ pub fn run(
     question_policy: QuestionPolicy,
     file_visibility_policy: FileVisibilityPolicy,
 ) -> crate::Result<()> {
-    let log_receiver = setup_channel();
+    let (log_receiver, dropper) = setup_channel();
 
     let synchronization_pair = Arc::new((Mutex::new(false), Condvar::new()));
     spawn_logger_thread(log_receiver, synchronization_pair.clone());
     run_cmd(args, question_policy, file_visibility_policy)?;
 
-    // Drop our sender so when all threads are done, no clones are left.
-    // This is needed, otherwise the logging thread will never exit since we would be keeping a
-    // sender alive here.
-    todo!();
+    // Send a message for the logger thread to shut down.
+    // This is needed, otherwise the logging thread will never exit.
+    drop(dropper);
 
-    // Prevent the main thread from exiting until the background thread handling the
-    // logging has set `flushed` to true.
+    // Hold the main thread from exiting until the background thread signals its shutdown.
     let (lock, cvar) = &*synchronization_pair;
     let guard = lock.lock().unwrap();
     let _flushed = cvar.wait(guard).unwrap();
@@ -257,38 +255,36 @@ fn run_cmd(
 
 fn spawn_logger_thread(log_receiver: LogReceiver, synchronization_pair: Arc<(Mutex<bool>, Condvar)>) {
     rayon::spawn(move || {
-        const BUFFER_SIZE: usize = 10;
-        let mut buffer = Vec::<String>::with_capacity(BUFFER_SIZE);
+        const BUFFER_CAPACITY: usize = 10;
+        let mut buffer = Vec::<String>::with_capacity(BUFFER_CAPACITY);
 
         loop {
-            let msg = log_receiver.recv();
+            let msg = log_receiver.recv().expect("Failed to receive log message");
 
-            // Senders are still active
-            if let Ok(msg) = msg {
-                // Print messages if buffer is full otherwise append to it
-                if buffer.len() == BUFFER_SIZE {
-                    let mut tmp = buffer.join("\n");
+            let is_shutdown_message = msg.is_none();
 
-                    if let Some(msg) = map_message(&msg) {
-                        tmp.push_str(&msg);
-                    }
+            // Append message to buffer
+            if let Some(msg) = msg.as_ref().and_then(map_message) {
+                buffer.push(msg);
+            }
 
-                    eprintln!("{}", tmp);
-                    buffer.clear();
-                } else if let Some(msg) = map_message(&msg) {
-                    buffer.push(msg);
-                }
-            } else {
-                // All senders have been dropped
-                eprintln!("{}", buffer.join("\n"));
+            let should_flush = buffer.len() == BUFFER_CAPACITY || is_shutdown_message;
 
-                // Wake up the main thread
-                let (lock, cvar) = &*synchronization_pair;
-                let mut flushed = lock.lock().unwrap();
-                *flushed = true;
-                cvar.notify_one();
+            if should_flush {
+                let text = buffer.join("\n");
+                eprintln!("{text}");
+                buffer.clear();
+            }
+
+            if is_shutdown_message {
                 break;
             }
         }
+
+        // Wake up the main thread
+        let (lock, cvar) = &*synchronization_pair;
+        let mut flushed = lock.lock().unwrap();
+        *flushed = true;
+        cvar.notify_one();
     });
 }

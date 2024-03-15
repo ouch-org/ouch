@@ -3,15 +3,15 @@ use std::sync::{mpsc, OnceLock};
 use super::colors::{ORANGE, RESET, YELLOW};
 use crate::accessible::is_running_in_accessible_mode;
 
-pub type LogReceiver = mpsc::Receiver<PrintMessage>;
-type LogSender = mpsc::Sender<PrintMessage>;
+pub type LogReceiver = mpsc::Receiver<Option<PrintMessage>>;
+type LogSender = mpsc::Sender<Option<PrintMessage>>;
 
 static SENDER: OnceLock<LogSender> = OnceLock::new();
 
-pub fn setup_channel() -> LogReceiver {
+pub fn setup_channel() -> (LogReceiver, LoggerDropper) {
     let (tx, rx) = mpsc::channel();
     SENDER.set(tx).expect("`setup_channel` should only be called once");
-    rx
+    (rx, LoggerDropper)
 }
 
 #[track_caller]
@@ -60,6 +60,7 @@ pub fn map_message(msg: &PrintMessage) -> Option<String> {
 /// `is_running_in_accessible_mode`.
 ///
 /// Read more about accessibility mode in `accessible.rs`.
+#[track_caller]
 pub fn info(contents: String) {
     info_with_accessibility(contents, false);
 }
@@ -70,10 +71,12 @@ pub fn info(contents: String) {
 /// returns `true`.
 ///
 /// Read more about accessibility mode in `accessible.rs`.
+#[track_caller]
 pub fn info_accessible(contents: String) {
     info_with_accessibility(contents, true);
 }
 
+#[track_caller]
 fn info_with_accessibility(contents: String, accessible: bool) {
     send_log_message(PrintMessage {
         contents,
@@ -97,6 +100,20 @@ pub enum MessageLevel {
     Warning,
 }
 
+#[track_caller]
 fn send_log_message(msg: PrintMessage) {
+    send_message(Some(msg));
+}
+
+#[track_caller]
+fn send_message(msg: Option<PrintMessage>) {
     get_sender().send(msg).expect("Failed to send internal message");
+}
+
+pub struct LoggerDropper;
+
+impl Drop for LoggerDropper {
+    fn drop(&mut self) {
+        send_message(None);
+    }
 }
