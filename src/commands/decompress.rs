@@ -13,7 +13,7 @@ use crate::{
         CompressionFormat::{self, *},
         Extension,
     },
-    utils::{self, nice_directory_display, user_wants_to_continue},
+    utils::{self, logger::info_accessible, nice_directory_display, user_wants_to_continue},
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
@@ -122,7 +122,7 @@ pub fn decompress_file(
         }
         Zip => {
             if formats.len() > 1 {
-                warn_user_about_loading_zip_in_memory(logger.clone());
+                warn_user_about_loading_zip_in_memory();
 
                 if !user_wants_to_continue(input_file_path, question_policy, QuestionAction::Decompression)? {
                     return Ok(());
@@ -150,10 +150,7 @@ pub fn decompress_file(
             let unpack_fn: Box<dyn FnOnce(&Path) -> UnpackResult> = if formats.len() > 1 {
                 let mut temp_file = tempfile::NamedTempFile::new()?;
                 io::copy(&mut reader, &mut temp_file)?;
-                let logger_clone = logger.clone();
-                Box::new(move |output_dir| {
-                    crate::archive::rar::unpack_archive(temp_file.path(), output_dir, quiet, logger_clone)
-                })
+                Box::new(move |output_dir| crate::archive::rar::unpack_archive(temp_file.path(), output_dir, quiet))
             } else {
                 Box::new(|output_dir| crate::archive::rar::unpack_archive(input_file_path, output_dir, quiet))
             };
@@ -172,7 +169,7 @@ pub fn decompress_file(
         }
         SevenZip => {
             if formats.len() > 1 {
-                warn_user_about_loading_sevenz_in_memory(logger.clone());
+                warn_user_about_loading_sevenz_in_memory();
 
                 if !user_wants_to_continue(input_file_path, question_policy, QuestionAction::Decompression)? {
                     return Ok(());

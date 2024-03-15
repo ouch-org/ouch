@@ -11,7 +11,10 @@ use std::{
 use crate::{
     error::FinalError,
     extension::{build_archive_file_suggestion, Extension, PRETTY_SUPPORTED_ALIASES, PRETTY_SUPPORTED_EXTENSIONS},
-    utils::{pretty_format_list_of_paths, try_infer_extension, user_wants_to_continue, EscapedPathDisplay},
+    utils::{
+        logger::{info_accessible, warning},
+        pretty_format_list_of_paths, try_infer_extension, user_wants_to_continue, EscapedPathDisplay,
+    },
     QuestionAction, QuestionPolicy, Result,
 };
 
@@ -53,7 +56,7 @@ pub fn check_mime_type(
             .compression_formats
             .ends_with(detected_format.compression_formats)
         {
-            logger.warning(format!(
+            warning(format!(
                 "The file extension: `{}` differ from the detected extension: `{}`",
                 outer_ext, detected_format
             ));

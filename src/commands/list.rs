@@ -65,7 +65,7 @@ pub fn list_archive_contents(
         Tar => Box::new(crate::archive::tar::list_archive(tar::Archive::new(reader))),
         Zip => {
             if formats.len() > 1 {
-                warn_user_about_loading_zip_in_memory(logger.clone());
+                warn_user_about_loading_zip_in_memory();
 
                 if !user_wants_to_continue(archive_path, question_policy, QuestionAction::Decompression)? {
                     return Ok(());
@@ -94,7 +94,7 @@ pub fn list_archive_contents(
         }
         SevenZip => {
             if formats.len() > 1 {
-                warn_user_about_loading_zip_in_memory(logger.clone());
+                warn_user_about_loading_zip_in_memory();
                 if !user_wants_to_continue(archive_path, question_policy, QuestionAction::Decompression)? {
                     return Ok(());
                 }

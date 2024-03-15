@@ -20,8 +20,9 @@ use crate::{
     error::FinalError,
     list::FileInArchive,
     utils::{
-        self, cd_into_same_dir_as, get_invalid_utf8_paths, pretty_format_list_of_paths, strip_cur_dir, Bytes,
-        EscapedPathDisplay, FileVisibilityPolicy,
+        self, cd_into_same_dir_as, get_invalid_utf8_paths,
+        logger::{info, info_accessible, warning},
+        pretty_format_list_of_paths, strip_cur_dir, Bytes, EscapedPathDisplay, FileVisibilityPolicy,
     },
 };
 
@@ -53,7 +54,7 @@ where
                 // spoken text for users using screen readers, braille displays
                 // and so on
                 if !quiet {
-                    logger.info(format!("File {} extracted to \"{}\"", idx, file_path.display()));
+                    info(format!("File {} extracted to \"{}\"", idx, file_path.display()));
                 }
                 fs::create_dir_all(&file_path)?;
             }
@@ -67,7 +68,7 @@ where
 
                 // same reason is in _is_dir: long, often not needed text
                 if !quiet {
-                    logger.info(format!(
+                    info(format!(
                         "{:?} extracted. ({})",
                         file_path.display(),
                         Bytes::new(file.size())
@@ -175,7 +176,7 @@ where
             // If the output_path is the same as the input file, warn the user and skip the input (in order to avoid compression recursion)
             if let Ok(handle) = &output_handle {
                 if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
-                    logger.warning(format!(
+                    warning(format!(
                         "The output file and the input file are the same: `{}`, skipping...",
                         output_path.display()
                     ));
@@ -187,7 +188,7 @@ where
             // spoken text for users using screen readers, braille displays
             // and so on
             if !quiet {
-                logger.info(format!("Compressing '{}'.", EscapedPathDisplay::new(path)));
+                info(format!("Compressing '{}'.", EscapedPathDisplay::new(path)));
             }
 
             let metadata = match path.metadata() {

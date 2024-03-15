@@ -11,7 +11,11 @@ use same_file::Handle;
 
 use crate::{
     error::FinalError,
-    utils::{self, cd_into_same_dir_as, Bytes, EscapedPathDisplay, FileVisibilityPolicy},
+    utils::{
+        self, cd_into_same_dir_as,
+        logger::{info, warning},
+        Bytes, EscapedPathDisplay, FileVisibilityPolicy,
+    },
 };
 
 pub fn compress_sevenz<W>(
@@ -41,7 +45,7 @@ where
             // If the output_path is the same as the input file, warn the user and skip the input (in order to avoid compression recursion)
             if let Ok(handle) = &output_handle {
                 if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
-                    logger.warning(format!(
+                    warning(format!(
                         "The output file and the input file are the same: `{}`, skipping...",
                         output_path.display()
                     ));
@@ -55,7 +59,7 @@ where
             // spoken text for users using screen readers, braille displays
             // and so on
             if !quiet {
-                logger.info(format!("Compressing '{}'.", EscapedPathDisplay::new(path)));
+                info(format!("Compressing '{}'.", EscapedPathDisplay::new(path)));
             }
 
             let metadata = match path.metadata() {
@@ -108,7 +112,7 @@ where
 
         if entry.is_directory() {
             if !quiet {
-                logger.info(format!(
+                info(format!(
                     "File {} extracted to \"{}\"",
                     entry.name(),
                     file_path.display()
@@ -119,7 +123,7 @@ where
             }
         } else {
             if !quiet {
-                logger.info(format!(
+                info(format!(
                     "{:?} extracted. ({})",
                     file_path.display(),
                     Bytes::new(entry.size())
