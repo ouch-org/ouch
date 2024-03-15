@@ -3,19 +3,19 @@ use std::sync::{mpsc, OnceLock};
 use super::colors::{ORANGE, RESET, YELLOW};
 use crate::accessible::is_running_in_accessible_mode;
 
-type Receiver = mpsc::Receiver<PrintMessage>;
-type Sender = mpsc::Sender<PrintMessage>;
+pub type LogReceiver = mpsc::Receiver<PrintMessage>;
+type LogSender = mpsc::Sender<PrintMessage>;
 
-static SENDER: OnceLock<Sender> = OnceLock::new();
+static SENDER: OnceLock<LogSender> = OnceLock::new();
 
-pub fn setup_channel() -> Receiver {
+pub fn setup_channel() -> LogReceiver {
     let (tx, rx) = mpsc::channel();
     SENDER.set(tx).expect("`setup_channel` should only be called once");
     rx
 }
 
 #[track_caller]
-fn get_sender() -> &'static Sender {
+fn get_sender() -> &'static LogSender {
     SENDER.get().expect("No sender, you need to call `setup_channel` first")
 }
 
