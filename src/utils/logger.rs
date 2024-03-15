@@ -89,7 +89,10 @@ enum MessageLevel {
 }
 
 mod logger_thread {
-    use std::sync::{Arc, Barrier};
+    use std::{
+        sync::{mpsc::RecvTimeoutError, Arc, Barrier},
+        time::Duration,
+    };
 
     use super::*;
 
@@ -149,11 +152,19 @@ mod logger_thread {
     }
 
     fn run_logger(log_receiver: LogReceiver, shutdown_barrier: Arc<Barrier>) {
-        const BUFFER_CAPACITY: usize = 10;
-        let mut buffer = Vec::<String>::with_capacity(BUFFER_CAPACITY);
+        const FLUSH_TIMEOUT: Duration = Duration::from_millis(250);
+
+        let mut buffer = Vec::<String>::with_capacity(16);
 
         loop {
-            let msg = log_receiver.recv().expect("Failed to receive log message");
+            let msg = match log_receiver.recv_timeout(FLUSH_TIMEOUT) {
+                Ok(msg) => msg,
+                Err(RecvTimeoutError::Timeout) => {
+                    flush_logs_to_stderr(&mut buffer);
+                    continue;
+                }
+                Err(RecvTimeoutError::Disconnected) => unreachable!("sender is static"),
+            };
 
             let is_shutdown_message = msg.is_none();
 
@@ -162,12 +173,10 @@ mod logger_thread {
                 buffer.push(msg);
             }
 
-            let should_flush = buffer.len() == BUFFER_CAPACITY || is_shutdown_message;
+            let should_flush = buffer.len() == buffer.capacity() || is_shutdown_message;
 
             if should_flush {
-                let text = buffer.join("\n");
-                eprintln!("{text}");
-                buffer.clear();
+                flush_logs_to_stderr(&mut buffer);
             }
 
             if is_shutdown_message {
@@ -176,5 +185,13 @@ mod logger_thread {
         }
 
         shutdown_barrier.wait();
+    }
+
+    fn flush_logs_to_stderr(buffer: &mut Vec<String>) {
+        if !buffer.is_empty() {
+            let text = buffer.join("\n");
+            eprintln!("{text}");
+            buffer.clear();
+        }
     }
 }
