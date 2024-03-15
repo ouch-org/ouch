@@ -22,7 +22,7 @@ use crate::{
     list::ListOptions,
     utils::{
         self,
-        logger::{info_accessible, map_message, setup_channel, warning},
+        logger::{info_accessible, map_message, setup_channel, warning, LogReceiver},
         to_utf, EscapedPathDisplay, FileVisibilityPolicy,
     },
     CliArgs, QuestionPolicy,
@@ -60,44 +60,8 @@ pub fn run(
     let log_receiver = setup_channel();
 
     let pair = Arc::new((Mutex::new(false), Condvar::new()));
-    let pair2 = Arc::clone(&pair);
 
-    // Log received messages until all senders are dropped
-    rayon::spawn(move || {
-        const BUFFER_SIZE: usize = 10;
-        let mut buffer = Vec::<String>::with_capacity(BUFFER_SIZE);
-
-        loop {
-            let msg = log_receiver.recv();
-
-            // Senders are still active
-            if let Ok(msg) = msg {
-                // Print messages if buffer is full otherwise append to it
-                if buffer.len() == BUFFER_SIZE {
-                    let mut tmp = buffer.join("\n");
-
-                    if let Some(msg) = map_message(&msg) {
-                        tmp.push_str(&msg);
-                    }
-
-                    eprintln!("{}", tmp);
-                    buffer.clear();
-                } else if let Some(msg) = map_message(&msg) {
-                    buffer.push(msg);
-                }
-            } else {
-                // All senders have been dropped
-                eprintln!("{}", buffer.join("\n"));
-
-                // Wake up the main thread
-                let (lock, cvar) = &*pair2;
-                let mut flushed = lock.lock().unwrap();
-                *flushed = true;
-                cvar.notify_one();
-                break;
-            }
-        }
-    });
+    spawn_logger_thread(log_receiver, pair.clone());
 
     match args.cmd {
         Subcommand::Compress {
@@ -281,4 +245,42 @@ pub fn run(
     let _flushed = cvar.wait(guard).unwrap();
 
     Ok(())
+}
+
+fn spawn_logger_thread(log_receiver: LogReceiver, synchronization_pair: Arc<(Mutex<bool>, Condvar)>) {
+    rayon::spawn(move || {
+        const BUFFER_SIZE: usize = 10;
+        let mut buffer = Vec::<String>::with_capacity(BUFFER_SIZE);
+
+        loop {
+            let msg = log_receiver.recv();
+
+            // Senders are still active
+            if let Ok(msg) = msg {
+                // Print messages if buffer is full otherwise append to it
+                if buffer.len() == BUFFER_SIZE {
+                    let mut tmp = buffer.join("\n");
+
+                    if let Some(msg) = map_message(&msg) {
+                        tmp.push_str(&msg);
+                    }
+
+                    eprintln!("{}", tmp);
+                    buffer.clear();
+                } else if let Some(msg) = map_message(&msg) {
+                    buffer.push(msg);
+                }
+            } else {
+                // All senders have been dropped
+                eprintln!("{}", buffer.join("\n"));
+
+                // Wake up the main thread
+                let (lock, cvar) = &*synchronization_pair;
+                let mut flushed = lock.lock().unwrap();
+                *flushed = true;
+                cvar.notify_one();
+                break;
+            }
+        }
+    });
 }
