@@ -1,6 +1,3 @@
-// Macros should be declared first
-pub mod macros;
-
 pub mod accessible;
 pub mod archive;
 pub mod check;
