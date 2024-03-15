@@ -11,7 +11,7 @@ use same_file::Handle;
 
 use crate::{
     error::FinalError,
-    utils::{self, cd_into_same_dir_as, logger::Logger, Bytes, EscapedPathDisplay, FileVisibilityPolicy},
+    utils::{self, cd_into_same_dir_as, Bytes, EscapedPathDisplay, FileVisibilityPolicy},
 };
 
 pub fn compress_sevenz<W>(
@@ -20,7 +20,6 @@ pub fn compress_sevenz<W>(
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
     quiet: bool,
-    logger: Logger,
 ) -> crate::Result<W>
 where
     W: Write + Seek,
@@ -56,7 +55,7 @@ where
             // spoken text for users using screen readers, braille displays
             // and so on
             if !quiet {
-                logger.info(format!("Compressing '{}'.", EscapedPathDisplay::new(path)), false);
+                logger.info(format!("Compressing '{}'.", EscapedPathDisplay::new(path)));
             }
 
             let metadata = match path.metadata() {
@@ -93,7 +92,7 @@ where
     Ok(bytes)
 }
 
-pub fn decompress_sevenz<R>(reader: R, output_path: &Path, quiet: bool, logger: Logger) -> crate::Result<usize>
+pub fn decompress_sevenz<R>(reader: R, output_path: &Path, quiet: bool) -> crate::Result<usize>
 where
     R: Read + Seek,
 {
@@ -109,20 +108,22 @@ where
 
         if entry.is_directory() {
             if !quiet {
-                logger.info(
-                    format!("File {} extracted to \"{}\"", entry.name(), file_path.display()),
-                    false,
-                );
+                logger.info(format!(
+                    "File {} extracted to \"{}\"",
+                    entry.name(),
+                    file_path.display()
+                ));
             }
             if !path.exists() {
                 fs::create_dir_all(path)?;
             }
         } else {
             if !quiet {
-                logger.info(
-                    format!("{:?} extracted. ({})", file_path.display(), Bytes::new(entry.size())),
-                    false,
-                );
+                logger.info(format!(
+                    "{:?} extracted. ({})",
+                    file_path.display(),
+                    Bytes::new(entry.size())
+                ));
             }
 
             if let Some(parent) = path.parent() {
