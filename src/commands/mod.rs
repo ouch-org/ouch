@@ -59,10 +59,29 @@ pub fn run(
 ) -> crate::Result<()> {
     let log_receiver = setup_channel();
 
-    let pair = Arc::new((Mutex::new(false), Condvar::new()));
+    let synchronization_pair = Arc::new((Mutex::new(false), Condvar::new()));
+    spawn_logger_thread(log_receiver, synchronization_pair.clone());
+    run_cmd(args, question_policy, file_visibility_policy)?;
 
-    spawn_logger_thread(log_receiver, pair.clone());
+    // Drop our sender so when all threads are done, no clones are left.
+    // This is needed, otherwise the logging thread will never exit since we would be keeping a
+    // sender alive here.
+    todo!();
 
+    // Prevent the main thread from exiting until the background thread handling the
+    // logging has set `flushed` to true.
+    let (lock, cvar) = &*synchronization_pair;
+    let guard = lock.lock().unwrap();
+    let _flushed = cvar.wait(guard).unwrap();
+
+    Ok(())
+}
+
+fn run_cmd(
+    args: CliArgs,
+    question_policy: QuestionPolicy,
+    file_visibility_policy: FileVisibilityPolicy,
+) -> crate::Result<()> {
     match args.cmd {
         Subcommand::Compress {
             files,
@@ -143,7 +162,7 @@ pub fn run(
                 }
             }
 
-            compress_result?;
+            compress_result.map(|_| ())
         }
         Subcommand::Decompress { files, output_dir } => {
             let mut output_paths = vec![];
@@ -196,7 +215,7 @@ pub fn run(
                         question_policy,
                         args.quiet,
                     )
-                })?;
+                })
         }
         Subcommand::List { archives: files, tree } => {
             let mut formats = vec![];
@@ -230,21 +249,10 @@ pub fn run(
                 let formats = extension::flatten_compression_formats(&formats);
                 list_archive_contents(archive_path, formats, list_options, question_policy)?;
             }
+
+            Ok(())
         }
     }
-
-    // Drop our sender so when all threads are done, no clones are left.
-    // This is needed, otherwise the logging thread will never exit since we would be keeping a
-    // sender alive here.
-    todo!();
-
-    // Prevent the main thread from exiting until the background thread handling the
-    // logging has set `flushed` to true.
-    let (lock, cvar) = &*pair;
-    let guard = lock.lock().unwrap();
-    let _flushed = cvar.wait(guard).unwrap();
-
-    Ok(())
 }
 
 fn spawn_logger_thread(log_receiver: LogReceiver, synchronization_pair: Arc<(Mutex<bool>, Condvar)>) {
