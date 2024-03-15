@@ -4,11 +4,7 @@ mod compress;
 mod decompress;
 mod list;
 
-use std::{
-    ops::ControlFlow,
-    path::PathBuf,
-    sync::{Arc, Condvar, Mutex},
-};
+use std::{ops::ControlFlow, path::PathBuf};
 
 use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use utils::colors;
@@ -22,7 +18,7 @@ use crate::{
     list::ListOptions,
     utils::{
         self,
-        logger::{info_accessible, setup_channel, spawn_logger_thread, warning},
+        logger::{info_accessible, spawn_logger_thread, warning},
         to_utf, EscapedPathDisplay, FileVisibilityPolicy,
     },
     CliArgs, QuestionPolicy,
@@ -57,20 +53,9 @@ pub fn run(
     question_policy: QuestionPolicy,
     file_visibility_policy: FileVisibilityPolicy,
 ) -> crate::Result<()> {
-    let (log_receiver, dropper) = setup_channel();
-
-    let synchronization_pair = Arc::new((Mutex::new(false), Condvar::new()));
-    spawn_logger_thread(log_receiver, synchronization_pair.clone());
+    let handler = spawn_logger_thread();
     run_cmd(args, question_policy, file_visibility_policy)?;
-
-    // Send a message for the logger thread to shut down.
-    // This is needed, otherwise the logging thread will never exit.
-    drop(dropper);
-
-    // Hold the main thread from exiting until the background thread signals its shutdown.
-    let (lock, cvar) = &*synchronization_pair;
-    let guard = lock.lock().unwrap();
-    let _flushed = cvar.wait(guard).unwrap();
+    handler.shutdown_and_wait();
 
     Ok(())
 }
