@@ -73,9 +73,9 @@ impl PrintMessage {
             }
             MessageLevel::Warning => {
                 if is_running_in_accessible_mode() {
-                    Some(format!("{}Warning:{} ", *ORANGE, *RESET))
+                    Some(format!("{}Warning:{} {}", *ORANGE, *RESET, self.contents))
                 } else {
-                    Some(format!("{}[WARNING]{} ", *ORANGE, *RESET))
+                    Some(format!("{}[WARNING]{} {}", *ORANGE, *RESET, self.contents))
                 }
             }
         }
