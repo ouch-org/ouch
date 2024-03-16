@@ -10,7 +10,7 @@ use crate::{
     archive,
     commands::warn_user_about_loading_zip_in_memory,
     extension::{split_first_compression_format, CompressionFormat::*, Extension},
-    utils::{user_wants_to_continue, FileVisibilityPolicy},
+    utils::{io::lock_and_flush_output_stdio, user_wants_to_continue, FileVisibilityPolicy},
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
@@ -104,8 +104,11 @@ pub fn compress_files(
         }
         Zip => {
             if !formats.is_empty() {
-                warn_user_about_loading_zip_in_memory();
+                // Locking necessary to guarantee that warning and question
+                // messages stay adjacent
+                let _locks = lock_and_flush_output_stdio();
 
+                warn_user_about_loading_zip_in_memory();
                 if !user_wants_to_continue(output_path, question_policy, QuestionAction::Compression)? {
                     return Ok(false);
                 }
@@ -132,8 +135,11 @@ pub fn compress_files(
         }
         SevenZip => {
             if !formats.is_empty() {
-                warn_user_about_loading_sevenz_in_memory();
+                // Locking necessary to guarantee that warning and question
+                // messages stay adjacent
+                let _locks = lock_and_flush_output_stdio();
 
+                warn_user_about_loading_sevenz_in_memory();
                 if !user_wants_to_continue(output_path, question_policy, QuestionAction::Compression)? {
                     return Ok(false);
                 }

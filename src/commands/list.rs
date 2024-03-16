@@ -9,7 +9,7 @@ use crate::{
     commands::warn_user_about_loading_zip_in_memory,
     extension::CompressionFormat::{self, *},
     list::{self, FileInArchive, ListOptions},
-    utils::user_wants_to_continue,
+    utils::{io::lock_and_flush_output_stdio, user_wants_to_continue},
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
@@ -65,8 +65,11 @@ pub fn list_archive_contents(
         Tar => Box::new(crate::archive::tar::list_archive(tar::Archive::new(reader))),
         Zip => {
             if formats.len() > 1 {
-                warn_user_about_loading_zip_in_memory();
+                // Locking necessary to guarantee that warning and question
+                // messages stay adjacent
+                let _locks = lock_and_flush_output_stdio();
 
+                warn_user_about_loading_zip_in_memory();
                 if !user_wants_to_continue(archive_path, question_policy, QuestionAction::Decompression)? {
                     return Ok(());
                 }
@@ -94,6 +97,10 @@ pub fn list_archive_contents(
         }
         SevenZip => {
             if formats.len() > 1 {
+                // Locking necessary to guarantee that warning and question
+                // messages stay adjacent
+                let _locks = lock_and_flush_output_stdio();
+
                 warn_user_about_loading_zip_in_memory();
                 if !user_wants_to_continue(archive_path, question_policy, QuestionAction::Decompression)? {
                     return Ok(());
