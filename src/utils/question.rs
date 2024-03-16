@@ -5,7 +5,7 @@
 
 use std::{
     borrow::Cow,
-    io::{self, Write},
+    io::{stdin, BufRead},
     path::Path,
 };
 
@@ -15,7 +15,7 @@ use super::{strip_cur_dir, to_utf};
 use crate::{
     accessible::is_running_in_accessible_mode,
     error::{Error, FinalError, Result},
-    utils::{self, colors},
+    utils::{self, colors, io::lock_and_flush_output_stdio},
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -121,10 +121,13 @@ impl<'a> Confirmation<'a> {
             (Some(placeholder), Some(subs)) => Cow::Owned(self.prompt.replace(placeholder, subs)),
         };
 
+        let _locks = lock_and_flush_output_stdio()?;
+        let mut stdin_lock = stdin().lock();
+
         // Ask the same question to end while no valid answers are given
         loop {
             if is_running_in_accessible_mode() {
-                print!(
+                eprintln!(
                     "{} {}yes{}/{}no{}: ",
                     message,
                     *colors::GREEN,
@@ -133,7 +136,7 @@ impl<'a> Confirmation<'a> {
                     *colors::RESET
                 );
             } else {
-                print!(
+                eprintln!(
                     "{} [{}Y{}/{}n{}] ",
                     message,
                     *colors::GREEN,
@@ -142,11 +145,9 @@ impl<'a> Confirmation<'a> {
                     *colors::RESET
                 );
             }
-            let _stdout_lock = io::stdout().lock();
-            io::stdout().flush()?;
 
             let mut answer = String::new();
-            let bytes_read = io::stdin().read_line(&mut answer)?;
+            let bytes_read = stdin_lock.read_line(&mut answer)?;
 
             if bytes_read == 0 {
                 let error = FinalError::with_title("Unexpected EOF when asking question.")

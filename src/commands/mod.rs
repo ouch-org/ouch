@@ -16,32 +16,28 @@ use crate::{
     error::{Error, FinalError},
     extension::{self, parse_format},
     list::ListOptions,
-    utils::{
-        self,
-        logger::{info_accessible, warning},
-        to_utf, EscapedPathDisplay, FileVisibilityPolicy,
-    },
+    utils::{self, colors::*, logger::info_accessible, to_utf, EscapedPathDisplay, FileVisibilityPolicy},
     CliArgs, QuestionPolicy,
 };
 
 /// Warn the user that (de)compressing this .zip archive might freeze their system.
 fn warn_user_about_loading_zip_in_memory() {
-    const ZIP_IN_MEMORY_LIMITATION_WARNING: &str = "\n\
-        \tThe format '.zip' is limited and cannot be (de)compressed using encoding streams.\n\
-        \tWhen using '.zip' with other formats, (de)compression must be done in-memory\n\
-        \tCareful, you might run out of RAM if the archive is too large!";
+    const ZIP_IN_MEMORY_LIMITATION_WARNING: &str = "\n  \
+        The format '.zip' is limited by design and cannot be (de)compressed with encoding streams.\n  \
+        When chaining '.zip' with other formats, all (de)compression needs to be done in-memory\n  \
+        Careful, you might run out of RAM if the archive is too large!";
 
-    warning(ZIP_IN_MEMORY_LIMITATION_WARNING.to_string());
+    eprintln!("{}[WARNING]{}: {ZIP_IN_MEMORY_LIMITATION_WARNING}", *ORANGE, *RESET);
 }
 
 /// Warn the user that (de)compressing this .7z archive might freeze their system.
 fn warn_user_about_loading_sevenz_in_memory() {
-    const SEVENZ_IN_MEMORY_LIMITATION_WARNING: &str = "\n\
-        \tThe format '.7z' is limited and cannot be (de)compressed using encoding streams.\n\
-        \tWhen using '.7z' with other formats, (de)compression must be done in-memory\n\
-        \tCareful, you might run out of RAM if the archive is too large!";
+    const SEVENZ_IN_MEMORY_LIMITATION_WARNING: &str = "\n  \
+        The format '.7z' is limited by design and cannot be (de)compressed with encoding streams.\n  \
+        When chaining '.7z' with other formats, all (de)compression needs to be done in-memory\n  \
+        Careful, you might run out of RAM if the archive is too large!";
 
-    warning(SEVENZ_IN_MEMORY_LIMITATION_WARNING.to_string());
+    eprintln!("{}[WARNING]{}: {SEVENZ_IN_MEMORY_LIMITATION_WARNING}", *ORANGE, *RESET);
 }
 
 /// This function checks what command needs to be run and performs A LOT of ahead-of-time checks
