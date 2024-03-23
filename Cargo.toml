@@ -31,6 +31,7 @@ snap = "1.1.1"
 tar = "0.4.40"
 tempfile = "3.10.1"
 time = { version = "0.3.34", default-features = false }
+tokio = { version = "1.36.0", features = ["full"] }
 unrar = { version = "0.5.3", optional = true }
 xz2 = "0.1.7"
 zip = { version = "0.6.6", default-features = false, features = ["time"] }
