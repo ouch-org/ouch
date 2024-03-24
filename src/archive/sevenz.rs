@@ -10,8 +10,6 @@ use bstr::ByteSlice;
 use fs_err as fs;
 use same_file::Handle;
 use sevenz_rust::SevenZArchiveEntry;
-use unrar::Archive;
-use zstd::zstd_safe::WriteBuf;
 
 use crate::{
     error::FinalError,

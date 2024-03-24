@@ -2,7 +2,6 @@ use std::{
     io::{self, BufReader, Read},
     path::Path,
 };
-use std::io::Seek;
 
 use fs_err as fs;
 
