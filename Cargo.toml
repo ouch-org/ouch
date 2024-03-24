@@ -65,3 +65,6 @@ lto = true
 codegen-units = 1
 opt-level = 3
 strip = true
+
+[patch.crates-io]
+unrar = { git = "https://github.com/ttys3/unrar.rs", branch = "ttys3" }

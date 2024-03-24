@@ -20,6 +20,7 @@ pub fn list_archive_contents(
     formats: Vec<CompressionFormat>,
     list_options: ListOptions,
     question_policy: QuestionPolicy,
+    password: Option<&str>,
 ) -> crate::Result<()> {
     let reader = fs::File::open(archive_path)?;
 
@@ -86,9 +87,9 @@ pub fn list_archive_contents(
             if formats.len() > 1 {
                 let mut temp_file = tempfile::NamedTempFile::new()?;
                 io::copy(&mut reader, &mut temp_file)?;
-                Box::new(crate::archive::rar::list_archive(temp_file.path()))
+                Box::new(crate::archive::rar::list_archive(temp_file.path(), password))
             } else {
-                Box::new(crate::archive::rar::list_archive(archive_path))
+                Box::new(crate::archive::rar::list_archive(archive_path, password))
             }
         }
         #[cfg(not(feature = "unrar"))]
