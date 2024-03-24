@@ -9,12 +9,14 @@ use std::{
     sync::mpsc,
     thread,
 };
+use bstr::ByteSlice;
 
 use filetime_creation::{set_file_mtime, FileTime};
 use fs_err as fs;
 use same_file::Handle;
 use time::OffsetDateTime;
-use zip::{read::ZipFile, DateTime, ZipArchive};
+use zip::{self, read::ZipFile, DateTime, ZipArchive};
+use zip::result::InvalidPassword;
 
 use crate::{
     error::FinalError,
@@ -28,7 +30,7 @@ use crate::{
 
 /// Unpacks the archive given by `archive` into the folder given by `output_folder`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive<R>(mut archive: ZipArchive<R>, output_folder: &Path, quiet: bool) -> crate::Result<usize>
+pub fn unpack_archive<R>(mut archive: ZipArchive<R>, output_folder: &Path, password: Option<impl AsRef<[u8]>>, quiet: bool) -> crate::Result<usize>
 where
     R: Read + Seek,
 {
@@ -36,8 +38,14 @@ where
 
     let mut unpacked_files = 0;
 
+    let password = password.as_ref().map(|p| p.as_ref().to_owned());
+
     for idx in 0..archive.len() {
-        let mut file = archive.by_index(idx)?;
+        let mut file = match password.clone() {
+            Some(password) => archive.by_index_decrypt(idx, password.to_owned().as_bytes()).unwrap()
+                .map_err(|_| zip::result::ZipError::UnsupportedArchive("Password required to decrypt file"))?,
+            None => archive.by_index(idx)?,
+        };
         let file_path = match file.enclosed_name() {
             Some(path) => path.to_owned(),
             None => continue,
@@ -92,7 +100,7 @@ where
 }
 
 /// List contents of `archive`, returning a vector of archive entries
-pub fn list_archive<R>(mut archive: ZipArchive<R>) -> impl Iterator<Item = crate::Result<FileInArchive>>
+pub fn list_archive<R>(mut archive: ZipArchive<R>, password: Option<impl AsRef<[u8]>>) -> impl Iterator<Item = crate::Result<FileInArchive>>
 where
     R: Read + Seek + Send + 'static,
 {
@@ -105,11 +113,19 @@ where
         }
     }
 
+    let password = password.as_ref().map(|p| p.as_ref().to_owned());
+
     let (tx, rx) = mpsc::channel();
     thread::spawn(move || {
         for idx in 0..archive.len() {
             let maybe_file_in_archive = (|| {
-                let file = match archive.by_index(idx) {
+                let zip_result = match password.clone() {
+                    Some(password) => archive.by_index_decrypt(idx, password.to_owned().clone().as_bytes()).unwrap()
+                        .map_err(|_| zip::result::ZipError::UnsupportedArchive("Password required to decrypt file")),
+                    None => archive.by_index(idx),
+                };
+
+                let file = match zip_result {
                     Ok(f) => f,
                     Err(e) => return Some(Err(e.into())),
                 };
