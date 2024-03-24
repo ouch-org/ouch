@@ -9,8 +9,8 @@ use std::{
     sync::mpsc,
     thread,
 };
-use bstr::ByteSlice;
 
+use bstr::ByteSlice;
 use filetime_creation::{set_file_mtime, FileTime};
 use fs_err as fs;
 use same_file::Handle;
@@ -29,7 +29,12 @@ use crate::{
 
 /// Unpacks the archive given by `archive` into the folder given by `output_folder`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive<R>(mut archive: ZipArchive<R>, output_folder: &Path, password: Option<impl AsRef<[u8]>>, quiet: bool) -> crate::Result<usize>
+pub fn unpack_archive<R>(
+    mut archive: ZipArchive<R>,
+    output_folder: &Path,
+    password: Option<impl AsRef<[u8]>>,
+    quiet: bool,
+) -> crate::Result<usize>
 where
     R: Read + Seek,
 {
@@ -41,7 +46,9 @@ where
 
     for idx in 0..archive.len() {
         let mut file = match password.clone() {
-            Some(password) => archive.by_index_decrypt(idx, password.to_owned().as_bytes()).unwrap()
+            Some(password) => archive
+                .by_index_decrypt(idx, password.to_owned().as_bytes())
+                .unwrap()
                 .map_err(|_| zip::result::ZipError::UnsupportedArchive("Password required to decrypt file"))?,
             None => archive.by_index(idx)?,
         };
@@ -99,7 +106,10 @@ where
 }
 
 /// List contents of `archive`, returning a vector of archive entries
-pub fn list_archive<R>(mut archive: ZipArchive<R>, password: Option<impl AsRef<[u8]>>) -> impl Iterator<Item = crate::Result<FileInArchive>>
+pub fn list_archive<R>(
+    mut archive: ZipArchive<R>,
+    password: Option<impl AsRef<[u8]>>,
+) -> impl Iterator<Item = crate::Result<FileInArchive>>
 where
     R: Read + Seek + Send + 'static,
 {
@@ -119,7 +129,9 @@ where
         for idx in 0..archive.len() {
             let maybe_file_in_archive = (|| {
                 let zip_result = match password.clone() {
-                    Some(password) => archive.by_index_decrypt(idx, password.to_owned().clone().as_bytes()).unwrap()
+                    Some(password) => archive
+                        .by_index_decrypt(idx, password.to_owned().clone().as_bytes())
+                        .unwrap()
                         .map_err(|_| zip::result::ZipError::UnsupportedArchive("Password required to decrypt file")),
                     None => archive.by_index(idx),
                 };
