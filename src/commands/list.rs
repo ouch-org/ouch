@@ -2,6 +2,7 @@ use std::{
     io::{self, BufReader, Read},
     path::Path,
 };
+use std::io::Seek;
 
 use fs_err as fs;
 
@@ -12,6 +13,7 @@ use crate::{
     utils::{io::lock_and_flush_output_stdio, user_wants_to_continue},
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
+use crate::archive::sevenz;
 
 /// File at input_file_path is opened for reading, example: "archive.tar.gz"
 /// formats contains each format necessary for decompression, example: [Gz, Tar] (in decompression order)
@@ -108,16 +110,7 @@ pub fn list_archive_contents(
                 }
             }
 
-            let mut files = Vec::new();
-
-            sevenz_rust::decompress_file_with_extract_fn(archive_path, ".", |entry, _, _| {
-                files.push(Ok(FileInArchive {
-                    path: entry.name().into(),
-                    is_dir: entry.is_directory(),
-                }));
-                Ok(true)
-            })?;
-            Box::new(files.into_iter())
+            Box::new(sevenz::list_archive(archive_path, password))
         }
         Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {
             panic!("Not an archive! This should never happen, if it does, something is wrong with `CompressionFormat::is_archive()`. Please report this error!");

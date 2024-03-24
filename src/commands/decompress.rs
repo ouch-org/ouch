@@ -206,7 +206,7 @@ pub fn decompress_file(
             io::copy(&mut reader, &mut vec)?;
 
             if let ControlFlow::Continue(files) = smart_unpack(
-                |output_dir| crate::archive::sevenz::decompress_sevenz(io::Cursor::new(vec), output_dir, quiet),
+                |output_dir| crate::archive::sevenz::decompress_sevenz(io::Cursor::new(vec), output_dir, password, quiet),
                 output_dir,
                 &output_file_path,
                 question_policy,
