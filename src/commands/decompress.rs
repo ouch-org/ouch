@@ -36,6 +36,7 @@ pub fn decompress_file(
     output_file_path: PathBuf,
     question_policy: QuestionPolicy,
     quiet: bool,
+    password: Option<&str>,
 ) -> crate::Result<()> {
     assert!(output_dir.exists());
     let input_is_stdin = is_path_stdin(input_file_path);
@@ -172,9 +173,9 @@ pub fn decompress_file(
             let unpack_fn: Box<dyn FnOnce(&Path) -> UnpackResult> = if formats.len() > 1 || input_is_stdin {
                 let mut temp_file = tempfile::NamedTempFile::new()?;
                 io::copy(&mut reader, &mut temp_file)?;
-                Box::new(move |output_dir| crate::archive::rar::unpack_archive(temp_file.path(), output_dir, quiet))
+                Box::new(move |output_dir| crate::archive::rar::unpack_archive(temp_file.path(), output_dir, password, quiet))
             } else {
-                Box::new(|output_dir| crate::archive::rar::unpack_archive(input_file_path, output_dir, quiet))
+                Box::new(|output_dir| crate::archive::rar::unpack_archive(input_file_path, output_dir, password, quiet))
             };
 
             if let ControlFlow::Continue(files) =

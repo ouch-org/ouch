@@ -41,6 +41,10 @@ pub struct CliArgs {
     #[arg(short, long, global = true)]
     pub format: Option<OsString>,
 
+    /// decompress or list with password
+    #[arg(short = 'p', long = "password", global = true)]
+    pub password: Option<String>,
+
     // Ouch and claps subcommands
     #[command(subcommand)]
     pub cmd: Subcommand,
