@@ -2,7 +2,7 @@
 
 use std::path::Path;
 
-use unrar::{self, Archive};
+use unrar::Archive;
 
 use crate::{error::Error, info, list::FileInArchive};
 

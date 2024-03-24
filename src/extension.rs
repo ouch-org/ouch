@@ -3,8 +3,8 @@
 use std::{ffi::OsStr, fmt, path::Path};
 
 use bstr::ByteSlice;
+use CompressionFormat::*;
 
-use self::CompressionFormat::*;
 use crate::{error::Error, warning};
 
 pub const SUPPORTED_EXTENSIONS: &[&str] = &[
@@ -33,20 +33,17 @@ pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, gz, lz4, xz, l
 pub const PRETTY_SUPPORTED_ALIASES: &str = "tgz, tbz, tlz4, txz, tzlma, tsz, tzst";
 
 /// A wrapper around `CompressionFormat` that allows combinations like `tgz`
-#[derive(Debug, Clone, Eq)]
+#[derive(Debug, Clone)]
+// Keep `PartialEq` only for testing because two formats are the same even if
+// their `display_text` does not match (beware of aliases)
+#[cfg_attr(test, derive(PartialEq))]
+// Should only be built with constructors
 #[non_exhaustive]
 pub struct Extension {
     /// One extension like "tgz" can be made of multiple CompressionFormats ([Tar, Gz])
     pub compression_formats: &'static [CompressionFormat],
     /// The input text for this extension, like "tgz", "tar" or "xz"
     display_text: String,
-}
-
-// The display_text should be ignored when comparing extensions
-impl PartialEq for Extension {
-    fn eq(&self, other: &Self) -> bool {
-        self.compression_formats == other.compression_formats
-    }
 }
 
 impl Extension {
@@ -150,17 +147,30 @@ fn split_extension(name: &mut &[u8]) -> Option<Extension> {
     Some(ext)
 }
 
-pub fn parse_format(fmt: &OsStr) -> crate::Result<Vec<Extension>> {
-    let fmt = <[u8] as ByteSlice>::from_os_str(fmt).ok_or_else(|| Error::InvalidFormat {
-        reason: "Invalid UTF-8".into(),
+pub fn parse_format_flag(input: &OsStr) -> crate::Result<Vec<Extension>> {
+    let format = input.as_encoded_bytes();
+
+    let format = std::str::from_utf8(format).map_err(|_| Error::InvalidFormatFlag {
+        text: input.to_owned(),
+        reason: "Invalid UTF-8.".to_string(),
     })?;
 
-    let mut extensions = Vec::new();
-    for extension in fmt.split_str(b".") {
-        let extension = to_extension(extension).ok_or_else(|| Error::InvalidFormat {
-            reason: format!("Unsupported extension: {}", extension.to_str_lossy()),
-        })?;
-        extensions.push(extension);
+    let extensions: Vec<Extension> = format
+        .split('.')
+        .filter(|extension| !extension.is_empty())
+        .map(|extension| {
+            to_extension(extension.as_bytes()).ok_or_else(|| Error::InvalidFormatFlag {
+                text: input.to_owned(),
+                reason: format!("Unsupported extension '{}'", extension),
+            })
+        })
+        .collect::<crate::Result<_>>()?;
+
+    if extensions.is_empty() {
+        return Err(Error::InvalidFormatFlag {
+            text: input.to_owned(),
+            reason: "Parsing got an empty list of extensions.".to_string(),
+        });
     }
 
     Ok(extensions)
@@ -248,8 +258,6 @@ pub fn build_archive_file_suggestion(path: &Path, suggested_extension: &str) -> 
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
-
     use super::*;
 
     #[test]
@@ -260,6 +268,69 @@ mod tests {
         let formats: Vec<CompressionFormat> = flatten_compression_formats(&extensions);
 
         assert_eq!(formats, vec![Tar, Gzip]);
+    }
+
+    #[test]
+    /// Test extension parsing for input/output files
+    fn test_separate_known_extensions_from_name() {
+        assert_eq!(
+            separate_known_extensions_from_name("file".as_ref()),
+            ("file".as_ref(), vec![])
+        );
+        assert_eq!(
+            separate_known_extensions_from_name("tar".as_ref()),
+            ("tar".as_ref(), vec![])
+        );
+        assert_eq!(
+            separate_known_extensions_from_name(".tar".as_ref()),
+            (".tar".as_ref(), vec![])
+        );
+        assert_eq!(
+            separate_known_extensions_from_name("file.tar".as_ref()),
+            ("file".as_ref(), vec![Extension::new(&[Tar], "tar")])
+        );
+        assert_eq!(
+            separate_known_extensions_from_name("file.tar.gz".as_ref()),
+            (
+                "file".as_ref(),
+                vec![Extension::new(&[Tar], "tar"), Extension::new(&[Gzip], "gz")]
+            )
+        );
+        assert_eq!(
+            separate_known_extensions_from_name(".tar.gz".as_ref()),
+            (".tar".as_ref(), vec![Extension::new(&[Gzip], "gz")])
+        );
+    }
+
+    #[test]
+    /// Test extension parsing of `--format FORMAT`
+    fn test_parse_of_format_flag() {
+        assert_eq!(
+            parse_format_flag(OsStr::new("tar")).unwrap(),
+            vec![Extension::new(&[Tar], "tar")]
+        );
+        assert_eq!(
+            parse_format_flag(OsStr::new(".tar")).unwrap(),
+            vec![Extension::new(&[Tar], "tar")]
+        );
+        assert_eq!(
+            parse_format_flag(OsStr::new("tar.gz")).unwrap(),
+            vec![Extension::new(&[Tar], "tar"), Extension::new(&[Gzip], "gz")]
+        );
+        assert_eq!(
+            parse_format_flag(OsStr::new(".tar.gz")).unwrap(),
+            vec![Extension::new(&[Tar], "tar"), Extension::new(&[Gzip], "gz")]
+        );
+        assert_eq!(
+            parse_format_flag(OsStr::new("..tar..gz.....")).unwrap(),
+            vec![Extension::new(&[Tar], "tar"), Extension::new(&[Gzip], "gz")]
+        );
+
+        assert!(parse_format_flag(OsStr::new("../tar.gz")).is_err());
+        assert!(parse_format_flag(OsStr::new("targz")).is_err());
+        assert!(parse_format_flag(OsStr::new("tar.gz.unknown")).is_err());
+        assert!(parse_format_flag(OsStr::new(".tar.gz.unknown")).is_err());
+        assert!(parse_format_flag(OsStr::new(".tar.!@#.gz")).is_err());
     }
 
     #[test]

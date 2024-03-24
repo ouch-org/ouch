@@ -30,6 +30,8 @@ Categories Used:
 
 ### Improvements
 
+- Make `--format` more forgiving with the formatting of the provided format [\#519](https://github.com/ouch-org/ouch/pull/519) ([marcospb19](https://github.com/marcospb19))
+
 ## [0.5.1](https://github.com/ouch-org/ouch/compare/0.5.0...0.5.1)
 
 ### Improvements

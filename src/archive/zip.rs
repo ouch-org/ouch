@@ -14,7 +14,7 @@ use filetime_creation::{set_file_mtime, FileTime};
 use fs_err as fs;
 use same_file::Handle;
 use time::OffsetDateTime;
-use zip::{self, read::ZipFile, DateTime, ZipArchive};
+use zip::{read::ZipFile, DateTime, ZipArchive};
 
 use crate::{
     error::FinalError,

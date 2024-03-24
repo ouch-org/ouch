@@ -1,4 +1,4 @@
-use std::{borrow::Cow, cmp, fmt::Display, path::Path};
+use std::{borrow::Cow, cmp, ffi::OsStr, fmt::Display, path::Path};
 
 use crate::CURRENT_DIRECTORY;
 
@@ -45,7 +45,11 @@ impl Display for EscapedPathDisplay<'_> {
 /// This is different from [`Path::display`].
 ///
 /// See <https://gist.github.com/marcospb19/ebce5572be26397cf08bbd0fd3b65ac1> for a comparison.
-pub fn to_utf(os_str: &Path) -> Cow<str> {
+pub fn path_to_str(path: &Path) -> Cow<str> {
+    os_str_to_str(path.as_ref())
+}
+
+pub fn os_str_to_str(os_str: &OsStr) -> Cow<str> {
     let format = || {
         let text = format!("{os_str:?}");
         Cow::Owned(text.trim_matches('"').to_string())
@@ -65,15 +69,15 @@ pub fn strip_cur_dir(source_path: &Path) -> &Path {
 /// Converts a slice of `AsRef<OsStr>` to comma separated String
 ///
 /// Panics if the slice is empty.
-pub fn pretty_format_list_of_paths(os_strs: &[impl AsRef<Path>]) -> String {
-    let mut iter = os_strs.iter().map(AsRef::as_ref);
+pub fn pretty_format_list_of_paths(paths: &[impl AsRef<Path>]) -> String {
+    let mut iter = paths.iter().map(AsRef::as_ref);
 
-    let first_element = iter.next().unwrap();
-    let mut string = to_utf(first_element).into_owned();
+    let first_path = iter.next().unwrap();
+    let mut string = path_to_str(first_path).into_owned();
 
-    for os_str in iter {
+    for path in iter {
         string += ", ";
-        string += &to_utf(os_str);
+        string += &path_to_str(path);
     }
     string
 }
@@ -83,7 +87,7 @@ pub fn nice_directory_display(path: &Path) -> Cow<str> {
     if path == Path::new(".") {
         Cow::Borrowed("current directory")
     } else {
-        to_utf(path)
+        path_to_str(path)
     }
 }
 
