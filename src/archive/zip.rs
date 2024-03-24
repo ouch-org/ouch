@@ -16,7 +16,6 @@ use fs_err as fs;
 use same_file::Handle;
 use time::OffsetDateTime;
 use zip::{self, read::ZipFile, DateTime, ZipArchive};
-use zip::result::InvalidPassword;
 
 use crate::{
     error::FinalError,
