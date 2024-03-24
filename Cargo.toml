@@ -32,7 +32,7 @@ snap = "1.1.1"
 tar = "0.4.41"
 tempfile = "3.10.1"
 time = { version = "0.3.36", default-features = false }
-unrar = { version = "0.5.3", optional = true }
+unrar = { version = "0.5.6", optional = true }
 xz2 = "0.1.7"
 zip = { version = "0.6.6", default-features = false, features = ["time"] }
 zstd = { version = "0.13.2", default-features = false, features = ["zstdmt"]}

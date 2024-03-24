@@ -1397,9 +1397,9 @@ checksum = "3354b9ac3fae1ff6755cb6db53683adb661634f67557942dea4facebec0fee4b"
 
 [[package]]
 name = "unrar"
-version = "0.5.3"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4994bfae776d5c2ee22493a00742c77d58bfa5adbe10febe83d1ba7aff2ebdc"
+checksum = "c99d6a7735a222f2119ca4572e713fb468b5c3a17a4fb90b3cac3e28a8680c29"
 dependencies = [
  "bitflags 1.3.2",
  "regex",
@@ -1409,9 +1409,9 @@ dependencies = [
 
 [[package]]
 name = "unrar_sys"
-version = "0.3.1"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f691c507016acf0a56fae074981ce30f13f8b035c8f80aa878f41905d96e390"
+checksum = "3f8325103479fffa0e31b41fd11267446b355037115ae184a63a9fd3f192f3da"
 dependencies = [
  "cc",
  "libc",
