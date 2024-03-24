@@ -35,7 +35,7 @@ pub fn list_archive_contents(
     // Any other Zip decompression done can take up the whole RAM and freeze ouch.
     if let &[Zip] = formats.as_slice() {
         let zip_archive = zip::ZipArchive::new(reader)?;
-        let files = crate::archive::zip::list_archive(zip_archive);
+        let files = crate::archive::zip::list_archive(zip_archive, password);
         list::list_files(archive_path, files, list_options)?;
 
         return Ok(());
@@ -82,7 +82,7 @@ pub fn list_archive_contents(
             io::copy(&mut reader, &mut vec)?;
             let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
 
-            Box::new(crate::archive::zip::list_archive(zip_archive))
+            Box::new(crate::archive::zip::list_archive(zip_archive, password))
         }
         #[cfg(feature = "unrar")]
         Rar => {
