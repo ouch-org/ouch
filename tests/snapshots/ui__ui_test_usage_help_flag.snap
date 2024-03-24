@@ -40,6 +40,9 @@ Options:
   -f, --format <FORMAT>
           Specify the format of the archive
 
+  -p, --password <PASSWORD>
+          decompress or list with password
+
   -h, --help
           Print help (see a summary with '-h')
 
