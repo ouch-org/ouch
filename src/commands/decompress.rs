@@ -31,6 +31,7 @@ pub fn decompress_file(
     output_file_path: PathBuf,
     question_policy: QuestionPolicy,
     quiet: bool,
+    password: Option<&str>,
 ) -> crate::Result<()> {
     assert!(output_dir.exists());
     let reader = fs::File::open(input_file_path)?;
@@ -49,7 +50,7 @@ pub fn decompress_file(
     {
         let zip_archive = zip::ZipArchive::new(reader)?;
         let files_unpacked = if let ControlFlow::Continue(files) = smart_unpack(
-            |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, quiet),
+            |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, password, quiet),
             output_dir,
             &output_file_path,
             question_policy,
@@ -136,7 +137,7 @@ pub fn decompress_file(
             let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
 
             if let ControlFlow::Continue(files) = smart_unpack(
-                |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, quiet),
+                |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, password, quiet),
                 output_dir,
                 &output_file_path,
                 question_policy,
@@ -152,9 +153,11 @@ pub fn decompress_file(
             let unpack_fn: Box<dyn FnOnce(&Path) -> UnpackResult> = if formats.len() > 1 {
                 let mut temp_file = tempfile::NamedTempFile::new()?;
                 io::copy(&mut reader, &mut temp_file)?;
-                Box::new(move |output_dir| crate::archive::rar::unpack_archive(temp_file.path(), output_dir, quiet))
+                Box::new(move |output_dir| {
+                    crate::archive::rar::unpack_archive(temp_file.path(), output_dir, password, quiet)
+                })
             } else {
-                Box::new(|output_dir| crate::archive::rar::unpack_archive(input_file_path, output_dir, quiet))
+                Box::new(|output_dir| crate::archive::rar::unpack_archive(input_file_path, output_dir, password, quiet))
             };
 
             if let ControlFlow::Continue(files) =
@@ -182,7 +185,9 @@ pub fn decompress_file(
             io::copy(&mut reader, &mut vec)?;
 
             if let ControlFlow::Continue(files) = smart_unpack(
-                |output_dir| crate::archive::sevenz::decompress_sevenz(io::Cursor::new(vec), output_dir, quiet),
+                |output_dir| {
+                    crate::archive::sevenz::decompress_sevenz(io::Cursor::new(vec), output_dir, password, quiet)
+                },
                 output_dir,
                 &output_file_path,
                 question_policy,

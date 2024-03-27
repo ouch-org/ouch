@@ -27,14 +27,15 @@ static CURRENT_DIRECTORY: Lazy<PathBuf> = Lazy::new(|| env::current_dir().unwrap
 /// The status code returned from `ouch` on error
 pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;
 
-fn main() {
-    if let Err(err) = run() {
+#[tokio::main]
+async fn main() {
+    if let Err(err) = run().await {
         eprintln!("{err}");
         std::process::exit(EXIT_FAILURE);
     }
 }
 
-fn run() -> Result<()> {
+async fn run() -> Result<()> {
     let (args, skip_questions_positively, file_visibility_policy) = CliArgs::parse_and_validate_args()?;
-    commands::run(args, skip_questions_positively, file_visibility_policy)
+    commands::run(args, skip_questions_positively, file_visibility_policy).await
 }
