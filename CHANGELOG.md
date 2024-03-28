@@ -24,11 +24,15 @@ Categories Used:
 
 ### Bug Fixes
 
+- Fix output corrupted on parallel decompression [\#642](https://github.com/ouch-org/ouch/pull/642) ([AntoniosBarotsis](https://github.com/AntoniosBarotsis))
+
 ### Tweaks
 
 - CI refactor [\#578](https://github.com/ouch-org/ouch/pull/578) ([cyqsimon](https://github.com/cyqsimon))
 
 ### Improvements
+
+- Fix logging IO bottleneck [\#642](https://github.com/ouch-org/ouch/pull/642) ([AntoniosBarotsis](https://github.com/AntoniosBarotsis))
 
 ## [0.5.1](https://github.com/ouch-org/ouch/compare/0.5.0...0.5.1)
 

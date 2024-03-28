@@ -14,17 +14,16 @@ use filetime_creation::{set_file_mtime, FileTime};
 use fs_err as fs;
 use same_file::Handle;
 use time::OffsetDateTime;
-use zip::{self, read::ZipFile, DateTime, ZipArchive};
+use zip::{read::ZipFile, DateTime, ZipArchive};
 
 use crate::{
     error::FinalError,
-    info,
     list::FileInArchive,
     utils::{
-        self, cd_into_same_dir_as, get_invalid_utf8_paths, pretty_format_list_of_paths, strip_cur_dir, Bytes,
-        EscapedPathDisplay, FileVisibilityPolicy,
+        self, cd_into_same_dir_as, get_invalid_utf8_paths,
+        logger::{info, info_accessible, warning},
+        pretty_format_list_of_paths, strip_cur_dir, Bytes, EscapedPathDisplay, FileVisibilityPolicy,
     },
-    warning,
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `output_folder`.
@@ -55,7 +54,7 @@ where
                 // spoken text for users using screen readers, braille displays
                 // and so on
                 if !quiet {
-                    info!(inaccessible, "File {} extracted to \"{}\"", idx, file_path.display());
+                    info(format!("File {} extracted to \"{}\"", idx, file_path.display()));
                 }
                 fs::create_dir_all(&file_path)?;
             }
@@ -69,12 +68,11 @@ where
 
                 // same reason is in _is_dir: long, often not needed text
                 if !quiet {
-                    info!(
-                        inaccessible,
+                    info(format!(
                         "{:?} extracted. ({})",
                         file_path.display(),
-                        Bytes::new(file.size()),
-                    );
+                        Bytes::new(file.size())
+                    ));
                 }
 
                 let mut output_file = fs::File::create(file_path)?;
@@ -178,11 +176,10 @@ where
             // If the output_path is the same as the input file, warn the user and skip the input (in order to avoid compression recursion)
             if let Ok(handle) = &output_handle {
                 if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
-                    warning!(
+                    warning(format!(
                         "The output file and the input file are the same: `{}`, skipping...",
                         output_path.display()
-                    );
-                    continue;
+                    ));
                 }
             }
 
@@ -191,7 +188,7 @@ where
             // spoken text for users using screen readers, braille displays
             // and so on
             if !quiet {
-                info!(inaccessible, "Compressing '{}'.", EscapedPathDisplay::new(path));
+                info(format!("Compressing '{}'.", EscapedPathDisplay::new(path)));
             }
 
             let metadata = match path.metadata() {
@@ -254,7 +251,7 @@ fn display_zip_comment_if_exists(file: &ZipFile) {
         // the future, maybe asking the user if he wants to display the comment
         // (informing him of its size) would be sensible for both normal and
         // accessibility mode..
-        info!(accessible, "Found comment in {}: {}", file.name(), comment);
+        info_accessible(format!("Found comment in {}: {}", file.name(), comment));
     }
 }
 

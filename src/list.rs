@@ -78,7 +78,6 @@ mod tree {
     use std::{
         ffi::{OsStr, OsString},
         io::Write,
-        iter::FromIterator,
         path,
     };
 
@@ -86,7 +85,7 @@ mod tree {
     use linked_hash_map::LinkedHashMap;
 
     use super::FileInArchive;
-    use crate::{utils::EscapedPathDisplay, warning};
+    use crate::utils::{logger::warning, EscapedPathDisplay};
 
     /// Directory tree
     #[derive(Debug, Default)]
@@ -120,10 +119,10 @@ mod tree {
                 match &self.file {
                     None => self.file = Some(file),
                     Some(file) => {
-                        warning!(
+                        warning(format!(
                             "multiple files with the same name in a single directory ({})",
                             EscapedPathDisplay::new(&file.path),
-                        );
+                        ));
                     }
                 }
             }

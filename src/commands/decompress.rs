@@ -13,8 +13,9 @@ use crate::{
         CompressionFormat::{self, *},
         Extension,
     },
-    info,
-    utils::{self, nice_directory_display, user_wants_to_continue},
+    utils::{
+        self, io::lock_and_flush_output_stdio, logger::info_accessible, nice_directory_display, user_wants_to_continue,
+    },
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
@@ -63,12 +64,11 @@ pub fn decompress_file(
         // having a final status message is important especially in an accessibility context
         // as screen readers may not read a commands exit code, making it hard to reason
         // about whether the command succeeded without such a message
-        info!(
-            accessible,
+        info_accessible(format!(
             "Successfully decompressed archive in {} ({} files).",
             nice_directory_display(output_dir),
             files_unpacked
-        );
+        ));
 
         return Ok(());
     }
@@ -124,8 +124,11 @@ pub fn decompress_file(
         }
         Zip => {
             if formats.len() > 1 {
-                warn_user_about_loading_zip_in_memory();
+                // Locking necessary to guarantee that warning and question
+                // messages stay adjacent
+                let _locks = lock_and_flush_output_stdio();
 
+                warn_user_about_loading_zip_in_memory();
                 if !user_wants_to_continue(input_file_path, question_policy, QuestionAction::Decompression)? {
                     return Ok(());
                 }
@@ -171,8 +174,11 @@ pub fn decompress_file(
         }
         SevenZip => {
             if formats.len() > 1 {
-                warn_user_about_loading_sevenz_in_memory();
+                // Locking necessary to guarantee that warning and question
+                // messages stay adjacent
+                let _locks = lock_and_flush_output_stdio();
 
+                warn_user_about_loading_sevenz_in_memory();
                 if !user_wants_to_continue(input_file_path, question_policy, QuestionAction::Decompression)? {
                     return Ok(());
                 }
@@ -198,12 +204,11 @@ pub fn decompress_file(
     // having a final status message is important especially in an accessibility context
     // as screen readers may not read a commands exit code, making it hard to reason
     // about whether the command succeeded without such a message
-    info!(
-        accessible,
+    info_accessible(format!(
         "Successfully decompressed archive in {}.",
         nice_directory_display(output_dir)
-    );
-    info!(accessible, "Files unpacked: {}", files_unpacked);
+    ));
+    info_accessible(format!("Files unpacked: {}", files_unpacked));
 
     Ok(())
 }
@@ -222,11 +227,11 @@ fn smart_unpack(
     assert!(output_dir.exists());
     let temp_dir = tempfile::tempdir_in(output_dir)?;
     let temp_dir_path = temp_dir.path();
-    info!(
-        accessible,
+
+    info_accessible(format!(
         "Created temporary directory {} to hold decompressed elements.",
         nice_directory_display(temp_dir_path)
-    );
+    ));
 
     let files = unpack_fn(temp_dir_path)?;
 
@@ -244,12 +249,12 @@ fn smart_unpack(
             return Ok(ControlFlow::Break(()));
         }
         fs::rename(&file_path, &correct_path)?;
-        info!(
-            accessible,
+
+        info_accessible(format!(
             "Successfully moved {} to {}.",
             nice_directory_display(&file_path),
             nice_directory_display(&correct_path)
-        );
+        ));
     } else {
         // Multiple files in the root directory, so:
         // Rename the temporary directory to the archive name, which is output_file_path
@@ -258,12 +263,11 @@ fn smart_unpack(
             return Ok(ControlFlow::Break(()));
         }
         fs::rename(temp_dir_path, output_file_path)?;
-        info!(
-            accessible,
+        info_accessible(format!(
             "Successfully moved {} to {}.",
             nice_directory_display(temp_dir_path),
             nice_directory_display(output_file_path)
-        );
+        ));
     }
 
     Ok(ControlFlow::Continue(files))

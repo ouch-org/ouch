@@ -13,10 +13,12 @@ use same_file::Handle;
 
 use crate::{
     error::FinalError,
-    info,
     list::FileInArchive,
-    utils::{self, Bytes, EscapedPathDisplay, FileVisibilityPolicy},
-    warning,
+    utils::{
+        self,
+        logger::{info, warning},
+        Bytes, EscapedPathDisplay, FileVisibilityPolicy,
+    },
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `into`.
@@ -36,12 +38,11 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) 
         // spoken text for users using screen readers, braille displays
         // and so on
         if !quiet {
-            info!(
-                inaccessible,
+            info(format!(
                 "{:?} extracted. ({})",
                 utils::strip_cur_dir(&output_folder.join(file.path()?)),
                 Bytes::new(file.size()),
-            );
+            ));
 
             files_unpacked += 1;
         }
@@ -107,10 +108,11 @@ where
             // If the output_path is the same as the input file, warn the user and skip the input (in order to avoid compression recursion)
             if let Ok(handle) = &output_handle {
                 if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
-                    warning!(
+                    warning(format!(
                         "The output file and the input file are the same: `{}`, skipping...",
                         output_path.display()
-                    );
+                    ));
+
                     continue;
                 }
             }
@@ -120,7 +122,7 @@ where
             // spoken text for users using screen readers, braille displays
             // and so on
             if !quiet {
-                info!(inaccessible, "Compressing '{}'.", EscapedPathDisplay::new(path));
+                info(format!("Compressing '{}'.", EscapedPathDisplay::new(path)));
             }
 
             if path.is_dir() {

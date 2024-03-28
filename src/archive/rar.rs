@@ -2,9 +2,9 @@
 
 use std::path::Path;
 
-use unrar::{self, Archive};
+use unrar::Archive;
 
-use crate::{error::Error, info, list::FileInArchive};
+use crate::{error::Error, list::FileInArchive, utils::logger::info};
 
 /// Unpacks the archive given by `archive_path` into the folder given by `output_folder`.
 /// Assumes that output_folder is empty
@@ -18,12 +18,11 @@ pub fn unpack_archive(archive_path: &Path, output_folder: &Path, quiet: bool) ->
         let entry = header.entry();
         archive = if entry.is_file() {
             if !quiet {
-                info!(
-                    inaccessible,
+                info(format!(
                     "{} extracted. ({})",
                     entry.filename.display(),
                     entry.unpacked_size
-                );
+                ));
             }
             unpacked += 1;
             header.extract_with_base(output_folder)?

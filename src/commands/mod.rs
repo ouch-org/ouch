@@ -15,30 +15,29 @@ use crate::{
     commands::{compress::compress_files, decompress::decompress_file, list::list_archive_contents},
     error::{Error, FinalError},
     extension::{self, parse_format},
-    info,
     list::ListOptions,
-    utils::{self, to_utf, EscapedPathDisplay, FileVisibilityPolicy},
-    warning, CliArgs, QuestionPolicy,
+    utils::{self, colors::*, logger::info_accessible, to_utf, EscapedPathDisplay, FileVisibilityPolicy},
+    CliArgs, QuestionPolicy,
 };
 
 /// Warn the user that (de)compressing this .zip archive might freeze their system.
 fn warn_user_about_loading_zip_in_memory() {
-    const ZIP_IN_MEMORY_LIMITATION_WARNING: &str = "\n\
-        \tThe format '.zip' is limited and cannot be (de)compressed using encoding streams.\n\
-        \tWhen using '.zip' with other formats, (de)compression must be done in-memory\n\
-        \tCareful, you might run out of RAM if the archive is too large!";
+    const ZIP_IN_MEMORY_LIMITATION_WARNING: &str = "\n  \
+        The format '.zip' is limited by design and cannot be (de)compressed with encoding streams.\n  \
+        When chaining '.zip' with other formats, all (de)compression needs to be done in-memory\n  \
+        Careful, you might run out of RAM if the archive is too large!";
 
-    warning!("{}", ZIP_IN_MEMORY_LIMITATION_WARNING);
+    eprintln!("{}[WARNING]{}: {ZIP_IN_MEMORY_LIMITATION_WARNING}", *ORANGE, *RESET);
 }
 
 /// Warn the user that (de)compressing this .7z archive might freeze their system.
 fn warn_user_about_loading_sevenz_in_memory() {
-    const SEVENZ_IN_MEMORY_LIMITATION_WARNING: &str = "\n\
-        \tThe format '.7z' is limited and cannot be (de)compressed using encoding streams.\n\
-        \tWhen using '.7z' with other formats, (de)compression must be done in-memory\n\
-        \tCareful, you might run out of RAM if the archive is too large!";
+    const SEVENZ_IN_MEMORY_LIMITATION_WARNING: &str = "\n  \
+        The format '.7z' is limited by design and cannot be (de)compressed with encoding streams.\n  \
+        When chaining '.7z' with other formats, all (de)compression needs to be done in-memory\n  \
+        Careful, you might run out of RAM if the archive is too large!";
 
-    warning!("{}", SEVENZ_IN_MEMORY_LIMITATION_WARNING);
+    eprintln!("{}[WARNING]{}: {SEVENZ_IN_MEMORY_LIMITATION_WARNING}", *ORANGE, *RESET);
 }
 
 /// This function checks what command needs to be run and performs A LOT of ahead-of-time checks
@@ -109,7 +108,7 @@ pub fn run(
                 // having a final status message is important especially in an accessibility context
                 // as screen readers may not read a commands exit code, making it hard to reason
                 // about whether the command succeeded without such a message
-                info!(accessible, "Successfully compressed '{}'.", to_utf(&output_path));
+                info_accessible(format!("Successfully compressed '{}'.", to_utf(&output_path)));
             } else {
                 // If Ok(false) or Err() occurred, delete incomplete file at `output_path`
                 //
@@ -130,7 +129,7 @@ pub fn run(
                 }
             }
 
-            compress_result?;
+            compress_result.map(|_| ())
         }
         Subcommand::Decompress { files, output_dir } => {
             let mut output_paths = vec![];
@@ -183,7 +182,7 @@ pub fn run(
                         question_policy,
                         args.quiet,
                     )
-                })?;
+                })
         }
         Subcommand::List { archives: files, tree } => {
             let mut formats = vec![];
@@ -217,7 +216,8 @@ pub fn run(
                 let formats = extension::flatten_compression_formats(&formats);
                 list_archive_contents(archive_path, formats, list_options, question_policy)?;
             }
+
+            Ok(())
         }
     }
-    Ok(())
 }
