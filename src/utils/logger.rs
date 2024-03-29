@@ -46,6 +46,12 @@ pub fn warning(contents: String) {
     });
 }
 
+#[derive(Debug)]
+enum Message {
+    FlushAndShutdown,
+    PrintMessage(PrintMessage),
+}
+
 /// Message object used for sending logs from worker threads to a logging thread via channels.
 /// See <https://github.com/ouch-org/ouch/issues/643>
 #[derive(Debug)]
@@ -96,8 +102,8 @@ mod logger_thread {
 
     use super::*;
 
-    type LogReceiver = mpsc::Receiver<Option<PrintMessage>>;
-    type LogSender = mpsc::Sender<Option<PrintMessage>>;
+    type LogReceiver = mpsc::Receiver<Message>;
+    type LogSender = mpsc::Sender<Message>;
 
     static SENDER: OnceLock<LogSender> = OnceLock::new();
 
@@ -115,12 +121,16 @@ mod logger_thread {
 
     #[track_caller]
     pub(super) fn send_log_message(msg: PrintMessage) {
-        send_message(Some(msg));
+        get_sender()
+            .send(Message::PrintMessage(msg))
+            .expect("Failed to send print message");
     }
 
     #[track_caller]
-    fn send_message(msg: Option<PrintMessage>) {
-        get_sender().send(msg).expect("Failed to send internal message");
+    fn send_shutdown_message() {
+        get_sender()
+            .send(Message::FlushAndShutdown)
+            .expect("Failed to send shutdown message");
     }
 
     pub struct LoggerThreadHandle {
@@ -131,7 +141,7 @@ mod logger_thread {
         /// Tell logger to shutdown and waits till it does.
         pub fn shutdown_and_wait(self) {
             // Signal the shutdown
-            send_message(None);
+            send_shutdown_message();
             // Wait for confirmation
             self.shutdown_barrier.wait();
         }
@@ -166,21 +176,21 @@ mod logger_thread {
                 Err(RecvTimeoutError::Disconnected) => unreachable!("sender is static"),
             };
 
-            let is_shutdown_message = msg.is_none();
+            match msg {
+                Message::PrintMessage(msg) => {
+                    // Append message to buffer
+                    if let Some(msg) = msg.to_processed_message() {
+                        buffer.push(msg);
+                    }
 
-            // Append message to buffer
-            if let Some(msg) = msg.as_ref().and_then(PrintMessage::to_processed_message) {
-                buffer.push(msg);
-            }
-
-            let should_flush = buffer.len() == buffer.capacity() || is_shutdown_message;
-
-            if should_flush {
-                flush_logs_to_stderr(&mut buffer);
-            }
-
-            if is_shutdown_message {
-                break;
+                    if buffer.len() == buffer.capacity() {
+                        flush_logs_to_stderr(&mut buffer);
+                    }
+                }
+                Message::FlushAndShutdown => {
+                    flush_logs_to_stderr(&mut buffer);
+                    break;
+                }
             }
         }
 
