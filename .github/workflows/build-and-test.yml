@@ -12,8 +12,6 @@ jobs:
   build:
     name: build
     runs-on: ${{ matrix.os }}
-    env:
-      CARGO: cargo
     strategy:
       fail-fast: false
       matrix:
@@ -30,9 +28,6 @@ jobs:
           - aarch64-unknown-linux-musl
           - armv7-unknown-linux-gnueabihf
           - armv7-unknown-linux-musleabihf
-        feature-use-zlib: [true, false]
-        feature-use-zstd-thin: [true, false]
-        feature-unrar: [true, false]
 
         include:
           # default runner
@@ -62,66 +57,46 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install cross
-        if: matrix.use-cross
-        run: |
-          pushd "$(mktemp -d)"
-          wget https://github.com/cross-rs/cross/releases/download/v0.2.4/cross-x86_64-unknown-linux-musl.tar.gz
-          tar xf cross-x86_64-unknown-linux-musl.tar.gz
-          cp cross ~/.cargo/bin
-          popd
-          echo CARGO=cross >> $GITHUB_ENV
-
-      - name: Concatenate features
-        id: concat-features
-        shell: bash
-        run: |
-          FEATURES=()
-          if [[ ${{ matrix.feature-use-zlib }} == true ]]; then FEATURES+=(use_zlib); fi
-          if [[ ${{ matrix.feature-use-zstd-thin }} == true ]]; then FEATURES+=(use_zstd_thin); fi
-          if [[ ${{ matrix.feature-unrar }} == true ]]; then FEATURES+=(unrar); fi
-          IFS=','
-          echo "FEATURES=${FEATURES[*]}" >> $GITHUB_OUTPUT
-
-      - name: Set up extra cargo flags
-        env:
-          FEATURES: ${{steps.concat-features.outputs.FEATURES}}
-        shell: bash
-        run: |
-          FLAGS="--no-default-features"
-          if [[ -n "$FEATURES" ]]; then FLAGS+=" --features $FEATURES"; fi
-          echo "EXTRA_CARGO_FLAGS=$FLAGS" >> $GITHUB_ENV
-
       - name: Install Rust
         run: |
           rustup toolchain install stable nightly --profile minimal -t ${{ matrix.target }}
+        
+      - name: Install cargo-hack
+        uses: taiki-e/install-action@cargo-hack
+
+      - name: Install cross
+        if: matrix.use-cross
+        uses: taiki-e/install-action@cross
+      
+      - name: Configure cargo-hack to use cross
+        if: matrix.use-cross
+        run: |
+          echo "CARGO_HACK_CARGO_SRC=cross" >> $GITHUB_ENV
 
       - uses: Swatinem/rust-cache@v2
         with:
-          key: "${{ matrix.target }}-${{ matrix.feature-unrar }}-${{ matrix.feature-use-zstd-thin }}-${{ matrix.feature-unrar }}"
+          key: "${{ matrix.target }}"
 
       - name: Test on stable
         # there's no way to run tests for ARM64 Windows for now
         if: matrix.target != 'aarch64-pc-windows-msvc'
         run: |
-          ${{ env.CARGO }} +stable test --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
+          cargo +stable hack test --target ${{ matrix.target }} --feature-powerset --optional-deps unrar
 
       - name: Release on nightly
-        run: |
-          ${{ env.CARGO }} +nightly build --release --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
         env:
           OUCH_ARTIFACTS_FOLDER: artifacts
-          RUSTFLAGS: -C strip=symbols
+        run: |
+          cargo +nightly hack build --release --target ${{ matrix.target }} --feature-powerset --optional-deps unrar
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ouch-${{ matrix.target }}-${{ steps.concat-features.outputs.FEATURES }}
-          path: |
-            target/${{ matrix.target }}/release/ouch
-            target/${{ matrix.target }}/release/ouch.exe
-            artifacts/
-
+      # - name: Upload artifacts
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: ouch-${{ matrix.target }}-${{ steps.concat-features.outputs.FEATURES }}
+      #     path: |
+      #       target/${{ matrix.target }}/release/ouch
+      #       target/${{ matrix.target }}/release/ouch.exe
+      #       artifacts/
 
   clippy-rustfmt:
     name: clippy-rustfmt
