@@ -29,7 +29,7 @@ pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;
 #[tokio::main]
 async fn main() {
     let handler = spawn_logger_thread();
-    let result = run();
+    let result = run().await;
     handler.shutdown_and_wait();
 
     if let Err(err) = result {

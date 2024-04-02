@@ -13,6 +13,7 @@ use sevenz_rust::SevenZArchiveEntry;
 
 use crate::{
     error::FinalError,
+    list::FileInArchive,
     utils::{
         self, cd_into_same_dir_as,
         logger::{info, warning},
