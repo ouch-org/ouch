@@ -1644,7 +1644,7 @@ checksum = "3354b9ac3fae1ff6755cb6db53683adb661634f67557942dea4facebec0fee4b"
 [[package]]
 name = "unrar"
 version = "0.5.3"
-source = "git+https://github.com/ttys3/unrar.rs?branch=ttys3#63cab8ae9920615d6b71335369a299573f74585f"
+source = "git+https://github.com/ttys3/unrar.rs?branch=ttys3#14c6e98c1c4daac3051ffd74322857953b01f419"
 dependencies = [
  "bitflags 1.3.2",
  "regex",
@@ -1655,7 +1655,7 @@ dependencies = [
 [[package]]
 name = "unrar_sys"
 version = "0.3.1"
-source = "git+https://github.com/ttys3/unrar.rs?branch=ttys3#63cab8ae9920615d6b71335369a299573f74585f"
+source = "git+https://github.com/ttys3/unrar.rs?branch=ttys3#14c6e98c1c4daac3051ffd74322857953b01f419"
 dependencies = [
  "cc",
  "libc",
