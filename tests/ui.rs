@@ -8,7 +8,7 @@ mod utils;
 
 use std::{ffi::OsStr, io, path::Path, process::Output};
 
-use insta::assert_display_snapshot as ui;
+use insta::assert_snapshot as ui;
 use regex::Regex;
 
 use crate::utils::create_files_in;

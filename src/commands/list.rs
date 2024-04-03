@@ -6,6 +6,7 @@ use std::{
 use fs_err as fs;
 
 use crate::{
+    archive::sevenz,
     commands::warn_user_about_loading_zip_in_memory,
     extension::CompressionFormat::{self, *},
     list::{self, FileInArchive, ListOptions},
@@ -20,6 +21,7 @@ pub fn list_archive_contents(
     formats: Vec<CompressionFormat>,
     list_options: ListOptions,
     question_policy: QuestionPolicy,
+    password: Option<&str>,
 ) -> crate::Result<()> {
     let reader = fs::File::open(archive_path)?;
 
@@ -32,7 +34,7 @@ pub fn list_archive_contents(
     // Any other Zip decompression done can take up the whole RAM and freeze ouch.
     if let &[Zip] = formats.as_slice() {
         let zip_archive = zip::ZipArchive::new(reader)?;
-        let files = crate::archive::zip::list_archive(zip_archive);
+        let files = crate::archive::zip::list_archive(zip_archive, password);
         list::list_files(archive_path, files, list_options)?;
 
         return Ok(());
@@ -79,16 +81,16 @@ pub fn list_archive_contents(
             io::copy(&mut reader, &mut vec)?;
             let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
 
-            Box::new(crate::archive::zip::list_archive(zip_archive))
+            Box::new(crate::archive::zip::list_archive(zip_archive, password))
         }
         #[cfg(feature = "unrar")]
         Rar => {
             if formats.len() > 1 {
                 let mut temp_file = tempfile::NamedTempFile::new()?;
                 io::copy(&mut reader, &mut temp_file)?;
-                Box::new(crate::archive::rar::list_archive(temp_file.path()))
+                Box::new(crate::archive::rar::list_archive(temp_file.path(), password))
             } else {
-                Box::new(crate::archive::rar::list_archive(archive_path))
+                Box::new(crate::archive::rar::list_archive(archive_path, password))
             }
         }
         #[cfg(not(feature = "unrar"))]
@@ -107,16 +109,7 @@ pub fn list_archive_contents(
                 }
             }
 
-            let mut files = Vec::new();
-
-            sevenz_rust::decompress_file_with_extract_fn(archive_path, ".", |entry, _, _| {
-                files.push(Ok(FileInArchive {
-                    path: entry.name().into(),
-                    is_dir: entry.is_directory(),
-                }));
-                Ok(true)
-            })?;
-            Box::new(files.into_iter())
+            Box::new(sevenz::list_archive(archive_path, password))
         }
         Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {
             panic!("Not an archive! This should never happen, if it does, something is wrong with `CompressionFormat::is_archive()`. Please report this error!");

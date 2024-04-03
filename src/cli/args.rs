@@ -41,6 +41,10 @@ pub struct CliArgs {
     #[arg(short, long, global = true)]
     pub format: Option<OsString>,
 
+    /// decompress or list with password
+    #[arg(short = 'p', long = "password", global = true)]
+    pub password: Option<String>,
+
     // Ouch and claps subcommands
     #[command(subcommand)]
     pub cmd: Subcommand,
@@ -133,6 +137,7 @@ mod tests {
             gitignore: false,
             format: None,
             // This is usually replaced in assertion tests
+            password: None,
             cmd: Subcommand::Decompress {
                 // Put a crazy value here so no test can assert it unintentionally
                 files: vec!["\x00\x11\x22".into()],

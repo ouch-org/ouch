@@ -26,9 +26,10 @@ static CURRENT_DIRECTORY: Lazy<PathBuf> = Lazy::new(|| env::current_dir().unwrap
 /// The status code returned from `ouch` on error
 pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let handler = spawn_logger_thread();
-    let result = run();
+    let result = run().await;
     handler.shutdown_and_wait();
 
     if let Err(err) = result {
@@ -37,7 +38,7 @@ fn main() {
     }
 }
 
-fn run() -> Result<()> {
+async fn run() -> Result<()> {
     let (args, skip_questions_positively, file_visibility_policy) = CliArgs::parse_and_validate_args()?;
-    commands::run(args, skip_questions_positively, file_visibility_policy)
+    commands::run(args, skip_questions_positively, file_visibility_policy).await
 }

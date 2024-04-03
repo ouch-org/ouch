@@ -44,7 +44,7 @@ fn warn_user_about_loading_sevenz_in_memory() {
 /// to assume everything is OK.
 ///
 /// There are a lot of custom errors to give enough error description and explanation.
-pub fn run(
+pub async fn run(
     args: CliArgs,
     question_policy: QuestionPolicy,
     file_visibility_policy: FileVisibilityPolicy,
@@ -181,6 +181,7 @@ pub fn run(
                         output_file_path,
                         question_policy,
                         args.quiet,
+                        args.password.as_deref(),
                     )
                 })
         }
@@ -214,7 +215,13 @@ pub fn run(
                     println!();
                 }
                 let formats = extension::flatten_compression_formats(&formats);
-                list_archive_contents(archive_path, formats, list_options, question_policy)?;
+                list_archive_contents(
+                    archive_path,
+                    formats,
+                    list_options,
+                    question_policy,
+                    args.password.as_deref(),
+                )?;
             }
 
             Ok(())

@@ -6,11 +6,14 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use bstr::ByteSlice;
 use fs_err as fs;
 use same_file::Handle;
+use sevenz_rust::SevenZArchiveEntry;
 
 use crate::{
     error::FinalError,
+    list::FileInArchive,
     utils::{
         self, cd_into_same_dir_as,
         logger::{info, warning},
@@ -96,12 +99,18 @@ where
     Ok(bytes)
 }
 
-pub fn decompress_sevenz<R>(reader: R, output_path: &Path, quiet: bool) -> crate::Result<usize>
+pub fn decompress_sevenz<R>(
+    reader: R,
+    output_path: &Path,
+    password: Option<impl AsRef<[u8]>>,
+    quiet: bool,
+) -> crate::Result<usize>
 where
     R: Read + Seek,
 {
     let mut count: usize = 0;
-    sevenz_rust::decompress_with_extract_fn(reader, output_path, |entry, reader, path| {
+
+    let entry_extract_fn = |entry: &SevenZArchiveEntry, reader: &mut dyn Read, path: &PathBuf| {
         count += 1;
         // Manually handle writing all files from 7z archive, due to library exluding empty files
         use std::io::BufWriter;
@@ -150,7 +159,51 @@ where
         }
 
         Ok(true)
-    })?;
+    };
+
+    let password = password.as_ref().map(|p| p.as_ref());
+
+    match password {
+        Some(password) => sevenz_rust::decompress_with_extract_fn_and_password(
+            reader,
+            output_path,
+            sevenz_rust::Password::from(password.to_str().unwrap()),
+            entry_extract_fn,
+        )?,
+        None => sevenz_rust::decompress_with_extract_fn(reader, output_path, entry_extract_fn)?,
+    };
 
     Ok(count)
+}
+
+/// List contents of `archive_path`, returning a vector of archive entries
+pub fn list_archive(
+    archive_path: &Path,
+    password: Option<impl AsRef<[u8]>>,
+) -> impl Iterator<Item = crate::Result<FileInArchive>> {
+    let reader = fs::File::open(archive_path).unwrap();
+    let password = password.as_ref().map(|p| p.as_ref());
+
+    let mut files = Vec::new();
+
+    let entry_extract_fn = |entry: &SevenZArchiveEntry, _: &mut dyn Read, _: &PathBuf| {
+        files.push(Ok(FileInArchive {
+            path: entry.name().into(),
+            is_dir: entry.is_directory(),
+        }));
+        Ok(true)
+    };
+
+    match password {
+        Some(password) => sevenz_rust::decompress_with_extract_fn_and_password(
+            reader,
+            ".",
+            sevenz_rust::Password::from(password.to_str().unwrap()),
+            entry_extract_fn,
+        )
+        .unwrap(),
+        None => sevenz_rust::decompress_with_extract_fn(reader, ".", entry_extract_fn).unwrap(),
+    };
+
+    files.into_iter()
 }
