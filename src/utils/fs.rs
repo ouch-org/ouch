@@ -15,6 +15,10 @@ use crate::{
     QuestionPolicy,
 };
 
+pub fn is_path_stdin(path: &Path) -> bool {
+    path.as_os_str() == "-"
+}
+
 /// Remove `path` asking the user to overwrite if necessary.
 ///
 /// * `Ok(true)` means the path is clear,

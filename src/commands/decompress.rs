@@ -14,10 +14,14 @@ use crate::{
         Extension,
     },
     utils::{
-        self, io::lock_and_flush_output_stdio, logger::info_accessible, nice_directory_display, user_wants_to_continue,
+        self, io::lock_and_flush_output_stdio, is_path_stdin, logger::info_accessible, nice_directory_display,
+        user_wants_to_continue,
     },
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
+
+trait ReadSeek: Read + io::Seek {}
+impl<T: Read + io::Seek> ReadSeek for T {}
 
 /// Decompress a file
 ///
@@ -34,7 +38,7 @@ pub fn decompress_file(
     quiet: bool,
 ) -> crate::Result<()> {
     assert!(output_dir.exists());
-    let reader = fs::File::open(input_file_path)?;
+    let input_is_stdin = is_path_stdin(input_file_path);
 
     // Zip archives are special, because they require io::Seek, so it requires it's logic separated
     // from decoder chaining.
@@ -48,6 +52,14 @@ pub fn decompress_file(
         ..
     }] = formats.as_slice()
     {
+        let mut vec = vec![];
+        let reader: Box<dyn ReadSeek> = if input_is_stdin {
+            warn_user_about_loading_zip_in_memory();
+            io::copy(&mut io::stdin(), &mut vec)?;
+            Box::new(io::Cursor::new(vec))
+        } else {
+            Box::new(fs::File::open(input_file_path)?)
+        };
         let zip_archive = zip::ZipArchive::new(reader)?;
         let files_unpacked = if let ControlFlow::Continue(files) = smart_unpack(
             |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, quiet),
@@ -74,6 +86,11 @@ pub fn decompress_file(
     }
 
     // Will be used in decoder chaining
+    let reader: Box<dyn Read> = if input_is_stdin {
+        Box::new(io::stdin())
+    } else {
+        Box::new(fs::File::open(input_file_path)?)
+    };
     let reader = BufReader::with_capacity(BUFFER_CAPACITY, reader);
     let mut reader: Box<dyn Read> = Box::new(reader);
 
@@ -152,7 +169,7 @@ pub fn decompress_file(
         #[cfg(feature = "unrar")]
         Rar => {
             type UnpackResult = crate::Result<usize>;
-            let unpack_fn: Box<dyn FnOnce(&Path) -> UnpackResult> = if formats.len() > 1 {
+            let unpack_fn: Box<dyn FnOnce(&Path) -> UnpackResult> = if formats.len() > 1 || input_is_stdin {
                 let mut temp_file = tempfile::NamedTempFile::new()?;
                 io::copy(&mut reader, &mut temp_file)?;
                 Box::new(move |output_dir| crate::archive::rar::unpack_archive(temp_file.path(), output_dir, quiet))
@@ -236,25 +253,28 @@ fn smart_unpack(
     let files = unpack_fn(temp_dir_path)?;
 
     let root_contains_only_one_element = fs::read_dir(temp_dir_path)?.count() == 1;
-    if root_contains_only_one_element {
+    if is_path_stdin(output_file_path) || root_contains_only_one_element {
         // Only one file in the root directory, so we can just move it to the output directory
-        let file = fs::read_dir(temp_dir_path)?.next().expect("item exists")?;
-        let file_path = file.path();
-        let file_name = file_path
-            .file_name()
-            .expect("Should be safe because paths in archives should not end with '..'");
-        let correct_path = output_dir.join(file_name);
-        // Before moving, need to check if a file with the same name already exists
-        if !utils::clear_path(&correct_path, question_policy)? {
-            return Ok(ControlFlow::Break(()));
-        }
-        fs::rename(&file_path, &correct_path)?;
+        // If we're decompressing an archive from stdin, we can also put the files directly in the output directory.
+        let files = fs::read_dir(temp_dir_path)?;
+        for file in files {
+            let file_path = file?.path();
+            let file_name = file_path
+                .file_name()
+                .expect("Should be safe because paths in archives should not end with '..'");
+            let correct_path = output_dir.join(file_name);
+            // Before moving, need to check if a file with the same name already exists
+            if !utils::clear_path(&correct_path, question_policy)? {
+                return Ok(ControlFlow::Break(()));
+            }
+            fs::rename(&file_path, &correct_path)?;
 
-        info_accessible(format!(
-            "Successfully moved {} to {}.",
-            nice_directory_display(&file_path),
-            nice_directory_display(&correct_path)
-        ));
+            info_accessible(format!(
+                "Successfully moved {} to {}.",
+                nice_directory_display(&file_path),
+                nice_directory_display(&correct_path)
+            ));
+        }
     } else {
         // Multiple files in the root directory, so:
         // Rename the temporary directory to the archive name, which is output_file_path

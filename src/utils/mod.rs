@@ -16,7 +16,8 @@ pub use formatting::{
     nice_directory_display, pretty_format_list_of_paths, strip_cur_dir, to_utf, Bytes, EscapedPathDisplay,
 };
 pub use fs::{
-    cd_into_same_dir_as, clear_path, create_dir_if_non_existent, is_symlink, remove_file_or_dir, try_infer_extension,
+    cd_into_same_dir_as, clear_path, create_dir_if_non_existent, is_path_stdin, is_symlink, remove_file_or_dir,
+    try_infer_extension,
 };
 pub use question::{
     ask_to_create_file, user_wants_to_continue, user_wants_to_overwrite, QuestionAction, QuestionPolicy,
