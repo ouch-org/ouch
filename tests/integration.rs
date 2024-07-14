@@ -91,10 +91,7 @@ fn single_empty_file(ext: Extension, #[any(size_range(0..8).lift())] exts: Vec<F
     let before_file = &before.join("file");
     let archive = &dir.join(format!("file.{}", merge_extensions(ext, exts)));
     let after = &dir.join("after");
-    write_random_content(
-        &mut fs::File::create(before_file).unwrap(),
-        &mut SmallRng::from_entropy(),
-    );
+    fs::write(before_file, []).unwrap();
     ouch!("-A", "c", before_file, archive);
     ouch!("-A", "d", archive, "-d", after);
     assert_same_directory(before, after, false);
@@ -118,7 +115,10 @@ fn single_file(
     let before_file = &before.join("file");
     let archive = &dir.join(format!("file.{}", merge_extensions(ext, exts)));
     let after = &dir.join("after");
-    fs::write(before_file, []).unwrap();
+    write_random_content(
+        &mut fs::File::create(before_file).unwrap(),
+        &mut SmallRng::from_entropy(),
+    );
     if let Some(level) = level {
         ouch!("-A", "c", "-l", level.to_string(), before_file, archive);
     } else {
