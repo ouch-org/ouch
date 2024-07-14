@@ -69,16 +69,18 @@ pub fn compress_files(
                     .from_writer(encoder),
             ),
             Zstd => {
-                let zstd_encoder = zstd::stream::write::Encoder::new(
+                let mut zstd_encoder = zstd::stream::write::Encoder::new(
                     encoder,
                     level.map_or(zstd::DEFAULT_COMPRESSION_LEVEL, |l| {
                         (l as i32).clamp(zstd::zstd_safe::min_c_level(), zstd::zstd_safe::max_c_level())
                     }),
-                );
+                )?;
+                // Use all available PHYSICAL cores for compression
+                zstd_encoder.multithread(num_cpus::get_physical() as u32)?;
                 // Safety:
                 //     Encoder::new() can only fail if `level` is invalid, but the level
                 //     is `clamp`ed and therefore guaranteed to be valid
-                Box::new(zstd_encoder.unwrap().auto_finish())
+                Box::new(zstd_encoder.auto_finish())
             }
             Tar | Zip | Rar | SevenZip => unreachable!(),
         };
