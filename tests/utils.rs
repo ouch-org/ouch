@@ -73,7 +73,10 @@ pub fn assert_same_directory(x: impl Into<PathBuf>, y: impl Into<PathBuf>, prese
     loop {
         match (x.next(), y.next()) {
             (Some(x), Some(y)) => {
-                assert_eq!(x.file_name(), y.file_name());
+                // If decompressing from stdin, the file name will be "-".
+                if x.file_name() != "-" && y.file_name() != "-" {
+                    assert_eq!(x.file_name(), y.file_name());
+                }
 
                 let meta_x = x.metadata().unwrap();
                 let meta_y = y.metadata().unwrap();

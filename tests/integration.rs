@@ -6,7 +6,7 @@ use std::{iter::once, path::PathBuf};
 use fs_err as fs;
 use parse_display::Display;
 use proptest::sample::size_range;
-use rand::{rngs::SmallRng, Rng, SeedableRng};
+use rand::{rngs::SmallRng, Rng, RngCore as _, SeedableRng};
 use tempfile::tempdir;
 use test_strategy::{proptest, Arbitrary};
 
@@ -128,6 +128,43 @@ fn single_file(
     assert_same_directory(before, after, false);
 }
 
+/// Compress and decompress a single file over stdin.
+#[proptest(cases = 200)]
+fn single_file_stdin(
+    ext: Extension,
+    #[any(size_range(0..8).lift())] exts: Vec<FileExtension>,
+    #[cfg_attr(not(target_arch = "arm"), strategy(proptest::option::of(0i16..12)))]
+    // Decrease the value of --level flag for `arm` systems, because our GitHub
+    // Actions CI runs QEMU which makes the memory consumption higher.
+    #[cfg_attr(target_arch = "arm", strategy(proptest::option::of(0i16..8)))]
+    level: Option<i16>,
+) {
+    let dir = tempdir().unwrap();
+    let dir = dir.path();
+    let before = &dir.join("before");
+    fs::create_dir(before).unwrap();
+    let before_file = &before.join("file");
+    let format = merge_extensions(ext, exts);
+    let archive = &dir.join(format!("file.{}", format));
+    let after = &dir.join("after");
+    write_random_content(
+        &mut fs::File::create(before_file).unwrap(),
+        &mut SmallRng::from_entropy(),
+    );
+    if let Some(level) = level {
+        ouch!("-A", "c", "-l", level.to_string(), before_file, archive);
+    } else {
+        ouch!("-A", "c", before_file, archive);
+    }
+    crate::utils::cargo_bin()
+        .args(["-A", "-y", "d", "-", "-d", after.to_str().unwrap(), "--format", &format])
+        .pipe_stdin(archive)
+        .unwrap()
+        .assert()
+        .success();
+    assert_same_directory(before, after, false);
+}
+
 /// Compress and decompress a directory with random content generated with create_random_files
 ///
 /// This one runs only 50 times because there are only `.zip` and `.tar` to be tested, and
@@ -170,6 +207,43 @@ fn unpack_rar() -> Result<(), Box<dyn std::error::Error>> {
     ["testfile.rar3.rar.gz", "testfile.rar5.rar"]
         .iter()
         .try_for_each(|path| test_unpack_rar_single(&datadir.join(path)))?;
+
+    Ok(())
+}
+
+#[cfg(feature = "unrar")]
+#[test]
+fn unpack_rar_stdin() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_unpack_rar_single(input: &std::path::Path, format: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let dir = tempdir()?;
+        let dirpath = dir.path();
+        let unpacked_path = &dirpath.join("testfile.txt");
+        crate::utils::cargo_bin()
+            .args([
+                "-A",
+                "-y",
+                "d",
+                "-",
+                "-d",
+                dirpath.to_str().unwrap(),
+                "--format",
+                format,
+            ])
+            .pipe_stdin(input)
+            .unwrap()
+            .assert()
+            .success();
+        let content = fs::read_to_string(unpacked_path)?;
+        assert_eq!(content, "Testing 123\n");
+
+        Ok(())
+    }
+
+    let mut datadir = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR")?);
+    datadir.push("tests/data");
+    [("testfile.rar3.rar.gz", "rar.gz"), ("testfile.rar5.rar", "rar")]
+        .iter()
+        .try_for_each(|(path, format)| test_unpack_rar_single(&datadir.join(path), format))?;
 
     Ok(())
 }
