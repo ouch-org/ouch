@@ -22,7 +22,7 @@ Categories Used:
 
 ### New Features
 
-- Add multithreading support for `zstd` compression [\#688](https://github.com/ouch-org/ouch/pull/688) ([nalabrie](https://github.com/nalabrie))
+- Add multithreading support for `zstd` compression [\#689](https://github.com/ouch-org/ouch/pull/689) ([nalabrie](https://github.com/nalabrie))
 
 ### Bug Fixes
 
