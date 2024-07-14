@@ -22,6 +22,8 @@ Categories Used:
 
 ### New Features
 
+- Add multithreading support for `zstd` compression [\#688](https://github.com/ouch-org/ouch/pull/688) ([nalabrie](https://github.com/nalabrie))
+
 ### Bug Fixes
 
 - Fix output corrupted on parallel decompression [\#642](https://github.com/ouch-org/ouch/pull/642) ([AntoniosBarotsis](https://github.com/AntoniosBarotsis))
