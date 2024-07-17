@@ -77,9 +77,6 @@ pub fn compress_files(
                 )?;
                 // Use all available PHYSICAL cores for compression
                 zstd_encoder.multithread(num_cpus::get_physical() as u32)?;
-                // Safety:
-                //     Encoder::new() can only fail if `level` is invalid, but the level
-                //     is `clamp`ed and therefore guaranteed to be valid
                 Box::new(zstd_encoder.auto_finish())
             }
             Tar | Zip | Rar | SevenZip => unreachable!(),
