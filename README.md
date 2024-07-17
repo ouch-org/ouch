@@ -113,7 +113,7 @@ Output:
 
 | Format    | `.tar` | `.zip` | `7z` | `.gz` | `.xz`, `.lzma` | `.bz`, `.bz2` | `.lz4` | `.sz` (Snappy) | `.zst` | `.rar` |
 |:---------:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Supported | ✓ | ✓¹ | ✓¹ | ✓² | ✓ | ✓ | ✓ | ✓² | ✓ | ✓³ |
+| Supported | ✓ | ✓¹ | ✓¹ | ✓² | ✓ | ✓ | ✓ | ✓² | ✓² | ✓³ |
 
 ✓: Supports compression and decompression.
 
