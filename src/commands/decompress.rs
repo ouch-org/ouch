@@ -253,28 +253,25 @@ fn smart_unpack(
     let files = unpack_fn(temp_dir_path)?;
 
     let root_contains_only_one_element = fs::read_dir(temp_dir_path)?.count() == 1;
-    if is_path_stdin(output_file_path) || root_contains_only_one_element {
+    if root_contains_only_one_element {
         // Only one file in the root directory, so we can just move it to the output directory
-        // If we're decompressing an archive from stdin, we can also put the files directly in the output directory.
-        let files = fs::read_dir(temp_dir_path)?;
-        for file in files {
-            let file_path = file?.path();
-            let file_name = file_path
-                .file_name()
-                .expect("Should be safe because paths in archives should not end with '..'");
-            let correct_path = output_dir.join(file_name);
-            // Before moving, need to check if a file with the same name already exists
-            if !utils::clear_path(&correct_path, question_policy)? {
-                return Ok(ControlFlow::Break(()));
-            }
-            fs::rename(&file_path, &correct_path)?;
-
-            info_accessible(format!(
-                "Successfully moved {} to {}.",
-                nice_directory_display(&file_path),
-                nice_directory_display(&correct_path)
-            ));
+        let file = fs::read_dir(temp_dir_path)?.next().expect("item exists")?;
+        let file_path = file.path();
+        let file_name = file_path
+            .file_name()
+            .expect("Should be safe because paths in archives should not end with '..'");
+        let correct_path = output_dir.join(file_name);
+        // Before moving, need to check if a file with the same name already exists
+        if !utils::clear_path(&correct_path, question_policy)? {
+            return Ok(ControlFlow::Break(()));
         }
+        fs::rename(&file_path, &correct_path)?;
+
+        info_accessible(format!(
+            "Successfully moved {} to {}.",
+            nice_directory_display(&file_path),
+            nice_directory_display(&correct_path)
+        ));
     } else {
         // Multiple files in the root directory, so:
         // Rename the temporary directory to the archive name, which is output_file_path

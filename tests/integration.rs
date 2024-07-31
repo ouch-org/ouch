@@ -144,7 +144,7 @@ fn single_file_stdin(
     let before = &dir.join("before");
     fs::create_dir(before).unwrap();
     let before_file = &before.join("file");
-    let format = merge_extensions(ext, exts);
+    let format = merge_extensions(&ext, exts);
     let archive = &dir.join(format!("file.{}", format));
     let after = &dir.join("after");
     write_random_content(
@@ -162,6 +162,14 @@ fn single_file_stdin(
         .unwrap()
         .assert()
         .success();
+
+    match ext {
+        Extension::Directory(_) => {}
+        // We don't know the original filename, so we create a file named stdin-output
+        // Change the top-level "before" directory to match
+        Extension::File(_) => fs::rename(before_file, before_file.with_file_name("stdin-output")).unwrap(),
+    };
+
     assert_same_directory(before, after, false);
 }
 
