@@ -16,7 +16,9 @@ use crate::{
     error::{Error, FinalError},
     extension::{self, parse_format},
     list::ListOptions,
-    utils::{self, colors::*, logger::info_accessible, to_utf, EscapedPathDisplay, FileVisibilityPolicy},
+    utils::{
+        self, colors::*, is_path_stdin, logger::info_accessible, to_utf, EscapedPathDisplay, FileVisibilityPolicy,
+    },
     CliArgs, QuestionPolicy,
 };
 
@@ -173,7 +175,12 @@ pub fn run(
                 .zip(formats)
                 .zip(output_paths)
                 .try_for_each(|((input_path, formats), file_name)| {
-                    let output_file_path = output_dir.join(file_name); // Path used by single file format archives
+                    // Path used by single file format archives
+                    let output_file_path = if is_path_stdin(file_name) {
+                        output_dir.join("stdin-output")
+                    } else {
+                        output_dir.join(file_name)
+                    };
                     decompress_file(
                         input_path,
                         formats,

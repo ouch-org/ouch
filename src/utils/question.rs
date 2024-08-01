@@ -5,7 +5,7 @@
 
 use std::{
     borrow::Cow,
-    io::{stdin, BufRead},
+    io::{stdin, BufRead, IsTerminal},
     path::Path,
 };
 
@@ -120,6 +120,12 @@ impl<'a> Confirmation<'a> {
             (Some(_), None) => unreachable!("dev error, should be reported, we checked this won't happen"),
             (Some(placeholder), Some(subs)) => Cow::Owned(self.prompt.replace(placeholder, subs)),
         };
+
+        if !stdin().is_terminal() {
+            eprintln!("{}", message);
+            eprintln!("Pass --yes to proceed");
+            return Ok(false);
+        }
 
         let _locks = lock_and_flush_output_stdio()?;
         let mut stdin_lock = stdin().lock();

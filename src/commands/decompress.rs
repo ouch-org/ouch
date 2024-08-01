@@ -14,10 +14,14 @@ use crate::{
         Extension,
     },
     utils::{
-        self, io::lock_and_flush_output_stdio, logger::info_accessible, nice_directory_display, user_wants_to_continue,
+        self, io::lock_and_flush_output_stdio, is_path_stdin, logger::info_accessible, nice_directory_display,
+        user_wants_to_continue,
     },
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
+
+trait ReadSeek: Read + io::Seek {}
+impl<T: Read + io::Seek> ReadSeek for T {}
 
 /// Decompress a file
 ///
@@ -34,7 +38,7 @@ pub fn decompress_file(
     quiet: bool,
 ) -> crate::Result<()> {
     assert!(output_dir.exists());
-    let reader = fs::File::open(input_file_path)?;
+    let input_is_stdin = is_path_stdin(input_file_path);
 
     // Zip archives are special, because they require io::Seek, so it requires it's logic separated
     // from decoder chaining.
@@ -48,6 +52,14 @@ pub fn decompress_file(
         ..
     }] = formats.as_slice()
     {
+        let mut vec = vec![];
+        let reader: Box<dyn ReadSeek> = if input_is_stdin {
+            warn_user_about_loading_zip_in_memory();
+            io::copy(&mut io::stdin(), &mut vec)?;
+            Box::new(io::Cursor::new(vec))
+        } else {
+            Box::new(fs::File::open(input_file_path)?)
+        };
         let zip_archive = zip::ZipArchive::new(reader)?;
         let files_unpacked = if let ControlFlow::Continue(files) = smart_unpack(
             |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, quiet),
@@ -74,6 +86,11 @@ pub fn decompress_file(
     }
 
     // Will be used in decoder chaining
+    let reader: Box<dyn Read> = if input_is_stdin {
+        Box::new(io::stdin())
+    } else {
+        Box::new(fs::File::open(input_file_path)?)
+    };
     let reader = BufReader::with_capacity(BUFFER_CAPACITY, reader);
     let mut reader: Box<dyn Read> = Box::new(reader);
 
@@ -152,7 +169,7 @@ pub fn decompress_file(
         #[cfg(feature = "unrar")]
         Rar => {
             type UnpackResult = crate::Result<usize>;
-            let unpack_fn: Box<dyn FnOnce(&Path) -> UnpackResult> = if formats.len() > 1 {
+            let unpack_fn: Box<dyn FnOnce(&Path) -> UnpackResult> = if formats.len() > 1 || input_is_stdin {
                 let mut temp_file = tempfile::NamedTempFile::new()?;
                 io::copy(&mut reader, &mut temp_file)?;
                 Box::new(move |output_dir| crate::archive::rar::unpack_archive(temp_file.path(), output_dir, quiet))
@@ -217,6 +234,7 @@ pub fn decompress_file(
 /// - If the archive contains only one file, it will be extracted to the `output_dir`
 /// - If the archive contains multiple files, it will be extracted to a subdirectory of the
 ///   output_dir named after the archive (given by `output_file_path`)
+///
 /// Note: This functions assumes that `output_dir` exists
 fn smart_unpack(
     unpack_fn: impl FnOnce(&Path) -> crate::Result<usize>,

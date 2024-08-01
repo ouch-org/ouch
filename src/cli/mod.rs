@@ -11,7 +11,11 @@ use clap::Parser;
 use fs_err as fs;
 
 pub use self::args::{CliArgs, Subcommand};
-use crate::{accessible::set_accessible, utils::FileVisibilityPolicy, QuestionPolicy};
+use crate::{
+    accessible::set_accessible,
+    utils::{is_path_stdin, FileVisibilityPolicy},
+    QuestionPolicy,
+};
 
 impl CliArgs {
     /// A helper method that calls `clap::Parser::parse`.
@@ -47,5 +51,14 @@ impl CliArgs {
 }
 
 fn canonicalize_files(files: &[impl AsRef<Path>]) -> io::Result<Vec<PathBuf>> {
-    files.iter().map(fs::canonicalize).collect()
+    files
+        .iter()
+        .map(|f| {
+            if is_path_stdin(f.as_ref()) {
+                Ok(f.as_ref().to_path_buf())
+            } else {
+                fs::canonicalize(f)
+            }
+        })
+        .collect()
 }

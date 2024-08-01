@@ -77,7 +77,7 @@ pub enum Subcommand {
     /// Decompresses one or more files, optionally into another folder
     #[command(visible_alias = "d")]
     Decompress {
-        /// Files to be decompressed
+        /// Files to be decompressed, or "-" for stdin
         #[arg(required = true, num_args = 1.., value_hint = ValueHint::FilePath)]
         files: Vec<PathBuf>,
 
