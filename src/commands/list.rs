@@ -48,6 +48,7 @@ pub fn list_archive_contents(
             let decoder: Box<dyn Read + Send> = match format {
                 Gzip => Box::new(flate2::read::GzDecoder::new(decoder)),
                 Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
+                Bzip3 => Box::new(bzip3::read::Bz3Decoder::new(decoder).unwrap()),
                 Lz4 => Box::new(lz4_flex::frame::FrameDecoder::new(decoder)),
                 Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
                 Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
@@ -118,7 +119,7 @@ pub fn list_archive_contents(
             })?;
             Box::new(files.into_iter())
         }
-        Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {
+        Gzip | Bzip | Bzip3 | Lz4 | Lzma | Snappy | Zstd => {
             panic!("Not an archive! This should never happen, if it does, something is wrong with `CompressionFormat::is_archive()`. Please report this error!");
         }
     };
