@@ -12,7 +12,7 @@ description = "A command-line utility for easily compressing and decompressing f
 
 [dependencies]
 atty = "0.2.14"
-bstr = { version = "1.9.1", default-features = false, features = ["std"] }
+bstr = { version = "1.10.0", default-features = false, features = ["std"] }
 bzip2 = "0.4.4"
 clap = { version = "4.5.16", features = ["derive", "env"] }
 filetime_creation = "0.2"
