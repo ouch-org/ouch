@@ -1,2 +1,9 @@
 [build.env]
 passthrough = ["RUSTFLAGS", "OUCH_ARTIFACTS_FOLDER"]
+
+[target.aarch64-unknown-linux-gnu]
+# Translates to `ghcr.io/cross-rs/aarch64-unknown-linux-gnu:edge`
+image = "ghcr.io/cross-rs/aarch64-unknown-linux-gnu:edge"
+
+[target.armv7-unknown-linux-gnueabihf]
+image = "ghcr.io/cross-rs/armv7-unknown-linux-gnueabihf:edge"
