@@ -6,13 +6,13 @@ use std::{
 use fs_err as fs;
 
 use crate::{
+    archive::sevenz,
     commands::warn_user_about_loading_zip_in_memory,
     extension::CompressionFormat::{self, *},
     list::{self, FileInArchive, ListOptions},
     utils::{io::lock_and_flush_output_stdio, user_wants_to_continue},
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
-use crate::archive::sevenz;
 
 /// File at input_file_path is opened for reading, example: "archive.tar.gz"
 /// formats contains each format necessary for decompression, example: [Gz, Tar] (in decompression order)

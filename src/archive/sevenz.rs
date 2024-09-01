@@ -5,21 +5,21 @@ use std::{
     io::{self, Read, Seek, Write},
     path::{Path, PathBuf},
 };
-use bstr::ByteSlice;
 
+use bstr::ByteSlice;
 use fs_err as fs;
 use same_file::Handle;
 use sevenz_rust::SevenZArchiveEntry;
 
 use crate::{
     error::FinalError,
+    list::FileInArchive,
     utils::{
         self, cd_into_same_dir_as,
         logger::{info, warning},
         Bytes, EscapedPathDisplay, FileVisibilityPolicy,
     },
 };
-use crate::list::FileInArchive;
 
 pub fn compress_sevenz<W>(
     files: &[PathBuf],
@@ -99,7 +99,12 @@ where
     Ok(bytes)
 }
 
-pub fn decompress_sevenz<R>(reader: R, output_path: &Path, password: Option<impl AsRef<[u8]>>, quiet: bool) -> crate::Result<usize>
+pub fn decompress_sevenz<R>(
+    reader: R,
+    output_path: &Path,
+    password: Option<impl AsRef<[u8]>>,
+    quiet: bool,
+) -> crate::Result<usize>
 where
     R: Read + Seek,
 {
@@ -150,7 +155,7 @@ where
                 Some(ft::FileTime::from_system_time(entry.last_modified_date().into())),
                 Some(ft::FileTime::from_system_time(entry.creation_date().into())),
             )
-                .unwrap_or_default();
+            .unwrap_or_default();
         }
 
         Ok(true)
@@ -159,7 +164,12 @@ where
     let password = password.as_ref().map(|p| p.as_ref());
 
     match password {
-        Some(password) => sevenz_rust::decompress_with_extract_fn_and_password(reader, output_path, sevenz_rust::Password::from(password.to_str().unwrap()), entry_extract_fn)?,
+        Some(password) => sevenz_rust::decompress_with_extract_fn_and_password(
+            reader,
+            output_path,
+            sevenz_rust::Password::from(password.to_str().unwrap()),
+            entry_extract_fn,
+        )?,
         None => sevenz_rust::decompress_with_extract_fn(reader, output_path, entry_extract_fn)?,
     };
 
@@ -167,8 +177,10 @@ where
 }
 
 /// List contents of `archive_path`, returning a vector of archive entries
-pub fn list_archive(archive_path: &Path, password: Option<impl AsRef<[u8]>>) -> impl Iterator<Item = crate::Result<FileInArchive>>
-{
+pub fn list_archive(
+    archive_path: &Path,
+    password: Option<impl AsRef<[u8]>>,
+) -> impl Iterator<Item = crate::Result<FileInArchive>> {
     let reader = fs::File::open(archive_path).unwrap();
     let password = password.as_ref().map(|p| p.as_ref());
 
@@ -183,7 +195,13 @@ pub fn list_archive(archive_path: &Path, password: Option<impl AsRef<[u8]>>) -> 
     };
 
     match password {
-        Some(password) => sevenz_rust::decompress_with_extract_fn_and_password(reader, ".", sevenz_rust::Password::from(password.to_str().unwrap()), entry_extract_fn).unwrap(),
+        Some(password) => sevenz_rust::decompress_with_extract_fn_and_password(
+            reader,
+            ".",
+            sevenz_rust::Password::from(password.to_str().unwrap()),
+            entry_extract_fn,
+        )
+        .unwrap(),
         None => sevenz_rust::decompress_with_extract_fn(reader, ".", entry_extract_fn).unwrap(),
     };
 

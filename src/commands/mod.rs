@@ -222,7 +222,13 @@ pub fn run(
                     println!();
                 }
                 let formats = extension::flatten_compression_formats(&formats);
-                list_archive_contents(archive_path, formats, list_options, question_policy, args.password.as_deref())?;
+                list_archive_contents(
+                    archive_path,
+                    formats,
+                    list_options,
+                    question_policy,
+                    args.password.as_deref(),
+                )?;
             }
 
             Ok(())
