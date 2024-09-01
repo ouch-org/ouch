@@ -173,7 +173,9 @@ pub fn decompress_file(
             let unpack_fn: Box<dyn FnOnce(&Path) -> UnpackResult> = if formats.len() > 1 || input_is_stdin {
                 let mut temp_file = tempfile::NamedTempFile::new()?;
                 io::copy(&mut reader, &mut temp_file)?;
-                Box::new(move |output_dir| crate::archive::rar::unpack_archive(temp_file.path(), output_dir, password, quiet))
+                Box::new(move |output_dir| {
+                    crate::archive::rar::unpack_archive(temp_file.path(), output_dir, password, quiet)
+                })
             } else {
                 Box::new(|output_dir| crate::archive::rar::unpack_archive(input_file_path, output_dir, password, quiet))
             };
@@ -206,7 +208,9 @@ pub fn decompress_file(
             io::copy(&mut reader, &mut vec)?;
 
             if let ControlFlow::Continue(files) = smart_unpack(
-                |output_dir| crate::archive::sevenz::decompress_sevenz(io::Cursor::new(vec), output_dir, password, quiet),
+                |output_dir| {
+                    crate::archive::sevenz::decompress_sevenz(io::Cursor::new(vec), output_dir, password, quiet)
+                },
                 output_dir,
                 &output_file_path,
                 question_policy,
