@@ -167,7 +167,7 @@ where
             reader,
             output_path,
             sevenz_rust::Password::from(password.to_str().map_err(|_| {
-                Error::InvalidPassword("7z requires that all passwords are valid UTF-8")
+                Error::InvalidPassword{reason: "7z requires that all passwords are valid UTF-8".to_string()}
             })?),
             entry_extract_fn,
         )?,
@@ -181,14 +181,8 @@ where
 pub fn list_archive(
     archive_path: &Path,
     password: Option<&[u8]>,
-) -> impl Iterator<Item = crate::Result<FileInArchive>> {
-    let reader = fs::File::open(archive_path);
-
-    if let Err(e) = reader {
-        return vec![Err(Error::IoError {reason:e.to_string()})].into_iter();
-    }
-
-    let reader = reader.unwrap();
+) -> crate::Result<impl Iterator<Item = crate::Result<FileInArchive>>> {
+    let reader = fs::File::open(archive_path)?;
 
     let mut files = Vec::new();
 
@@ -204,7 +198,7 @@ pub fn list_archive(
         Some(password) => {
             let password = match password.to_str() {
                 Ok(p) => p,
-                Err(_) => return vec![Err(Error::InvalidPassword("7z requires that all passwords are valid UTF-8"))].into_iter(),
+                Err(err) => return Err(Error::InvalidPassword{ reason: err.to_string()}),
             };
             sevenz_rust::decompress_with_extract_fn_and_password(
                 reader,
@@ -217,8 +211,8 @@ pub fn list_archive(
     };
 
     if let Err(e) = result {
-        return vec![Err(e.into())].into_iter();
+        return Err(e.into());
     }
 
-    files.into_iter()
+    Ok(files.into_iter())
 }

@@ -48,12 +48,13 @@ pub fn unpack_archive(
 pub fn list_archive(
     archive_path: &Path,
     password: Option<&[u8]>,
-) -> impl Iterator<Item = crate::Result<FileInArchive>> {
+) -> crate::Result<impl Iterator<Item = crate::Result<FileInArchive>>> {
     let archive = match password {
         Some(password) => Archive::with_password(archive_path, password),
         None => Archive::new(archive_path),
     };
-    match archive.open_for_listing() {
+
+    let result = match archive.open_for_listing() {
         Ok(iter) => iter.map(|item| {
             let item = item?;
             let is_dir = item.is_directory();
@@ -61,8 +62,10 @@ pub fn list_archive(
 
             Ok(FileInArchive { path, is_dir })
         }).collect::<Vec<_>>().into_iter(),
-        Err(e) => vec![Err(Error::UnrarError{reason: e.to_string()})].into_iter(),
-    }
+        Err(e) => return Err(Error::UnrarError{reason: e.to_string()}),
+    };
+
+    Ok(result)
 }
 
 pub fn no_compression() -> Error {

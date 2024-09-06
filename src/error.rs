@@ -40,7 +40,7 @@ pub enum Error {
     // currently only RAR when built without the `unrar` feature
     UnsupportedFormat { reason: String },
     /// Invalid password provided
-    InvalidPassword(&'static str),
+    InvalidPassword { reason: String },
     /// UnrarError From unrar::error::UnrarError
     UnrarError { reason: String },
 }
@@ -152,7 +152,7 @@ impl fmt::Display for Error {
             Error::UnsupportedFormat { reason } => {
                 FinalError::with_title("Recognised but unsupported format").detail(reason.clone())
             }
-            Error::InvalidPassword(reason) => FinalError::with_title("Invalid password").detail(*reason),
+            Error::InvalidPassword{reason} => FinalError::with_title("Invalid password").detail(reason.clone()),
             Error::UnrarError{reason} => FinalError::with_title("Unrar error").detail(reason.clone()),
         };
 
