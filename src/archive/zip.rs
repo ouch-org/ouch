@@ -45,8 +45,7 @@ where
     for idx in 0..archive.len() {
         let mut file = match password {
             Some(password) => archive
-                .by_index_decrypt(idx, password.to_owned().as_bytes())
-                .unwrap()
+                .by_index_decrypt(idx, password.to_owned().as_bytes())?
                 .map_err(|_| zip::result::ZipError::UnsupportedArchive("Password required to decrypt file"))?,
             None => archive.by_index(idx)?,
         };
