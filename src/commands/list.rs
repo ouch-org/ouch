@@ -88,9 +88,9 @@ pub fn list_archive_contents(
             if formats.len() > 1 {
                 let mut temp_file = tempfile::NamedTempFile::new()?;
                 io::copy(&mut reader, &mut temp_file)?;
-                Box::new(crate::archive::rar::list_archive(temp_file.path(), password))
+                Box::new(crate::archive::rar::list_archive(temp_file.path(), password)?)
             } else {
-                Box::new(crate::archive::rar::list_archive(archive_path, password))
+                Box::new(crate::archive::rar::list_archive(archive_path, password)?)
             }
         }
         #[cfg(not(feature = "unrar"))]
@@ -109,7 +109,7 @@ pub fn list_archive_contents(
                 }
             }
 
-            Box::new(sevenz::list_archive(archive_path, password))
+            Box::new(sevenz::list_archive(archive_path, password)?)
         }
         Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {
             panic!("Not an archive! This should never happen, if it does, something is wrong with `CompressionFormat::is_archive()`. Please report this error!");
