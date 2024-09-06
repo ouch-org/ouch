@@ -152,8 +152,8 @@ impl fmt::Display for Error {
             Error::UnsupportedFormat { reason } => {
                 FinalError::with_title("Recognised but unsupported format").detail(reason.clone())
             }
-            Error::InvalidPassword{reason} => FinalError::with_title("Invalid password").detail(reason.clone()),
-            Error::UnrarError{reason} => FinalError::with_title("Unrar error").detail(reason.clone()),
+            Error::InvalidPassword { reason } => FinalError::with_title("Invalid password").detail(reason.clone()),
+            Error::UnrarError { reason } => FinalError::with_title("Unrar error").detail(reason.clone()),
         };
 
         write!(f, "{err}")
