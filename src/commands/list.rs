@@ -21,7 +21,7 @@ pub fn list_archive_contents(
     formats: Vec<CompressionFormat>,
     list_options: ListOptions,
     question_policy: QuestionPolicy,
-    password: Option<&str>,
+    password: Option<&[u8]>,
 ) -> crate::Result<()> {
     let reader = fs::File::open(archive_path)?;
 

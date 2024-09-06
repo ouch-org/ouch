@@ -32,7 +32,7 @@ use crate::{
 pub fn unpack_archive<R>(
     mut archive: ZipArchive<R>,
     output_folder: &Path,
-    password: Option<impl AsRef<[u8]>>,
+    password: Option<&[u8]>,
     quiet: bool,
 ) -> crate::Result<usize>
 where
@@ -42,10 +42,8 @@ where
 
     let mut unpacked_files = 0;
 
-    let password = password.as_ref().map(|p| p.as_ref().to_owned());
-
     for idx in 0..archive.len() {
-        let mut file = match password.clone() {
+        let mut file = match password {
             Some(password) => archive
                 .by_index_decrypt(idx, password.to_owned().as_bytes())
                 .unwrap()
@@ -108,7 +106,7 @@ where
 /// List contents of `archive`, returning a vector of archive entries
 pub fn list_archive<R>(
     mut archive: ZipArchive<R>,
-    password: Option<impl AsRef<[u8]>>,
+    password: Option<&[u8]>,
 ) -> impl Iterator<Item = crate::Result<FileInArchive>>
 where
     R: Read + Seek + Send + 'static,
@@ -122,7 +120,7 @@ where
         }
     }
 
-    let password = password.as_ref().map(|p| p.as_ref().to_owned());
+    let password = password.map(|p| p.to_owned());
 
     let (tx, rx) = mpsc::channel();
     thread::spawn(move || {

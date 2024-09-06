@@ -36,7 +36,7 @@ pub fn decompress_file(
     output_file_path: PathBuf,
     question_policy: QuestionPolicy,
     quiet: bool,
-    password: Option<&str>,
+    password: Option<&[u8]>,
 ) -> crate::Result<()> {
     assert!(output_dir.exists());
     let input_is_stdin = is_path_stdin(input_file_path);
