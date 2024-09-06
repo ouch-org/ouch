@@ -5,7 +5,7 @@ mod decompress;
 mod list;
 
 use std::{ops::ControlFlow, path::PathBuf};
-
+use std::os::unix::prelude::OsStrExt;
 use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use utils::colors;
 
@@ -188,7 +188,7 @@ pub fn run(
                         output_file_path,
                         question_policy,
                         args.quiet,
-                        args.password.as_deref(),
+                        args.password.as_deref().map(|str|str.as_bytes()),
                     )
                 })
         }
@@ -227,7 +227,7 @@ pub fn run(
                     formats,
                     list_options,
                     question_policy,
-                    args.password.as_deref(),
+                    args.password.as_deref().map(|str|str.as_bytes()),
                 )?;
             }
 

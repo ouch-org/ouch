@@ -20,6 +20,7 @@ use crate::{
         Bytes, EscapedPathDisplay, FileVisibilityPolicy,
     },
 };
+use crate::error::Error;
 
 pub fn compress_sevenz<W>(
     files: &[PathBuf],
@@ -102,7 +103,7 @@ where
 pub fn decompress_sevenz<R>(
     reader: R,
     output_path: &Path,
-    password: Option<impl AsRef<[u8]>>,
+    password: Option<&[u8]>,
     quiet: bool,
 ) -> crate::Result<usize>
 where
@@ -161,17 +162,17 @@ where
         Ok(true)
     };
 
-    let password = password.as_ref().map(|p| p.as_ref());
-
     match password {
         Some(password) => sevenz_rust::decompress_with_extract_fn_and_password(
             reader,
             output_path,
-            sevenz_rust::Password::from(password.to_str().unwrap()),
+            sevenz_rust::Password::from(password.to_str().map_err(|_| {
+                Error::InvalidPassword("7z requires that all passwords are valid UTF-8")
+            })?),
             entry_extract_fn,
         )?,
         None => sevenz_rust::decompress_with_extract_fn(reader, output_path, entry_extract_fn)?,
-    };
+    }
 
     Ok(count)
 }
@@ -179,10 +180,9 @@ where
 /// List contents of `archive_path`, returning a vector of archive entries
 pub fn list_archive(
     archive_path: &Path,
-    password: Option<impl AsRef<[u8]>>,
+    password: Option<&[u8]>,
 ) -> impl Iterator<Item = crate::Result<FileInArchive>> {
     let reader = fs::File::open(archive_path).unwrap();
-    let password = password.as_ref().map(|p| p.as_ref());
 
     let mut files = Vec::new();
 
@@ -195,15 +195,16 @@ pub fn list_archive(
     };
 
     match password {
-        Some(password) => sevenz_rust::decompress_with_extract_fn_and_password(
-            reader,
-            ".",
-            sevenz_rust::Password::from(password.to_str().unwrap()),
-            entry_extract_fn,
-        )
-        .unwrap(),
+        Some(password) => {
+            sevenz_rust::decompress_with_extract_fn_and_password(
+                reader,
+                ".",
+                sevenz_rust::Password::from(password.to_str().unwrap()),
+                entry_extract_fn,
+            ).unwrap()
+        },
         None => sevenz_rust::decompress_with_extract_fn(reader, ".", entry_extract_fn).unwrap(),
-    };
+    }
 
     files.into_iter()
 }

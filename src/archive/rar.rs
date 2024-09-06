@@ -11,12 +11,10 @@ use crate::{error::Error, list::FileInArchive, utils::logger::info};
 pub fn unpack_archive(
     archive_path: &Path,
     output_folder: &Path,
-    password: Option<impl AsRef<[u8]>>,
+    password: Option<&[u8]>,
     quiet: bool,
 ) -> crate::Result<usize> {
     assert!(output_folder.read_dir().expect("dir exists").count() == 0);
-
-    let password = password.as_ref().map(|p| p.as_ref());
 
     let archive = match password {
         Some(password) => Archive::with_password(archive_path, password),
@@ -49,9 +47,8 @@ pub fn unpack_archive(
 /// List contents of `archive_path`, returning a vector of archive entries
 pub fn list_archive(
     archive_path: &Path,
-    password: Option<impl AsRef<[u8]>>,
+    password: Option<&[u8]>,
 ) -> impl Iterator<Item = crate::Result<FileInArchive>> {
-    let password = password.as_ref().map(|p| p.as_ref());
     let archive = match password {
         Some(password) => Archive::with_password(archive_path, password),
         None => Archive::new(archive_path),

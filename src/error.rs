@@ -39,6 +39,8 @@ pub enum Error {
     /// Recognised but unsupported format
     // currently only RAR when built without the `unrar` feature
     UnsupportedFormat { reason: String },
+    /// Invalid password provided
+    InvalidPassword(&'static str),
 }
 
 /// Alias to std's Result with ouch's Error
@@ -148,6 +150,7 @@ impl fmt::Display for Error {
             Error::UnsupportedFormat { reason } => {
                 FinalError::with_title("Recognised but unsupported format").detail(reason.clone())
             }
+            Error::InvalidPassword(reason) => FinalError::with_title("Invalid password").detail(*reason),
         };
 
         write!(f, "{err}")
