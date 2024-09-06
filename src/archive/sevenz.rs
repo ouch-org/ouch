@@ -194,16 +194,24 @@ pub fn list_archive(
         Ok(true)
     };
 
-    match password {
+    let result = match password {
         Some(password) => {
+            let password = match password.to_str() {
+                Ok(p) => p,
+                Err(_) => return vec![Err(Error::InvalidPassword("7z requires that all passwords are valid UTF-8"))].into_iter(),
+            };
             sevenz_rust::decompress_with_extract_fn_and_password(
                 reader,
                 ".",
-                sevenz_rust::Password::from(password.to_str().unwrap()),
+                sevenz_rust::Password::from(password),
                 entry_extract_fn,
-            ).unwrap()
+            )
         },
-        None => sevenz_rust::decompress_with_extract_fn(reader, ".", entry_extract_fn).unwrap(),
+        None => sevenz_rust::decompress_with_extract_fn(reader, ".", entry_extract_fn),
+    };
+
+    if let Err(e) = result {
+        return vec![Err(e.into())].into_iter();
     }
 
     files.into_iter()
