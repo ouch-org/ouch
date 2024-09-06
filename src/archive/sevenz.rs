@@ -160,8 +160,8 @@ where
         Some(password) => sevenz_rust::decompress_with_extract_fn_and_password(
             reader,
             output_path,
-            sevenz_rust::Password::from(password.to_str().map_err(|_| Error::InvalidPassword {
-                reason: "7z requires that all passwords are valid UTF-8".to_string(),
+            sevenz_rust::Password::from(password.to_str().map_err(|err| Error::InvalidPassword {
+                reason: err.to_string(),
             })?),
             entry_extract_fn,
         )?,
