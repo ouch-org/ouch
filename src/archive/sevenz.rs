@@ -182,7 +182,13 @@ pub fn list_archive(
     archive_path: &Path,
     password: Option<&[u8]>,
 ) -> impl Iterator<Item = crate::Result<FileInArchive>> {
-    let reader = fs::File::open(archive_path).unwrap();
+    let reader = fs::File::open(archive_path);
+
+    if let Err(e) = reader {
+        return vec![Err(Error::IoError {reason:e.to_string()})].into_iter();
+    }
+    
+    let reader = reader.unwrap();
 
     let mut files = Vec::new();
 
