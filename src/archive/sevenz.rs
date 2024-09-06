@@ -12,7 +12,7 @@ use same_file::Handle;
 use sevenz_rust::SevenZArchiveEntry;
 
 use crate::{
-    error::FinalError,
+    error::{Error, FinalError},
     list::FileInArchive,
     utils::{
         self, cd_into_same_dir_as,
@@ -20,7 +20,6 @@ use crate::{
         Bytes, EscapedPathDisplay, FileVisibilityPolicy,
     },
 };
-use crate::error::Error;
 
 pub fn compress_sevenz<W>(
     files: &[PathBuf],
@@ -100,12 +99,7 @@ where
     Ok(bytes)
 }
 
-pub fn decompress_sevenz<R>(
-    reader: R,
-    output_path: &Path,
-    password: Option<&[u8]>,
-    quiet: bool,
-) -> crate::Result<usize>
+pub fn decompress_sevenz<R>(reader: R, output_path: &Path, password: Option<&[u8]>, quiet: bool) -> crate::Result<usize>
 where
     R: Read + Seek,
 {
@@ -166,8 +160,8 @@ where
         Some(password) => sevenz_rust::decompress_with_extract_fn_and_password(
             reader,
             output_path,
-            sevenz_rust::Password::from(password.to_str().map_err(|_| {
-                Error::InvalidPassword{reason: "7z requires that all passwords are valid UTF-8".to_string()}
+            sevenz_rust::Password::from(password.to_str().map_err(|_| Error::InvalidPassword {
+                reason: "7z requires that all passwords are valid UTF-8".to_string(),
             })?),
             entry_extract_fn,
         )?,
@@ -198,7 +192,11 @@ pub fn list_archive(
         Some(password) => {
             let password = match password.to_str() {
                 Ok(p) => p,
-                Err(err) => return Err(Error::InvalidPassword{ reason: err.to_string()}),
+                Err(err) => {
+                    return Err(Error::InvalidPassword {
+                        reason: err.to_string(),
+                    })
+                }
             };
             sevenz_rust::decompress_with_extract_fn_and_password(
                 reader,
@@ -206,7 +204,7 @@ pub fn list_archive(
                 sevenz_rust::Password::from(password),
                 entry_extract_fn,
             )
-        },
+        }
         None => sevenz_rust::decompress_with_extract_fn(reader, ".", entry_extract_fn),
     };
 

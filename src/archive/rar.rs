@@ -55,14 +55,17 @@ pub fn list_archive(
     };
 
     let result = match archive.open_for_listing() {
-        Ok(iter) => iter.map(|item| {
-            let item = item?;
-            let is_dir = item.is_directory();
-            let path = item.filename;
+        Ok(iter) => iter
+            .map(|item| {
+                let item = item?;
+                let is_dir = item.is_directory();
+                let path = item.filename;
 
-            Ok(FileInArchive { path, is_dir })
-        }).collect::<Vec<_>>().into_iter(),
-        Err(e) => return Err(Error::UnrarError{reason: e.to_string()}),
+                Ok(FileInArchive { path, is_dir })
+            })
+            .collect::<Vec<_>>()
+            .into_iter(),
+        Err(e) => return Err(Error::UnrarError { reason: e.to_string() }),
     };
 
     Ok(result)
