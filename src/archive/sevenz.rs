@@ -187,7 +187,7 @@ pub fn list_archive(
     if let Err(e) = reader {
         return vec![Err(Error::IoError {reason:e.to_string()})].into_iter();
     }
-    
+
     let reader = reader.unwrap();
 
     let mut files = Vec::new();
