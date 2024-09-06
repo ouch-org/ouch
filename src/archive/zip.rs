@@ -10,7 +10,6 @@ use std::{
     thread,
 };
 
-use bstr::ByteSlice;
 use filetime_creation::{set_file_mtime, FileTime};
 use fs_err as fs;
 use same_file::Handle;
@@ -45,7 +44,7 @@ where
     for idx in 0..archive.len() {
         let mut file = match password {
             Some(password) => archive
-                .by_index_decrypt(idx, password.as_bytes())?
+                .by_index_decrypt(idx, password)?
                 .map_err(|_| zip::result::ZipError::UnsupportedArchive("Password required to decrypt file"))?,
             None => archive.by_index(idx)?,
         };
@@ -127,7 +126,7 @@ where
             let file_in_archive = (|| {
                 let zip_result = match password.clone() {
                     Some(password) => archive
-                        .by_index_decrypt(idx, password.as_bytes())?
+                        .by_index_decrypt(idx, &password)?
                         .map_err(|_| zip::result::ZipError::UnsupportedArchive("Password required to decrypt file")),
                     None => archive.by_index(idx),
                 };

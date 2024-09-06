@@ -7,12 +7,7 @@ mod list;
 use std::{ops::ControlFlow, path::PathBuf};
 use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use utils::colors;
-
-// OsStrExt for password as_bytes() conversion
-#[cfg(unix)]
-use std::os::unix::prelude::OsStrExt;
-#[cfg(windows)]
-use std::os::windows::prelude::OsStrExt;
+use bstr::ByteSlice;
 
 use crate::{
     check,
@@ -193,7 +188,7 @@ pub fn run(
                         output_file_path,
                         question_policy,
                         args.quiet,
-                        args.password.as_deref().map(|str| str.as_bytes()),
+                        args.password.as_deref().map(|str| <[u8] as ByteSlice>::from_os_str(str).expect("convert password to bytes failed")),
                     )
                 })
         }
@@ -232,7 +227,7 @@ pub fn run(
                     formats,
                     list_options,
                     question_policy,
-                    args.password.as_deref().map(|str|str.as_bytes()),
+                    args.password.as_deref().map(|str| <[u8] as ByteSlice>::from_os_str(str).expect("convert password to bytes failed")),
                 )?;
             }
 
