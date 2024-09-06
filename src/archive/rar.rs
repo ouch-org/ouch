@@ -53,13 +53,16 @@ pub fn list_archive(
         Some(password) => Archive::with_password(archive_path, password),
         None => Archive::new(archive_path),
     };
-    archive.open_for_listing().expect("cannot open archive").map(|item| {
-        let item = item?;
-        let is_dir = item.is_directory();
-        let path = item.filename;
+    match archive.open_for_listing() {
+        Ok(iter) => iter.map(|item| {
+            let item = item?;
+            let is_dir = item.is_directory();
+            let path = item.filename;
 
-        Ok(FileInArchive { path, is_dir })
-    })
+            Ok(FileInArchive { path, is_dir })
+        }).collect::<Vec<_>>().into_iter(),
+        Err(e) => vec![Err(Error::UnsupportedFormat {reason:e.to_string()})].into_iter(),
+    }
 }
 
 pub fn no_compression() -> Error {
