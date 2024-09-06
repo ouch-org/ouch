@@ -124,27 +124,25 @@ where
     let (tx, rx) = mpsc::channel();
     thread::spawn(move || {
         for idx in 0..archive.len() {
-            let maybe_file_in_archive = (|| {
+            let file_in_archive = (|| {
                 let zip_result = match password.clone() {
                     Some(password) => archive
-                        .by_index_decrypt(idx, password.as_bytes()).ok()?
+                        .by_index_decrypt(idx, password.as_bytes())?
                         .map_err(|_| zip::result::ZipError::UnsupportedArchive("Password required to decrypt file")),
                     None => archive.by_index(idx),
                 };
 
                 let file = match zip_result {
                     Ok(f) => f,
-                    Err(e) => return Some(Err(e.into())),
+                    Err(e) => return Err(e.into()),
                 };
 
-                let path = file.enclosed_name()?.to_owned();
+                let path = file.enclosed_name().unwrap_or(&*file.mangled_name()).to_owned();
                 let is_dir = file.is_dir();
 
-                Some(Ok(FileInArchive { path, is_dir }))
+                Ok(FileInArchive { path, is_dir })
             })();
-            if let Some(file_in_archive) = maybe_file_in_archive {
-                tx.send(file_in_archive).unwrap();
-            }
+            tx.send(file_in_archive).unwrap();
         }
     });
 
