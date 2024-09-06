@@ -61,7 +61,7 @@ pub fn list_archive(
 
             Ok(FileInArchive { path, is_dir })
         }).collect::<Vec<_>>().into_iter(),
-        Err(e) => vec![Err(Error::UnsupportedFormat {reason:e.to_string()})].into_iter(),
+        Err(e) => vec![Err(Error::UnrarError{reason: e.to_string()})].into_iter(),
     }
 }
 
