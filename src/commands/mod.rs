@@ -5,9 +5,14 @@ mod decompress;
 mod list;
 
 use std::{ops::ControlFlow, path::PathBuf};
-use std::os::unix::prelude::OsStrExt;
 use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use utils::colors;
+
+// OsStrExt for password as_bytes() conversion
+#[cfg(unix)]
+use std::os::unix::prelude::OsStrExt;
+#[cfg(windows)]
+use std::os::windows::prelude::OsStrExt;
 
 use crate::{
     check,
@@ -188,7 +193,7 @@ pub fn run(
                         output_file_path,
                         question_policy,
                         args.quiet,
-                        args.password.as_deref().map(|str|str.as_bytes()),
+                        args.password.as_deref().map(|str| str.as_bytes()),
                     )
                 })
         }
