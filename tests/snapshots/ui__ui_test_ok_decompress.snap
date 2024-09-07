@@ -4,4 +4,3 @@ expression: "run_ouch(\"ouch decompress output.zst\", dir)"
 ---
 [INFO] Successfully decompressed archive in current directory.
 [INFO] Files unpacked: 1
-

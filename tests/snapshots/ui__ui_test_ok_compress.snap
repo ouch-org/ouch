@@ -4,4 +4,3 @@ expression: "run_ouch(\"ouch compress input output.zip\", dir)"
 ---
 [INFO] Compressing 'input'.
 [INFO] Successfully compressed 'output.zip'.
-

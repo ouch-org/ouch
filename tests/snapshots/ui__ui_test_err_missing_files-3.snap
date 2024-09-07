@@ -4,4 +4,3 @@ expression: "run_ouch(\"ouch list a b\", dir)"
 ---
 [ERROR] failed to canonicalize path `a`
  - File not found
-
