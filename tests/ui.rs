@@ -65,17 +65,10 @@ fn ui_test_err_decompress_missing_extension() {
 
     create_files_in(dir, &["a", "b.unknown"]);
 
-    let name = {
-        let suffix = if cfg!(feature = "unrar") {
-            "with_rar"
-        } else {
-            "without_rar"
-        };
-        format!("ui_test_err_decompress_missing_extension_{suffix}")
-    };
-    ui!(format!("{name}-1"), run_ouch("ouch decompress a", dir));
-    ui!(format!("{name}-2"), run_ouch("ouch decompress a b.unknown", dir));
-    ui!(format!("{name}-3"), run_ouch("ouch decompress b.unknown", dir));
+    let snapshot = concat_snapshot_filename_rar_feature("ui_test_err_decompress_missing_extension");
+    ui!(format!("{snapshot}-1"), run_ouch("ouch decompress a", dir));
+    ui!(format!("{snapshot}-2"), run_ouch("ouch decompress a b.unknown", dir));
+    ui!(format!("{snapshot}-3"), run_ouch("ouch decompress b.unknown", dir));
 }
 
 #[test]
@@ -94,9 +87,19 @@ fn ui_test_err_format_flag() {
     // prepare
     create_files_in(dir, &["input"]);
 
-    ui!(run_ouch("ouch compress input output --format tar.gz.unknown", dir));
-    ui!(run_ouch("ouch compress input output --format targz", dir));
-    ui!(run_ouch("ouch compress input output --format .tar.$#!@.rest", dir));
+    let snapshot = concat_snapshot_filename_rar_feature("ui_test_err_format_flag");
+    ui!(
+        format!("{snapshot}-1"),
+        run_ouch("ouch compress input output --format tar.gz.unknown", dir),
+    );
+    ui!(
+        format!("{snapshot}-2"),
+        run_ouch("ouch compress input output --format targz", dir),
+    );
+    ui!(
+        format!("{snapshot}-3"),
+        run_ouch("ouch compress input output --format .tar.$#!@.rest", dir),
+    );
 }
 
 #[test]
@@ -106,8 +109,15 @@ fn ui_test_ok_format_flag() {
     // prepare
     create_files_in(dir, &["input"]);
 
-    ui!(run_ouch("ouch compress input output1 --format tar.gz", dir));
-    ui!(run_ouch("ouch compress input output2 --format .tar.gz", dir));
+    let snapshot = concat_snapshot_filename_rar_feature("ui_test_ok_format_flag");
+    ui!(
+        format!("{snapshot}-1"),
+        run_ouch("ouch compress input output1 --format tar.gz", dir),
+    );
+    ui!(
+        format!("{snapshot}-2"),
+        run_ouch("ouch compress input output2 --format .tar.gz", dir),
+    );
 }
 
 #[test]
@@ -141,4 +151,15 @@ fn ui_test_usage_help_flag() {
         ui!(output_to_string(ouch!("--help")));
         ui!(output_to_string(ouch!("-h")));
     });
+}
+
+/// Concatenates `with_rar` or `without_rar` if the feature is toggled or not.
+fn concat_snapshot_filename_rar_feature(name: &str) -> String {
+    let suffix = if cfg!(feature = "unrar") {
+        "with_rar"
+    } else {
+        "without_rar"
+    };
+
+    format!("{name}_{suffix}")
 }

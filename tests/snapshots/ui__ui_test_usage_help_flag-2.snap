@@ -1,6 +1,5 @@
 ---
 source: tests/ui.rs
-assertion_line: 119
 expression: "output_to_string(ouch!(\"-h\"))"
 ---
 A command-line utility for easily compressing and decompressing files and directories.

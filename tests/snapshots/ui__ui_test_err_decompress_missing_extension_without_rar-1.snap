@@ -11,4 +11,3 @@ hint: Supported aliases are: tgz, tbz, tlz4, txz, tzlma, tsz, tzst
 hint: 
 hint: Alternatively, you can pass an extension to the '--format' flag:
 hint:   ouch decompress <TMP_DIR>/a --format tar.gz
-

@@ -11,4 +11,3 @@ hint:   ouch compress <FILES>... output.zip
 hint: 
 hint: Alternatively, you can overwrite this option by using the '--format' flag:
 hint:   ouch compress <FILES>... output --format tar.gz
-
