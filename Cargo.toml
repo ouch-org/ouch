@@ -34,7 +34,7 @@ tempfile = "3.10.1"
 time = { version = "0.3.36", default-features = false }
 unrar = { version = "0.5.6", optional = true }
 xz2 = "0.1.7"
-zip = { version = "0.6.6", default-features = false, features = ["time", "aes-crypto"] }
+zip = { version = "2.2.0", default-features = false, features = ["time", "aes-crypto"] }
 zstd = { version = "0.13.2", default-features = false, features = ["zstdmt"]}
 
 [target.'cfg(not(unix))'.dependencies]
