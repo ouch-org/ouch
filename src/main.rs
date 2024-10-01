@@ -7,6 +7,7 @@ pub mod error;
 pub mod extension;
 pub mod list;
 pub mod utils;
+pub mod sandbox;
 
 use std::{env, path::PathBuf};
 
@@ -28,6 +29,14 @@ pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;
 
 fn main() {
     let handler = spawn_logger_thread();
+
+    //restrict write permissions to the current workign directory
+    let working_dir = get_current_working_dir().expect("Cannot get current working dir");
+    let path_str = working_dir.to_str().expect("Cannot convert path");
+    let status = sandbox::restrict_paths(&[path_str]).expect("failed to build the ruleset");
+
+    //todo: check status and report error or warnign if landlock restriction failed
+
     let result = run();
     handler.shutdown_and_wait();
 
@@ -40,4 +49,8 @@ fn main() {
 fn run() -> Result<()> {
     let (args, skip_questions_positively, file_visibility_policy) = CliArgs::parse_and_validate_args()?;
     commands::run(args, skip_questions_positively, file_visibility_policy)
+}
+
+fn get_current_working_dir() -> std::io::Result<PathBuf> {
+    env::current_dir()
 }

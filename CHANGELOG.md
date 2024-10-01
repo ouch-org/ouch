@@ -23,6 +23,7 @@ Categories Used:
 ### New Features
 
 - Add multithreading support for `zstd` compression [\#689](https://github.com/ouch-org/ouch/pull/689) ([nalabrie](https://github.com/nalabrie))
+- Add landlock support for linux filesystem isolation [\#723](https://github.com/ouch-org/ouch/pull/723) ([valoq](https://github.com/valoq)) 
 
 ### Bug Fixes
 

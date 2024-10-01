@@ -20,6 +20,7 @@ flate2 = { version = "1.0.30", default-features = false }
 fs-err = "2.11.0"
 gzp = { version = "0.11.3", default-features = false, features = ["snappy_default"] }
 ignore = "0.4.22"
+landlock = "0.4.1"
 libc = "0.2.155"
 linked-hash-map = "0.5.6"
 lz4_flex = "0.11.3"
@@ -31,6 +32,7 @@ sevenz-rust = { version = "0.6.1", features = ["compress", "aes256"] }
 snap = "1.1.1"
 tar = "0.4.41"
 tempfile = "3.10.1"
+thiserror = "1.0.64"
 time = { version = "0.3.36", default-features = false }
 unrar = { version = "0.5.6", optional = true }
 xz2 = "0.1.7"
