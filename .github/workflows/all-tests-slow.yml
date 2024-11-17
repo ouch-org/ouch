@@ -11,7 +11,7 @@ on:
 
 jobs:
   run-tests-for-all-combinations:
-    uses: ouch-org/ouch/.github/workflows/build-artifacts-and-run-tests.yml@main
+    uses: ./.github/workflows/build-artifacts-and-run-tests.yml
     with:
       matrix_all_combinations: true
       upload_artifacts: false
