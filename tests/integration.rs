@@ -79,7 +79,7 @@ fn create_random_files(dir: impl Into<PathBuf>, depth: u8, rng: &mut SmallRng) {
 
     // create more random files in 0 to 2 new directories
     for _ in 0..rng.gen_range(0..=2u32) {
-        create_random_files(&tempfile::tempdir_in(dir).unwrap().into_path(), depth - 1, rng);
+        create_random_files(tempfile::tempdir_in(dir).unwrap().into_path(), depth - 1, rng);
     }
 }
 

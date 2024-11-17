@@ -134,6 +134,7 @@ jobs:
           rustup toolchain install stable --profile minimal -c clippy
           rustup toolchain install nightly --profile minimal -c rustfmt
           cargo +stable clippy -- -D warnings
+          cargo +stable clippy --tests -- -D warnings
           cargo +nightly fmt -- --check
 
   github-release:
