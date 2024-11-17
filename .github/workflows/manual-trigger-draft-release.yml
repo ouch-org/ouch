@@ -1,4 +1,8 @@
-name: create-draft-release-with-artifacts
+# we have two workflows for releases, this is the manual one to be triggered
+# in the Actions tab in the repository
+#
+# the automatic one runs in another workflow and checks for tag pushes
+name: manual-trigger-draft-release
 
 on:
   workflow_dispatch:
@@ -8,8 +12,7 @@ on:
         required: true
 
 jobs:
-  github-release:
-    name: github-release
+  create-draft-release-from-manual-trigger:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

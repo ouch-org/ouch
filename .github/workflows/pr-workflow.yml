@@ -1,4 +1,4 @@
-name: PR checks
+name: PR workflow
 
 on:
   push:
@@ -11,8 +11,7 @@ on:
       - "*.md"
 
 jobs:
-  clippy-lints-check:
-    name: clippy-lints-check
+  clippy-checks:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -24,7 +23,6 @@ jobs:
           cargo +stable clippy -- -D warnings
 
   rustfmt-check:
-    name: rustfmt-check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -35,11 +33,10 @@ jobs:
           rustup toolchain install nightly --profile minimal -c rustfmt
           cargo +nightly fmt -- --check
 
-  github-release:
-    name: github-release
+  automated-draft-release:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-    needs: build-and-test
+    needs: build-artifacts-and-run-tests
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -58,8 +55,7 @@ jobs:
           draft: true
           files: release/ouch-*
 
-  build-and-test:
-    name: build-and-test
+  build-artifacts-and-run-tests:
     runs-on: ${{ matrix.os || 'ubuntu-latest' }}
     env:
       CARGO: cargo
