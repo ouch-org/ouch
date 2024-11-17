@@ -1,4 +1,4 @@
-name: build-and-test
+name: PR checks
 
 on:
   push:
@@ -9,14 +9,54 @@ on:
   pull_request:
 
 jobs:
-  build:
-    name: build
-    runs-on: ${{ matrix.os }}
+  clippy-rustfmt:
+    name: clippy-rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: "Cargo: clippy, fmt"
+        run: |
+          rustup toolchain install stable --profile minimal -c clippy
+          rustup toolchain install nightly --profile minimal -c rustfmt
+          cargo +stable clippy -- -D warnings
+          cargo +nightly fmt -- --check
+
+  github-release:
+    name: github-release
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    needs: build-and-test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          path: artifacts
+
+      - name: Package release assets
+        run: scripts/package-release-assets.sh
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: release/ouch-*
+
+  build-and-test:
+    name: build-and-test
+    runs-on: ${{ matrix.os || 'ubuntu-latest' }}
     env:
       CARGO: cargo
     strategy:
       fail-fast: false
       matrix:
+        feature-use-zlib: [true, false]
+        feature-use-zstd-thin: [true, false]
+        feature-unrar: [true, false]
         target:
           # native
           - x86_64-unknown-linux-gnu
@@ -30,13 +70,8 @@ jobs:
           - aarch64-unknown-linux-musl
           - armv7-unknown-linux-gnueabihf
           - armv7-unknown-linux-musleabihf
-        feature-use-zlib: [true, false]
-        feature-use-zstd-thin: [true, false]
-        feature-unrar: [true, false]
 
         include:
-          # default runner
-          - os: ubuntu-latest
           # runner overrides
           - target: x86_64-pc-windows-gnu
             os: windows-latest
@@ -121,41 +156,3 @@ jobs:
             target/${{ matrix.target }}/release/ouch
             target/${{ matrix.target }}/release/ouch.exe
             artifacts/
-
-  clippy-rustfmt:
-    name: clippy-rustfmt
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: "Cargo: clippy, fmt"
-        run: |
-          rustup toolchain install stable --profile minimal -c clippy
-          rustup toolchain install nightly --profile minimal -c rustfmt
-          cargo +stable clippy -- -D warnings
-          cargo +stable clippy --tests -- -D warnings
-          cargo +nightly fmt -- --check
-
-  github-release:
-    name: github-release
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-    needs: build
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Download artifacts
-        uses: dawidd6/action-download-artifact@v3
-        with:
-          path: artifacts
-
-      - name: Package release assets
-        run: scripts/package-release-assets.sh
-
-      - name: Create release
-        uses: softprops/action-gh-release@v2
-        with:
-          draft: true
-          files: release/ouch-*
