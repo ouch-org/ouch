@@ -1,0 +1,17 @@
+name: Run tests for all combinations
+
+on:
+  schedule:
+    - cron: "0 0 1,15 * *" # biweekly
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "*.md"
+
+jobs:
+  run-tests-for-all-combinations:
+    uses: ouch-org/ouch/.github/workflows/build-artifacts-and-run-tests.yml@main
+    with:
+      matrix_all_combinations: true
+      upload_artifacts: false
