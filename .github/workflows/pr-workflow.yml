@@ -1,27 +1,11 @@
 name: PR workflow
 
 on:
-  push:
-    branches:
-      - main
-    tags:
-      - "[0-9]+.[0-9]+.[0-9]+"
   pull_request:
     paths-ignore:
       - "*.md"
 
 jobs:
-  clippy-checks:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: "Cargo: clippy"
-        run: |
-          rustup toolchain install stable --profile minimal -c clippy
-          cargo +stable clippy -- -D warnings
-
   rustfmt-check:
     runs-on: ubuntu-latest
     steps:
@@ -33,141 +17,19 @@ jobs:
           rustup toolchain install nightly --profile minimal -c rustfmt
           cargo +nightly fmt -- --check
 
-  automated-draft-release:
+  clippy-checks:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-    needs: build-artifacts-and-run-tests
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download artifacts
-        uses: dawidd6/action-download-artifact@v3
-        with:
-          path: artifacts
-
-      - name: Package release assets
-        run: scripts/package-release-assets.sh
-
-      - name: Create release
-        uses: softprops/action-gh-release@v2
-        with:
-          draft: true
-          files: release/ouch-*
-
-  build-artifacts-and-run-tests:
-    runs-on: ${{ matrix.os || 'ubuntu-latest' }}
-    env:
-      CARGO: cargo
-    strategy:
-      fail-fast: false
-      matrix:
-        feature-use-zlib: [false]
-        feature-use-zstd-thin: [false]
-        feature-unrar: [false]
-        target:
-          # native
-          - x86_64-unknown-linux-gnu
-          - x86_64-pc-windows-gnu
-          - x86_64-pc-windows-msvc
-          - aarch64-pc-windows-msvc
-          - x86_64-apple-darwin
-          # cross
-          - x86_64-unknown-linux-musl
-          - aarch64-unknown-linux-gnu
-          - aarch64-unknown-linux-musl
-          - armv7-unknown-linux-gnueabihf
-          - armv7-unknown-linux-musleabihf
-
-        include:
-          # runner overrides
-          - target: x86_64-pc-windows-gnu
-            os: windows-latest
-          - target: x86_64-pc-windows-msvc
-            os: windows-latest
-          - target: aarch64-pc-windows-msvc
-            os: windows-latest
-          - target: x86_64-apple-darwin
-            os: macos-latest
-          # targets that use cross
-          - target: x86_64-unknown-linux-musl
-            use-cross: true
-          - target: aarch64-unknown-linux-gnu
-            use-cross: true
-          - target: aarch64-unknown-linux-musl
-            use-cross: true
-          - target: armv7-unknown-linux-gnueabihf
-            use-cross: true
-          - target: armv7-unknown-linux-musleabihf
-            use-cross: true
-          # features
-          - feature-use-zlib: true
-            target: x86_64-unknown-linux-gnu
-          - feature-use-zstd-thin: true
-            target: x86_64-unknown-linux-gnu
-          - feature-unrar: true
-            target: x86_64-unknown-linux-gnu
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install cross
-        if: matrix.use-cross
+      - name: "Cargo: clippy"
         run: |
-          pushd "$(mktemp -d)"
-          wget https://github.com/cross-rs/cross/releases/download/v0.2.4/cross-x86_64-unknown-linux-musl.tar.gz
-          tar xf cross-x86_64-unknown-linux-musl.tar.gz
-          cp cross ~/.cargo/bin
-          popd
-          echo CARGO=cross >> $GITHUB_ENV
+          rustup toolchain install stable --profile minimal -c clippy
+          cargo +stable clippy -- -D warnings
 
-      - name: Concatenate features
-        id: concat-features
-        shell: bash
-        run: |
-          FEATURES=()
-          if [[ "${{ matrix.feature-use-zlib }}" == true ]]; then FEATURES+=(use_zlib); fi
-          if [[ "${{ matrix.feature-use-zstd-thin }}" == true ]]; then FEATURES+=(use_zstd_thin); fi
-          if [[ "${{ matrix.feature-unrar }}" == true ]]; then FEATURES+=(unrar); fi
-          IFS=','
-          echo "FEATURES=${FEATURES[*]}" >> $GITHUB_OUTPUT
-
-      - name: Set up extra cargo flags
-        env:
-          FEATURES: ${{steps.concat-features.outputs.FEATURES}}
-        shell: bash
-        run: |
-          FLAGS="--no-default-features"
-          if [[ -n "$FEATURES" ]]; then FLAGS+=" --features $FEATURES"; fi
-          echo "EXTRA_CARGO_FLAGS=$FLAGS" >> $GITHUB_ENV
-
-      - name: Install Rust
-        run: |
-          rustup toolchain install stable nightly --profile minimal -t ${{ matrix.target }}
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: "${{ matrix.target }}-${{ matrix.feature-unrar }}-${{ matrix.feature-use-zstd-thin }}-${{ matrix.feature-unrar }}"
-
-      - name: Test on stable
-        # there's no way to run tests for ARM64 Windows for now
-        if: matrix.target != 'aarch64-pc-windows-msvc'
-        run: |
-          ${{ env.CARGO }} +stable test --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
-
-      - name: Release on nightly
-        run: |
-          ${{ env.CARGO }} +nightly build --release --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
-        env:
-          OUCH_ARTIFACTS_FOLDER: artifacts
-          RUSTFLAGS: -C strip=symbols
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ouch-${{ matrix.target }}-${{ steps.concat-features.outputs.FEATURES }}
-          path: |
-            target/${{ matrix.target }}/release/ouch
-            target/${{ matrix.target }}/release/ouch.exe
-            artifacts/
+  build-and-test:
+    uses: ouch-org/ouch/.github/workflows/build-artifacts-and-run-tests.yml@main
+    with:
+      matrix_all_combinations: false
+      upload_artifacts: false

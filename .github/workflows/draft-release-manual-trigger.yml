@@ -1,8 +1,4 @@
-# we have two workflows for releases, this is the manual one to be triggered
-# in the Actions tab in the repository
-#
-# the automatic one runs in another workflow and checks for tag pushes
-name: manual-trigger-draft-release
+name: Manual trigger draft release
 
 on:
   workflow_dispatch:
