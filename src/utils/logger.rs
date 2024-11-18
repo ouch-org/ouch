@@ -1,9 +1,15 @@
-use std::sync::{mpsc, OnceLock};
+use std::sync::{mpsc, Arc, Barrier, OnceLock};
 
 pub use logger_thread::spawn_logger_thread;
 
 use super::colors::{ORANGE, RESET, YELLOW};
 use crate::accessible::is_running_in_accessible_mode;
+
+/// Asks logger to flush all messages, useful before starting STDIN interaction.
+#[track_caller]
+pub fn flush_messages() {
+    logger_thread::send_flush_message_and_wait();
+}
 
 /// An `[INFO]` log to be displayed if we're not running accessibility mode.
 ///
@@ -49,6 +55,7 @@ pub fn warning(contents: String) {
 
 #[derive(Debug)]
 enum Message {
+    Flush { finished_barrier: Arc<Barrier> },
     FlushAndShutdown,
     PrintMessage(PrintMessage),
 }
@@ -134,6 +141,19 @@ mod logger_thread {
             .expect("Failed to send shutdown message");
     }
 
+    #[track_caller]
+    pub(super) fn send_flush_message_and_wait() {
+        let barrier = Arc::new(Barrier::new(2));
+
+        get_sender()
+            .send(Message::Flush {
+                finished_barrier: barrier.clone(),
+            })
+            .expect("Failed to send shutdown message");
+
+        barrier.wait();
+    }
+
     pub struct LoggerThreadHandle {
         shutdown_barrier: Arc<Barrier>,
     }
@@ -173,7 +193,7 @@ mod logger_thread {
     }
 
     fn run_logger(log_receiver: LogReceiver, shutdown_barrier: Arc<Barrier>) {
-        const FLUSH_TIMEOUT: Duration = Duration::from_millis(250);
+        const FLUSH_TIMEOUT: Duration = Duration::from_millis(200);
 
         let mut buffer = Vec::<String>::with_capacity(16);
 
@@ -200,6 +220,11 @@ mod logger_thread {
                 }
                 Message::FlushAndShutdown => {
                     flush_logs_to_stderr(&mut buffer);
+                    break;
+                }
+                Message::Flush { finished_barrier } => {
+                    flush_logs_to_stderr(&mut buffer);
+                    finished_barrier.wait();
                     break;
                 }
             }
