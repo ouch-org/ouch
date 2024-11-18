@@ -20,7 +20,7 @@ use crate::{
     error::FinalError,
     list::FileInArchive,
     utils::{
-        self, cd_into_same_dir_as, get_invalid_utf8_paths,
+        cd_into_same_dir_as, get_invalid_utf8_paths,
         logger::{info, info_accessible, warning},
         pretty_format_list_of_paths, strip_cur_dir, Bytes, EscapedPathDisplay, FileVisibilityPolicy,
     },
@@ -214,9 +214,8 @@ where
             let metadata = match path.metadata() {
                 Ok(metadata) => metadata,
                 Err(e) => {
-                    if e.kind() == std::io::ErrorKind::NotFound && utils::is_symlink(path) {
-                        // This path is for a broken symlink
-                        // We just ignore it
+                    if e.kind() == std::io::ErrorKind::NotFound && path.is_symlink() {
+                        // This path is for a broken symlink, ignore it
                         continue;
                     }
                     return Err(e.into());

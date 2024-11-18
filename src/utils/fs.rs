@@ -146,13 +146,3 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
         None
     }
 }
-
-/// Returns true if a path is a symlink.
-///
-/// This is the same as the nightly <https://doc.rust-lang.org/std/path/struct.Path.html#method.is_symlink>
-/// Useful to detect broken symlinks when compressing. (So we can safely ignore them)
-pub fn is_symlink(path: &Path) -> bool {
-    fs::symlink_metadata(path)
-        .map(|m| m.file_type().is_symlink())
-        .unwrap_or(false)
-}
