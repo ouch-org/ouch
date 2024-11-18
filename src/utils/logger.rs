@@ -218,13 +218,12 @@ mod logger_thread {
                         flush_logs_to_stderr(&mut buffer);
                     }
                 }
-                LoggerCommand::FlushAndShutdown => {
-                    flush_logs_to_stderr(&mut buffer);
-                    break;
-                }
                 LoggerCommand::Flush { finished_barrier } => {
                     flush_logs_to_stderr(&mut buffer);
                     finished_barrier.wait();
+                }
+                LoggerCommand::FlushAndShutdown => {
+                    flush_logs_to_stderr(&mut buffer);
                     break;
                 }
             }
