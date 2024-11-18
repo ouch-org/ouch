@@ -105,7 +105,7 @@ where
 pub fn list_archive<R>(
     mut archive: ZipArchive<R>,
     password: Option<&[u8]>,
-) -> crate::Result<impl Iterator<Item = crate::Result<FileInArchive>>>
+) -> impl Iterator<Item = crate::Result<FileInArchive>>
 where
     R: Read + Seek + Send + 'static,
 {
@@ -145,7 +145,7 @@ where
         }
     });
 
-    Ok(Files(rx))
+    Files(rx)
 }
 
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.

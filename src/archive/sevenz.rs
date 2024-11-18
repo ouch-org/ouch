@@ -12,7 +12,7 @@ use same_file::Handle;
 use sevenz_rust::SevenZArchiveEntry;
 
 use crate::{
-    error::{Error, FinalError},
+    error::{Error, FinalError, Result},
     list::FileInArchive,
     utils::{
         cd_into_same_dir_as,
@@ -174,7 +174,7 @@ where
 pub fn list_archive(
     archive_path: &Path,
     password: Option<&[u8]>,
-) -> crate::Result<impl Iterator<Item = crate::Result<FileInArchive>>> {
+) -> Result<impl Iterator<Item = crate::Result<FileInArchive>>> {
     let reader = fs::File::open(archive_path)?;
 
     let mut files = Vec::new();
@@ -187,7 +187,7 @@ pub fn list_archive(
         Ok(true)
     };
 
-    let result = match password {
+    match password {
         Some(password) => {
             let password = match password.to_str() {
                 Ok(p) => p,
@@ -202,13 +202,9 @@ pub fn list_archive(
                 ".",
                 sevenz_rust::Password::from(password),
                 entry_extract_fn,
-            )
+            )?;
         }
-        None => sevenz_rust::decompress_with_extract_fn(reader, ".", entry_extract_fn),
-    };
-
-    if let Err(e) = result {
-        return Err(e.into());
+        None => sevenz_rust::decompress_with_extract_fn(reader, ".", entry_extract_fn)?,
     }
 
     Ok(files.into_iter())

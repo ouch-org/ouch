@@ -54,7 +54,7 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) 
 /// List contents of `archive`, returning a vector of archive entries
 pub fn list_archive(
     mut archive: tar::Archive<impl Read + Send + 'static>,
-) -> crate::Result<impl Iterator<Item = crate::Result<FileInArchive>>> {
+) -> impl Iterator<Item = crate::Result<FileInArchive>> {
     struct Files(Receiver<crate::Result<FileInArchive>>);
     impl Iterator for Files {
         type Item = crate::Result<FileInArchive>;
@@ -77,7 +77,7 @@ pub fn list_archive(
         }
     });
 
-    Ok(Files(rx))
+    Files(rx)
 }
 
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.
