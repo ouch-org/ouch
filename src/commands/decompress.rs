@@ -260,7 +260,8 @@ fn smart_unpack(
     let files = unpack_fn(temp_dir_path)?;
 
     let root_contains_only_one_element = fs::read_dir(temp_dir_path)?.count() == 1;
-    if root_contains_only_one_element {
+
+    let (previous_path, new_path) = if root_contains_only_one_element {
         // Only one file in the root directory, so we can just move it to the output directory
         let file = fs::read_dir(temp_dir_path)?.next().expect("item exists")?;
         let file_path = file.path();
@@ -268,31 +269,24 @@ fn smart_unpack(
             .file_name()
             .expect("Should be safe because paths in archives should not end with '..'");
         let correct_path = output_dir.join(file_name);
-        // Before moving, need to check if a file with the same name already exists
-        if !utils::clear_path(&correct_path, question_policy)? {
-            return Ok(ControlFlow::Break(()));
-        }
-        fs::rename(&file_path, &correct_path)?;
 
-        info_accessible(format!(
-            "Successfully moved {} to {}.",
-            nice_directory_display(&file_path),
-            nice_directory_display(&correct_path)
-        ));
+        (file_path, correct_path)
     } else {
-        // Multiple files in the root directory, so:
-        // Rename the temporary directory to the archive name, which is output_file_path
-        // One case to handle tough is we need to check if a file with the same name already exists
-        if !utils::clear_path(output_file_path, question_policy)? {
-            return Ok(ControlFlow::Break(()));
-        }
-        fs::rename(temp_dir_path, output_file_path)?;
-        info_accessible(format!(
-            "Successfully moved {} to {}.",
-            nice_directory_display(temp_dir_path),
-            nice_directory_display(output_file_path)
-        ));
+        (temp_dir_path.to_owned(), output_file_path.to_owned())
+    };
+
+    // Before moving, need to check if a file with the same name already exists
+    if !utils::clear_path(&new_path, question_policy)? {
+        return Ok(ControlFlow::Break(()));
     }
+
+    // Rename the temporary directory to the archive name, which is output_file_path
+    fs::rename(&previous_path, &new_path)?;
+    info_accessible(format!(
+        "Successfully moved {} to {}.",
+        nice_directory_display(&previous_path),
+        nice_directory_display(&new_path),
+    ));
 
     Ok(ControlFlow::Continue(files))
 }
