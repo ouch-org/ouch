@@ -131,9 +131,8 @@ where
                 let mut file = match fs::File::open(path) {
                     Ok(f) => f,
                     Err(e) => {
-                        if e.kind() == std::io::ErrorKind::NotFound && utils::is_symlink(path) {
-                            // This path is for a broken symlink
-                            // We just ignore it
+                        if e.kind() == std::io::ErrorKind::NotFound && path.is_symlink() {
+                            // This path is for a broken symlink, ignore it
                             continue;
                         }
                         return Err(e.into());
