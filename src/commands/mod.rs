@@ -111,7 +111,7 @@ pub fn run(
                 // having a final status message is important especially in an accessibility context
                 // as screen readers may not read a commands exit code, making it hard to reason
                 // about whether the command succeeded without such a message
-                info_accessible(format!("Successfully compressed '{}'.", path_to_str(&output_path)));
+                info_accessible(format!("Successfully compressed '{}'", path_to_str(&output_path)));
             } else {
                 // If Ok(false) or Err() occurred, delete incomplete file at `output_path`
                 //
