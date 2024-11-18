@@ -5,6 +5,12 @@ pub use logger_thread::spawn_logger_thread;
 use super::colors::{ORANGE, RESET, YELLOW};
 use crate::accessible::is_running_in_accessible_mode;
 
+/// Asks logger to shutdown and waits till it flushes all pending messages.
+#[track_caller]
+pub fn shutdown_logger_and_wait() {
+    logger_thread::send_shutdown_command_and_wait();
+}
+
 /// Asks logger to flush all messages, useful before starting STDIN interaction.
 #[track_caller]
 pub fn flush_messages() {
@@ -57,7 +63,7 @@ pub fn warning(contents: String) {
 enum LoggerCommand {
     Print(PrintMessage),
     Flush { finished_barrier: Arc<Barrier> },
-    FlushAndShutdown,
+    FlushAndShutdown { finished_barrier: Arc<Barrier> },
 }
 
 /// Message object used for sending logs from worker threads to a logging thread via channels.
@@ -135,13 +141,6 @@ mod logger_thread {
     }
 
     #[track_caller]
-    fn send_shutdown_message() {
-        get_sender()
-            .send(LoggerCommand::FlushAndShutdown)
-            .expect("Failed to send shutdown message");
-    }
-
-    #[track_caller]
     pub(super) fn send_flush_message_and_wait() {
         let barrier = Arc::new(Barrier::new(2));
 
@@ -154,45 +153,25 @@ mod logger_thread {
         barrier.wait();
     }
 
-    pub struct LoggerThreadHandle {
-        shutdown_barrier: Arc<Barrier>,
+    #[track_caller]
+    pub(super) fn send_shutdown_command_and_wait() {
+        let barrier = Arc::new(Barrier::new(2));
+
+        get_sender()
+            .send(LoggerCommand::FlushAndShutdown {
+                finished_barrier: barrier.clone(),
+            })
+            .expect("Failed to send shutdown message");
+
+        barrier.wait();
     }
 
-    impl LoggerThreadHandle {
-        /// Tell logger to shutdown and waits till it does.
-        pub fn shutdown_and_wait(self) {
-            // Signal the shutdown
-            send_shutdown_message();
-            // Wait for confirmation
-            self.shutdown_barrier.wait();
-        }
-    }
-
-    #[cfg(test)]
-    // shutdown_and_wait must be called manually, but to keep 'em clean, in
-    // case of tests just do it on drop
-    impl Drop for LoggerThreadHandle {
-        fn drop(&mut self) {
-            send_shutdown_message();
-            self.shutdown_barrier.wait();
-        }
-    }
-
-    pub fn spawn_logger_thread() -> LoggerThreadHandle {
+    pub fn spawn_logger_thread() {
         let log_receiver = setup_channel();
-
-        let shutdown_barrier = Arc::new(Barrier::new(2));
-
-        let handle = LoggerThreadHandle {
-            shutdown_barrier: shutdown_barrier.clone(),
-        };
-
-        rayon::spawn(move || run_logger(log_receiver, shutdown_barrier));
-
-        handle
+        rayon::spawn(move || run_logger(log_receiver));
     }
 
-    fn run_logger(log_receiver: LogReceiver, shutdown_barrier: Arc<Barrier>) {
+    fn run_logger(log_receiver: LogReceiver) {
         const FLUSH_TIMEOUT: Duration = Duration::from_millis(200);
 
         let mut buffer = Vec::<String>::with_capacity(16);
@@ -222,14 +201,13 @@ mod logger_thread {
                     flush_logs_to_stderr(&mut buffer);
                     finished_barrier.wait();
                 }
-                LoggerCommand::FlushAndShutdown => {
+                LoggerCommand::FlushAndShutdown { finished_barrier } => {
                     flush_logs_to_stderr(&mut buffer);
-                    break;
+                    finished_barrier.wait();
+                    return;
                 }
             }
         }
-
-        shutdown_barrier.wait();
     }
 
     fn flush_logs_to_stderr(buffer: &mut Vec<String>) {
