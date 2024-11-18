@@ -32,7 +32,7 @@ pub enum Error {
     PermissionDenied { error_title: String },
     /// From zip::result::ZipError::UnsupportedArchive
     UnsupportedZipArchive(&'static str),
-    /// TO BE REMOVED
+    /// We don't support compressing the root folder.
     CompressingRootFolder,
     /// Specialized walkdir's io::Error wrapper with additional information on the error
     WalkdirError { reason: String },
