@@ -14,7 +14,7 @@ pub fn shutdown_logger_and_wait() {
 /// Asks logger to flush all messages, useful before starting STDIN interaction.
 #[track_caller]
 pub fn flush_messages() {
-    logger_thread::send_flush_message_and_wait();
+    logger_thread::send_flush_command_and_wait();
 }
 
 /// An `[INFO]` log to be displayed if we're not running accessibility mode.
@@ -42,7 +42,7 @@ pub fn info_accessible(contents: String) {
 
 #[track_caller]
 fn info_with_accessibility(contents: String, accessible: bool) {
-    logger_thread::send_log_message(PrintMessage {
+    logger_thread::send_print_command(PrintMessage {
         contents,
         accessible,
         level: MessageLevel::Info,
@@ -51,7 +51,7 @@ fn info_with_accessibility(contents: String, accessible: bool) {
 
 #[track_caller]
 pub fn warning(contents: String) {
-    logger_thread::send_log_message(PrintMessage {
+    logger_thread::send_print_command(PrintMessage {
         contents,
         // Warnings are important and unlikely to flood, so they should be displayed
         accessible: true,
@@ -76,7 +76,7 @@ struct PrintMessage {
 }
 
 impl PrintMessage {
-    fn to_processed_message(&self) -> Option<String> {
+    fn to_formatted_message(&self) -> Option<String> {
         match self.level {
             MessageLevel::Info => {
                 if self.accessible {
@@ -134,21 +134,21 @@ mod logger_thread {
     }
 
     #[track_caller]
-    pub(super) fn send_log_message(msg: PrintMessage) {
+    pub(super) fn send_print_command(msg: PrintMessage) {
         get_sender()
             .send(LoggerCommand::Print(msg))
-            .expect("Failed to send print message");
+            .expect("Failed to send print command");
     }
 
     #[track_caller]
-    pub(super) fn send_flush_message_and_wait() {
+    pub(super) fn send_flush_command_and_wait() {
         let barrier = Arc::new(Barrier::new(2));
 
         get_sender()
             .send(LoggerCommand::Flush {
                 finished_barrier: barrier.clone(),
             })
-            .expect("Failed to send shutdown message");
+            .expect("Failed to send flush command");
 
         barrier.wait();
     }
@@ -161,7 +161,7 @@ mod logger_thread {
             .send(LoggerCommand::FlushAndShutdown {
                 finished_barrier: barrier.clone(),
             })
-            .expect("Failed to send shutdown message");
+            .expect("Failed to send shutdown command");
 
         barrier.wait();
     }
@@ -189,7 +189,7 @@ mod logger_thread {
             match msg {
                 LoggerCommand::Print(msg) => {
                     // Append message to buffer
-                    if let Some(msg) = msg.to_processed_message() {
+                    if let Some(msg) = msg.to_formatted_message() {
                         buffer.push(msg);
                     }
 
