@@ -6,7 +6,7 @@ on:
       - "*.md"
 
 jobs:
-  rustfmt-check:
+  rustfmt-nightly-check:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

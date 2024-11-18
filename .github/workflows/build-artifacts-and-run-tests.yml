@@ -116,7 +116,7 @@ jobs:
 
       - name: Install Rust
         run: |
-          rustup toolchain install stable nightly --profile minimal -t ${{ matrix.target }}
+          rustup toolchain install stable --profile minimal -t ${{ matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -126,14 +126,13 @@ jobs:
         # there's no way to run tests for ARM64 Windows for now
         if: matrix.target != 'aarch64-pc-windows-msvc'
         run: |
-          ${{ env.CARGO }} +stable test --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
+          ${{ env.CARGO }} +stable test --release --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
 
-      - name: Release on nightly
+      - name: Build artifacts (binary and completions)
         run: |
-          ${{ env.CARGO }} +nightly build --release --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
+          ${{ env.CARGO }} +stable build --release --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
         env:
           OUCH_ARTIFACTS_FOLDER: artifacts
-          RUSTFLAGS: -C strip=symbols
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
