@@ -78,7 +78,7 @@ pub fn decompress_file(
         // as screen readers may not read a commands exit code, making it hard to reason
         // about whether the command succeeded without such a message
         info_accessible(format!(
-            "Successfully decompressed archive in {} ({} files).",
+            "Successfully decompressed archive in {} ({} files)",
             nice_directory_display(output_dir),
             files_unpacked
         ));
@@ -228,7 +228,7 @@ pub fn decompress_file(
     // as screen readers may not read a commands exit code, making it hard to reason
     // about whether the command succeeded without such a message
     info_accessible(format!(
-        "Successfully decompressed archive in {}.",
+        "Successfully decompressed archive in {}",
         nice_directory_display(output_dir)
     ));
     info_accessible(format!("Files unpacked: {}", files_unpacked));
@@ -253,7 +253,7 @@ fn smart_unpack(
     let temp_dir_path = temp_dir.path();
 
     info_accessible(format!(
-        "Created temporary directory {} to hold decompressed elements.",
+        "Created temporary directory {} to hold decompressed elements",
         nice_directory_display(temp_dir_path)
     ));
 
@@ -283,7 +283,7 @@ fn smart_unpack(
     // Rename the temporary directory to the archive name, which is output_file_path
     fs::rename(&previous_path, &new_path)?;
     info_accessible(format!(
-        "Successfully moved \"{}\" to \"{}\".",
+        "Successfully moved \"{}\" to \"{}\"",
         nice_directory_display(&previous_path),
         nice_directory_display(&new_path),
     ));

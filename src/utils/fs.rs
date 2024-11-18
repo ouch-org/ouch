@@ -49,7 +49,7 @@ pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
         fs::create_dir_all(path)?;
         // creating a directory is an important change to the file system we
         // should always inform the user about
-        info_accessible(format!("Directory {} created.", EscapedPathDisplay::new(path)));
+        info_accessible(format!("Directory {} created", EscapedPathDisplay::new(path)));
     }
     Ok(())
 }

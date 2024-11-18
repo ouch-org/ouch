@@ -197,7 +197,7 @@ where
             if let Ok(handle) = &output_handle {
                 if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
                     warning(format!(
-                        "Cannot compress `{}` into itself, skipping.",
+                        "Cannot compress `{}` into itself, skipping",
                         output_path.display()
                     ));
                 }
@@ -208,7 +208,7 @@ where
             // spoken text for users using screen readers, braille displays
             // and so on
             if !quiet {
-                info(format!("Compressing '{}'.", EscapedPathDisplay::new(path)));
+                info(format!("Compressing '{}'", EscapedPathDisplay::new(path)));
             }
 
             let metadata = match path.metadata() {
