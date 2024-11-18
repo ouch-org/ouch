@@ -3,7 +3,7 @@ name: PR workflow
 on:
   pull_request:
     paths-ignore:
-      - "*.md"
+      - "**/*.md"
 
 jobs:
   rustfmt-check:
