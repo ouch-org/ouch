@@ -54,10 +54,10 @@ pub fn warning(contents: String) {
 }
 
 #[derive(Debug)]
-enum Message {
+enum LoggerCommand {
+    Print(PrintMessage),
     Flush { finished_barrier: Arc<Barrier> },
     FlushAndShutdown,
-    PrintMessage(PrintMessage),
 }
 
 /// Message object used for sending logs from worker threads to a logging thread via channels.
@@ -110,8 +110,8 @@ mod logger_thread {
 
     use super::*;
 
-    type LogReceiver = mpsc::Receiver<Message>;
-    type LogSender = mpsc::Sender<Message>;
+    type LogReceiver = mpsc::Receiver<LoggerCommand>;
+    type LogSender = mpsc::Sender<LoggerCommand>;
 
     static SENDER: OnceLock<LogSender> = OnceLock::new();
 
@@ -130,14 +130,14 @@ mod logger_thread {
     #[track_caller]
     pub(super) fn send_log_message(msg: PrintMessage) {
         get_sender()
-            .send(Message::PrintMessage(msg))
+            .send(LoggerCommand::Print(msg))
             .expect("Failed to send print message");
     }
 
     #[track_caller]
     fn send_shutdown_message() {
         get_sender()
-            .send(Message::FlushAndShutdown)
+            .send(LoggerCommand::FlushAndShutdown)
             .expect("Failed to send shutdown message");
     }
 
@@ -146,7 +146,7 @@ mod logger_thread {
         let barrier = Arc::new(Barrier::new(2));
 
         get_sender()
-            .send(Message::Flush {
+            .send(LoggerCommand::Flush {
                 finished_barrier: barrier.clone(),
             })
             .expect("Failed to send shutdown message");
@@ -208,7 +208,7 @@ mod logger_thread {
             };
 
             match msg {
-                Message::PrintMessage(msg) => {
+                LoggerCommand::Print(msg) => {
                     // Append message to buffer
                     if let Some(msg) = msg.to_processed_message() {
                         buffer.push(msg);
@@ -218,11 +218,11 @@ mod logger_thread {
                         flush_logs_to_stderr(&mut buffer);
                     }
                 }
-                Message::FlushAndShutdown => {
+                LoggerCommand::FlushAndShutdown => {
                     flush_logs_to_stderr(&mut buffer);
                     break;
                 }
-                Message::Flush { finished_barrier } => {
+                LoggerCommand::Flush { finished_barrier } => {
                     flush_logs_to_stderr(&mut buffer);
                     finished_barrier.wait();
                     break;
