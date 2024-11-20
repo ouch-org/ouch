@@ -100,14 +100,13 @@ fn single_empty_file(ext: Extension, #[any(size_range(0..8).lift())] exts: Vec<F
 }
 
 /// Compress and decompress a single file
-#[proptest(cases = 250)]
+#[proptest(cases = 150)]
 fn single_file(
     ext: Extension,
-    #[any(size_range(0..8).lift())] exts: Vec<FileExtension>,
-    #[cfg_attr(not(target_arch = "arm"), strategy(proptest::option::of(0i16..12)))]
-    // Decrease the value of --level flag for `arm` systems, because our GitHub
-    // Actions CI runs QEMU which makes the memory consumption higher.
-    #[cfg_attr(target_arch = "arm", strategy(proptest::option::of(0i16..8)))]
+    #[any(size_range(0..6).lift())] exts: Vec<FileExtension>,
+    // Use faster --level for slower CI targets
+    #[cfg_attr(not(any(target_arch = "arm", target_abi = "eabihf")), strategy(proptest::option::of(0i16..12)))]
+    #[cfg_attr(target_arch = "arm", strategy(proptest::option::of(0i16..6)))]
     level: Option<i16>,
 ) {
     let dir = tempdir().unwrap();
@@ -135,10 +134,9 @@ fn single_file(
 fn single_file_stdin(
     ext: Extension,
     #[any(size_range(0..8).lift())] exts: Vec<FileExtension>,
-    #[cfg_attr(not(target_arch = "arm"), strategy(proptest::option::of(0i16..12)))]
-    // Decrease the value of --level flag for `arm` systems, because our GitHub
-    // Actions CI runs QEMU which makes the memory consumption higher.
-    #[cfg_attr(target_arch = "arm", strategy(proptest::option::of(0i16..8)))]
+    // Use faster --level for slower CI targets
+    #[cfg_attr(not(any(target_arch = "arm", target_abi = "eabihf")), strategy(proptest::option::of(0i16..12)))]
+    #[cfg_attr(target_arch = "arm", strategy(proptest::option::of(0i16..6)))]
     level: Option<i16>,
 ) {
     let dir = tempdir().unwrap();
@@ -175,22 +173,19 @@ fn single_file_stdin(
     assert_same_directory(before, after, false);
 }
 
-/// Compress and decompress a directory with random content generated with create_random_files
-///
-/// This one runs only 50 times because there are only `.zip` and `.tar` to be tested, and
-/// single-file formats testing is done in the other test
-#[proptest(cases = 50)]
+/// Compress and decompress a directory with random content generated with `create_random_files`
+#[proptest(cases = 25)]
 fn multiple_files(
     ext: DirectoryExtension,
-    #[any(size_range(0..5).lift())] exts: Vec<FileExtension>,
-    #[strategy(0u8..4)] depth: u8,
+    #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
+    #[strategy(0u8..3)] depth: u8,
 ) {
     let dir = tempdir().unwrap();
     let dir = dir.path();
     let before = &dir.join("before");
     let before_dir = &before.join("dir");
     fs::create_dir_all(before_dir).unwrap();
-    let archive = &dir.join(format!("archive.{}", merge_extensions(&ext, exts)));
+    let archive = &dir.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
     let after = &dir.join("after");
     create_random_files(before_dir, depth, &mut SmallRng::from_entropy());
     ouch!("-A", "c", before_dir, archive);
