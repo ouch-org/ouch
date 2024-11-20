@@ -2,4 +2,4 @@
 source: tests/ui.rs
 expression: "run_ouch(\"ouch compress input output.gz\", dir)"
 ---
-[INFO] Successfully compressed 'output.gz'.
+[INFO] Successfully compressed 'output.gz'
