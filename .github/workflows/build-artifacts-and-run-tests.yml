@@ -126,17 +126,18 @@ jobs:
         # there's no way to run tests for ARM64 Windows for now
         if: matrix.target != 'aarch64-pc-windows-msvc'
         run: |
-          ${{ env.CARGO }} +stable test --release --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
+          ${{ env.CARGO }} +stable test --profile fast --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
 
-      - name: Build artifacts (binary and completions)
+      - name: Build release artifacts (binary and completions)
+        if: ${{ inputs.upload_artifacts }}
         run: |
           ${{ env.CARGO }} +stable build --release --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
         env:
           OUCH_ARTIFACTS_FOLDER: artifacts
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - name: Upload release artifacts
         if: ${{ inputs.upload_artifacts }}
+        uses: actions/upload-artifact@v4
         with:
           name: ouch-${{ matrix.target }}-${{ steps.concat-features.outputs.FEATURES }}
           path: |
