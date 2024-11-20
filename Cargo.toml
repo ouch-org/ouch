@@ -73,8 +73,17 @@ default = ["use_zlib", "use_zstd_thin", "unrar"]
 use_zlib = ["flate2/zlib", "gzp/deflate_zlib", "zip/deflate-zlib"]
 use_zstd_thin = ["zstd/thin"]
 
+# For generating binaries for releases
 [profile.release]
 lto = true
 codegen-units = 1
 opt-level = 3
 strip = true
+
+# When we need a fast binary that compiles slightly faster `release` (useful for CI)
+[profile.fast]
+inherits = "release"
+lto = false
+opt-level = 2
+incremental = true
+codegen-units = 16
