@@ -1,7 +1,10 @@
 [package]
 name = "ouch"
 version = "0.5.1"
-authors = ["Vinícius Rodrigues Miguel <vrmiguel99@gmail.com>", "João M. Bezerra <marcospb19@hotmail.com>"]
+authors = [
+    "João M. Bezerra <marcospb19@hotmail.com>",
+    "Vinícius Rodrigues Miguel <vrmiguel99@gmail.com>",
+]
 edition = "2021"
 readme = "README.md"
 repository = "https://github.com/ouch-org/ouch"
@@ -20,7 +23,9 @@ clap = { version = "4.5.20", features = ["derive", "env"] }
 filetime_creation = "0.2"
 flate2 = { version = "1.0.30", default-features = false }
 fs-err = "2.11.0"
-gzp = { version = "0.11.3", default-features = false, features = ["snappy_default"] }
+gzp = { version = "0.11.3", default-features = false, features = [
+    "snappy_default",
+] }
 ignore = "0.4.23"
 libc = "0.2.155"
 linked-hash-map = "0.5.6"
@@ -36,8 +41,11 @@ tempfile = "3.10.1"
 time = { version = "0.3.36", default-features = false }
 unrar = { version = "0.5.6", optional = true }
 xz2 = "0.1.7"
-zip = { version = "0.6.6", default-features = false, features = ["time", "aes-crypto"] }
-zstd = { version = "0.13.2", default-features = false, features = ["zstdmt"]}
+zip = { version = "0.6.6", default-features = false, features = [
+    "time",
+    "aes-crypto",
+] }
+zstd = { version = "0.13.2", default-features = false, features = ["zstdmt"] }
 
 [target.'cfg(not(unix))'.dependencies]
 is_executable = "1.0.1"
@@ -53,7 +61,10 @@ infer = "0.16.0"
 insta = { version = "1.40.0", features = ["filters"] }
 parse-display = "0.9.1"
 proptest = "1.5.0"
-rand = { version = "0.8.5", default-features = false, features = ["small_rng", "std"] }
+rand = { version = "0.8.5", default-features = false, features = [
+    "small_rng",
+    "std",
+] }
 regex = "1.10.4"
 test-strategy = "0.4.0"
 
