@@ -45,6 +45,10 @@ pub struct CliArgs {
     #[arg(short = 'p', long = "password", global = true)]
     pub password: Option<OsString>,
 
+    /// cocurrent working threads
+    #[arg(short = 't', long, global = true)]
+    pub threads: Option<usize>,
+
     // Ouch and claps subcommands
     #[command(subcommand)]
     pub cmd: Subcommand,
@@ -142,6 +146,7 @@ mod tests {
             format: None,
             // This is usually replaced in assertion tests
             password: None,
+            threads: None,
             cmd: Subcommand::Decompress {
                 // Put a crazy value here so no test can assert it unintentionally
                 files: vec!["\x00\x11\x22".into()],
