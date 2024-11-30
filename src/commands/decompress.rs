@@ -162,7 +162,11 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 let _locks = lock_and_flush_output_stdio();
 
                 warn_user_about_loading_zip_in_memory();
-                if !user_wants_to_continue(options.input_file_path, options.question_policy, QuestionAction::Decompression)? {
+                if !user_wants_to_continue(
+                    options.input_file_path,
+                    options.question_policy,
+                    QuestionAction::Decompression,
+                )? {
                     return Ok(());
                 }
             }
@@ -172,7 +176,9 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
 
             if let ControlFlow::Continue(files) = smart_unpack(
-                |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, options.password, options.quiet),
+                |output_dir| {
+                    crate::archive::zip::unpack_archive(zip_archive, output_dir, options.password, options.quiet)
+                },
                 options.output_dir,
                 &options.output_file_path,
                 options.question_policy,
@@ -192,12 +198,22 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                     crate::archive::rar::unpack_archive(temp_file.path(), output_dir, options.password, options.quiet)
                 })
             } else {
-                Box::new(|output_dir| crate::archive::rar::unpack_archive(options.input_file_path, output_dir, options.password, options.quiet))
+                Box::new(|output_dir| {
+                    crate::archive::rar::unpack_archive(
+                        options.input_file_path,
+                        output_dir,
+                        options.password,
+                        options.quiet,
+                    )
+                })
             };
 
-            if let ControlFlow::Continue(files) =
-                smart_unpack(unpack_fn, options.output_dir, &options.output_file_path, options.question_policy)?
-            {
+            if let ControlFlow::Continue(files) = smart_unpack(
+                unpack_fn,
+                options.output_dir,
+                &options.output_file_path,
+                options.question_policy,
+            )? {
                 files
             } else {
                 return Ok(());
@@ -214,7 +230,11 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 let _locks = lock_and_flush_output_stdio();
 
                 warn_user_about_loading_sevenz_in_memory();
-                if !user_wants_to_continue(options.input_file_path, options.question_policy, QuestionAction::Decompression)? {
+                if !user_wants_to_continue(
+                    options.input_file_path,
+                    options.question_policy,
+                    QuestionAction::Decompression,
+                )? {
                     return Ok(());
                 }
             }
@@ -224,7 +244,12 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
 
             if let ControlFlow::Continue(files) = smart_unpack(
                 |output_dir| {
-                    crate::archive::sevenz::decompress_sevenz(io::Cursor::new(vec), output_dir, options.password, options.quiet)
+                    crate::archive::sevenz::decompress_sevenz(
+                        io::Cursor::new(vec),
+                        output_dir,
+                        options.password,
+                        options.quiet,
+                    )
                 },
                 options.output_dir,
                 &options.output_file_path,
