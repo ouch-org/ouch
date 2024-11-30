@@ -187,13 +187,6 @@ pub fn run(
                     } else {
                         output_dir.join(file_name)
                     };
-                    info_accessible(format!(
-                        "begin decompress file ... input_path: {}, formats: {:?}, file_name: {}, output_file_path: {}",
-                        path_to_str(input_path),
-                        formats,
-                        path_to_str(file_name),
-                        path_to_str(&output_file_path)
-                    ));
                     decompress_file(DecompressOptions {
                         input_file_path: input_path,
                         formats,
