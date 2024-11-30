@@ -14,8 +14,11 @@ use crate::{
         Extension,
     },
     utils::{
-        self, io::lock_and_flush_output_stdio, is_path_stdin, logger::info_accessible, nice_directory_display,
-        user_wants_to_continue,
+        self,
+        io::lock_and_flush_output_stdio,
+        is_path_stdin,
+        logger::{info, info_accessible},
+        nice_directory_display, user_wants_to_continue,
     },
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
@@ -37,6 +40,7 @@ pub fn decompress_file(
     question_policy: QuestionPolicy,
     quiet: bool,
     password: Option<&[u8]>,
+    remove: bool,
 ) -> crate::Result<()> {
     assert!(output_dir.exists());
     let input_is_stdin = is_path_stdin(input_file_path);
@@ -82,6 +86,14 @@ pub fn decompress_file(
             nice_directory_display(output_dir),
             files_unpacked
         ));
+
+        if !input_is_stdin && remove {
+            fs::remove_file(input_file_path)?;
+            info(format!(
+                "Removed input file {}",
+                nice_directory_display(input_file_path)
+            ));
+        }
 
         return Ok(());
     }
@@ -232,6 +244,14 @@ pub fn decompress_file(
         nice_directory_display(output_dir)
     ));
     info_accessible(format!("Files unpacked: {}", files_unpacked));
+
+    if !input_is_stdin && remove {
+        fs::remove_file(input_file_path)?;
+        info(format!(
+            "Removed input file {}",
+            nice_directory_display(input_file_path)
+        ));
+    }
 
     Ok(())
 }
