@@ -28,6 +28,13 @@ impl CliArgs {
 
         set_accessible(args.accessible);
 
+        if let Some(threads) = args.threads {
+            rayon::ThreadPoolBuilder::new()
+                .num_threads(threads)
+                .build_global()
+                .unwrap();
+        }
+
         let (Subcommand::Compress { files, .. }
         | Subcommand::Decompress { files, .. }
         | Subcommand::List { archives: files, .. }) = &mut args.cmd;
