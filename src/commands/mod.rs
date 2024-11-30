@@ -134,7 +134,11 @@ pub fn run(
 
             compress_result.map(|_| ())
         }
-        Subcommand::Decompress { files, output_dir } => {
+        Subcommand::Decompress {
+            files,
+            output_dir,
+            remove,
+        } => {
             let mut output_paths = vec![];
             let mut formats = vec![];
 
@@ -182,6 +186,13 @@ pub fn run(
                     } else {
                         output_dir.join(file_name)
                     };
+                    info_accessible(format!(
+                        "begin decompress file ... input_path: {}, formats: {:?}, file_name: {}, output_file_path: {}",
+                        path_to_str(input_path),
+                        formats,
+                        path_to_str(file_name),
+                        path_to_str(&output_file_path)
+                    ));
                     decompress_file(
                         input_path,
                         formats,
@@ -192,6 +203,7 @@ pub fn run(
                         args.password.as_deref().map(|str| {
                             <[u8] as ByteSlice>::from_os_str(str).expect("convert password to bytes failed")
                         }),
+                        remove,
                     )
                 })
         }
