@@ -1,4 +1,5 @@
 use std::sync::{mpsc, Arc, Barrier, OnceLock};
+use std::thread;
 
 pub use logger_thread::spawn_logger_thread;
 
@@ -168,7 +169,7 @@ mod logger_thread {
 
     pub fn spawn_logger_thread() {
         let log_receiver = setup_channel();
-        rayon::spawn(move || run_logger(log_receiver));
+        thread::spawn(move || run_logger(log_receiver));
     }
 
     fn run_logger(log_receiver: LogReceiver) {

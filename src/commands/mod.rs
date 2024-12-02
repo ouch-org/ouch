@@ -53,6 +53,14 @@ pub fn run(
     question_policy: QuestionPolicy,
     file_visibility_policy: FileVisibilityPolicy,
 ) -> crate::Result<()> {
+
+    if let Some(threads) = args.threads {
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(threads)
+            .build_global()
+            .unwrap();
+    }
+
     match args.cmd {
         Subcommand::Compress {
             files,
