@@ -1,5 +1,7 @@
-use std::sync::{mpsc, Arc, Barrier, OnceLock};
-use std::thread;
+use std::{
+    sync::{mpsc, Arc, Barrier, OnceLock},
+    thread,
+};
 
 pub use logger_thread::spawn_logger_thread;
 
