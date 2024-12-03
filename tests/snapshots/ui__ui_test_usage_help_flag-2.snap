@@ -1,6 +1,7 @@
 ---
 source: tests/ui.rs
 expression: "output_to_string(ouch!(\"-h\"))"
+snapshot_kind: text
 ---
 A command-line utility for easily compressing and decompressing files and directories.
 
@@ -21,5 +22,6 @@ Options:
   -g, --gitignore            Ignores files matched by git's ignore files
   -f, --format <FORMAT>      Specify the format of the archive
   -p, --password <PASSWORD>  decompress or list with password
+  -c, --threads <THREADS>    cocurrent working threads
   -h, --help                 Print help (see more with '--help')
   -V, --version              Print version

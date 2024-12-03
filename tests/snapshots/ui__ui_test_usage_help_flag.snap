@@ -1,6 +1,7 @@
 ---
 source: tests/ui.rs
 expression: "output_to_string(ouch!(\"--help\"))"
+snapshot_kind: text
 ---
 A command-line utility for easily compressing and decompressing files and directories.
 
@@ -42,6 +43,9 @@ Options:
 
   -p, --password <PASSWORD>
           decompress or list with password
+
+  -c, --threads <THREADS>
+          cocurrent working threads
 
   -h, --help
           Print help (see a summary with '-h')
