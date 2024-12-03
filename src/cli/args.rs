@@ -90,7 +90,7 @@ pub enum Subcommand {
         output_dir: Option<PathBuf>,
 
         /// Remove the source file after successful decompression
-        #[arg(short = 'r', long, default_value_t = false)]
+        #[arg(short = 'r', long)]
         remove: bool,
     },
     /// List contents of an archive
