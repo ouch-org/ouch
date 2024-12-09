@@ -7,6 +7,7 @@ mod list;
 use std::{ops::ControlFlow, path::PathBuf};
 
 use bstr::ByteSlice;
+use decompress::DecompressOptions;
 use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use utils::colors;
 
@@ -134,7 +135,11 @@ pub fn run(
 
             compress_result.map(|_| ())
         }
-        Subcommand::Decompress { files, output_dir } => {
+        Subcommand::Decompress {
+            files,
+            output_dir,
+            remove,
+        } => {
             let mut output_paths = vec![];
             let mut formats = vec![];
 
@@ -182,17 +187,18 @@ pub fn run(
                     } else {
                         output_dir.join(file_name)
                     };
-                    decompress_file(
-                        input_path,
+                    decompress_file(DecompressOptions {
+                        input_file_path: input_path,
                         formats,
-                        &output_dir,
+                        output_dir: &output_dir,
                         output_file_path,
                         question_policy,
-                        args.quiet,
-                        args.password.as_deref().map(|str| {
+                        quiet: args.quiet,
+                        password: args.password.as_deref().map(|str| {
                             <[u8] as ByteSlice>::from_os_str(str).expect("convert password to bytes failed")
                         }),
-                    )
+                        remove,
+                    })
                 })
         }
         Subcommand::List { archives: files, tree } => {
