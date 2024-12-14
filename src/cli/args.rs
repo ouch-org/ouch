@@ -92,6 +92,10 @@ pub enum Subcommand {
         /// Place results in a directory other than the current one
         #[arg(short = 'd', long = "dir", value_hint = ValueHint::FilePath)]
         output_dir: Option<PathBuf>,
+
+        /// Remove the source file after successful decompression
+        #[arg(short = 'r', long)]
+        remove: bool,
     },
     /// List contents of an archive
     #[command(visible_aliases = ["l", "ls"])]
@@ -147,6 +151,7 @@ mod tests {
                 // Put a crazy value here so no test can assert it unintentionally
                 files: vec!["\x00\x11\x22".into()],
                 output_dir: None,
+                remove: false,
             },
         }
     }
@@ -159,6 +164,7 @@ mod tests {
                 cmd: Subcommand::Decompress {
                     files: to_paths(["file.tar.gz"]),
                     output_dir: None,
+                    remove: false,
                 },
                 ..mock_cli_args()
             }
@@ -169,6 +175,7 @@ mod tests {
                 cmd: Subcommand::Decompress {
                     files: to_paths(["file.tar.gz"]),
                     output_dir: None,
+                    remove: false,
                 },
                 ..mock_cli_args()
             }
@@ -179,6 +186,7 @@ mod tests {
                 cmd: Subcommand::Decompress {
                     files: to_paths(["a", "b", "c"]),
                     output_dir: None,
+                    remove: false,
                 },
                 ..mock_cli_args()
             }
