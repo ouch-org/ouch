@@ -44,6 +44,7 @@ enum FileExtension {
     Sz,
     Xz,
     Zst,
+    Br,
 }
 
 #[derive(Arbitrary, Debug, Display)]

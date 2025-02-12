@@ -25,6 +25,7 @@ Categories Used:
 - Add multithreading support for `zstd` compression [\#689](https://github.com/ouch-org/ouch/pull/689) ([nalabrie](https://github.com/nalabrie))
 - Add `bzip3` support [\#522](https://github.com/ouch-org/ouch/pull/522) ([freijon](https://github.com/freijon))
 - Add `--remove` flag for decompression subcommand to remove files after successful decompression [\#757](https://github.com/ouch-org/ouch/pull/757) ([ttys3](https://github.com/ttys3))
+- Add `br` (Brotli) support [\#765](https://github.com/ouch-org/ouch/pull/765) ([killercup](https://github.com/killercup))
 
 ### Bug Fixes
 

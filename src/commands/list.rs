@@ -55,6 +55,7 @@ pub fn list_archive_contents(
                 Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
                 Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
                 Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
+                Brotli => Box::new(brotli::Decompressor::new(decoder, BUFFER_CAPACITY)),
                 Tar | Zip | Rar | SevenZip => unreachable!(),
             };
             Ok(decoder)
@@ -112,7 +113,7 @@ pub fn list_archive_contents(
 
             Box::new(sevenz::list_archive(archive_path, password)?)
         }
-        Gzip | Bzip | Bzip3 | Lz4 | Lzma | Snappy | Zstd => {
+        Gzip | Bzip | Bzip3 | Lz4 | Lzma | Snappy | Zstd | Brotli => {
             panic!("Not an archive! This should never happen, if it does, something is wrong with `CompressionFormat::is_archive()`. Please report this error!");
         }
     };

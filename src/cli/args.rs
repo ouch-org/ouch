@@ -5,7 +5,7 @@ use clap::{Parser, ValueHint};
 // Ouch command line options (docstrings below are part of --help)
 /// A command-line utility for easily compressing and decompressing files and directories.
 ///
-/// Supported formats: tar, zip, gz, 7z, xz/lzma, bz/bz2, bz3, lz4, sz (Snappy), zst and rar.
+/// Supported formats: tar, zip, gz, 7z, xz/lzma, bz/bz2, bz3, lz4, sz (Snappy), zst, rar and br.
 ///
 /// Repository: https://github.com/ouch-org/ouch
 #[derive(Parser, Debug, PartialEq)]
