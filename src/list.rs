@@ -1,7 +1,7 @@
 //! Some implementation helpers related to the 'list' command.
 
 use std::{
-    io::{stdout, Write},
+    io::{stdout, BufWriter, Write},
     path::{Path, PathBuf},
 };
 
@@ -32,16 +32,16 @@ pub fn list_files(
     files: impl IntoIterator<Item = crate::Result<FileInArchive>>,
     list_options: ListOptions,
 ) -> crate::Result<()> {
-    let out = &mut stdout().lock();
+    let mut out = BufWriter::new(stdout().lock());
     let _ = writeln!(out, "Archive: {}", EscapedPathDisplay::new(archive));
 
     if list_options.tree {
         let tree = files.into_iter().collect::<crate::Result<Tree>>()?;
-        tree.print(out);
+        tree.print(&mut out);
     } else {
         for file in files {
             let FileInArchive { path, is_dir } = file?;
-            print_entry(out, EscapedPathDisplay::new(&path), is_dir);
+            print_entry(&mut out, EscapedPathDisplay::new(&path), is_dir);
         }
     }
     Ok(())
@@ -143,7 +143,7 @@ mod tree {
                 false => draw::FINAL_BRANCH,
             };
 
-            print!("{prefix}{final_part}");
+            let _ = write!(out, "{prefix}{final_part}");
             let is_dir = match self.file {
                 Some(FileInArchive { is_dir, .. }) => is_dir,
                 None => true,
