@@ -22,6 +22,6 @@ Options:
   -g, --gitignore            Ignores files matched by git's ignore files
   -f, --format <FORMAT>      Specify the format of the archive
   -p, --password <PASSWORD>  decompress or list with password
-  -c, --threads <THREADS>    cocurrent working threads
+  -c, --threads <THREADS>    concurrent working threads
   -h, --help                 Print help (see more with '--help')
   -V, --version              Print version

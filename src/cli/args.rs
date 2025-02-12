@@ -45,7 +45,7 @@ pub struct CliArgs {
     #[arg(short = 'p', long = "password", global = true)]
     pub password: Option<OsString>,
 
-    /// cocurrent working threads
+    /// concurrent working threads
     #[arg(short = 'c', long, global = true)]
     pub threads: Option<usize>,
 

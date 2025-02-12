@@ -45,7 +45,7 @@ Options:
           decompress or list with password
 
   -c, --threads <THREADS>
-          cocurrent working threads
+          concurrent working threads
 
   -h, --help
           Print help (see a summary with '-h')
