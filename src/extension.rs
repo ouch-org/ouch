@@ -21,6 +21,7 @@ pub const SUPPORTED_EXTENSIONS: &[&str] = &[
     #[cfg(feature = "unrar")]
     "rar",
     "7z",
+    "br",
 ];
 
 pub const SUPPORTED_ALIASES: &[&str] = &["tgz", "tbz", "tlz4", "txz", "tzlma", "tsz", "tzst"];
@@ -96,6 +97,8 @@ pub enum CompressionFormat {
     Rar,
     /// .7z
     SevenZip,
+    /// .br
+    Brotli,
 }
 
 impl CompressionFormat {
@@ -111,6 +114,7 @@ impl CompressionFormat {
             Lzma => false,
             Snappy => false,
             Zstd => false,
+            Brotli => false,
         }
     }
 }
@@ -136,6 +140,7 @@ fn to_extension(ext: &[u8]) -> Option<Extension> {
             b"zst" => &[Zstd],
             b"rar" => &[Rar],
             b"7z" => &[SevenZip],
+            b"br" => &[Brotli],
             _ => return None,
         },
         ext.to_str_lossy(),

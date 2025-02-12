@@ -83,6 +83,12 @@ pub fn compress_files(
                 zstd_encoder.multithread(num_cpus::get_physical() as u32)?;
                 Box::new(zstd_encoder.auto_finish())
             }
+            Brotli => {
+                let default_level = 11; // Same as brotli CLI, default to highest compression
+                let level = level.unwrap_or(default_level).clamp(0, 11) as u32;
+                let win_size = 22; // default to 2^22 = 4 MiB window size
+                Box::new(brotli::CompressorWriter::new(encoder, BUFFER_CAPACITY, level, win_size))
+            }
             Tar | Zip | Rar | SevenZip => unreachable!(),
         };
         Ok(encoder)
@@ -95,7 +101,7 @@ pub fn compress_files(
     }
 
     match first_format {
-        Gzip | Bzip | Bzip3 | Lz4 | Lzma | Snappy | Zstd => {
+        Gzip | Bzip | Bzip3 | Lz4 | Lzma | Snappy | Zstd | Brotli => {
             writer = chain_writer_encoder(&first_format, writer)?;
             let mut reader = fs::File::open(&files[0])?;
 

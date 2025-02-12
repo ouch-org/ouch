@@ -119,6 +119,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
             Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
             Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
+            Brotli => Box::new(brotli::Decompressor::new(decoder, BUFFER_CAPACITY)),
             Tar | Zip | Rar | SevenZip => unreachable!(),
         };
         Ok(decoder)
@@ -131,7 +132,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
     }
 
     let files_unpacked = match first_extension {
-        Gzip | Bzip | Bzip3 | Lz4 | Lzma | Snappy | Zstd => {
+        Gzip | Bzip | Bzip3 | Lz4 | Lzma | Snappy | Zstd | Brotli => {
             reader = chain_reader_decoder(&first_extension, reader)?;
 
             let mut writer = match utils::ask_to_create_file(&options.output_file_path, options.question_policy)? {
