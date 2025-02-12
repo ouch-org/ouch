@@ -25,15 +25,15 @@ pub struct CliArgs {
     #[arg(short = 'A', long, env = "ACCESSIBLE", global = true)]
     pub accessible: bool,
 
-    /// Ignores hidden files
+    /// Ignore hidden files
     #[arg(short = 'H', long, global = true)]
     pub hidden: bool,
 
-    /// Silences output
+    /// Silence output
     #[arg(short = 'q', long, global = true)]
     pub quiet: bool,
 
-    /// Ignores files matched by git's ignore files
+    /// Ignore files matched by git's ignore files
     #[arg(short = 'g', long, global = true)]
     pub gitignore: bool,
 
@@ -41,11 +41,11 @@ pub struct CliArgs {
     #[arg(short, long, global = true)]
     pub format: Option<OsString>,
 
-    /// decompress or list with password
+    /// Decompress or list with password
     #[arg(short = 'p', long = "password", global = true)]
     pub password: Option<OsString>,
 
-    /// concurrent working threads
+    /// Concurrent working threads
     #[arg(short = 'c', long, global = true)]
     pub threads: Option<usize>,
 

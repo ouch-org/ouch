@@ -17,11 +17,11 @@ Options:
   -y, --yes                  Skip [Y/n] questions positively
   -n, --no                   Skip [Y/n] questions negatively
   -A, --accessible           Activate accessibility mode, reducing visual noise [env: ACCESSIBLE=]
-  -H, --hidden               Ignores hidden files
-  -q, --quiet                Silences output
-  -g, --gitignore            Ignores files matched by git's ignore files
+  -H, --hidden               Ignore hidden files
+  -q, --quiet                Silence output
+  -g, --gitignore            Ignore files matched by git's ignore files
   -f, --format <FORMAT>      Specify the format of the archive
-  -p, --password <PASSWORD>  decompress or list with password
-  -c, --threads <THREADS>    concurrent working threads
+  -p, --password <PASSWORD>  Decompress or list with password
+  -c, --threads <THREADS>    Concurrent working threads
   -h, --help                 Print help (see more with '--help')
   -V, --version              Print version

@@ -30,22 +30,22 @@ Options:
           [env: ACCESSIBLE=]
 
   -H, --hidden
-          Ignores hidden files
+          Ignore hidden files
 
   -q, --quiet
-          Silences output
+          Silence output
 
   -g, --gitignore
-          Ignores files matched by git's ignore files
+          Ignore files matched by git's ignore files
 
   -f, --format <FORMAT>
           Specify the format of the archive
 
   -p, --password <PASSWORD>
-          decompress or list with password
+          Decompress or list with password
 
   -c, --threads <THREADS>
-          concurrent working threads
+          Concurrent working threads
 
   -h, --help
           Print help (see a summary with '-h')
