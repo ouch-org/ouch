@@ -37,6 +37,14 @@ pub enum QuestionAction {
     Decompression,
 }
 
+#[derive(Default)]
+pub enum FileConflitOperation {
+    #[default]
+    Cancel,
+    Overwrite,
+    Rename,
+}
+
 /// Check if QuestionPolicy flags were set, otherwise, ask user if they want to overwrite.
 pub fn user_wants_to_overwrite(path: &Path, question_policy: QuestionPolicy) -> crate::Result<bool> {
     match question_policy {
@@ -51,17 +59,45 @@ pub fn user_wants_to_overwrite(path: &Path, question_policy: QuestionPolicy) -> 
     }
 }
 
+
+/// Check if QuestionPolicy flags were set, otherwise, ask user if they want to overwrite.
+pub fn ask_file_conflict_operation(path: &Path) -> Result<FileConflitOperation> {
+    use FileConflitOperation as Op;
+
+    let path = path_to_str(strip_cur_dir(path));
+
+    ChoicePrompt::new(
+        format!("Do you want to overwrite {path}?"),
+        [
+            ("yes", Op::Overwrite, *colors::GREEN),
+            ("no", Op::Cancel, *colors::RED),
+            ("rename", Op::Rename, *colors::BLUE),
+        ],
+    )
+    .ask()
+}
+
 /// Create the file if it doesn't exist and if it does then ask to overwrite it.
 /// If the user doesn't want to overwrite then we return [`Ok(None)`]
 pub fn ask_to_create_file(path: &Path, question_policy: QuestionPolicy) -> Result<Option<fs::File>> {
     match fs::OpenOptions::new().write(true).create_new(true).open(path) {
         Ok(w) => Ok(Some(w)),
         Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
-            if user_wants_to_overwrite(path, question_policy)? {
-                utils::remove_file_or_dir(path)?;
-                Ok(Some(fs::File::create(path)?))
-            } else {
-                Ok(None)
+            let action = match question_policy {
+                QuestionPolicy::AlwaysYes => FileConflitOperation::Overwrite,
+                QuestionPolicy::AlwaysNo => FileConflitOperation::Cancel,
+                QuestionPolicy::Ask => ask_file_conflict_operation(path)?,
+            };
+
+            match action {
+                FileConflitOperation::Overwrite => {
+                    utils::remove_file_or_dir(path)?;
+                    Ok(Some(fs::File::create(path)?))
+                },
+                FileConflitOperation::Cancel => Ok(None),
+                FileConflitOperation::Rename => {
+                    todo!()
+                },
             }
         }
         Err(e) => Err(Error::from(e)),
