@@ -90,6 +90,88 @@ pub fn user_wants_to_continue(
     }
 }
 
+/// Choise dialog for end user with [option1/option2/...] question.
+///
+/// If the placeholder is found in the prompt text, it will be replaced to form the final message.
+pub struct ChoicePrompt<'a, T: Default> {
+    /// The message to be displayed with the placeholder text in it.
+    /// e.g.: "Do you want to overwrite 'FILE'?"
+    pub prompt: String,
+
+    pub choises: Vec<Choice<'a, T>>,
+}
+
+pub struct Choice<'a, T: Default> {
+    label: &'a str,
+    value: T,
+    color: &'a str,
+}
+
+impl<'a, T: Default> ChoicePrompt<'a, T> {
+    /// Creates a new Confirmation.
+    pub fn new(prompt: impl Into<String>, choises: impl IntoIterator<Item = (&'a str, T, &'a str)>) -> Self {
+        Self {
+            prompt: prompt.into(),
+            choises: choises
+                .into_iter()
+                .map(|(label, value, color)| Choice { label, value, color })
+                .collect(),
+        }
+    }
+
+    /// Creates user message and receives a boolean input to be used on the program
+    pub fn ask(mut self) -> crate::Result<T> {
+        let message = self.prompt;
+
+        if !stdin().is_terminal() {
+            eprintln!("{}", message);
+            eprintln!("Pass --yes to proceed");
+            return Ok(T::default());
+        }
+
+        let _locks = lock_and_flush_output_stdio()?;
+        let mut stdin_lock = stdin().lock();
+
+        // Ask the same question to end while no valid answers are given
+        loop {
+            let choice_prompt = self
+                .choises
+                .iter()
+                .map(|choise| format!("{}{}{}", choise.color, choise.label, *colors::RESET))
+                .collect::<Vec<_>>()
+                .join("/");
+
+            // TODO: use accessible mode
+            eprintln!("{} {}", message, choice_prompt);
+
+            let mut answer = String::new();
+            let bytes_read = stdin_lock.read_line(&mut answer)?;
+
+            if bytes_read == 0 {
+                let error = FinalError::with_title("Unexpected EOF when asking question.")
+                    .detail("When asking the user:")
+                    .detail(format!("  \"{message}\""))
+                    .detail("Expected 'y' or 'n' as answer, but found EOF instead.")
+                    .hint("If using Ouch in scripting, consider using `--yes` and `--no`.");
+
+                return Err(error.into());
+            }
+
+            answer.make_ascii_lowercase();
+            let answer = answer.trim();
+
+            let choosed_index = self
+                .choises
+                .iter()
+                .position(|choise| answer == &choise.label[0..answer.len()]);
+
+            if let Some(i) = choosed_index {
+                return Ok(self.choises.remove(i).value);
+            }
+        }
+    }
+}
+
 /// Confirmation dialog for end user with [Y/n] question.
 ///
 /// If the placeholder is found in the prompt text, it will be replaced to form the final message.
