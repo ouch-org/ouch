@@ -8,7 +8,7 @@ use std::{
 
 use fs_err as fs;
 
-use super::user_wants_to_overwrite;
+use super::{question::FileConflitOperation, user_wants_to_overwrite};
 use crate::{
     extension::Extension,
     utils::{logger::info_accessible, EscapedPathDisplay},

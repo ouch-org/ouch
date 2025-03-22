@@ -14,11 +14,7 @@ use crate::{
         Extension,
     },
     utils::{
-        self,
-        io::lock_and_flush_output_stdio,
-        is_path_stdin,
-        logger::{info, info_accessible},
-        nice_directory_display, user_wants_to_continue,
+        self, io::lock_and_flush_output_stdio, is_path_stdin, logger::{info, info_accessible}, nice_directory_display, user_wants_to_continue
     },
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
@@ -309,7 +305,7 @@ fn smart_unpack(
 
     let root_contains_only_one_element = fs::read_dir(temp_dir_path)?.count() == 1;
 
-    let (previous_path, new_path) = if root_contains_only_one_element {
+    let (previous_path, mut new_path) = if root_contains_only_one_element {
         // Only one file in the root directory, so we can just move it to the output directory
         let file = fs::read_dir(temp_dir_path)?.next().expect("item exists")?;
         let file_path = file.path();
@@ -323,10 +319,10 @@ fn smart_unpack(
         (temp_dir_path.to_owned(), output_file_path.to_owned())
     };
 
-    // Before moving, need to check if a file with the same name already exists
-    if !utils::clear_path(&new_path, question_policy)? {
-        return Ok(ControlFlow::Break(()));
-    }
+    new_path = match utils::resolve_path(&new_path, question_policy)? {
+        Some(path) => path,
+        None => return Ok(ControlFlow::Break(())),
+    };
 
     // Rename the temporary directory to the archive name, which is output_file_path
     fs::rename(&previous_path, &new_path)?;
