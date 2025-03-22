@@ -177,12 +177,24 @@ impl<'a, T: Default> ChoicePrompt<'a, T> {
 
         // Ask the same question to end while no valid answers are given
         loop {
-            let choice_prompt = self
-                .choises
-                .iter()
-                .map(|choise| format!("{}{}{}", choise.color, choise.label, *colors::RESET))
-                .collect::<Vec<_>>()
-                .join("/");
+            let choice_prompt = if is_running_in_accessible_mode() {
+                self
+                    .choises
+                    .iter()
+                    .map(|choise| format!("{}{}{}", choise.color, choise.label, *colors::RESET))
+                    .collect::<Vec<_>>()
+                    .join("/") 
+            } else {
+                let choises = self
+                    .choises
+                    .iter()
+                    .map(|choise| format!("{}{}{}", choise.color, choise.label.chars().nth(0).expect("dev error"), *colors::RESET))
+                    .collect::<Vec<_>>()
+                    .join("/");
+
+                format!("[{}]", choises)
+            };
+
 
             // TODO: use accessible mode
             eprintln!("{} {}", message, choice_prompt);
