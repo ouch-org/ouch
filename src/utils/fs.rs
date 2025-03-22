@@ -34,6 +34,24 @@ pub fn clear_path(path: &Path, question_policy: QuestionPolicy) -> crate::Result
     Ok(true)
 }
 
+pub fn resolve_path(path: &Path, question_policy: QuestionPolicy) -> crate::Result<Option<PathBuf>> {
+    if path.exists() {
+        match user_wants_to_overwrite(path, question_policy)? {
+            FileConflitOperation::Cancel => return Ok(None),
+            FileConflitOperation::Overwrite => {
+                remove_file_or_dir(path)?;
+                Ok(Some(path.to_path_buf()))
+            },
+            FileConflitOperation::Rename => {
+                let renamed_path = rename_for_available_filename(path);
+                Ok(Some(renamed_path))
+            },
+        }
+    } else {
+        Ok(Some(path.to_path_buf()))
+    }
+}
+
 pub fn remove_file_or_dir(path: &Path) -> crate::Result<()> {
     if path.is_dir() {
         fs::remove_dir_all(path)?;

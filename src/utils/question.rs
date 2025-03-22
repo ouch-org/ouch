@@ -46,16 +46,13 @@ pub enum FileConflitOperation {
 }
 
 /// Check if QuestionPolicy flags were set, otherwise, ask user if they want to overwrite.
-pub fn user_wants_to_overwrite(path: &Path, question_policy: QuestionPolicy) -> crate::Result<bool> {
+pub fn user_wants_to_overwrite(path: &Path, question_policy: QuestionPolicy) -> crate::Result<FileConflitOperation> {
+    use FileConflitOperation as Op;
+
     match question_policy {
-        QuestionPolicy::AlwaysYes => Ok(true),
-        QuestionPolicy::AlwaysNo => Ok(false),
-        QuestionPolicy::Ask => {
-            let path = path_to_str(strip_cur_dir(path));
-            let path = Some(&*path);
-            let placeholder = Some("FILE");
-            Confirmation::new("Do you want to overwrite 'FILE'?", placeholder).ask(path)
-        }
+        QuestionPolicy::AlwaysYes => Ok(Op::Overwrite),
+        QuestionPolicy::AlwaysNo => Ok(Op::Cancel),
+        QuestionPolicy::Ask => ask_file_conflict_operation(path),
     }
 }
 
