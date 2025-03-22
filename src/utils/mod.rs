@@ -19,7 +19,7 @@ pub use self::{
     },
     fs::{
         cd_into_same_dir_as, clear_path, create_dir_if_non_existent, is_path_stdin, remove_file_or_dir,
-        try_infer_extension,
+        try_infer_extension, rename_for_available_filename
     },
     question::{ask_to_create_file, user_wants_to_continue, user_wants_to_overwrite, QuestionAction, QuestionPolicy},
     utf8::{get_invalid_utf8_paths, is_invalid_utf8},

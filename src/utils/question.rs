@@ -96,7 +96,8 @@ pub fn ask_to_create_file(path: &Path, question_policy: QuestionPolicy) -> Resul
                 },
                 FileConflitOperation::Cancel => Ok(None),
                 FileConflitOperation::Rename => {
-                    todo!()
+                    let renamed_file_path = utils::rename_for_available_filename(path);
+                    Ok(Some(fs::File::create(renamed_file_path)?))
                 },
             }
         }

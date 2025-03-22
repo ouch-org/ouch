@@ -43,6 +43,35 @@ pub fn remove_file_or_dir(path: &Path) -> crate::Result<()> {
     Ok(())
 }
 
+pub fn rename_for_available_filename(path: &Path) -> PathBuf {
+    let mut renamed_path = rename_or_increment_filename(path);
+    while renamed_path.exists() {
+        renamed_path = rename_or_increment_filename(&renamed_path);
+    }
+    renamed_path
+}
+
+pub fn rename_or_increment_filename(path: &Path) -> PathBuf {
+    let parent = path.parent().unwrap_or_else(|| Path::new(""));
+    let filename = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
+    let extension = path.extension().and_then(|s| s.to_str()).unwrap_or("");
+
+    let new_filename = match filename.rsplit_once('_') {
+        Some((base, number_str)) if number_str.chars().all(char::is_numeric) => {
+            let number = number_str.parse::<u32>().unwrap_or(0);
+            format!("{}_{}", base, number + 1)
+        },
+        _ => format!("{}_1", filename),
+    };
+    
+    let mut new_path = parent.join(new_filename);
+    if !extension.is_empty() {
+        new_path.set_extension(extension);
+    }
+
+    new_path
+}
+
 /// Creates a directory at the path, if there is nothing there.
 pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
     if !path.exists() {
