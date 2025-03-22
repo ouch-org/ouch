@@ -19,20 +19,6 @@ pub fn is_path_stdin(path: &Path) -> bool {
     path.as_os_str() == "-"
 }
 
-/// Remove `path` asking the user to overwrite if necessary.
-///
-/// * `Ok(true)` means the path is clear,
-/// * `Ok(false)` means the user doesn't want to overwrite
-/// * `Err(_)` is an error
-pub fn clear_path(path: &Path, question_policy: QuestionPolicy) -> crate::Result<bool> {
-    if path.exists() && !user_wants_to_overwrite(path, question_policy)? {
-        return Ok(false);
-    }
-
-    remove_file_or_dir(path)?;
-
-    Ok(true)
-}
 
 pub fn resolve_path(path: &Path, question_policy: QuestionPolicy) -> crate::Result<Option<PathBuf>> {
     if path.exists() {
