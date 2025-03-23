@@ -53,7 +53,7 @@ pub fn remove_file_or_dir(path: &Path) -> crate::Result<()> {
     Ok(())
 }
 
-/// Create a new path renaming the "filename" from &Path until find a free name
+/// Create a new path renaming the "filename" from &Path for a available name in the same directory
 pub fn rename_for_available_filename(path: &Path) -> PathBuf {
     let mut renamed_path = rename_or_increment_filename(path);
     while renamed_path.exists() {
@@ -63,7 +63,10 @@ pub fn rename_for_available_filename(path: &Path) -> PathBuf {
 }
 
 /// Create a new path renaming the "filename" from &Path to `filename_1`
-/// or `filename_2`, `filename_3` until find a free name
+/// if its name already ends with `_` and some number, then it increments the number
+/// Example:
+/// - `file.txt` -> `file_1.txt`
+/// - `file_1.txt` -> `file_2.txt`
 pub fn rename_or_increment_filename(path: &Path) -> PathBuf {
     let parent = path.parent().unwrap_or_else(|| Path::new(""));
     let filename = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
