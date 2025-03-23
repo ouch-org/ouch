@@ -226,7 +226,7 @@ impl<'a, T: Default> ChoicePrompt<'a, T> {
             let chosen_index = self
                 .choises
                 .iter()
-                .position(|choise| answer == &choise.label[0..answer.len()]);
+                .position(|choise| choise.label.starts_with(answer));
 
             if let Some(i) = chosen_index {
                 return Ok(self.choises.remove(i).value);
