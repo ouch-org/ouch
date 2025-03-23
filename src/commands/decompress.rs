@@ -323,6 +323,8 @@ fn smart_unpack(
         (temp_dir_path.to_owned(), output_file_path.to_owned())
     };
 
+    // Before moving, need to check if a file with the same name already exists
+    // If it does, need to ask the user what to do
     new_path = match utils::resolve_path(&new_path, question_policy)? {
         Some(path) => path,
         None => return Ok(ControlFlow::Break(())),

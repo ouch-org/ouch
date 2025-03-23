@@ -19,6 +19,7 @@ pub fn is_path_stdin(path: &Path) -> bool {
     path.as_os_str() == "-"
 }
 
+/// Check if &Path exists, if it does then ask the user if they want to overwrite or rename it
 pub fn resolve_path(path: &Path, question_policy: QuestionPolicy) -> crate::Result<Option<PathBuf>> {
     if path.exists() {
         match user_wants_to_overwrite(path, question_policy)? {
@@ -46,6 +47,7 @@ pub fn remove_file_or_dir(path: &Path) -> crate::Result<()> {
     Ok(())
 }
 
+/// Create a new path renaming the "filename" from &Path until find a free name
 pub fn rename_for_available_filename(path: &Path) -> PathBuf {
     let mut renamed_path = rename_or_increment_filename(path);
     while renamed_path.exists() {
@@ -54,6 +56,8 @@ pub fn rename_for_available_filename(path: &Path) -> PathBuf {
     renamed_path
 }
 
+/// Create a new path renaming the "filename" from &Path to `filename_1`
+/// or `filename_2`, `filename_3` until find a free name
 pub fn rename_or_increment_filename(path: &Path) -> PathBuf {
     let parent = path.parent().unwrap_or_else(|| Path::new(""));
     let filename = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");

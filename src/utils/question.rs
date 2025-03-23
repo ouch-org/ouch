@@ -38,10 +38,15 @@ pub enum QuestionAction {
 }
 
 #[derive(Default)]
+/// Determines which action to do when there is a file conflict
 pub enum FileConflitOperation {
     #[default]
+    /// Cancel the operation
     Cancel,
+    /// Overwrite the existing file with the new one
     Overwrite,
+    /// Rename the file 
+    /// It'll be put "_1" at the end of the filename or "_2","_3","_4".. if already exists
     Rename,
 }
 
@@ -56,7 +61,7 @@ pub fn user_wants_to_overwrite(path: &Path, question_policy: QuestionPolicy) -> 
     }
 }
 
-/// Check if QuestionPolicy flags were set, otherwise, ask user if they want to overwrite.
+/// Ask the user if they want to overwrite or rename the &Path
 pub fn ask_file_conflict_operation(path: &Path) -> Result<FileConflitOperation> {
     use FileConflitOperation as Op;
 
@@ -127,8 +132,7 @@ pub fn user_wants_to_continue(
 }
 
 /// Choise dialog for end user with [option1/option2/...] question.
-///
-/// If the placeholder is found in the prompt text, it will be replaced to form the final message.
+/// Each option is a [Choice] entity, holding a value "T" returned when that option is selected
 pub struct ChoicePrompt<'a, T: Default> {
     /// The message to be displayed with the placeholder text in it.
     /// e.g.: "Do you want to overwrite 'FILE'?"
@@ -137,6 +141,8 @@ pub struct ChoicePrompt<'a, T: Default> {
     pub choises: Vec<Choice<'a, T>>,
 }
 
+/// A single choice showed as a option to user in a [ChoicePrompt]
+/// It holds a label and a color to display to user and a real value to be returned
 pub struct Choice<'a, T: Default> {
     label: &'a str,
     value: T,
@@ -155,7 +161,8 @@ impl<'a, T: Default> ChoicePrompt<'a, T> {
         }
     }
 
-    /// Creates user message and receives a boolean input to be used on the program
+    /// Creates user message and receives a input to be compared with choises "label"
+    /// and returning the real value of the choise selected
     pub fn ask(mut self) -> crate::Result<T> {
         let message = self.prompt;
 
