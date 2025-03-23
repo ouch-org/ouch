@@ -134,7 +134,7 @@ pub fn user_wants_to_continue(
 /// Choise dialog for end user with [option1/option2/...] question.
 /// Each option is a [Choice] entity, holding a value "T" returned when that option is selected
 pub struct ChoicePrompt<'a, T: Default> {
-    /// The message to be displayed with the placeholder text in it.
+    /// The message to be displayed before the options
     /// e.g.: "Do you want to overwrite 'FILE'?"
     pub prompt: String,
 
