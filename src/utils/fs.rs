@@ -22,7 +22,7 @@ pub fn is_path_stdin(path: &Path) -> bool {
 /// Check if &Path exists, if it does then ask the user if they want to overwrite or rename it.
 /// If the user want to overwrite then the file or directory will be removed and returned the same input path
 /// If the user want to rename then nothing will be removed and a new path will be returned with a new name
-/// 
+///
 /// * `Ok(None)` means the user wants to cancel the operation
 /// * `Ok(Some(path))` returns a valid PathBuf without any another file or directory with the same name
 /// * `Err(_)` is an error

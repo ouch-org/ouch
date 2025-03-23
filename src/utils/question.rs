@@ -45,7 +45,7 @@ pub enum FileConflitOperation {
     Cancel,
     /// Overwrite the existing file with the new one
     Overwrite,
-    /// Rename the file 
+    /// Rename the file
     /// It'll be put "_1" at the end of the filename or "_2","_3","_4".. if already exists
     Rename,
 }
@@ -223,10 +223,7 @@ impl<'a, T: Default> ChoicePrompt<'a, T> {
             answer.make_ascii_lowercase();
             let answer = answer.trim();
 
-            let chosen_index = self
-                .choises
-                .iter()
-                .position(|choise| choise.label.starts_with(answer));
+            let chosen_index = self.choises.iter().position(|choise| choise.label.starts_with(answer));
 
             if let Some(i) = chosen_index {
                 return Ok(self.choises.remove(i).value);
