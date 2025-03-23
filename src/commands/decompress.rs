@@ -325,7 +325,7 @@ fn smart_unpack(
 
     // Before moving, need to check if a file with the same name already exists
     // If it does, need to ask the user what to do
-    new_path = match utils::resolve_path(&new_path, question_policy)? {
+    new_path = match utils::resolve_path_conflict(&new_path, question_policy)? {
         Some(path) => path,
         None => return Ok(ControlFlow::Break(())),
     };

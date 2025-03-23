@@ -20,7 +20,7 @@ pub fn is_path_stdin(path: &Path) -> bool {
 }
 
 /// Check if &Path exists, if it does then ask the user if they want to overwrite or rename it
-pub fn resolve_path(path: &Path, question_policy: QuestionPolicy) -> crate::Result<Option<PathBuf>> {
+pub fn resolve_path_conflict(path: &Path, question_policy: QuestionPolicy) -> crate::Result<Option<PathBuf>> {
     if path.exists() {
         match user_wants_to_overwrite(path, question_policy)? {
             FileConflitOperation::Cancel => Ok(None),
