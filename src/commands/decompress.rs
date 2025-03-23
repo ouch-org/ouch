@@ -14,7 +14,11 @@ use crate::{
         Extension,
     },
     utils::{
-        self, io::lock_and_flush_output_stdio, is_path_stdin, logger::{info, info_accessible}, nice_directory_display, user_wants_to_continue
+        self,
+        io::lock_and_flush_output_stdio,
+        is_path_stdin,
+        logger::{info, info_accessible},
+        nice_directory_display, user_wants_to_continue,
     },
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };

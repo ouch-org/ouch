@@ -56,7 +56,6 @@ pub fn user_wants_to_overwrite(path: &Path, question_policy: QuestionPolicy) -> 
     }
 }
 
-
 /// Check if QuestionPolicy flags were set, otherwise, ask user if they want to overwrite.
 pub fn ask_file_conflict_operation(path: &Path) -> Result<FileConflitOperation> {
     use FileConflitOperation as Op;
@@ -90,12 +89,12 @@ pub fn ask_to_create_file(path: &Path, question_policy: QuestionPolicy) -> Resul
                 FileConflitOperation::Overwrite => {
                     utils::remove_file_or_dir(path)?;
                     Ok(Some(fs::File::create(path)?))
-                },
+                }
                 FileConflitOperation::Cancel => Ok(None),
                 FileConflitOperation::Rename => {
                     let renamed_file_path = utils::rename_for_available_filename(path);
                     Ok(Some(fs::File::create(renamed_file_path)?))
-                },
+                }
             }
         }
         Err(e) => Err(Error::from(e)),
@@ -120,16 +119,12 @@ pub fn user_wants_to_continue(
 
             ChoicePrompt::new(
                 format!("Do you want to {action} {path}?"),
-                [
-                    ("yes", true, *colors::GREEN),
-                    ("no", false, *colors::RED),
-                ],
+                [("yes", true, *colors::GREEN), ("no", false, *colors::RED)],
             )
             .ask()
         }
     }
 }
-
 
 /// Choise dialog for end user with [option1/option2/...] question.
 ///
@@ -176,25 +171,33 @@ impl<'a, T: Default> ChoicePrompt<'a, T> {
         // Ask the same question to end while no valid answers are given
         loop {
             let choice_prompt = if is_running_in_accessible_mode() {
-                self
-                    .choises
+                self.choises
                     .iter()
                     .map(|choise| format!("{}{}{}", choise.color, choise.label, *colors::RESET))
                     .collect::<Vec<_>>()
-                    .join("/") 
+                    .join("/")
             } else {
                 let choises = self
                     .choises
                     .iter()
-                    .map(|choise| format!("{}{}{}", choise.color, choise.label.chars().nth(0).expect("dev error"), *colors::RESET))
+                    .map(|choise| {
+                        format!(
+                            "{}{}{}",
+                            choise.color,
+                            choise
+                                .label
+                                .chars()
+                                .nth(0)
+                                .expect("dev error, should be reported, we checked this won't happen"),
+                            *colors::RESET
+                        )
+                    })
                     .collect::<Vec<_>>()
                     .join("/");
 
                 format!("[{}]", choises)
             };
 
-
-            // TODO: use accessible mode
             eprintln!("{} {}", message, choice_prompt);
 
             let mut answer = String::new();
@@ -213,12 +216,12 @@ impl<'a, T: Default> ChoicePrompt<'a, T> {
             answer.make_ascii_lowercase();
             let answer = answer.trim();
 
-            let choosed_index = self
+            let chosen_index = self
                 .choises
                 .iter()
                 .position(|choise| answer == &choise.label[0..answer.len()]);
 
-            if let Some(i) = choosed_index {
+            if let Some(i) = chosen_index {
                 return Ok(self.choises.remove(i).value);
             }
         }

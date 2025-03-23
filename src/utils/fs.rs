@@ -19,19 +19,18 @@ pub fn is_path_stdin(path: &Path) -> bool {
     path.as_os_str() == "-"
 }
 
-
 pub fn resolve_path(path: &Path, question_policy: QuestionPolicy) -> crate::Result<Option<PathBuf>> {
     if path.exists() {
         match user_wants_to_overwrite(path, question_policy)? {
-            FileConflitOperation::Cancel => return Ok(None),
+            FileConflitOperation::Cancel => Ok(None),
             FileConflitOperation::Overwrite => {
                 remove_file_or_dir(path)?;
                 Ok(Some(path.to_path_buf()))
-            },
+            }
             FileConflitOperation::Rename => {
                 let renamed_path = rename_for_available_filename(path);
                 Ok(Some(renamed_path))
-            },
+            }
         }
     } else {
         Ok(Some(path.to_path_buf()))
@@ -64,10 +63,10 @@ pub fn rename_or_increment_filename(path: &Path) -> PathBuf {
         Some((base, number_str)) if number_str.chars().all(char::is_numeric) => {
             let number = number_str.parse::<u32>().unwrap_or(0);
             format!("{}_{}", base, number + 1)
-        },
+        }
         _ => format!("{}_1", filename),
     };
-    
+
     let mut new_path = parent.join(new_filename);
     if !extension.is_empty() {
         new_path.set_extension(extension);
