@@ -116,17 +116,14 @@ pub fn user_wants_to_continue(
         QuestionPolicy::AlwaysYes => Ok(true),
         QuestionPolicy::AlwaysNo => Ok(false),
         QuestionPolicy::Ask => {
-            let path = path_to_str(strip_cur_dir(path));
             let action = match question_action {
                 QuestionAction::Compression => "compress",
                 QuestionAction::Decompression => "decompress",
             };
-
-            ChoicePrompt::new(
-                format!("Do you want to {action} {path}?"),
-                [("yes", true, *colors::GREEN), ("no", false, *colors::RED)],
-            )
-            .ask()
+            let path = path_to_str(strip_cur_dir(path));
+            let path = Some(&*path);
+            let placeholder = Some("FILE");
+            Confirmation::new(&format!("Do you want to {action} 'FILE'?"), placeholder).ask(path)
         }
     }
 }
