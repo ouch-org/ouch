@@ -297,7 +297,7 @@ impl<'a> Confirmation<'a> {
                 let error = FinalError::with_title("Unexpected EOF when asking question.")
                     .detail("When asking the user:")
                     .detail(format!("  \"{message}\""))
-                    .detail("Expected 'y' or 'n' as answer, but found EOF instead.")
+                    .detail("Expected one of the options as answer, but found EOF instead.")
                     .hint("If using Ouch in scripting, consider using `--yes` and `--no`.");
 
                 return Err(error.into());
