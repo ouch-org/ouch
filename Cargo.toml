@@ -73,6 +73,7 @@ test-strategy = "0.4.0"
 default = ["use_zlib", "use_zstd_thin", "unrar"]
 use_zlib = ["flate2/zlib", "gzp/deflate_zlib", "zip/deflate-zlib"]
 use_zstd_thin = ["zstd/thin"]
+allow_piped_choice = []
 
 # For generating binaries for releases
 [profile.release]

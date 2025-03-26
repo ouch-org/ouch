@@ -163,6 +163,7 @@ impl<'a, T: Default> ChoicePrompt<'a, T> {
     pub fn ask(mut self) -> crate::Result<T> {
         let message = self.prompt;
 
+        #[cfg(not(feature = "allow_piped_choice"))]
         if !stdin().is_terminal() {
             eprintln!("{}", message);
             eprintln!("Pass --yes to proceed");
@@ -259,6 +260,7 @@ impl<'a> Confirmation<'a> {
             (Some(placeholder), Some(subs)) => Cow::Owned(self.prompt.replace(placeholder, subs)),
         };
 
+        #[cfg(not(feature = "allow_piped_choice"))]
         if !stdin().is_terminal() {
             eprintln!("{}", message);
             eprintln!("Pass --yes to proceed");
