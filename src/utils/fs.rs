@@ -8,7 +8,7 @@ use std::{
 
 use fs_err as fs;
 
-use super::user_wants_to_overwrite;
+use super::{question::FileConflitOperation, user_wants_to_overwrite};
 use crate::{
     extension::Extension,
     utils::{logger::info_accessible, EscapedPathDisplay},
@@ -19,19 +19,29 @@ pub fn is_path_stdin(path: &Path) -> bool {
     path.as_os_str() == "-"
 }
 
-/// Remove `path` asking the user to overwrite if necessary.
+/// Check if &Path exists, if it does then ask the user if they want to overwrite or rename it.
+/// If the user want to overwrite then the file or directory will be removed and returned the same input path
+/// If the user want to rename then nothing will be removed and a new path will be returned with a new name
 ///
-/// * `Ok(true)` means the path is clear,
-/// * `Ok(false)` means the user doesn't want to overwrite
+/// * `Ok(None)` means the user wants to cancel the operation
+/// * `Ok(Some(path))` returns a valid PathBuf without any another file or directory with the same name
 /// * `Err(_)` is an error
-pub fn clear_path(path: &Path, question_policy: QuestionPolicy) -> crate::Result<bool> {
-    if path.exists() && !user_wants_to_overwrite(path, question_policy)? {
-        return Ok(false);
+pub fn resolve_path_conflict(path: &Path, question_policy: QuestionPolicy) -> crate::Result<Option<PathBuf>> {
+    if path.exists() {
+        match user_wants_to_overwrite(path, question_policy)? {
+            FileConflitOperation::Cancel => Ok(None),
+            FileConflitOperation::Overwrite => {
+                remove_file_or_dir(path)?;
+                Ok(Some(path.to_path_buf()))
+            }
+            FileConflitOperation::Rename => {
+                let renamed_path = rename_for_available_filename(path);
+                Ok(Some(renamed_path))
+            }
+        }
+    } else {
+        Ok(Some(path.to_path_buf()))
     }
-
-    remove_file_or_dir(path)?;
-
-    Ok(true)
 }
 
 pub fn remove_file_or_dir(path: &Path) -> crate::Result<()> {
@@ -41,6 +51,41 @@ pub fn remove_file_or_dir(path: &Path) -> crate::Result<()> {
         fs::remove_file(path)?;
     }
     Ok(())
+}
+
+/// Create a new path renaming the "filename" from &Path for a available name in the same directory
+pub fn rename_for_available_filename(path: &Path) -> PathBuf {
+    let mut renamed_path = rename_or_increment_filename(path);
+    while renamed_path.exists() {
+        renamed_path = rename_or_increment_filename(&renamed_path);
+    }
+    renamed_path
+}
+
+/// Create a new path renaming the "filename" from &Path to `filename_1`
+/// if its name already ends with `_` and some number, then it increments the number
+/// Example:
+/// - `file.txt` -> `file_1.txt`
+/// - `file_1.txt` -> `file_2.txt`
+pub fn rename_or_increment_filename(path: &Path) -> PathBuf {
+    let parent = path.parent().unwrap_or_else(|| Path::new(""));
+    let filename = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
+    let extension = path.extension().and_then(|s| s.to_str()).unwrap_or("");
+
+    let new_filename = match filename.rsplit_once('_') {
+        Some((base, number_str)) if number_str.chars().all(char::is_numeric) => {
+            let number = number_str.parse::<u32>().unwrap_or(0);
+            format!("{}_{}", base, number + 1)
+        }
+        _ => format!("{}_1", filename),
+    };
+
+    let mut new_path = parent.join(new_filename);
+    if !extension.is_empty() {
+        new_path.set_extension(extension);
+    }
+
+    new_path
 }
 
 /// Creates a directory at the path, if there is nothing there.
