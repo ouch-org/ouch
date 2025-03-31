@@ -298,31 +298,30 @@ fn execute_decompression(
     is_output_dir_explicit: bool,
 ) -> crate::Result<ControlFlow<(), usize>> {
     if is_output_dir_explicit {
-        return unpack(unpack_fn, output_dir, question_policy);
+        unpack(unpack_fn, output_dir, question_policy)
     } else {
-        return smart_unpack(
-            unpack_fn,
-            output_dir,
-            output_file_path,
-            question_policy,
-        );
+        smart_unpack(unpack_fn, output_dir, output_file_path, question_policy)
     }
 }
 
+/// Unpacks an archive creating the output directory, this function will create the output_dir
+/// directory or replace it if it already exists. The `output_dir` needs to be empty
+/// - If `output_dir` does not exist OR is a empty directory, it will unpack there
+/// - If `output_dir` exist OR is a directory not empty, the user will be asked what to do
 fn unpack(
     unpack_fn: impl FnOnce(&Path) -> crate::Result<usize>,
     output_dir: &Path,
     question_policy: QuestionPolicy,
 ) -> crate::Result<ControlFlow<(), usize>> {
-    let has_files = output_dir.exists() && output_dir.read_dir().map(|dir| dir.count() > 0).unwrap_or(false);
+    let is_valid_output_dir = !output_dir.exists() || (output_dir.is_dir() && output_dir.read_dir()?.count() > 0);
 
-    let output_dir_cleaned = if has_files {
+    let output_dir_cleaned = if is_valid_output_dir {
+        output_dir.to_owned()
+    } else {
         match utils::resolve_path_conflict(&output_dir, question_policy)? {
             Some(path) => path,
             None => return Ok(ControlFlow::Break(())),
         }
-    } else {
-        output_dir.to_owned()
     };
 
     if !output_dir_cleaned.exists() {
