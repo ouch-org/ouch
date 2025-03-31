@@ -31,6 +31,7 @@ pub struct DecompressOptions<'a> {
     pub formats: Vec<Extension>,
     pub output_dir: &'a Path,
     pub output_file_path: PathBuf,
+    pub is_output_dir_explicit: bool,
     pub question_policy: QuestionPolicy,
     pub quiet: bool,
     pub password: Option<&'a [u8]>,
@@ -73,6 +74,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             options.output_dir,
             &options.output_file_path,
             options.question_policy,
+            options.is_output_dir_explicit,
         )? {
             files
         } else {
@@ -150,6 +152,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 options.output_dir,
                 &options.output_file_path,
                 options.question_policy,
+                options.is_output_dir_explicit,
             )? {
                 files
             } else {
@@ -183,6 +186,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 options.output_dir,
                 &options.output_file_path,
                 options.question_policy,
+                options.is_output_dir_explicit,
             )? {
                 files
             } else {
@@ -214,6 +218,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 options.output_dir,
                 &options.output_file_path,
                 options.question_policy,
+                options.is_output_dir_explicit,
             )? {
                 files
             } else {
@@ -255,6 +260,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 options.output_dir,
                 &options.output_file_path,
                 options.question_policy,
+                options.is_output_dir_explicit,
             )? {
                 files
             } else {
@@ -284,6 +290,48 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
     Ok(())
 }
 
+fn execute_decompression(
+    unpack_fn: impl FnOnce(&Path) -> crate::Result<usize>,
+    output_dir: &Path,
+    output_file_path: &Path,
+    question_policy: QuestionPolicy,
+    is_output_dir_explicit: bool,
+) -> crate::Result<ControlFlow<(), usize>> {
+    if is_output_dir_explicit {
+        return unpack(unpack_fn, output_dir, question_policy);
+    } else {
+        return smart_unpack(
+            unpack_fn,
+            output_dir,
+            output_file_path,
+            question_policy,
+        );
+    }
+}
+
+fn unpack(
+    unpack_fn: impl FnOnce(&Path) -> crate::Result<usize>,
+    output_dir: &Path,
+    question_policy: QuestionPolicy,
+) -> crate::Result<ControlFlow<(), usize>> {
+    let has_files = output_dir.exists() && output_dir.read_dir().map(|dir| dir.count() > 0).unwrap_or(false);
+
+    let output_dir_cleaned = if has_files {
+        let output_file_path = utils::resolve_path_conflict(&output_dir, question_policy)?.unwrap();
+        output_file_path
+    } else {
+        output_dir.to_owned()
+    };
+
+    if !output_dir_cleaned.exists() {
+        fs::create_dir(&output_dir_cleaned)?;
+    }
+
+    let files = unpack_fn(&output_dir_cleaned)?;
+
+    Ok(ControlFlow::Continue(files))
+}
+
 /// Unpacks an archive with some heuristics
 /// - If the archive contains only one file, it will be extracted to the `output_dir`
 /// - If the archive contains multiple files, it will be extracted to a subdirectory of the
@@ -295,6 +343,7 @@ fn smart_unpack(
     output_dir: &Path,
     output_file_path: &Path,
     question_policy: QuestionPolicy,
+    is_output_dir_explicit: bool,
 ) -> crate::Result<ControlFlow<(), usize>> {
     assert!(output_dir.exists());
     let temp_dir = tempfile::Builder::new().prefix(".tmp-ouch-").tempdir_in(output_dir)?;

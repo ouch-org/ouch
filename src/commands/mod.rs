@@ -176,6 +176,7 @@ pub fn run(
 
             // The directory that will contain the output files
             // We default to the current directory if the user didn't specify an output directory with --dir
+            let is_output_dir_explicit = output_dir.is_some();
             let output_dir = if let Some(dir) = output_dir {
                 utils::create_dir_if_non_existent(&dir)?;
                 dir
@@ -199,6 +200,7 @@ pub fn run(
                         formats,
                         output_dir: &output_dir,
                         output_file_path,
+                        is_output_dir_explicit,
                         question_policy,
                         quiet: args.quiet,
                         password: args.password.as_deref().map(|str| {
