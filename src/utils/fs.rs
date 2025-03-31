@@ -8,7 +8,7 @@ use std::{
 
 use fs_err as fs;
 
-use super::{question::FileConflitOperation, user_wants_to_overwrite};
+use super::{question::FileConflictOperation, user_wants_to_overwrite};
 use crate::{
     extension::Extension,
     utils::{logger::info_accessible, EscapedPathDisplay},
@@ -29,12 +29,12 @@ pub fn is_path_stdin(path: &Path) -> bool {
 pub fn resolve_path_conflict(path: &Path, question_policy: QuestionPolicy) -> crate::Result<Option<PathBuf>> {
     if path.exists() {
         match user_wants_to_overwrite(path, question_policy)? {
-            FileConflitOperation::Cancel => Ok(None),
-            FileConflitOperation::Overwrite => {
+            FileConflictOperation::Cancel => Ok(None),
+            FileConflictOperation::Overwrite => {
                 remove_file_or_dir(path)?;
                 Ok(Some(path.to_path_buf()))
             }
-            FileConflitOperation::Rename => {
+            FileConflictOperation::Rename => {
                 let renamed_path = rename_for_available_filename(path);
                 Ok(Some(renamed_path))
             }

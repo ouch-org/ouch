@@ -17,6 +17,117 @@ use crate::{
     utils::{self, colors, formatting::path_to_str, io::lock_and_flush_output_stdio, strip_cur_dir},
 };
 
+/// Generic prompt for user choices
+pub struct Prompt<'a, T> {
+    message: Cow<'a, str>,
+    choices: &'a [PromptChoice<'a, T>],
+}
+
+pub struct PromptChoice<'a, T> {
+    label: &'a str,
+    value: T,
+    color: &'a str,
+    is_default: bool,
+}
+
+impl<'a, T: Default + Copy> Prompt<'a, T> {
+    // Create a new prompt with multiple choices
+    pub fn new(message: impl Into<Cow<'a, str>>, choices: &'a [PromptChoice<'a, T>]) -> Self {
+        Self {
+            message: message.into(),
+            choices,
+        }
+    }
+
+    pub fn ask(&self) -> crate::Result<T> {
+        // Check if stdin is a terminal
+        #[cfg(not(feature = "allow_piped_choice"))]
+        if !stdin().is_terminal() {
+            eprintln!("{}", self.message);
+            eprintln!("Pass --yes to proceed");
+            return Ok(T::default());
+        }
+
+        let _locks = lock_and_flush_output_stdio()?;
+        let mut stdin_lock = stdin().lock();
+
+        // Keep asking until we get a valid response
+        loop {
+            // Format choices based on accessibility mode
+            let choice_prompt = if is_running_in_accessible_mode() {
+                // Full word format (yes/no)
+                self.choices
+                    .iter()
+                    .map(|choice| format!("{}{}{}", choice.color, choice.label, *colors::RESET))
+                    .collect::<Vec<_>>()
+                    .join("/")
+            } else {
+                // First letter format [Y/n]
+                let choices = self
+                    .choices
+                    .iter()
+                    .map(|choice| {
+                        let first_char = choice
+                            .label
+                            .chars()
+                            .next()
+                            .expect("dev error, choice label should not be empty");
+
+                        // Uppercase for default choice, lowercase for others
+                        let char_display = if choice.is_default {
+                            first_char.to_uppercase().to_string()
+                        } else {
+                            first_char.to_lowercase().to_string()
+                        };
+
+                        format!("{}{}{}", choice.color, char_display, *colors::RESET)
+                    })
+                    .collect::<Vec<_>>()
+                    .join("/");
+
+                format!("[{}]", choices)
+            };
+
+            eprintln!("{} {}", self.message, choice_prompt);
+
+            // Read user input
+            let mut answer = String::new();
+            let bytes_read = stdin_lock.read_line(&mut answer)?;
+
+            // Handle EOF (e.g., piped input that ended)
+            if bytes_read == 0 {
+                let error = FinalError::with_title("Unexpected EOF when asking question.")
+                    .detail("When asking the user:")
+                    .detail(format!("  \"{}\"", self.message))
+                    .detail("Expected a valid choice as answer, but found EOF instead.")
+                    .hint("If using Ouch in scripting, consider using `--yes` and `--no`.");
+
+                return Err(error.into());
+            }
+
+            // Process the answer
+            answer.make_ascii_lowercase();
+            let answer = answer.trim();
+
+            // Empty response selects the default option
+            if answer.is_empty() {
+                if let Some(default_choice) = self.choices.iter().find(|choice| choice.is_default) {
+                    return Ok(default_choice.value);
+                }
+            }
+
+            // Check if the answer matches any choice
+            for choice in self.choices {
+                if choice.label.starts_with(answer) {
+                    return Ok(choice.value);
+                }
+            }
+
+            // No match found, continue the loop to ask again
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 /// Determines if overwrite questions should be skipped or asked to the user
 pub enum QuestionPolicy {
@@ -37,9 +148,9 @@ pub enum QuestionAction {
     Decompression,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 /// Determines which action to do when there is a file conflict
-pub enum FileConflitOperation {
+pub enum FileConflictOperation {
     #[default]
     /// Cancel the operation
     Cancel,
@@ -51,8 +162,8 @@ pub enum FileConflitOperation {
 }
 
 /// Check if QuestionPolicy flags were set, otherwise, ask user if they want to overwrite.
-pub fn user_wants_to_overwrite(path: &Path, question_policy: QuestionPolicy) -> crate::Result<FileConflitOperation> {
-    use FileConflitOperation as Op;
+pub fn user_wants_to_overwrite(path: &Path, question_policy: QuestionPolicy) -> crate::Result<FileConflictOperation> {
+    use FileConflictOperation as Op;
 
     match question_policy {
         QuestionPolicy::AlwaysYes => Ok(Op::Overwrite),
@@ -62,17 +173,30 @@ pub fn user_wants_to_overwrite(path: &Path, question_policy: QuestionPolicy) -> 
 }
 
 /// Ask the user if they want to overwrite or rename the &Path
-pub fn ask_file_conflict_operation(path: &Path) -> Result<FileConflitOperation> {
-    use FileConflitOperation as Op;
-
+pub fn ask_file_conflict_operation(path: &Path) -> Result<FileConflictOperation> {
     let path = path_to_str(strip_cur_dir(path));
 
-    ChoicePrompt::new(
+    Prompt::new(
         format!("Do you want to overwrite {path}?"),
-        [
-            ("yes", Op::Overwrite, *colors::GREEN),
-            ("no", Op::Cancel, *colors::RED),
-            ("rename", Op::Rename, *colors::BLUE),
+        &[
+            PromptChoice {
+                label: "yes",
+                value: FileConflictOperation::Overwrite,
+                color: *colors::GREEN,
+                is_default: true,
+            },
+            PromptChoice {
+                label: "no",
+                value: FileConflictOperation::Cancel,
+                color: *colors::RED,
+                is_default: true,
+            },
+            PromptChoice {
+                label: "rename",
+                value: FileConflictOperation::Rename,
+                color: *colors::BLUE,
+                is_default: true,
+            },
         ],
     )
     .ask()
@@ -85,18 +209,18 @@ pub fn ask_to_create_file(path: &Path, question_policy: QuestionPolicy) -> Resul
         Ok(w) => Ok(Some(w)),
         Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
             let action = match question_policy {
-                QuestionPolicy::AlwaysYes => FileConflitOperation::Overwrite,
-                QuestionPolicy::AlwaysNo => FileConflitOperation::Cancel,
+                QuestionPolicy::AlwaysYes => FileConflictOperation::Overwrite,
+                QuestionPolicy::AlwaysNo => FileConflictOperation::Cancel,
                 QuestionPolicy::Ask => ask_file_conflict_operation(path)?,
             };
 
             match action {
-                FileConflitOperation::Overwrite => {
+                FileConflictOperation::Overwrite => {
                     utils::remove_file_or_dir(path)?;
                     Ok(Some(fs::File::create(path)?))
                 }
-                FileConflitOperation::Cancel => Ok(None),
-                FileConflitOperation::Rename => {
+                FileConflictOperation::Cancel => Ok(None),
+                FileConflictOperation::Rename => {
                     let renamed_file_path = utils::rename_for_available_filename(path);
                     Ok(Some(fs::File::create(renamed_file_path)?))
                 }
@@ -121,196 +245,25 @@ pub fn user_wants_to_continue(
                 QuestionAction::Decompression => "decompress",
             };
             let path = path_to_str(strip_cur_dir(path));
-            let path = Some(&*path);
-            let placeholder = Some("FILE");
-            Confirmation::new(&format!("Do you want to {action} 'FILE'?"), placeholder).ask(path)
-        }
-    }
-}
 
-/// Choise dialog for end user with [option1/option2/...] question.
-/// Each option is a [Choice] entity, holding a value "T" returned when that option is selected
-pub struct ChoicePrompt<'a, T: Default> {
-    /// The message to be displayed before the options
-    /// e.g.: "Do you want to overwrite 'FILE'?"
-    pub prompt: String,
-
-    pub choises: Vec<Choice<'a, T>>,
-}
-
-/// A single choice showed as a option to user in a [ChoicePrompt]
-/// It holds a label and a color to display to user and a real value to be returned
-pub struct Choice<'a, T: Default> {
-    label: &'a str,
-    value: T,
-    color: &'a str,
-}
-
-impl<'a, T: Default> ChoicePrompt<'a, T> {
-    /// Creates a new Confirmation.
-    pub fn new(prompt: impl Into<String>, choises: impl IntoIterator<Item = (&'a str, T, &'a str)>) -> Self {
-        Self {
-            prompt: prompt.into(),
-            choises: choises
-                .into_iter()
-                .map(|(label, value, color)| Choice { label, value, color })
-                .collect(),
-        }
-    }
-
-    /// Creates user message and receives a input to be compared with choises "label"
-    /// and returning the real value of the choise selected
-    pub fn ask(mut self) -> crate::Result<T> {
-        let message = self.prompt;
-
-        #[cfg(not(feature = "allow_piped_choice"))]
-        if !stdin().is_terminal() {
-            eprintln!("{}", message);
-            eprintln!("Pass --yes to proceed");
-            return Ok(T::default());
-        }
-
-        let _locks = lock_and_flush_output_stdio()?;
-        let mut stdin_lock = stdin().lock();
-
-        // Ask the same question to end while no valid answers are given
-        loop {
-            let choice_prompt = if is_running_in_accessible_mode() {
-                self.choises
-                    .iter()
-                    .map(|choise| format!("{}{}{}", choise.color, choise.label, *colors::RESET))
-                    .collect::<Vec<_>>()
-                    .join("/")
-            } else {
-                let choises = self
-                    .choises
-                    .iter()
-                    .map(|choise| {
-                        format!(
-                            "{}{}{}",
-                            choise.color,
-                            choise
-                                .label
-                                .chars()
-                                .nth(0)
-                                .expect("dev error, should be reported, we checked this won't happen"),
-                            *colors::RESET
-                        )
-                    })
-                    .collect::<Vec<_>>()
-                    .join("/");
-
-                format!("[{}]", choises)
-            };
-
-            eprintln!("{} {}", message, choice_prompt);
-
-            let mut answer = String::new();
-            let bytes_read = stdin_lock.read_line(&mut answer)?;
-
-            if bytes_read == 0 {
-                let error = FinalError::with_title("Unexpected EOF when asking question.")
-                    .detail("When asking the user:")
-                    .detail(format!("  \"{message}\""))
-                    .detail("Expected one of the options as answer, but found EOF instead.")
-                    .hint("If using Ouch in scripting, consider using `--yes` and `--no`.");
-
-                return Err(error.into());
-            }
-
-            answer.make_ascii_lowercase();
-            let answer = answer.trim();
-
-            let chosen_index = self.choises.iter().position(|choise| choise.label.starts_with(answer));
-
-            if let Some(i) = chosen_index {
-                return Ok(self.choises.remove(i).value);
-            }
-        }
-    }
-}
-
-/// Confirmation dialog for end user with [Y/n] question.
-///
-/// If the placeholder is found in the prompt text, it will be replaced to form the final message.
-pub struct Confirmation<'a> {
-    /// The message to be displayed with the placeholder text in it.
-    /// e.g.: "Do you want to overwrite 'FILE'?"
-    pub prompt: &'a str,
-
-    /// The placeholder text that will be replaced in the `ask` function:
-    /// e.g.: Some("FILE")
-    pub placeholder: Option<&'a str>,
-}
-
-impl<'a> Confirmation<'a> {
-    /// Creates a new Confirmation.
-    pub const fn new(prompt: &'a str, pattern: Option<&'a str>) -> Self {
-        Self {
-            prompt,
-            placeholder: pattern,
-        }
-    }
-
-    /// Creates user message and receives a boolean input to be used on the program
-    pub fn ask(&self, substitute: Option<&'a str>) -> crate::Result<bool> {
-        let message = match (self.placeholder, substitute) {
-            (None, _) => Cow::Borrowed(self.prompt),
-            (Some(_), None) => unreachable!("dev error, should be reported, we checked this won't happen"),
-            (Some(placeholder), Some(subs)) => Cow::Owned(self.prompt.replace(placeholder, subs)),
-        };
-
-        #[cfg(not(feature = "allow_piped_choice"))]
-        if !stdin().is_terminal() {
-            eprintln!("{}", message);
-            eprintln!("Pass --yes to proceed");
-            return Ok(false);
-        }
-
-        let _locks = lock_and_flush_output_stdio()?;
-        let mut stdin_lock = stdin().lock();
-
-        // Ask the same question to end while no valid answers are given
-        loop {
-            if is_running_in_accessible_mode() {
-                eprintln!(
-                    "{} {}yes{}/{}no{}: ",
-                    message,
-                    *colors::GREEN,
-                    *colors::RESET,
-                    *colors::RED,
-                    *colors::RESET
-                );
-            } else {
-                eprintln!(
-                    "{} [{}Y{}/{}n{}] ",
-                    message,
-                    *colors::GREEN,
-                    *colors::RESET,
-                    *colors::RED,
-                    *colors::RESET
-                );
-            }
-
-            let mut answer = String::new();
-            let bytes_read = stdin_lock.read_line(&mut answer)?;
-
-            if bytes_read == 0 {
-                let error = FinalError::with_title("Unexpected EOF when asking question.")
-                    .detail("When asking the user:")
-                    .detail(format!("  \"{message}\""))
-                    .detail("Expected 'y' or 'n' as answer, but found EOF instead.")
-                    .hint("If using Ouch in scripting, consider using `--yes` and `--no`.");
-
-                return Err(error.into());
-            }
-
-            answer.make_ascii_lowercase();
-            match answer.trim() {
-                "" | "y" | "yes" => return Ok(true),
-                "n" | "no" => return Ok(false),
-                _ => continue, // Try again
-            }
+            Prompt::new(
+                format!("Do you want to {action} '{path}'?"),
+                &[
+                    PromptChoice {
+                        label: "yes",
+                        value: true,
+                        color: *colors::GREEN,
+                        is_default: true,
+                    },
+                    PromptChoice {
+                        label: "no",
+                        value: false,
+                        color: *colors::RED,
+                        is_default: false,
+                    },
+                ],
+            )
+            .ask()
         }
     }
 }
