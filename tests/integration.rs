@@ -1,11 +1,7 @@
 #[macro_use]
 mod utils;
 
-use std::{
-    io::Write,
-    iter::once,
-    path::{Path, PathBuf},
-};
+use std::{iter::once, path::PathBuf};
 
 use fs_err as fs;
 use parse_display::Display;
