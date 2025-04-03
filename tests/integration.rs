@@ -1,7 +1,11 @@
 #[macro_use]
 mod utils;
 
-use std::{iter::once, path::PathBuf};
+use std::{
+    io::Write,
+    iter::once,
+    path::{Path, PathBuf},
+};
 
 use fs_err as fs;
 use parse_display::Display;
@@ -81,6 +85,24 @@ fn create_random_files(dir: impl Into<PathBuf>, depth: u8, rng: &mut SmallRng) {
     // create more random files in 0 to 2 new directories
     for _ in 0..rng.gen_range(0..=2u32) {
         create_random_files(tempfile::tempdir_in(dir).unwrap().into_path(), depth - 1, rng);
+    }
+}
+
+/// Create n random files on directory dir
+fn create_n_random_files(n: usize, dir: impl Into<PathBuf>, rng: &mut SmallRng) {
+    let dir: &PathBuf = &dir.into();
+
+    for _ in 0..n {
+        write_random_content(
+            &mut tempfile::Builder::new()
+                .prefix("file")
+                .tempfile_in(dir)
+                .unwrap()
+                .keep()
+                .unwrap()
+                .0,
+            rng,
+        );
     }
 }
 
@@ -274,37 +296,35 @@ fn multiple_files_with_conflict_and_choice_to_not_overwrite(
 fn multiple_files_with_conflict_and_choice_to_rename(
     ext: DirectoryExtension,
     #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
-    #[strategy(0u8..3)] depth: u8,
 ) {
-    let dir = tempdir().unwrap();
-    let dir = dir.path();
+    let temp_dir = tempdir().unwrap();
+    let root_path = temp_dir.path();
 
-    let before = &dir.join("before");
-    let before_dir = &before.join("dir");
-    fs::create_dir_all(before_dir).unwrap();
-    create_random_files(before_dir, depth, &mut SmallRng::from_entropy());
+    let src_files_path = root_path.join("src_files");
+    fs::create_dir_all(&src_files_path).unwrap();
+    create_n_random_files(5, &src_files_path, &mut SmallRng::from_entropy());
 
-    let after = &dir.join("after");
-    let after_dir = &after.join("dir");
-    fs::create_dir_all(after_dir).unwrap();
-    create_random_files(after_dir, depth, &mut SmallRng::from_entropy());
+    // Make destiny already filled to force a conflict
+    let dest_files_path = root_path.join("dest_files");
+    fs::create_dir_all(&dest_files_path).unwrap();
+    create_n_random_files(5, &dest_files_path, &mut SmallRng::from_entropy());
 
-    let archive = &dir.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
-    ouch!("-A", "c", before_dir, archive);
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
+    ouch!("-A", "c", &src_files_path, archive);
 
-    let after_renamed_dir = &after.join("dir_1");
-    assert_eq!(false, after_renamed_dir.exists());
+    let dest_files_path_renamed = &root_path.join("dest_files_1");
+    assert_eq!(false, dest_files_path_renamed.exists());
 
     crate::utils::cargo_bin()
         .arg("decompress")
         .arg(archive)
         .arg("-d")
-        .arg(after)
+        .arg(&dest_files_path)
         .write_stdin("r")
         .assert()
         .success();
 
-    assert_same_directory(before_dir, after_renamed_dir, false);
+    assert_same_directory(src_files_path, dest_files_path_renamed.join("src_files"), false);
 }
 
 #[cfg(feature = "allow_piped_choice")]
@@ -312,55 +332,85 @@ fn multiple_files_with_conflict_and_choice_to_rename(
 fn multiple_files_with_conflict_and_choice_to_rename_with_already_a_renamed(
     ext: DirectoryExtension,
     #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
-    #[strategy(0u8..3)] depth: u8,
 ) {
-    let dir = tempdir().unwrap();
-    let dir = dir.path();
+    let temp_dir = tempdir().unwrap();
+    let root_path = temp_dir.path();
 
-    let before = &dir.join("before");
-    let before_dir = &before.join("dir");
-    fs::create_dir_all(before_dir).unwrap();
-    create_random_files(before_dir, depth, &mut SmallRng::from_entropy());
+    let src_files_path = root_path.join("src_files");
+    fs::create_dir_all(&src_files_path).unwrap();
+    create_n_random_files(5, &src_files_path, &mut SmallRng::from_entropy());
 
-    let after = &dir.join("after");
-    let after_dir = &after.join("dir");
-    fs::create_dir_all(after_dir).unwrap();
-    create_random_files(after_dir, depth, &mut SmallRng::from_entropy());
+    // Make destiny already filled and destiny with '_1'
+    let dest_files_path = root_path.join("dest_files");
+    fs::create_dir_all(&dest_files_path).unwrap();
+    create_n_random_files(5, &dest_files_path, &mut SmallRng::from_entropy());
 
-    let archive = &dir.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
-    ouch!("-A", "c", before_dir, archive);
+    let dest_files_path_1 = root_path.join("dest_files_1");
+    fs::create_dir_all(&dest_files_path_1).unwrap();
+    create_n_random_files(5, &dest_files_path_1, &mut SmallRng::from_entropy());
 
-    let already_renamed_dir = &after.join("dir_1");
-    fs::create_dir_all(already_renamed_dir).unwrap();
-    create_random_files(already_renamed_dir, depth, &mut SmallRng::from_entropy());
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
+    ouch!("-A", "c", &src_files_path, archive);
 
-    let after_real_renamed_dir = &after.join("dir_2");
-    assert_eq!(false, after_real_renamed_dir.exists());
-
-    crate::utils::cargo_bin()
-        .arg("decompress")
-        .arg(archive)
-        .arg("-d")
-        .arg(after)
-        .write_stdin("r")
-        .assert()
-        .success();
-
-    assert_same_directory(before_dir, after_real_renamed_dir, false);
-
-    let after_another_real_renamed_dir = &after.join("dir_3");
-    assert_eq!(false, after_another_real_renamed_dir.exists());
+    let dest_files_path_renamed = &root_path.join("dest_files_2");
+    assert_eq!(false, dest_files_path_renamed.exists());
 
     crate::utils::cargo_bin()
         .arg("decompress")
         .arg(archive)
         .arg("-d")
-        .arg(after)
+        .arg(&dest_files_path)
         .write_stdin("r")
         .assert()
         .success();
 
-    assert_same_directory(before_dir, after_another_real_renamed_dir, false);
+    assert_same_directory(src_files_path, dest_files_path_renamed.join("src_files"), false);
+}
+
+#[cfg(feature = "allow_piped_choice")]
+#[proptest(cases = 25)]
+fn multiple_files_with_disabled_smart_unpack_by_dir(
+    ext: DirectoryExtension,
+    #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
+) {
+    let temp_dir = tempdir().unwrap();
+    let root_path = temp_dir.path();
+
+    let src_files_path = root_path.join("src_files");
+    fs::create_dir_all(&src_files_path).unwrap();
+
+    let files_path = ["file1.txt", "file2.txt", "file3.txt", "file4.txt", "file5.txt"]
+        .into_iter()
+        .map(|f| src_files_path.join(f))
+        .map(|path| {
+            let mut file = fs::File::create(&path).unwrap();
+            file.write("Some content".as_bytes()).unwrap();
+            path
+        })
+        .collect::<Vec<_>>();
+
+    let dest_files_path = root_path.join("dest_files");
+    fs::create_dir_all(&dest_files_path).unwrap();
+
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
+
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .args(files_path)
+        .arg(archive)
+        .assert()
+        .success();
+
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(archive)
+        .arg("-d")
+        .arg(&dest_files_path)
+        .write_stdin("r")
+        .assert()
+        .success();
+
+    assert_same_directory(src_files_path, dest_files_path, false);
 }
 
 #[cfg(feature = "unrar")]
