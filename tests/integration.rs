@@ -1,7 +1,7 @@
 #[macro_use]
 mod utils;
 
-use std::{iter::once, path::PathBuf};
+use std::{io::Write, iter::once, path::PathBuf};
 
 use fs_err as fs;
 use parse_display::Display;
@@ -363,7 +363,6 @@ fn multiple_files_with_conflict_and_choice_to_rename_with_already_a_renamed(
     assert_same_directory(src_files_path, dest_files_path_renamed.join("src_files"), false);
 }
 
-#[cfg(feature = "allow_piped_choice")]
 #[proptest(cases = 25)]
 fn multiple_files_with_disabled_smart_unpack_by_dir(
     ext: DirectoryExtension,
@@ -380,7 +379,7 @@ fn multiple_files_with_disabled_smart_unpack_by_dir(
         .map(|f| src_files_path.join(f))
         .map(|path| {
             let mut file = fs::File::create(&path).unwrap();
-            file.write("Some content".as_bytes()).unwrap();
+            file.write_all("Some content".as_bytes()).unwrap();
             path
         })
         .collect::<Vec<_>>();
