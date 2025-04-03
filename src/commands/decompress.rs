@@ -318,7 +318,7 @@ fn unpack(
     let output_dir_cleaned = if is_valid_output_dir {
         output_dir.to_owned()
     } else {
-        match utils::resolve_path_conflict(&output_dir, question_policy)? {
+        match utils::resolve_path_conflict(output_dir, question_policy)? {
             Some(path) => path,
             None => return Ok(ControlFlow::Break(())),
         }
