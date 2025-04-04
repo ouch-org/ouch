@@ -31,7 +31,7 @@ pub struct DecompressOptions<'a> {
     pub formats: Vec<Extension>,
     pub output_dir: &'a Path,
     pub output_file_path: PathBuf,
-    pub is_output_dir_explicit: bool,
+    pub is_output_dir_provided: bool,
     pub question_policy: QuestionPolicy,
     pub quiet: bool,
     pub password: Option<&'a [u8]>,
@@ -74,7 +74,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             options.output_dir,
             &options.output_file_path,
             options.question_policy,
-            options.is_output_dir_explicit,
+            options.is_output_dir_provided,
         )? {
             files
         } else {
@@ -152,7 +152,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 options.output_dir,
                 &options.output_file_path,
                 options.question_policy,
-                options.is_output_dir_explicit,
+                options.is_output_dir_provided,
             )? {
                 files
             } else {
@@ -186,7 +186,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 options.output_dir,
                 &options.output_file_path,
                 options.question_policy,
-                options.is_output_dir_explicit,
+                options.is_output_dir_provided,
             )? {
                 files
             } else {
@@ -218,7 +218,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 options.output_dir,
                 &options.output_file_path,
                 options.question_policy,
-                options.is_output_dir_explicit,
+                options.is_output_dir_provided,
             )? {
                 files
             } else {
@@ -260,7 +260,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 options.output_dir,
                 &options.output_file_path,
                 options.question_policy,
-                options.is_output_dir_explicit,
+                options.is_output_dir_provided,
             )? {
                 files
             } else {
@@ -295,9 +295,9 @@ fn execute_decompression(
     output_dir: &Path,
     output_file_path: &Path,
     question_policy: QuestionPolicy,
-    is_output_dir_explicit: bool,
+    is_output_dir_provided: bool,
 ) -> crate::Result<ControlFlow<(), usize>> {
-    if is_output_dir_explicit {
+    if is_output_dir_provided {
         unpack(unpack_fn, output_dir, question_policy)
     } else {
         smart_unpack(unpack_fn, output_dir, output_file_path, question_policy)
@@ -313,7 +313,7 @@ fn unpack(
     output_dir: &Path,
     question_policy: QuestionPolicy,
 ) -> crate::Result<ControlFlow<(), usize>> {
-    let is_valid_output_dir = !output_dir.exists() || (output_dir.is_dir() && output_dir.read_dir()?.count() == 0);
+    let is_valid_output_dir = !output_dir.exists() || (output_dir.is_dir() && output_dir.read_dir()?.next().is_none());
 
     let output_dir_cleaned = if is_valid_output_dir {
         output_dir.to_owned()
