@@ -43,6 +43,7 @@ Categories Used:
 - Support decompression  over stdin [\#692](https://github.com/ouch-org/ouch/pull/692) ([rcorre](https://github.com/rcorre))
 - Make `--format` more forgiving with the formatting of the provided format [\#519](https://github.com/ouch-org/ouch/pull/519) ([marcospb19](https://github.com/marcospb19))
 - Use buffered writer for list output [\#764](https://github.com/ouch-org/ouch/pull/764) ([killercup](https://github.com/killercup))
+- Disable smart unpack when `--dir` flag is provided in decompress command [\#782](https://github.com/ouch-org/ouch/pull/782) ([talis-fb](https://github.com/talis-fb))
 
 ## [0.5.1](https://github.com/ouch-org/ouch/compare/0.5.0...0.5.1)
 
