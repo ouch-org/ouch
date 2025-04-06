@@ -6,12 +6,12 @@ mkdir release
 cd downloaded_artifacts
 
 for dir in ouch-*; do
-    cp -r "$dir/artifacts" "$dir/completions"
     mkdir "$dir/man"
-    mv "$dir"/completions/*.1 "$dir/man"
+    mv "$dir"/artifacts/*.1 "$dir/man"
 
-    cp ../{README.md,LICENSE,CHANGELOG.md} "$fulldir"
-    rm -r "$fulldir/artifacts"
+    mv "$dir/artifacts" "$dir/completions"
+
+    cp ../{README.md,LICENSE,CHANGELOG.md} "$dir"
 
     if [[ "$dir" = *.exe ]]; then
         target=${dir%.exe}
