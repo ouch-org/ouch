@@ -1,28 +1,28 @@
 #!/usr/bin/env bash
-
 set -e
 
-mkdir release
 cd downloaded_artifacts
+mkdir ../assets
 
-for dir in ouch-*; do
-    mkdir "$dir/man"
-    mv "$dir"/artifacts/*.1 "$dir/man"
+for input_dir in ouch-*; do
+    cp ../{README.md,LICENSE,CHANGELOG.md} "$input_dir"
+    mkdir "$input_dir/man"
+    mkdir "$input_dir/artifacts"
 
-    mv "$dir/artifacts" "$dir/completions"
+    mv "$input_dir"/artifacts/*.1 "$input_dir/man"
+    mv "$input_dir"/artifacts/* "$input_dir/completions"
+    rm -r "$input_dir/artifacts"
 
-    cp ../{README.md,LICENSE,CHANGELOG.md} "$dir"
-
-    if [[ "$dir" = *.exe ]]; then
-        target=${dir%.exe}
-        mv "$dir/target/${target/ouch-/}/release/ouch.exe" "$dir"
-        rm -r "$dir/target"
-        mv "$dir" "$target"
-        zip -r "../release/$target.zip" "$target"
+    if [[ "$input_dir" = *.exe ]]; then
+        target=${input_dir%.exe}
+        mv "$input_dir/target/${target/ouch-/}/release/ouch.exe" "$input_dir"
+        rm -r "$input_dir/target"
+        mv "$input_dir" "$target"
+        zip -r "../assets/$target.zip" "$target"
     else
-        mv "$dir/target/${dir/ouch-/}/release/ouch" "$dir"
-        rm -r "$dir/target"
-        chmod +x "$dir/ouch"
-        tar czf "../release/$dir.tar.gz" "$dir"
+        mv "$input_dir/target/${input_dir/ouch-/}/release/ouch" "$input_dir"
+        rm -r "$input_dir/target"
+        chmod +x "$input_dir/ouch"
+        tar czf "../assets/$input_dir.tar.gz" "$input_dir"
     fi
 done
