@@ -10,20 +10,23 @@ on:
         type: boolean
         required: true
         default: true
-      upload_artifacts:
-        description: "if built artifacts should be uploaded"
-        type: boolean
+      artifact_upload_mode:
+        description: "Control what artifacts to upload: 'none' for no uploads, 'with_default_features' to upload artifacts with default features (for releases), or 'all' for all feature combinations."
+        type: choice
+        options:
+          - none
+          - with_default_features
+          - all
         required: true
-        default: true
   workflow_call:
     inputs:
       matrix_all_combinations:
         description: "if matrix should have all combinations of targets and features"
         type: boolean
         required: true
-      upload_artifacts:
-        description: "if built artifacts should be uploaded"
-        type: boolean
+      artifact_upload_mode:
+        description: "Control which artifacts to upload: 'none' for no uploads, 'with_default_features' to upload only artifacts with default features (use_zlib+use_zstd_thin+unrar), or 'all' to upload all feature combinations."
+        type: string
         required: true
 
 jobs:
@@ -136,7 +139,10 @@ jobs:
           OUCH_ARTIFACTS_FOLDER: artifacts
 
       - name: Upload release artifacts
-        if: ${{ inputs.upload_artifacts }}
+        if: |
+          ${{ inputs.artifact_upload_mode != 'none' &&
+             (inputs.artifact_upload_mode == 'all' ||
+              (matrix.feature-unrar && matrix.feature-use-zlib && matrix.feature-use-zstd-thin)) }}
         uses: actions/upload-artifact@v4
         with:
           name: ouch-${{ matrix.target }}-${{ steps.concat-features.outputs.FEATURES }}

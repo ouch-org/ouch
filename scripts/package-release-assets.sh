@@ -10,8 +10,8 @@ for dir in ouch-*; do
     mkdir "$dir/man"
     mv "$dir"/completions/*.1 "$dir/man"
 
-    cp ../{README.md,LICENSE,CHANGELOG.md} "$dir"
-    rm -r "$dir/artifacts"
+    cp ../{README.md,LICENSE,CHANGELOG.md} "$fulldir"
+    rm -r "$fulldir/artifacts"
 
     if [[ "$dir" = *.exe ]]; then
         target=${dir%.exe}
