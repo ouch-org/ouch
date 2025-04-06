@@ -3,7 +3,7 @@
 set -e
 
 mkdir release
-cd artifacts
+cd downloaded_artifacts
 
 for dir in ouch-*; do
     cp -r "$dir/artifacts" "$dir/completions"
