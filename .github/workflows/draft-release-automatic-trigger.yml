@@ -23,7 +23,7 @@ jobs:
       - name: Download artifacts
         uses: dawidd6/action-download-artifact@v6
         with:
-          path: artifacts
+          path: downloaded_artifacts
           workflow: ./.github/workflows/build-artifacts-and-run-tests.yml
           name: ouch-*
 
