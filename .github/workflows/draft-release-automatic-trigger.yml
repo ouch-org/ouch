@@ -25,6 +25,7 @@ jobs:
         with:
           path: artifacts
           workflow: ./.github/workflows/build-artifacts-and-run-tests.yml
+          name: ouch-*
 
       - name: Package release assets
         run: scripts/package-release-assets.sh
