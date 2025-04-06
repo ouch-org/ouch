@@ -18,7 +18,7 @@ jobs:
         uses: dawidd6/action-download-artifact@v6
         with:
           path: artifacts
-          workflow: build-and-test.yml
+          workflow: build-artifacts-and-run-tests.yml
           run_id: ${{ github.event.inputs.run_id }}
 
       - name: Package release assets
