@@ -105,7 +105,7 @@ jobs:
           if [[ "${{ matrix.feature-use-zlib }}" == true ]]; then FEATURES+=(use_zlib); fi
           if [[ "${{ matrix.feature-use-zstd-thin }}" == true ]]; then FEATURES+=(use_zstd_thin); fi
           if [[ "${{ matrix.feature-unrar }}" == true ]]; then FEATURES+=(unrar); fi
-          IFS=','
+          IFS='+'
           echo "FEATURES=${FEATURES[*]}" >> $GITHUB_OUTPUT
 
       - name: Set up extra cargo flags
@@ -145,7 +145,7 @@ jobs:
               (matrix.feature-unrar && matrix.feature-use-zlib && matrix.feature-use-zstd-thin)) }}
         uses: actions/upload-artifact@v4
         with:
-          name: ouch-${{ matrix.target }}-${{ steps.concat-features.outputs.FEATURES }}
+          name: ouch-${{ matrix.target }}${{ steps.concat-features.outputs.FEATURES != '' && format('-{0}', steps.concat-features.outputs.FEATURES) || '' }}
           path: |
             target/${{ matrix.target }}/release/ouch
             target/${{ matrix.target }}/release/ouch.exe
