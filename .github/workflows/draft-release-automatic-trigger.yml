@@ -10,7 +10,7 @@ jobs:
     uses: ./.github/workflows/build-artifacts-and-run-tests.yml
     with:
       matrix_all_combinations: true
-      upload_artifacts: true
+      artifact_upload_mode: with_default_features
 
   automated-draft-release:
     runs-on: ubuntu-latest
