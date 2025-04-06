@@ -120,7 +120,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          key: "${{ matrix.target }}-${{ matrix.feature-unrar }}-${{ matrix.feature-use-zstd-thin }}-${{ matrix.feature-unrar }}"
+          key: "${{ matrix.target }}-${{ matrix.feature-unrar }}-${{ matrix.feature-use-zlib }}-${{ matrix.feature-use-zstd-thin }}"
 
       - name: Test on stable
         # there's no way to run tests for ARM64 Windows for now
