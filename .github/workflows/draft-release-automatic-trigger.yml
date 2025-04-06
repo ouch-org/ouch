@@ -24,6 +24,7 @@ jobs:
         uses: dawidd6/action-download-artifact@v6
         with:
           path: artifacts
+          workflow: ./.github/workflows/build-artifacts-and-run-tests.yml
 
       - name: Package release assets
         run: scripts/package-release-assets.sh
