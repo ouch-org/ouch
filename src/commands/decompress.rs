@@ -346,7 +346,7 @@ fn smart_unpack(
     question_policy: QuestionPolicy,
 ) -> crate::Result<ControlFlow<(), usize>> {
     assert!(output_dir.exists());
-    let temp_dir = tempfile::Builder::new().prefix(".tmp-ouch-").tempdir_in(output_dir)?;
+    let temp_dir = tempfile::Builder::new().prefix("tmp-ouch-").tempdir_in(output_dir)?;
     let temp_dir_path = temp_dir.path();
 
     info_accessible(format!(
