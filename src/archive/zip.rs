@@ -37,7 +37,7 @@ pub fn unpack_archive<R>(
 where
     R: Read + Seek,
 {
-    assert!(output_folder.read_dir().expect("dir exists").count() == 0);
+    assert!(output_folder.read_dir().expect("dir exists").next().is_none());
 
     let mut unpacked_files = 0;
 

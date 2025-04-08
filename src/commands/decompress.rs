@@ -356,7 +356,7 @@ fn smart_unpack(
 
     let files = unpack_fn(temp_dir_path)?;
 
-    let root_contains_only_one_element = fs::read_dir(temp_dir_path)?.count() == 1;
+    let root_contains_only_one_element = fs::read_dir(temp_dir_path)?.take(2).count() == 1;
 
     let (previous_path, mut new_path) = if root_contains_only_one_element {
         // Only one file in the root directory, so we can just move it to the output directory
