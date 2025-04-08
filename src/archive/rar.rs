@@ -18,7 +18,7 @@ pub fn unpack_archive(
     password: Option<&[u8]>,
     quiet: bool,
 ) -> crate::Result<usize> {
-    assert!(output_folder.read_dir().expect("dir exists").count() == 0);
+    assert!(output_folder.read_dir().expect("dir exists").next().is_none());
 
     let archive = match password {
         Some(password) => Archive::with_password(archive_path, password),
