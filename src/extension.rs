@@ -196,7 +196,7 @@ pub fn separate_known_extensions_from_name(path: &Path) -> (&Path, Vec<Extension
         return (path, extensions);
     };
 
-    // While there is known extensions at the tail, grab them
+    // While there are known extensions at the tail, grab them
     while let Some(extension) = split_extension(&mut name) {
         extensions.insert(0, extension);
     }
