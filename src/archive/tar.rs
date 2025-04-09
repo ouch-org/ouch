@@ -8,7 +8,7 @@ use std::{
     thread,
 };
 
-use fs_err as fs;
+use fs_err::{self as fs};
 use same_file::Handle;
 
 use crate::{
@@ -127,6 +127,30 @@ where
 
             if path.is_dir() {
                 builder.append_dir(path, path)?;
+            } else if path.is_symlink() {
+                let target_path = path.read_link()?;
+
+                let mut header = tar::Header::new_gnu();
+                header.set_entry_type(tar::EntryType::Symlink);
+                header.set_size(0);
+
+                let entry_name = path.to_str().ok_or_else(|| {
+                    FinalError::with_title("Tar requires that all directories names are valid UTF-8")
+                        .detail(format!("File at '{path:?}' has a non-UTF-8 name"))
+                })?;
+
+                let target_name = target_path.to_str().ok_or_else(|| {
+                    FinalError::with_title("Tar requires that all directories names are valid UTF-8")
+                        .detail(format!("File at '{target_path:?}' has a non-UTF-8 name"))
+                })?;
+
+                builder
+                    .append_link(&mut header, entry_name, target_name)
+                    .map_err(|err| {
+                        FinalError::with_title("Could not create archive")
+                            .detail("Unexpected error while trying to read link")
+                            .detail(format!("Error: {err}."))
+                    })?;
             } else {
                 let mut file = match fs::File::open(path) {
                     Ok(f) => f,
