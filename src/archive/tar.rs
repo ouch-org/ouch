@@ -43,7 +43,7 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) 
                 #[cfg(unix)]
                 std::os::unix::fs::symlink(&target, &full_path)?;
                 #[cfg(windows)]
-                std::os::windows::symlink_file(&target, &full_path)?;
+                std::os::windows::fs::symlink_file(&target, &full_path)?;
             }
             tar::EntryType::Regular | tar::EntryType::Directory => {
                 file.unpack_in(output_folder)?;
