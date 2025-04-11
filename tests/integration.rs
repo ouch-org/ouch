@@ -497,7 +497,7 @@ fn tar_symlink_pack_and_unpack() {
     #[cfg(unix)]
     std::os::unix::fs::symlink(&files_path[0], &symlink_path).unwrap();
     #[cfg(windows)]
-    std::os::windows::symlink_file(&files_path[0], &symlink_path).unwrap();
+    std::os::windows::fs::symlink_file(&files_path[0], &symlink_path).unwrap();
 
     files_path.push(symlink_path);
 
