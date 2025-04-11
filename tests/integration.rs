@@ -1,7 +1,11 @@
 #[macro_use]
 mod utils;
 
-use std::{io::Write, iter::once, path::PathBuf};
+use std::{
+    io::Write,
+    iter::once,
+    path::{Path, PathBuf},
+};
 
 use fs_err as fs;
 use parse_display::Display;
@@ -466,4 +470,60 @@ fn unpack_rar_stdin() -> Result<(), Box<dyn std::error::Error>> {
         .try_for_each(|(path, format)| test_unpack_rar_single(&datadir.join(path), format))?;
 
     Ok(())
+}
+
+#[test]
+fn tar_symlink_pack_and_unpack() {
+    let temp_dir = tempdir().unwrap();
+    let root_path = temp_dir.path();
+
+    let src_files_path = root_path.join("src_files");
+    fs::create_dir_all(&src_files_path).unwrap();
+
+    let mut files_path = ["file1.txt", "file2.txt", "file3.txt", "file4.txt", "file5.txt"]
+        .into_iter()
+        .map(|f| src_files_path.join(f))
+        .map(|path| {
+            let mut file = fs::File::create(&path).unwrap();
+            file.write_all("Some content".as_bytes()).unwrap();
+            path
+        })
+        .collect::<Vec<_>>();
+
+    let dest_files_path = root_path.join("dest_files");
+    fs::create_dir_all(&dest_files_path).unwrap();
+
+    let symlink_path = src_files_path.join(Path::new("symlink"));
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(&files_path[0], &symlink_path).unwrap();
+    #[cfg(windows)]
+    std::os::windows::symlink_file(&files_path[0], &symlink_path).unwrap();
+
+    files_path.push(symlink_path);
+
+    let archive = &root_path.join("archive.tar");
+
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .args(files_path)
+        .arg(archive)
+        .assert()
+        .success();
+
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(archive)
+        .arg("-d")
+        .arg(&dest_files_path)
+        .assert()
+        .success();
+
+    assert_same_directory(&src_files_path, &dest_files_path, false);
+    // check the symlink stand still
+    for f in dest_files_path.as_path().read_dir().unwrap() {
+        let f = f.unwrap();
+        if f.file_name() == "symlink" {
+            assert!(f.file_type().unwrap().is_symlink())
+        }
+    }
 }

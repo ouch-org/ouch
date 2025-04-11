@@ -30,8 +30,26 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) 
     let mut files_unpacked = 0;
     for file in archive.entries()? {
         let mut file = file?;
+        let entry_type = file.header().entry_type();
+        let relative_path = file.path()?.to_path_buf();
+        let full_path = output_folder.join(&relative_path);
 
-        file.unpack_in(output_folder)?;
+        match entry_type {
+            tar::EntryType::Symlink => {
+                let target = file
+                    .link_name()?
+                    .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidData, "Missing symlink target"))?;
+
+                #[cfg(unix)]
+                std::os::unix::fs::symlink(&target, &full_path)?;
+                #[cfg(windows)]
+                std::os::windows::symlink_file(&target, &full_path)?;
+            }
+            tar::EntryType::Regular | tar::EntryType::Directory => {
+                file.unpack_in(output_folder)?;
+            }
+            _ => continue,
+        }
 
         // This is printed for every file in the archive and has little
         // importance for most users, but would generate lots of
@@ -134,23 +152,11 @@ where
                 header.set_entry_type(tar::EntryType::Symlink);
                 header.set_size(0);
 
-                let entry_name = path.to_str().ok_or_else(|| {
-                    FinalError::with_title("Tar requires that all directories names are valid UTF-8")
-                        .detail(format!("File at '{path:?}' has a non-UTF-8 name"))
+                builder.append_link(&mut header, path, &target_path).map_err(|err| {
+                    FinalError::with_title("Could not create archive")
+                        .detail("Unexpected error while trying to read link")
+                        .detail(format!("Error: {err}."))
                 })?;
-
-                let target_name = target_path.to_str().ok_or_else(|| {
-                    FinalError::with_title("Tar requires that all directories names are valid UTF-8")
-                        .detail(format!("File at '{target_path:?}' has a non-UTF-8 name"))
-                })?;
-
-                builder
-                    .append_link(&mut header, entry_name, target_name)
-                    .map_err(|err| {
-                        FinalError::with_title("Could not create archive")
-                            .detail("Unexpected error while trying to read link")
-                            .detail(format!("Error: {err}."))
-                    })?;
             } else {
                 let mut file = match fs::File::open(path) {
                     Ok(f) => f,
