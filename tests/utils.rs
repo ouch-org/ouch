@@ -88,7 +88,7 @@ pub fn assert_same_directory(x: impl Into<PathBuf>, y: impl Into<PathBuf>, prese
 
                 if ft_x.is_dir() && ft_y.is_dir() {
                     assert_same_directory(x.path(), y.path(), preserve_permissions);
-                } else if ft_x.is_file() && ft_y.is_file() {
+                } else if (ft_x.is_file() && ft_y.is_file()) || (ft_x.is_symlink() && ft_y.is_symlink()) {
                     assert_eq!(meta_x.len(), meta_y.len());
                     assert_eq!(fs::read(x.path()).unwrap(), fs::read(y.path()).unwrap());
                 } else {
