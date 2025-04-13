@@ -170,6 +170,7 @@ pub fn build_archive_from_paths<W>(
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
     quiet: bool,
+    follow_symlinks: bool,
 ) -> crate::Result<W>
 where
     W: Write + Seek,
@@ -247,7 +248,7 @@ where
 
             if metadata.is_dir() {
                 writer.add_directory(entry_name, options)?;
-            } else if path.is_symlink() {
+            } else if path.is_symlink() && !follow_symlinks {
                 let target_path = path.read_link()?;
                 let target_name = target_path.to_str().ok_or_else(|| {
                     FinalError::with_title("Zip requires that all directories names are valid UTF-8")

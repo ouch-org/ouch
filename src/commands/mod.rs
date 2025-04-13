@@ -67,6 +67,7 @@ pub fn run(
             level,
             fast,
             slow,
+            follow_symlinks,
         } => {
             // After cleaning, if there are no input files left, exit
             if files.is_empty() {
@@ -109,6 +110,7 @@ pub fn run(
                 output_file,
                 &output_path,
                 args.quiet,
+                follow_symlinks,
                 question_policy,
                 file_visibility_policy,
                 level,

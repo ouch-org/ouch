@@ -104,6 +104,7 @@ pub fn build_archive_from_paths<W>(
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
     quiet: bool,
+    follow_symlinks: bool,
 ) -> crate::Result<W>
 where
     W: Write,
@@ -144,7 +145,7 @@ where
 
             if path.is_dir() {
                 builder.append_dir(path, path)?;
-            } else if path.is_symlink() {
+            } else if path.is_symlink() && !follow_symlinks {
                 let target_path = path.read_link()?;
 
                 let mut header = tar::Header::new_gnu();

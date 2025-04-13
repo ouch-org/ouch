@@ -482,11 +482,11 @@ fn symlink_pack_and_unpack(
         return Ok(());
     }
 
-    let temp_dir = tempdir().unwrap();
+    let temp_dir = tempdir()?;
     let root_path = temp_dir.path();
 
     let src_files_path = root_path.join("src_files");
-    fs::create_dir_all(&src_files_path).unwrap();
+    fs::create_dir_all(&src_files_path)?;
 
     let mut files_path = ["file1.txt", "file2.txt", "file3.txt", "file4.txt", "file5.txt"]
         .into_iter()
@@ -499,13 +499,13 @@ fn symlink_pack_and_unpack(
         .collect::<Vec<_>>();
 
     let dest_files_path = root_path.join("dest_files");
-    fs::create_dir_all(&dest_files_path).unwrap();
+    fs::create_dir_all(&dest_files_path)?;
 
     let symlink_path = src_files_path.join(Path::new("symlink"));
     #[cfg(unix)]
-    std::os::unix::fs::symlink(&files_path[0], &symlink_path).unwrap();
+    std::os::unix::fs::symlink(&files_path[0], &symlink_path)?;
     #[cfg(windows)]
-    std::os::windows::fs::symlink_file(&files_path[0], &symlink_path).unwrap();
+    std::os::windows::fs::symlink_file(&files_path[0], &symlink_path)?;
 
     files_path.push(symlink_path);
 
@@ -513,6 +513,34 @@ fn symlink_pack_and_unpack(
 
     crate::utils::cargo_bin()
         .arg("compress")
+        .args(files_path.clone())
+        .arg(archive)
+        .assert()
+        .success();
+
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(archive)
+        .arg("-d")
+        .arg(&dest_files_path)
+        .assert()
+        .success();
+
+    assert_same_directory(&src_files_path, &dest_files_path, false);
+    // check the symlink stand still
+    for f in dest_files_path.as_path().read_dir()? {
+        let f = f?;
+        if f.file_name() == "symlink" {
+            assert!(f.file_type()?.is_symlink())
+        }
+    }
+
+    fs::remove_file(archive)?;
+    fs::remove_dir_all(&dest_files_path)?;
+
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .arg("--follow-symlinks")
         .args(files_path)
         .arg(archive)
         .assert()
@@ -526,13 +554,9 @@ fn symlink_pack_and_unpack(
         .assert()
         .success();
 
-    println!("archive: {:?}", archive);
-    assert_same_directory(&src_files_path, &dest_files_path, false);
-    // check the symlink stand still
-    for f in dest_files_path.as_path().read_dir().unwrap() {
-        let f = f.unwrap();
-        if f.file_name() == "symlink" {
-            assert!(f.file_type().unwrap().is_symlink())
-        }
+    // check there is no symlinks
+    for f in dest_files_path.as_path().read_dir()? {
+        let f = f?;
+        assert!(!f.file_type().unwrap().is_symlink())
     }
 }
