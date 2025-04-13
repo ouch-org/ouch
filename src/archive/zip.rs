@@ -85,8 +85,23 @@ where
                     ));
                 }
 
-                let mut output_file = fs::File::create(file_path)?;
-                io::copy(&mut file, &mut output_file)?;
+                let mode = file.unix_mode().ok_or_else(|| {
+                    std::io::Error::new(std::io::ErrorKind::InvalidData, "Cannot extract file's mode")
+                })?;
+                let is_symlink = (mode & 0o170000) == 0o120000;
+
+                if is_symlink {
+                    let mut target = String::new();
+                    file.read_to_string(&mut target)?;
+
+                    #[cfg(unix)]
+                    std::os::unix::fs::symlink(&target, &file_path)?;
+                    #[cfg(windows)]
+                    std::os::windows::fs::symlink_file(&target, &file_path)?;
+                } else {
+                    let mut output_file = fs::File::create(file_path)?;
+                    io::copy(&mut file, &mut output_file)?;
+                }
 
                 set_last_modified_time(&file, file_path)?;
             }
@@ -232,6 +247,17 @@ where
 
             if metadata.is_dir() {
                 writer.add_directory(entry_name, options)?;
+            } else if path.is_symlink() {
+                let target_path = path.read_link()?;
+                let target_name = target_path.to_str().ok_or_else(|| {
+                    FinalError::with_title("Zip requires that all directories names are valid UTF-8")
+                        .detail(format!("File at '{target_path:?}' has a non-UTF-8 name"))
+                })?;
+
+                // This approach writes the symlink target path as the content of the symlink entry.
+                // We detect symlinks during extraction by checking for the Unix symlink mode (0o120000) in the entry's permissions.
+                let symlink_options = options.unix_permissions(0o120777);
+                writer.add_symlink(entry_name, target_name, symlink_options)?;
             } else {
                 #[cfg(not(unix))]
                 let options = if is_executable::is_executable(path) {

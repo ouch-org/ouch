@@ -30,12 +30,11 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) 
     let mut files_unpacked = 0;
     for file in archive.entries()? {
         let mut file = file?;
-        let entry_type = file.header().entry_type();
-        let relative_path = file.path()?.to_path_buf();
-        let full_path = output_folder.join(&relative_path);
 
-        match entry_type {
+        match file.header().entry_type() {
             tar::EntryType::Symlink => {
+                let relative_path = file.path()?.to_path_buf();
+                let full_path = output_folder.join(&relative_path);
                 let target = file
                     .link_name()?
                     .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidData, "Missing symlink target"))?;
