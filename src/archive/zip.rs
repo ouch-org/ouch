@@ -95,9 +95,9 @@ where
                     file.read_to_string(&mut target)?;
 
                     #[cfg(unix)]
-                    std::os::unix::fs::symlink(&target, &file_path)?;
+                    std::os::unix::fs::symlink(&target, file_path)?;
                     #[cfg(windows)]
-                    std::os::windows::fs::symlink_file(&target, &file_path)?;
+                    std::os::windows::fs::symlink_file(&target, file_path)?;
                 } else {
                     let mut output_file = fs::File::create(file_path)?;
                     io::copy(&mut file, &mut output_file)?;

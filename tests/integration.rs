@@ -472,8 +472,16 @@ fn unpack_rar_stdin() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-#[test]
-fn tar_symlink_pack_and_unpack() {
+#[proptest(cases = 25)]
+fn symlink_pack_and_unpack(
+    ext: DirectoryExtension,
+    #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
+) {
+    if matches!(ext, DirectoryExtension::SevenZ) {
+        // Skip 7z because the 7z format does not support symlinks
+        return Ok(());
+    }
+
     let temp_dir = tempdir().unwrap();
     let root_path = temp_dir.path();
 
@@ -501,7 +509,7 @@ fn tar_symlink_pack_and_unpack() {
 
     files_path.push(symlink_path);
 
-    let archive = &root_path.join("archive.tar");
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
 
     crate::utils::cargo_bin()
         .arg("compress")
@@ -518,6 +526,7 @@ fn tar_symlink_pack_and_unpack() {
         .assert()
         .success();
 
+    println!("archive: {:?}", archive);
     assert_same_directory(&src_files_path, &dest_files_path, false);
     // check the symlink stand still
     for f in dest_files_path.as_path().read_dir().unwrap() {
