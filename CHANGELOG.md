@@ -61,7 +61,7 @@ Categories Used:
 ### New Features
 
 - Add support for listing and decompressing `.rar` archives [\#529](https://github.com/ouch-org/ouch/pull/529) ([lmkra](https://github.com/lmkra))
-- Add support for 7z [\#555](https://github.com/ouch-org/ouch/pull/555) ([Flat](https://github.com/flat) & [MissileLab](https://github.com/MisileLab))
+- Add support for 7z [\#555](https://github.com/ouch-org/ouch/pull/555) ([Flat](https://github.com/flat) & [MisileLab](https://github.com/MisileLab))
 
 ### Bug Fixes
 
