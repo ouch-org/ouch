@@ -143,6 +143,26 @@ fn ui_test_ok_decompress() {
 }
 
 #[test]
+fn ui_test_ok_decompress_multiple_files() {
+    let (_dropper, dir) = testdir().unwrap();
+
+    let inputs_dir = dir.join("inputs");
+    std::fs::create_dir(&inputs_dir).unwrap();
+
+    let outputs_dir = dir.join("outputs");
+    std::fs::create_dir(&outputs_dir).unwrap();
+
+    // prepare
+    create_files_in(&inputs_dir, &["input", "input2", "input3"]);
+
+    let compress_command = format!("ouch compress {} output.tar.zst", inputs_dir.to_str().unwrap());
+    run_ouch(&compress_command, dir);
+
+    let decompress_command = format!("ouch decompress output.tar.zst --dir {}", outputs_dir.to_str().unwrap());
+    ui!(run_ouch(&decompress_command, dir));
+}
+
+#[test]
 fn ui_test_usage_help_flag() {
     insta::with_settings!({filters => vec![
         // binary name is `ouch.exe` on Windows and `ouch` on everywhere else
