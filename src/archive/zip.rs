@@ -238,7 +238,9 @@ where
                 }
             };
 
+            #[cfg(unix)]
             let mode = metadata.permissions().mode();
+
             let entry_name = path.to_str().ok_or_else(|| {
                 FinalError::with_title("Zip requires that all directories names are valid UTF-8")
                     .detail(format!("File at '{path:?}' has a non-UTF-8 name"))
@@ -255,7 +257,11 @@ where
 
                 // This approach writes the symlink target path as the content of the symlink entry.
                 // We detect symlinks during extraction by checking for the Unix symlink mode (0o120000) in the entry's permissions.
+                #[cfg(unix)]
                 let symlink_options = options.unix_permissions(0o120000 | (mode & 0o777));
+                #[cfg(windows)]
+                let symlink_options = options.unix_permissions(0o120777);
+
                 writer.add_symlink(entry_name, target_name, symlink_options)?;
             } else {
                 #[cfg(not(unix))]
