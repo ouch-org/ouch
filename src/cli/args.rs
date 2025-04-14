@@ -82,8 +82,8 @@ pub enum Subcommand {
         #[arg(long, group = "compression-level")]
         slow: bool,
 
-        /// Tar and Zip specific: add the symlink target to the archive instead of the symlink itself
-        #[arg(long)]
+        /// Archive target files instead of storing symlinks (supported by `tar` and `zip`)
+        #[arg(long, short = 'S')]
         follow_symlinks: bool,
     },
     /// Decompresses one or more files, optionally into another folder

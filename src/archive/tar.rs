@@ -8,7 +8,7 @@ use std::{
     thread,
 };
 
-use fs_err::{self as fs};
+use fs_err as fs;
 use same_file::Handle;
 
 use crate::{
