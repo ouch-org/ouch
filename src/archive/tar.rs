@@ -39,9 +39,9 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) 
         // and so on
         if !quiet {
             info(format!(
-                "{:?} extracted. ({})",
-                utils::strip_cur_dir(&output_folder.join(file.path()?)),
+                "extracted ({}) {:?}",
                 Bytes::new(file.size()),
+                utils::strip_cur_dir(&output_folder.join(file.path()?)),
             ));
 
             files_unpacked += 1;

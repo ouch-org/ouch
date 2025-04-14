@@ -105,21 +105,29 @@ impl Bytes {
 
 impl std::fmt::Display for Bytes {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let &Self(num) = self;
+        let num = self.0;
 
         debug_assert!(num >= 0.0);
         if num < 1_f64 {
-            return write!(f, "{} B", num);
+            let num_pretty = format!("{:.2}", num);
+            return write!(
+                f, 
+                "{:>6}   B",
+                num_pretty
+            );
         }
 
         let delimiter = 1000_f64;
         let exponent = cmp::min((num.ln() / 6.90775).floor() as i32, 4);
 
+        let num_pretty = format!("{:.2}", (num / delimiter.powi(exponent)));
+        let unit_pretty = format!("{}B",  Bytes::UNIT_PREFIXES[exponent as usize]);
+
         write!(
             f,
-            "{:.2} {}B",
-            num / delimiter.powi(exponent),
-            Bytes::UNIT_PREFIXES[exponent as usize]
+            "{:>6} {:>3}",
+            num_pretty,
+            unit_pretty,
         )
     }
 }
@@ -138,33 +146,33 @@ mod tests {
         let mb = kb * 1000;
         let gb = mb * 1000;
 
-        assert_eq!("0 B", format_bytes(0)); // This is weird
-        assert_eq!("1.00 B", format_bytes(b));
-        assert_eq!("999.00 B", format_bytes(b * 999));
-        assert_eq!("12.00 MiB", format_bytes(mb * 12));
+        assert_eq!("  0.00   B", format_bytes(0)); // This is weird
+        assert_eq!("  1.00   B", format_bytes(b));
+        assert_eq!("999.00   B", format_bytes(b * 999));
+        assert_eq!(" 12.00 MiB", format_bytes(mb * 12));
         assert_eq!("123.00 MiB", format_bytes(mb * 123));
-        assert_eq!("5.50 MiB", format_bytes(mb * 5 + kb * 500));
-        assert_eq!("7.54 GiB", format_bytes(gb * 7 + 540 * mb));
-        assert_eq!("1.20 TiB", format_bytes(gb * 1200));
+        assert_eq!("  5.50 MiB", format_bytes(mb * 5 + kb * 500));
+        assert_eq!("  7.54 GiB", format_bytes(gb * 7 + 540 * mb));
+        assert_eq!("  1.20 TiB", format_bytes(gb * 1200));
 
         // bytes
-        assert_eq!("234.00 B", format_bytes(234));
-        assert_eq!("999.00 B", format_bytes(999));
+        assert_eq!("234.00   B", format_bytes(234));
+        assert_eq!("999.00   B", format_bytes(999));
         // kilobytes
-        assert_eq!("2.23 kiB", format_bytes(2234));
-        assert_eq!("62.50 kiB", format_bytes(62500));
+        assert_eq!("  2.23 kiB", format_bytes(2234));
+        assert_eq!(" 62.50 kiB", format_bytes(62500));
         assert_eq!("329.99 kiB", format_bytes(329990));
         // megabytes
-        assert_eq!("2.75 MiB", format_bytes(2750000));
-        assert_eq!("55.00 MiB", format_bytes(55000000));
+        assert_eq!("  2.75 MiB", format_bytes(2750000));
+        assert_eq!(" 55.00 MiB", format_bytes(55000000));
         assert_eq!("987.65 MiB", format_bytes(987654321));
         // gigabytes
-        assert_eq!("5.28 GiB", format_bytes(5280000000));
-        assert_eq!("95.20 GiB", format_bytes(95200000000));
+        assert_eq!("  5.28 GiB", format_bytes(5280000000));
+        assert_eq!(" 95.20 GiB", format_bytes(95200000000));
         assert_eq!("302.00 GiB", format_bytes(302000000000));
         assert_eq!("302.99 GiB", format_bytes(302990000000));
         // Weird aproximation cases:
         assert_eq!("999.90 GiB", format_bytes(999900000000));
-        assert_eq!("1.00 TiB", format_bytes(999990000000));
+        assert_eq!("  1.00 TiB", format_bytes(999990000000));
     }
 }

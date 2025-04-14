@@ -127,9 +127,9 @@ where
         } else {
             if !quiet {
                 info(format!(
-                    "{:?} extracted. ({})",
+                    "extracted ({}) {:?}",
+                    Bytes::new(entry.size()),
                     file_path.display(),
-                    Bytes::new(entry.size())
                 ));
             }
 
