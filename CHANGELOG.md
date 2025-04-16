@@ -27,13 +27,11 @@ Categories Used:
 - Add `--remove` flag for decompression subcommand to remove files after successful decompression [\#757](https://github.com/ouch-org/ouch/pull/757) ([ttys3](https://github.com/ttys3))
 - Add `br` (Brotli) support [\#765](https://github.com/ouch-org/ouch/pull/765) ([killercup](https://github.com/killercup))
 - Add rename option in overwrite menu [\#779](https://github.com/ouch-org/ouch/pull/779) ([talis-fb](https://github.com/talis-fb))
-- Add store symlinks by default and add --follow-symlinks to toggle it [\#789](https://github.com/ouch-org/ouch/pull/789) ([tommady](https://github.com/tommady))
+- Store symlinks by default and add `--follow-symlinks` to store the target files [\#789](https://github.com/ouch-org/ouch/pull/789) ([tommady](https://github.com/tommady))
 
 ### Bug Fixes
 
 - Fix output corrupted on parallel decompression [\#642](https://github.com/ouch-org/ouch/pull/642) ([AntoniosBarotsis](https://github.com/AntoniosBarotsis))
-- Fix tar archives are bigger than expected (when containing symlinks) [\#293](https://github.com/ouch-org/ouch/issues/293) ([tommady](https://github.com/tommady))
-- Fix unziping a zip file with symlinks produces not the symlinks but files with names in it [\#775](https://github.com/ouch-org/ouch/issues/775) ([tommady](https://github.com/tommady))
 
 ### Tweaks
 
