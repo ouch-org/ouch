@@ -27,6 +27,7 @@ Categories Used:
 - Add `--remove` flag for decompression subcommand to remove files after successful decompression [\#757](https://github.com/ouch-org/ouch/pull/757) ([ttys3](https://github.com/ttys3))
 - Add `br` (Brotli) support [\#765](https://github.com/ouch-org/ouch/pull/765) ([killercup](https://github.com/killercup))
 - Add rename option in overwrite menu [\#779](https://github.com/ouch-org/ouch/pull/779) ([talis-fb](https://github.com/talis-fb))
+- Store symlinks by default and add `--follow-symlinks` to store the target files [\#789](https://github.com/ouch-org/ouch/pull/789) ([tommady](https://github.com/tommady))
 
 ### Bug Fixes
 

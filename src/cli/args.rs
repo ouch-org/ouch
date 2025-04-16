@@ -81,6 +81,10 @@ pub enum Subcommand {
         /// conflicts with --level and --fast
         #[arg(long, group = "compression-level")]
         slow: bool,
+
+        /// Archive target files instead of storing symlinks (supported by `tar` and `zip`)
+        #[arg(long, short = 'S')]
+        follow_symlinks: bool,
     },
     /// Decompresses one or more files, optionally into another folder
     #[command(visible_alias = "d")]
@@ -201,6 +205,7 @@ mod tests {
                     level: None,
                     fast: false,
                     slow: false,
+                    follow_symlinks: false,
                 },
                 ..mock_cli_args()
             }
@@ -214,6 +219,7 @@ mod tests {
                     level: None,
                     fast: false,
                     slow: false,
+                    follow_symlinks: false,
                 },
                 ..mock_cli_args()
             }
@@ -227,6 +233,7 @@ mod tests {
                     level: None,
                     fast: false,
                     slow: false,
+                    follow_symlinks: false,
                 },
                 ..mock_cli_args()
             }
@@ -251,6 +258,7 @@ mod tests {
                         level: None,
                         fast: false,
                         slow: false,
+                        follow_symlinks: false,
                     },
                     format: Some("tar.gz".into()),
                     ..mock_cli_args()

@@ -31,7 +31,24 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) 
     for file in archive.entries()? {
         let mut file = file?;
 
-        file.unpack_in(output_folder)?;
+        match file.header().entry_type() {
+            tar::EntryType::Symlink => {
+                let relative_path = file.path()?.to_path_buf();
+                let full_path = output_folder.join(&relative_path);
+                let target = file
+                    .link_name()?
+                    .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidData, "Missing symlink target"))?;
+
+                #[cfg(unix)]
+                std::os::unix::fs::symlink(&target, &full_path)?;
+                #[cfg(windows)]
+                std::os::windows::fs::symlink_file(&target, &full_path)?;
+            }
+            tar::EntryType::Regular | tar::EntryType::Directory => {
+                file.unpack_in(output_folder)?;
+            }
+            _ => continue,
+        }
 
         // This is printed for every file in the archive and has little
         // importance for most users, but would generate lots of
@@ -87,6 +104,7 @@ pub fn build_archive_from_paths<W>(
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
     quiet: bool,
+    follow_symlinks: bool,
 ) -> crate::Result<W>
 where
     W: Write,
@@ -127,6 +145,18 @@ where
 
             if path.is_dir() {
                 builder.append_dir(path, path)?;
+            } else if path.is_symlink() && !follow_symlinks {
+                let target_path = path.read_link()?;
+
+                let mut header = tar::Header::new_gnu();
+                header.set_entry_type(tar::EntryType::Symlink);
+                header.set_size(0);
+
+                builder.append_link(&mut header, path, &target_path).map_err(|err| {
+                    FinalError::with_title("Could not create archive")
+                        .detail("Unexpected error while trying to read link")
+                        .detail(format!("Error: {err}."))
+                })?;
             } else {
                 let mut file = match fs::File::open(path) {
                     Ok(f) => f,
