@@ -435,6 +435,43 @@ fn unpack_rar() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[cfg(feature = "unrar")]
+#[test]
+fn unpack_rar_stdin() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_unpack_rar_single(input: &std::path::Path, format: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let dir = tempdir()?;
+        let dirpath = dir.path();
+        let unpacked_path = &dirpath.join("testfile.txt");
+        crate::utils::cargo_bin()
+            .args([
+                "-A",
+                "-y",
+                "d",
+                "-",
+                "-d",
+                dirpath.to_str().unwrap(),
+                "--format",
+                format,
+            ])
+            .pipe_stdin(input)
+            .unwrap()
+            .assert()
+            .success();
+        let content = fs::read_to_string(unpacked_path)?;
+        assert_eq!(content, "Testing 123\n");
+
+        Ok(())
+    }
+
+    let mut datadir = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR")?);
+    datadir.push("tests/data");
+    [("testfile.rar3.rar.gz", "rar.gz"), ("testfile.rar5.rar", "rar")]
+        .iter()
+        .try_for_each(|(path, format)| test_unpack_rar_single(&datadir.join(path), format))?;
+
+    Ok(())
+}
+
+
 #[proptest(cases = 25)]
 fn symlink_pack_and_unpack(
     ext: DirectoryExtension,
