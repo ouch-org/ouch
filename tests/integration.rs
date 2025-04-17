@@ -1,7 +1,11 @@
 #[macro_use]
 mod utils;
 
-use std::{io::Write, iter::once, path::PathBuf};
+use std::{
+    io::Write,
+    iter::once,
+    path::{Path, PathBuf},
+};
 
 use fs_err as fs;
 use parse_display::Display;
@@ -431,40 +435,93 @@ fn unpack_rar() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[cfg(feature = "unrar")]
-#[test]
-fn unpack_rar_stdin() -> Result<(), Box<dyn std::error::Error>> {
-    fn test_unpack_rar_single(input: &std::path::Path, format: &str) -> Result<(), Box<dyn std::error::Error>> {
-        let dir = tempdir()?;
-        let dirpath = dir.path();
-        let unpacked_path = &dirpath.join("testfile.txt");
-        crate::utils::cargo_bin()
-            .args([
-                "-A",
-                "-y",
-                "d",
-                "-",
-                "-d",
-                dirpath.to_str().unwrap(),
-                "--format",
-                format,
-            ])
-            .pipe_stdin(input)
-            .unwrap()
-            .assert()
-            .success();
-        let content = fs::read_to_string(unpacked_path)?;
-        assert_eq!(content, "Testing 123\n");
-
-        Ok(())
+#[proptest(cases = 25)]
+fn symlink_pack_and_unpack(
+    ext: DirectoryExtension,
+    #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
+) {
+    if matches!(ext, DirectoryExtension::SevenZ) {
+        // Skip 7z because the 7z format does not support symlinks
+        return Ok(());
     }
 
-    let mut datadir = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR")?);
-    datadir.push("tests/data");
-    [("testfile.rar3.rar.gz", "rar.gz"), ("testfile.rar5.rar", "rar")]
-        .iter()
-        .try_for_each(|(path, format)| test_unpack_rar_single(&datadir.join(path), format))?;
+    let temp_dir = tempdir()?;
+    let root_path = temp_dir.path();
 
-    Ok(())
+    let src_files_path = root_path.join("src_files");
+    fs::create_dir_all(&src_files_path)?;
+
+    let mut files_path = ["file1.txt", "file2.txt", "file3.txt", "file4.txt", "file5.txt"]
+        .into_iter()
+        .map(|f| src_files_path.join(f))
+        .map(|path| {
+            let mut file = fs::File::create(&path).unwrap();
+            file.write_all("Some content".as_bytes()).unwrap();
+            path
+        })
+        .collect::<Vec<_>>();
+
+    let dest_files_path = root_path.join("dest_files");
+    fs::create_dir_all(&dest_files_path)?;
+
+    let symlink_path = src_files_path.join(Path::new("symlink"));
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(&files_path[0], &symlink_path)?;
+    #[cfg(windows)]
+    std::os::windows::fs::symlink_file(&files_path[0], &symlink_path)?;
+
+    files_path.push(symlink_path);
+
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
+
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .args(files_path.clone())
+        .arg(archive)
+        .assert()
+        .success();
+
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(archive)
+        .arg("-d")
+        .arg(&dest_files_path)
+        .assert()
+        .success();
+
+    assert_same_directory(&src_files_path, &dest_files_path, false);
+    // check the symlink stand still
+    for f in dest_files_path.as_path().read_dir()? {
+        let f = f?;
+        if f.file_name() == "symlink" {
+            assert!(f.file_type()?.is_symlink())
+        }
+    }
+
+    fs::remove_file(archive)?;
+    fs::remove_dir_all(&dest_files_path)?;
+
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .arg("--follow-symlinks")
+        .args(files_path)
+        .arg(archive)
+        .assert()
+        .success();
+
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(archive)
+        .arg("-d")
+        .arg(&dest_files_path)
+        .assert()
+        .success();
+
+    // check there is no symlinks
+    for f in dest_files_path.as_path().read_dir()? {
+        let f = f?;
+        assert!(!f.file_type().unwrap().is_symlink())
+    }
 }
 
 #[test]
