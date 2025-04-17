@@ -76,11 +76,10 @@ impl FileVisibilityPolicy {
             .git_ignore(self.read_git_ignore)
             .ignore(self.read_ignore)
             .hidden(self.read_hidden);
-        
+
         if self.read_git_ignore {
             builder.filter_entry(|p| p.path().file_name() != Some(OsStr::new(".git")));
         }
-
 
         builder.build()
     }
