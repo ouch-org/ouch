@@ -9,7 +9,7 @@ use std::{
 use bstr::ByteSlice;
 use fs_err as fs;
 use same_file::Handle;
-use sevenz_rust::SevenZArchiveEntry;
+use sevenz_rust2::SevenZArchiveEntry;
 
 use crate::{
     error::{Error, FinalError, Result},
@@ -31,7 +31,7 @@ pub fn compress_sevenz<W>(
 where
     W: Write + Seek,
 {
-    let mut writer = sevenz_rust::SevenZWriter::new(writer)?;
+    let mut writer = sevenz_rust2::SevenZWriter::new(writer)?;
     let output_handle = Handle::from_path(output_path);
 
     for filename in files {
@@ -81,7 +81,7 @@ where
                     .detail(format!("File at '{path:?}' has a non-UTF-8 name"))
             })?;
 
-            let entry = sevenz_rust::SevenZArchiveEntry::from_path(path, entry_name.to_owned());
+            let entry = sevenz_rust2::SevenZArchiveEntry::from_path(path, entry_name.to_owned());
             let entry_data = if metadata.is_dir() {
                 None
             } else {
@@ -156,15 +156,15 @@ where
     };
 
     match password {
-        Some(password) => sevenz_rust::decompress_with_extract_fn_and_password(
+        Some(password) => sevenz_rust2::decompress_with_extract_fn_and_password(
             reader,
             output_path,
-            sevenz_rust::Password::from(password.to_str().map_err(|err| Error::InvalidPassword {
+            sevenz_rust2::Password::from(password.to_str().map_err(|err| Error::InvalidPassword {
                 reason: err.to_string(),
             })?),
             entry_extract_fn,
         )?,
-        None => sevenz_rust::decompress_with_extract_fn(reader, output_path, entry_extract_fn)?,
+        None => sevenz_rust2::decompress_with_extract_fn(reader, output_path, entry_extract_fn)?,
     }
 
     Ok(count)
@@ -197,14 +197,14 @@ pub fn list_archive(
                     })
                 }
             };
-            sevenz_rust::decompress_with_extract_fn_and_password(
+            sevenz_rust2::decompress_with_extract_fn_and_password(
                 reader,
                 ".",
-                sevenz_rust::Password::from(password),
+                sevenz_rust2::Password::from(password),
                 entry_extract_fn,
             )?;
         }
-        None => sevenz_rust::decompress_with_extract_fn(reader, ".", entry_extract_fn)?,
+        None => sevenz_rust2::decompress_with_extract_fn(reader, ".", entry_extract_fn)?,
     }
 
     Ok(files.into_iter())
