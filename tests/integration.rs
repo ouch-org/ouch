@@ -381,10 +381,9 @@ fn multiple_files_with_disabled_smart_unpack_by_dir(
     let files_path = ["file1.txt", "file2.txt", "file3.txt", "file4.txt", "file5.txt"]
         .into_iter()
         .map(|f| src_files_path.join(f))
-        .map(|path| {
-            let mut file = fs::File::create(&path).unwrap();
+        .inspect(|path| {
+            let mut file = fs::File::create(path).unwrap();
             file.write_all("Some content".as_bytes()).unwrap();
-            path
         })
         .collect::<Vec<_>>();
 
@@ -559,4 +558,49 @@ fn symlink_pack_and_unpack(
         let f = f?;
         assert!(!f.file_type().unwrap().is_symlink())
     }
+}
+
+#[test]
+fn no_git_folder_after_decompression_with_gitignore_flag_active() {
+    use std::process::Command;
+
+    let dir = tempdir().unwrap();
+    let dir_path = dir.path();
+
+    let before = dir_path.join("before");
+
+    let decompressed = dir_path.join("decompressed");
+
+    // Create directory and a dummy file
+    fs::create_dir(&before).unwrap();
+    fs::write(before.join("hello.txt"), b"Hello, world!").unwrap();
+
+    // Run `git init` inside it
+    Command::new("git")
+        .arg("init")
+        .current_dir(&before)
+        .output()
+        .expect("failed to run git init");
+
+    assert!(before.join(".git").exists(), ".git folder should exist after git init");
+
+    // Compress it
+    let archive = dir_path.join("archive.zip");
+    ouch!("c", &before, &archive, "--gitignore");
+
+    // Decompress it
+    ouch!("d", &archive, "-d", &decompressed);
+
+    // Find the subdirectory inside decompressed (e.g., "before")
+    let decompressed_subdir = fs::read_dir(&decompressed)
+        .unwrap()
+        .find_map(Result::ok)
+        .map(|entry| entry.path())
+        .expect("Expected one directory inside decompressed");
+
+    // Assert that the decompressed folder does not include `.git/`
+    assert!(
+        !decompressed_subdir.join(".git").exists(),
+        ".git folder should not exist after decompression"
+    );
 }
