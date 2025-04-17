@@ -38,7 +38,7 @@ Categories Used:
 - CI refactor [\#578](https://github.com/ouch-org/ouch/pull/578) ([cyqsimon](https://github.com/cyqsimon))
 - Use a prefix `tmp-ouch-` for temporary decompression path name to avoid conflicts [\#725](https://github.com/ouch-org/ouch/pull/725) ([valoq](https://github.com/valoq)) & [\#788](https://github.com/ouch-org/ouch/pull/788) ([talis-fb](https://github.com/talis-fb))
 - Run clippy for tests too [\#738](https://github.com/ouch-org/ouch/pull/738) ([marcospb19](https://github.com/marcospb19))
-- Sevenz-rust is unmaintained change to sevenz-rust2 [\#796](https://github.com/ouch-org/ouch/pull/796) ([tommady](https://github.com/tommady))
+- Sevenz-rust is unmaintained, switch to sevenz-rust2 [\#796](https://github.com/ouch-org/ouch/pull/796) ([tommady](https://github.com/tommady))
 
 ### Improvements
 
