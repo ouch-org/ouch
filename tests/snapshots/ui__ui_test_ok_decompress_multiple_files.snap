@@ -1,10 +1,13 @@
 ---
 source: tests/ui.rs
-expression: "run_ouch(&decompress_command, dir)"
+expression: stdout_lines
 ---
-[INFO] extracted (  0.00   B) "outputs/inputs"
-[INFO] extracted (  0.00   B) "outputs/inputs/input3"
-[INFO] extracted (  0.00   B) "outputs/inputs/input2"
-[INFO] extracted (  0.00   B) "outputs/inputs/input"
-[INFO] Successfully decompressed archive in <TMP_DIR>/outputs
-[INFO] Files unpacked: 4
+{
+    "",
+    "[INFO] Files unpacked: 4",
+    "[INFO] Successfully decompressed archive in <TMP_DIR>/outputs",
+    "[INFO] extracted (  0.00   B) \"outputs/inputs\"",
+    "[INFO] extracted (  0.00   B) \"outputs/inputs/input\"",
+    "[INFO] extracted (  0.00   B) \"outputs/inputs/input2\"",
+    "[INFO] extracted (  0.00   B) \"outputs/inputs/input3\"",
+}

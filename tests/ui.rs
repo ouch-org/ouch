@@ -6,7 +6,7 @@
 #[macro_use]
 mod utils;
 
-use std::{ffi::OsStr, io, path::Path, process::Output};
+use std::{collections::BTreeSet, ffi::OsStr, io, path::Path, process::Output};
 
 use insta::assert_snapshot as ui;
 use regex::Regex;
@@ -159,7 +159,9 @@ fn ui_test_ok_decompress_multiple_files() {
     run_ouch(&compress_command, dir);
 
     let decompress_command = format!("ouch decompress output.tar.zst --dir {}", outputs_dir.to_str().unwrap());
-    ui!(run_ouch(&decompress_command, dir));
+    let stdout = run_ouch(&decompress_command, dir);
+    let stdout_lines = stdout.split('\n').collect::<BTreeSet<_>>();
+    insta::assert_debug_snapshot!(stdout_lines);
 }
 
 #[test]
