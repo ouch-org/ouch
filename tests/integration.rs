@@ -475,7 +475,7 @@ fn no_git_folder_after_decompression_with_gitignore_flag_active() {
     let dir_path = dir.path();
 
     let before = dir_path.join("before");
-    
+
     let decompressed = dir_path.join("decompressed");
 
     // Create directory and a dummy file

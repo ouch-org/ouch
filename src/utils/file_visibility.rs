@@ -1,4 +1,4 @@
-use std::{ffi::OsStr, path::Path};
+use std::path::Path;
 
 /// Determines which files should be read or ignored during directory walking
 pub struct FileVisibilityPolicy {
@@ -78,7 +78,7 @@ impl FileVisibilityPolicy {
             .hidden(self.read_hidden);
 
         if self.read_git_ignore {
-            builder.filter_entry(|p| p.path().file_name() != Some(OsStr::new(".git")));
+            builder.filter_entry(|p| p.path().file_name().is_some_and(|name| name != ".git"));
         }
 
         builder.build()
