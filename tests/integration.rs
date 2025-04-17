@@ -471,7 +471,6 @@ fn unpack_rar_stdin() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-
 #[proptest(cases = 25)]
 fn symlink_pack_and_unpack(
     ext: DirectoryExtension,
