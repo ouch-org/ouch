@@ -142,7 +142,7 @@ fn ui_test_ok_decompress() {
     ui!(run_ouch("ouch decompress output.zst", dir));
 }
 
-#[cfg(unix)]
+#[cfg(target_os = "linux")]
 #[test]
 fn ui_test_ok_decompress_multiple_files() {
     let (_dropper, dir) = testdir().unwrap();
