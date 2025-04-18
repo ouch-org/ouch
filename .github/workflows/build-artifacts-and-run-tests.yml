@@ -102,9 +102,9 @@ jobs:
         shell: bash
         run: |
           FEATURES=(allow_piped_choice)
+          if [[ "${{ matrix.feature-unrar }}" == true ]]; then FEATURES+=(unrar); fi
           if [[ "${{ matrix.feature-use-zlib }}" == true ]]; then FEATURES+=(use_zlib); fi
           if [[ "${{ matrix.feature-use-zstd-thin }}" == true ]]; then FEATURES+=(use_zstd_thin); fi
-          if [[ "${{ matrix.feature-unrar }}" == true ]]; then FEATURES+=(unrar); fi
           # Output plus-separated list for artifact names
           IFS='+'
           echo "FEATURES_PLUS=${FEATURES[*]}" >> $GITHUB_OUTPUT
@@ -127,7 +127,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          key: "${{ matrix.target }}-${{ matrix.feature-unrar }}-${{ matrix.feature-use-zstd-thin }}-${{ matrix.feature-unrar }}"
+          key: "${{ matrix.target }}-${{ matrix.feature-unrar }}-${{ matrix.feature-use-zlib }}-${{ matrix.feature-use-zstd-thin }}"
 
       - name: Test on stable
         # there's no way to run tests for ARM64 Windows for now
@@ -136,7 +136,7 @@ jobs:
           ${{ env.CARGO }} +stable test --profile fast --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
 
       - name: Build release artifacts (binary and completions)
-        if: ${{ inputs.upload_artifacts }}
+        if: ${{ inputs.artifact_upload_mode != 'none' }}
         run: |
           ${{ env.CARGO }} +stable build --release --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
         env:
@@ -153,4 +153,4 @@ jobs:
           path: |
             target/${{ matrix.target }}/release/ouch
             target/${{ matrix.target }}/release/ouch.exe
-            artifacts/
+            man-page-and-completions-artifacts/

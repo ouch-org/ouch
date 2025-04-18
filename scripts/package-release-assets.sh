@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 set -e
 
-mkdir -p output_assets
+mkdir output_assets
+echo "created folder 'output_assets/'"
+ls -lA -w 1
 cd downloaded_artifacts
+echo "entered 'downloaded_artifacts/'"
+ls -lA -w 1
 
 TARGETS=(
     "aarch64-pc-windows-msvc"
@@ -16,7 +20,8 @@ TARGETS=(
     "x86_64-unknown-linux-gnu"
     "x86_64-unknown-linux-musl"
 )
-DEFAULT_FEATURES="unrar+use_zlib+use_zstd_thin"
+# Temporary, we'll remove allow_piped_choice later
+DEFAULT_FEATURES="allow_piped_choice+unrar+use_zlib+use_zstd_thin"
 
 for target in "${TARGETS[@]}"; do
     input_dir="ouch-${target}-${DEFAULT_FEATURES}"
