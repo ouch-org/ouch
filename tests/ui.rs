@@ -6,7 +6,7 @@
 #[macro_use]
 mod utils;
 
-use std::{ffi::OsStr, io, path::Path, process::Output};
+use std::{collections::BTreeSet, ffi::OsStr, io, path::Path, process::Output};
 
 use insta::assert_snapshot as ui;
 use regex::Regex;
@@ -140,6 +140,29 @@ fn ui_test_ok_decompress() {
     run_ouch("ouch compress input output.zst", dir);
 
     ui!(run_ouch("ouch decompress output.zst", dir));
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn ui_test_ok_decompress_multiple_files() {
+    let (_dropper, dir) = testdir().unwrap();
+
+    let inputs_dir = dir.join("inputs");
+    std::fs::create_dir(&inputs_dir).unwrap();
+
+    let outputs_dir = dir.join("outputs");
+    std::fs::create_dir(&outputs_dir).unwrap();
+
+    // prepare
+    create_files_in(&inputs_dir, &["input", "input2", "input3"]);
+
+    let compress_command = format!("ouch compress {} output.tar.zst", inputs_dir.to_str().unwrap());
+    run_ouch(&compress_command, dir);
+
+    let decompress_command = format!("ouch decompress output.tar.zst --dir {}", outputs_dir.to_str().unwrap());
+    let stdout = run_ouch(&decompress_command, dir);
+    let stdout_lines = stdout.split('\n').collect::<BTreeSet<_>>();
+    insta::assert_debug_snapshot!(stdout_lines);
 }
 
 #[test]
