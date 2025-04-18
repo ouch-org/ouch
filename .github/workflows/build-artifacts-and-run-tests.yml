@@ -105,12 +105,16 @@ jobs:
           if [[ "${{ matrix.feature-use-zlib }}" == true ]]; then FEATURES+=(use_zlib); fi
           if [[ "${{ matrix.feature-use-zstd-thin }}" == true ]]; then FEATURES+=(use_zstd_thin); fi
           if [[ "${{ matrix.feature-unrar }}" == true ]]; then FEATURES+=(unrar); fi
+          # Output plus-separated list for artifact names
           IFS='+'
-          echo "FEATURES=${FEATURES[*]}" >> $GITHUB_OUTPUT
+          echo "FEATURES_PLUS=${FEATURES[*]}" >> $GITHUB_OUTPUT
+          # Output comma-separated list for cargo flags
+          IFS=','
+          echo "FEATURES_COMMA=${FEATURES[*]}" >> $GITHUB_OUTPUT
 
       - name: Set up extra cargo flags
         env:
-          FEATURES: ${{steps.concat-features.outputs.FEATURES}}
+          FEATURES: ${{steps.concat-features.outputs.FEATURES_COMMA}}
         shell: bash
         run: |
           FLAGS="--no-default-features"
@@ -145,7 +149,7 @@ jobs:
               (matrix.feature-unrar && matrix.feature-use-zlib && matrix.feature-use-zstd-thin)) }}
         uses: actions/upload-artifact@v4
         with:
-          name: ouch-${{ matrix.target }}${{ steps.concat-features.outputs.FEATURES != '' && format('-{0}', steps.concat-features.outputs.FEATURES) || '' }}
+          name: ouch-${{ matrix.target }}${{ steps.concat-features.outputs.FEATURES_PLUS != '' && format('-{0}', steps.concat-features.outputs.FEATURES_PLUS) || '' }}
           path: |
             target/${{ matrix.target }}/release/ouch
             target/${{ matrix.target }}/release/ouch.exe
