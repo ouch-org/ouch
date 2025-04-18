@@ -136,7 +136,7 @@ jobs:
         run: |
           ${{ env.CARGO }} +stable build --release --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
         env:
-          OUCH_ARTIFACTS_FOLDER: artifacts
+          OUCH_ARTIFACTS_FOLDER: man-page-and-completions-artifacts
 
       - name: Upload release artifacts
         if: |
