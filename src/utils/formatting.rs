@@ -109,17 +109,18 @@ impl std::fmt::Display for Bytes {
 
         debug_assert!(num >= 0.0);
         if num < 1_f64 {
-            let num_pretty = format!("{:.2}", num);
-            return write!(f, "{:>6}   B", num_pretty);
+            return write!(f, "{:>6.2}   B", num);
         }
 
         let delimiter = 1000_f64;
         let exponent = cmp::min((num.ln() / 6.90775).floor() as i32, 4);
 
-        let num_pretty = format!("{:.2}", (num / delimiter.powi(exponent)));
-        let unit_pretty = format!("{}B", Bytes::UNIT_PREFIXES[exponent as usize]);
-
-        write!(f, "{:>6} {:>3}", num_pretty, unit_pretty,)
+        write!(
+            f,
+            "{:>6.2} {:>2}B",
+            num / delimiter.powi(exponent),
+            Bytes::UNIT_PREFIXES[exponent as usize],
+        )
     }
 }
 
