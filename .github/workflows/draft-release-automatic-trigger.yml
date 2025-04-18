@@ -10,7 +10,7 @@ jobs:
     uses: ./.github/workflows/build-artifacts-and-run-tests.yml
     with:
       matrix_all_combinations: true
-      upload_artifacts: true
+      artifact_upload_mode: with_default_features
 
   automated-draft-release:
     runs-on: ubuntu-latest
@@ -23,7 +23,9 @@ jobs:
       - name: Download artifacts
         uses: dawidd6/action-download-artifact@v6
         with:
-          path: artifacts
+          path: downloaded_artifacts
+          workflow: ./.github/workflows/build-artifacts-and-run-tests.yml
+          name: ouch-*
 
       - name: Package release assets
         run: scripts/package-release-assets.sh
@@ -32,4 +34,4 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           draft: true
-          files: release/ouch-*
+          files: output_assets/ouch-*

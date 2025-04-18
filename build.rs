@@ -5,18 +5,12 @@
 /// Set `OUCH_ARTIFACTS_FOLDER` to the name of the destination folder:
 ///
 /// ```sh
-/// OUCH_ARTIFACTS_FOLDER=my-folder cargo build
+/// OUCH_ARTIFACTS_FOLDER=man-page-and-completions-artifacts cargo build
 /// ```
 ///
-/// All completion files will be generated inside of the folder "my-folder".
+/// All completion files will be generated inside of the folder "man-page-and-completions-artifacts".
 ///
 /// If the folder does not exist, it will be created.
-///
-/// We recommend you naming this folder "artifacts" for the sake of consistency.
-///
-/// ```sh
-/// OUCH_ARTIFACTS_FOLDER=artifacts cargo build
-/// ```
 use std::{
     env,
     fs::{create_dir_all, File},

@@ -32,4 +32,4 @@ jobs:
     uses: ./.github/workflows/build-artifacts-and-run-tests.yml
     with:
       matrix_all_combinations: false
-      upload_artifacts: false
+      artifact_upload_mode: none
