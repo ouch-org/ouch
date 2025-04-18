@@ -37,8 +37,6 @@ pub fn unpack_archive<R>(
 where
     R: Read + Seek,
 {
-    assert!(output_folder.read_dir().expect("dir exists").next().is_none());
-
     let mut unpacked_files = 0;
 
     for idx in 0..archive.len() {
