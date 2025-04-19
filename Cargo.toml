@@ -1,8 +1,8 @@
 [package]
 name = "ouch"
-version = "0.5.1"
+version = "0.6.0"
 authors = [
-    "João M. Bezerra <marcospb19@hotmail.com>",
+    "João Marcos <marcospb19@hotmail.com>",
     "Vinícius Rodrigues Miguel <vrmiguel99@gmail.com>",
 ]
 edition = "2021"
@@ -70,7 +70,7 @@ regex = "1.10.4"
 test-strategy = "0.4.0"
 
 [features]
-default = ["use_zlib", "use_zstd_thin", "unrar"]
+default = ["unrar", "use_zlib", "use_zstd_thin"]
 use_zlib = ["flate2/zlib", "gzp/deflate_zlib", "zip/deflate-zlib"]
 use_zstd_thin = ["zstd/thin"]
 allow_piped_choice = []

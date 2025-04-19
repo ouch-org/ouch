@@ -18,7 +18,14 @@ Categories Used:
 
 **Bullet points in chronological order by PR**
 
-## [Unreleased](https://github.com/ouch-org/ouch/compare/0.5.1...HEAD)
+## [Unreleased](https://github.com/ouch-org/ouch/compare/0.6.0...HEAD)
+
+### New Features
+### Improvements
+### Bug Fixes
+### Tweaks
+
+## [0.6.0](https://github.com/ouch-org/ouch/compare/0.5.1...0.6.0)
 
 ### New Features
 
@@ -48,6 +55,7 @@ Categories Used:
 - Make `--format` more forgiving with the formatting of the provided format [\#519](https://github.com/ouch-org/ouch/pull/519) ([marcospb19](https://github.com/marcospb19))
 - Use buffered writer for list output [\#764](https://github.com/ouch-org/ouch/pull/764) ([killercup](https://github.com/killercup))
 - Disable smart unpack when `--dir` flag is provided in decompress command [\#782](https://github.com/ouch-org/ouch/pull/782) ([talis-fb](https://github.com/talis-fb))
+- Align file sizes at left for each extracted file to make output clearer [\#792](https://github.com/ouch-org/ouch/pull/792) ([talis-fb](https://github.com/talis-fb))
 
 ## [0.5.1](https://github.com/ouch-org/ouch/compare/0.5.0...0.5.1)
 

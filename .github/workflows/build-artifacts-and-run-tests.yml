@@ -10,20 +10,23 @@ on:
         type: boolean
         required: true
         default: true
-      upload_artifacts:
-        description: "if built artifacts should be uploaded"
-        type: boolean
+      artifact_upload_mode:
+        description: "Control what artifacts to upload: 'none' for no uploads, 'with_default_features' to upload artifacts with default features (for releases), or 'all' for all feature combinations."
+        type: choice
+        options:
+          - none
+          - with_default_features
+          - all
         required: true
-        default: true
   workflow_call:
     inputs:
       matrix_all_combinations:
         description: "if matrix should have all combinations of targets and features"
         type: boolean
         required: true
-      upload_artifacts:
-        description: "if built artifacts should be uploaded"
-        type: boolean
+      artifact_upload_mode:
+        description: "Control which artifacts to upload: 'none' for no uploads, 'with_default_features' to upload only artifacts with default features (use_zlib+use_zstd_thin+unrar), or 'all' to upload all feature combinations."
+        type: string
         required: true
 
 jobs:
@@ -99,15 +102,19 @@ jobs:
         shell: bash
         run: |
           FEATURES=(allow_piped_choice)
+          if [[ "${{ matrix.feature-unrar }}" == true ]]; then FEATURES+=(unrar); fi
           if [[ "${{ matrix.feature-use-zlib }}" == true ]]; then FEATURES+=(use_zlib); fi
           if [[ "${{ matrix.feature-use-zstd-thin }}" == true ]]; then FEATURES+=(use_zstd_thin); fi
-          if [[ "${{ matrix.feature-unrar }}" == true ]]; then FEATURES+=(unrar); fi
+          # Output plus-separated list for artifact names
+          IFS='+'
+          echo "FEATURES_PLUS=${FEATURES[*]}" >> $GITHUB_OUTPUT
+          # Output comma-separated list for cargo flags
           IFS=','
-          echo "FEATURES=${FEATURES[*]}" >> $GITHUB_OUTPUT
+          echo "FEATURES_COMMA=${FEATURES[*]}" >> $GITHUB_OUTPUT
 
       - name: Set up extra cargo flags
         env:
-          FEATURES: ${{steps.concat-features.outputs.FEATURES}}
+          FEATURES: ${{steps.concat-features.outputs.FEATURES_COMMA}}
         shell: bash
         run: |
           FLAGS="--no-default-features"
@@ -120,7 +127,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          key: "${{ matrix.target }}-${{ matrix.feature-unrar }}-${{ matrix.feature-use-zstd-thin }}-${{ matrix.feature-unrar }}"
+          key: "${{ matrix.target }}-${{ matrix.feature-unrar }}-${{ matrix.feature-use-zlib }}-${{ matrix.feature-use-zstd-thin }}"
 
       - name: Test on stable
         # there's no way to run tests for ARM64 Windows for now
@@ -129,18 +136,21 @@ jobs:
           ${{ env.CARGO }} +stable test --profile fast --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
 
       - name: Build release artifacts (binary and completions)
-        if: ${{ inputs.upload_artifacts }}
+        if: ${{ inputs.artifact_upload_mode != 'none' }}
         run: |
           ${{ env.CARGO }} +stable build --release --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
         env:
-          OUCH_ARTIFACTS_FOLDER: artifacts
+          OUCH_ARTIFACTS_FOLDER: man-page-and-completions-artifacts
 
       - name: Upload release artifacts
-        if: ${{ inputs.upload_artifacts }}
+        if: |
+          ${{ inputs.artifact_upload_mode != 'none' &&
+             (inputs.artifact_upload_mode == 'all' ||
+              (matrix.feature-unrar && matrix.feature-use-zlib && matrix.feature-use-zstd-thin)) }}
         uses: actions/upload-artifact@v4
         with:
-          name: ouch-${{ matrix.target }}-${{ steps.concat-features.outputs.FEATURES }}
+          name: ouch-${{ matrix.target }}${{ steps.concat-features.outputs.FEATURES_PLUS != '' && format('-{0}', steps.concat-features.outputs.FEATURES_PLUS) || '' }}
           path: |
             target/${{ matrix.target }}/release/ouch
             target/${{ matrix.target }}/release/ouch.exe
-            artifacts/
+            man-page-and-completions-artifacts/

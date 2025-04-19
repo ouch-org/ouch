@@ -7,7 +7,7 @@ use unrar::Archive;
 use crate::{
     error::{Error, Result},
     list::FileInArchive,
-    utils::logger::info,
+    utils::{logger::info, Bytes},
 };
 
 /// Unpacks the archive given by `archive_path` into the folder given by `output_folder`.
@@ -31,9 +31,9 @@ pub fn unpack_archive(
         archive = if entry.is_file() {
             if !quiet {
                 info(format!(
-                    "{} extracted. ({})",
+                    "extracted ({}) {}",
+                    Bytes::new(entry.unpacked_size),
                     entry.filename.display(),
-                    entry.unpacked_size
                 ));
             }
             unpacked += 1;

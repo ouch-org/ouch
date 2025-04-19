@@ -77,9 +77,9 @@ where
                 // same reason is in _is_dir: long, often not needed text
                 if !quiet {
                     info(format!(
-                        "{:?} extracted. ({})",
+                        "extracted ({}) {:?}",
+                        Bytes::new(file.size()),
                         file_path.display(),
-                        Bytes::new(file.size())
                     ));
                 }
 
