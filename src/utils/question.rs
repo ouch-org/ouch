@@ -48,7 +48,7 @@ pub enum FileConflitOperation {
     /// Rename the file
     /// It'll be put "_1" at the end of the filename or "_2","_3","_4".. if already exists
     Rename,
-    /// Merge duplicated files
+    /// Merge conflicting folders
     Merge,
 }
 
