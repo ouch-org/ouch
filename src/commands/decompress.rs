@@ -137,7 +137,11 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
         Gzip | Bzip | Bzip3 | Lz4 | Lzma | Snappy | Zstd | Brotli => {
             reader = chain_reader_decoder(&first_extension, reader)?;
 
-            let mut writer = match utils::ask_to_create_file(&options.output_file_path, options.question_policy)? {
+            let mut writer = match utils::ask_to_create_file(
+                &options.output_file_path,
+                options.question_policy,
+                QuestionAction::Decompression,
+            )? {
                 Some(file) => file,
                 None => return Ok(()),
             };
@@ -318,7 +322,7 @@ fn unpack(
     let output_dir_cleaned = if is_valid_output_dir {
         output_dir.to_owned()
     } else {
-        match utils::resolve_path_conflict(output_dir, question_policy)? {
+        match utils::resolve_path_conflict(output_dir, question_policy, QuestionAction::Decompression)? {
             Some(path) => path,
             None => return Ok(ControlFlow::Break(())),
         }
@@ -374,7 +378,7 @@ fn smart_unpack(
 
     // Before moving, need to check if a file with the same name already exists
     // If it does, need to ask the user what to do
-    new_path = match utils::resolve_path_conflict(&new_path, question_policy)? {
+    new_path = match utils::resolve_path_conflict(&new_path, question_policy, QuestionAction::Decompression)? {
         Some(path) => path,
         None => return Ok(ControlFlow::Break(())),
     };

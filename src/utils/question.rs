@@ -48,49 +48,71 @@ pub enum FileConflitOperation {
     /// Rename the file
     /// It'll be put "_1" at the end of the filename or "_2","_3","_4".. if already exists
     Rename,
+    /// Merge conflicting folders
+    Merge,
 }
 
 /// Check if QuestionPolicy flags were set, otherwise, ask user if they want to overwrite.
-pub fn user_wants_to_overwrite(path: &Path, question_policy: QuestionPolicy) -> crate::Result<FileConflitOperation> {
+pub fn user_wants_to_overwrite(
+    path: &Path,
+    question_policy: QuestionPolicy,
+    question_action: QuestionAction,
+) -> crate::Result<FileConflitOperation> {
     use FileConflitOperation as Op;
 
     match question_policy {
         QuestionPolicy::AlwaysYes => Ok(Op::Overwrite),
         QuestionPolicy::AlwaysNo => Ok(Op::Cancel),
-        QuestionPolicy::Ask => ask_file_conflict_operation(path),
+        QuestionPolicy::Ask => ask_file_conflict_operation(path, question_action),
     }
 }
 
 /// Ask the user if they want to overwrite or rename the &Path
-pub fn ask_file_conflict_operation(path: &Path) -> Result<FileConflitOperation> {
+pub fn ask_file_conflict_operation(path: &Path, question_action: QuestionAction) -> Result<FileConflitOperation> {
     use FileConflitOperation as Op;
 
     let path = path_to_str(strip_cur_dir(path));
-
-    ChoicePrompt::new(
-        format!("Do you want to overwrite {path}?"),
-        [
-            ("yes", Op::Overwrite, *colors::GREEN),
-            ("no", Op::Cancel, *colors::RED),
-            ("rename", Op::Rename, *colors::BLUE),
-        ],
-    )
-    .ask()
+    match question_action {
+        QuestionAction::Compression => ChoicePrompt::new(
+            format!("Do you want to overwrite {path}?"),
+            [
+                ("yes", Op::Overwrite, *colors::GREEN),
+                ("no", Op::Cancel, *colors::RED),
+                ("rename", Op::Rename, *colors::BLUE),
+            ],
+        )
+        .ask(),
+        QuestionAction::Decompression => ChoicePrompt::new(
+            format!("Do you want to overwrite {path}?"),
+            [
+                ("yes", Op::Overwrite, *colors::GREEN),
+                ("no", Op::Cancel, *colors::RED),
+                ("rename", Op::Rename, *colors::BLUE),
+                ("merge", Op::Merge, *colors::ORANGE),
+            ],
+        )
+        .ask(),
+    }
 }
 
 /// Create the file if it doesn't exist and if it does then ask to overwrite it.
 /// If the user doesn't want to overwrite then we return [`Ok(None)`]
-pub fn ask_to_create_file(path: &Path, question_policy: QuestionPolicy) -> Result<Option<fs::File>> {
+pub fn ask_to_create_file(
+    path: &Path,
+    question_policy: QuestionPolicy,
+    question_action: QuestionAction,
+) -> Result<Option<fs::File>> {
     match fs::OpenOptions::new().write(true).create_new(true).open(path) {
         Ok(w) => Ok(Some(w)),
         Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
             let action = match question_policy {
                 QuestionPolicy::AlwaysYes => FileConflitOperation::Overwrite,
                 QuestionPolicy::AlwaysNo => FileConflitOperation::Cancel,
-                QuestionPolicy::Ask => ask_file_conflict_operation(path)?,
+                QuestionPolicy::Ask => ask_file_conflict_operation(path, question_action)?,
             };
 
             match action {
+                FileConflitOperation::Merge => Ok(Some(fs::File::create(path)?)),
                 FileConflitOperation::Overwrite => {
                     utils::remove_file_or_dir(path)?;
                     Ok(Some(fs::File::create(path)?))

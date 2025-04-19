@@ -20,6 +20,7 @@ use crate::{
     list::ListOptions,
     utils::{
         self, colors::*, is_path_stdin, logger::info_accessible, path_to_str, EscapedPathDisplay, FileVisibilityPolicy,
+        QuestionAction,
     },
     CliArgs, QuestionPolicy,
 };
@@ -91,10 +92,11 @@ pub fn run(
             )?;
             check::check_archive_formats_position(&formats, &output_path)?;
 
-            let output_file = match utils::ask_to_create_file(&output_path, question_policy)? {
-                Some(writer) => writer,
-                None => return Ok(()),
-            };
+            let output_file =
+                match utils::ask_to_create_file(&output_path, question_policy, QuestionAction::Compression)? {
+                    Some(writer) => writer,
+                    None => return Ok(()),
+                };
 
             let level = if fast {
                 Some(1) // Lowest level of compression
