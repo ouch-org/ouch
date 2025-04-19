@@ -605,6 +605,7 @@ fn no_git_folder_after_decompression_with_gitignore_flag_active() {
     );
 }
 
+#[cfg(feature = "allow_piped_choice")]
 #[proptest(cases = 25)]
 fn unpack_multiple_sources_into_the_same_destination_with_merge(
     ext: DirectoryExtension,
