@@ -59,7 +59,7 @@ enum Extension {
 }
 
 /// Converts a list of extension structs to string
-fn merge_extensions(ext: impl ToString, exts: Vec<FileExtension>) -> String {
+fn merge_extensions(ext: impl ToString, exts: &Vec<FileExtension>) -> String {
     once(ext.to_string())
         .chain(exts.into_iter().map(|x| x.to_string()))
         .collect::<Vec<_>>()
@@ -114,7 +114,7 @@ fn single_empty_file(ext: Extension, #[any(size_range(0..8).lift())] exts: Vec<F
     let before = &dir.join("before");
     fs::create_dir(before).unwrap();
     let before_file = &before.join("file");
-    let archive = &dir.join(format!("file.{}", merge_extensions(ext, exts)));
+    let archive = &dir.join(format!("file.{}", merge_extensions(ext, &exts)));
     let after = &dir.join("after");
     fs::write(before_file, []).unwrap();
     ouch!("-A", "c", before_file, archive);
@@ -137,7 +137,7 @@ fn single_file(
     let before = &dir.join("before");
     fs::create_dir(before).unwrap();
     let before_file = &before.join("file");
-    let archive = &dir.join(format!("file.{}", merge_extensions(ext, exts)));
+    let archive = &dir.join(format!("file.{}", merge_extensions(ext, &exts)));
     let after = &dir.join("after");
     write_random_content(
         &mut fs::File::create(before_file).unwrap(),
@@ -167,7 +167,7 @@ fn single_file_stdin(
     let before = &dir.join("before");
     fs::create_dir(before).unwrap();
     let before_file = &before.join("file");
-    let format = merge_extensions(&ext, exts);
+    let format = merge_extensions(&ext, &exts);
     let archive = &dir.join(format!("file.{}", format));
     let after = &dir.join("after");
     write_random_content(
@@ -208,7 +208,7 @@ fn multiple_files(
     let before = &dir.join("before");
     let before_dir = &before.join("dir");
     fs::create_dir_all(before_dir).unwrap();
-    let archive = &dir.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
+    let archive = &dir.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
     let after = &dir.join("after");
     create_random_files(before_dir, depth, &mut SmallRng::from_entropy());
     ouch!("-A", "c", before_dir, archive);
@@ -235,7 +235,7 @@ fn multiple_files_with_conflict_and_choice_to_overwrite(
     fs::create_dir_all(after_dir).unwrap();
     create_random_files(after_dir, depth, &mut SmallRng::from_entropy());
 
-    let archive = &dir.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
+    let archive = &dir.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
     ouch!("-A", "c", before_dir, archive);
 
     crate::utils::cargo_bin()
@@ -276,7 +276,7 @@ fn multiple_files_with_conflict_and_choice_to_not_overwrite(
     fs::write(after_dir.join("something.txt"), "Some content").unwrap();
     fs::copy(after_dir.join("something.txt"), after_backup_dir.join("something.txt")).unwrap();
 
-    let archive = &dir.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
+    let archive = &dir.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
     ouch!("-A", "c", before_dir, archive);
 
     crate::utils::cargo_bin()
@@ -309,7 +309,7 @@ fn multiple_files_with_conflict_and_choice_to_rename(
     fs::create_dir_all(&dest_files_path).unwrap();
     create_n_random_files(5, &dest_files_path, &mut SmallRng::from_entropy());
 
-    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
     ouch!("-A", "c", &src_files_path, archive);
 
     let dest_files_path_renamed = &root_path.join("dest_files_1");
@@ -349,7 +349,7 @@ fn multiple_files_with_conflict_and_choice_to_rename_with_already_a_renamed(
     fs::create_dir_all(&dest_files_path_1).unwrap();
     create_n_random_files(5, &dest_files_path_1, &mut SmallRng::from_entropy());
 
-    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
     ouch!("-A", "c", &src_files_path, archive);
 
     let dest_files_path_renamed = &root_path.join("dest_files_2");
@@ -390,7 +390,7 @@ fn multiple_files_with_disabled_smart_unpack_by_dir(
     let dest_files_path = root_path.join("dest_files");
     fs::create_dir_all(&dest_files_path).unwrap();
 
-    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
 
     crate::utils::cargo_bin()
         .arg("compress")
@@ -508,7 +508,7 @@ fn symlink_pack_and_unpack(
 
     files_path.push(symlink_path);
 
-    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
 
     crate::utils::cargo_bin()
         .arg("compress")
@@ -603,4 +603,67 @@ fn no_git_folder_after_decompression_with_gitignore_flag_active() {
         !decompressed_subdir.join(".git").exists(),
         ".git folder should not exist after decompression"
     );
+}
+
+#[proptest(cases = 25)]
+fn unpack_multiple_sources_into_the_same_destination_with_merge(
+    ext: DirectoryExtension,
+    #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
+) {
+    let temp_dir = tempdir()?;
+    let root_path = temp_dir.path();
+    let source_path = root_path
+        .join(format!("example_{}", merge_extensions(&ext, &extra_extensions)))
+        .join("sub_a")
+        .join("sub_b")
+        .join("sub_c");
+
+    fs::create_dir_all(&source_path)?;
+    let archive = root_path.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .args([
+            fs::File::create(source_path.join("file1.txt"))?.path(),
+            fs::File::create(source_path.join("file2.txt"))?.path(),
+            fs::File::create(source_path.join("file3.txt"))?.path(),
+        ])
+        .arg(&archive)
+        .assert()
+        .success();
+
+    fs::remove_dir_all(&source_path)?;
+    fs::create_dir_all(&source_path)?;
+    let archive1 = root_path.join(format!("archive1.{}", merge_extensions(&ext, &extra_extensions)));
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .args([
+            fs::File::create(source_path.join("file4.txt"))?.path(),
+            fs::File::create(source_path.join("file5.txt"))?.path(),
+            fs::File::create(source_path.join("file6.txt"))?.path(),
+        ])
+        .arg(&archive1)
+        .assert()
+        .success();
+
+    let out_path = root_path.join(format!("out_{}", merge_extensions(&ext, &extra_extensions)));
+    fs::create_dir_all(&out_path)?;
+
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(archive)
+        .arg("-d")
+        .arg(&out_path)
+        .assert()
+        .success();
+
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(archive1)
+        .arg("-d")
+        .arg(&out_path)
+        .write_stdin("m")
+        .assert()
+        .success();
+
+    assert_eq!(6, out_path.as_path().read_dir()?.count());
 }
