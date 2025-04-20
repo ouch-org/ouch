@@ -8,7 +8,7 @@ cd downloaded_artifacts
 echo "entered 'downloaded_artifacts/'"
 ls -lA -w 1
 
-TARGETS=(
+PLATFORMS=(
     "aarch64-pc-windows-msvc"
     "aarch64-unknown-linux-gnu"
     "aarch64-unknown-linux-musl"
@@ -20,41 +20,41 @@ TARGETS=(
     "x86_64-unknown-linux-gnu"
     "x86_64-unknown-linux-musl"
 )
-# Temporary, we'll remove allow_piped_choice later
+# TODO: remove allow_piped_choice later
 DEFAULT_FEATURES="allow_piped_choice+unrar+use_zlib+use_zstd_thin"
 
-for target in "${TARGETS[@]}"; do
-    input_dir="ouch-${target}-${DEFAULT_FEATURES}"
+for platform in "${PLATFORMS[@]}"; do
+    path="ouch-${platform}"
 
-    if [ ! -d "$input_dir" ]; then
-        echo "ERROR: Could not find artifact directory for $target with default features ($input_dir)"
+    if [ ! -d "$path" ]; then
+        echo "ERROR: Could not find artifact directory for $platform with default features ($path)"
         exit 1
     fi
 
-    echo "Processing $input_dir"
+    # remove the suffix
+    mv "ouch-${platform}-${DEFAULT_FEATURES}" "$path"
+    echo "Processing $path"
 
-    cp ../{README.md,LICENSE,CHANGELOG.md} "$input_dir"
-    mkdir -p "$input_dir/man"
-    mkdir -p "$input_dir/completions"
+    cp ../{README.md,LICENSE,CHANGELOG.md} "$path"
+    mkdir -p "$path/man"
+    mkdir -p "$path/completions"
 
-    mv "$input_dir"/man-page-and-completions-artifacts/*.1 "$input_dir/man"
-    mv "$input_dir"/man-page-and-completions-artifacts/* "$input_dir/completions"
-    rm -r "$input_dir/man-page-and-completions-artifacts"
+    mv "$path"/man-page-and-completions-artifacts/*.1 "$path/man"
+    mv "$path"/man-page-and-completions-artifacts/* "$path/completions"
+    rm -r "$path/man-page-and-completions-artifacts"
 
-    output_name="ouch-${target}"
+    if [[ "$platform" == *"-windows-"* ]]; then
+        mv "$path/target/$platform/release/ouch.exe" "$path"
+        rm -rf "$path/target"
 
-    if [[ "$target" == *"-windows-"* ]]; then
-        mv "$input_dir/target/$target/release/ouch.exe" "$input_dir"
-        rm -rf "$input_dir/target"
-
-        zip -r "../output_assets/${output_name}.zip" "$input_dir"
+        zip -r "../output_assets/${output_name}.zip" "$path"
         echo "Created output_assets/${output_name}.zip"
     else
-        mv "$input_dir/target/$target/release/ouch" "$input_dir"
-        rm -rf "$input_dir/target"
-        chmod +x "$input_dir/ouch"
+        mv "$path/target/$platform/release/ouch" "$path"
+        rm -rf "$path/target"
+        chmod +x "$path/ouch"
 
-        tar czf "../output_assets/${output_name}.tar.gz" "$input_dir"
+        tar czf "../output_assets/${output_name}.tar.gz" "$path"
         echo "Created output_assets/${output_name}.tar.gz"
     fi
 done
