@@ -25,15 +25,13 @@ DEFAULT_FEATURES="allow_piped_choice+unrar+use_zlib+use_zstd_thin"
 
 for platform in "${PLATFORMS[@]}"; do
     path="ouch-${platform}"
+    echo "Processing $path"
 
-    if [ ! -d "$path" ]; then
+    if [ ! -d "${path}-${DEFAULT_FEATURES}" ]; then
         echo "ERROR: Could not find artifact directory for $platform with default features ($path)"
         exit 1
     fi
-
-    # remove the suffix
-    mv "ouch-${platform}-${DEFAULT_FEATURES}" "$path"
-    echo "Processing $path"
+    mv "${path}-${DEFAULT_FEATURES}" "$path" # remove the annoying suffix
 
     cp ../{README.md,LICENSE,CHANGELOG.md} "$path"
     mkdir -p "$path/man"
@@ -47,15 +45,15 @@ for platform in "${PLATFORMS[@]}"; do
         mv "$path/target/$platform/release/ouch.exe" "$path"
         rm -rf "$path/target"
 
-        zip -r "../output_assets/${output_name}.zip" "$path"
-        echo "Created output_assets/${output_name}.zip"
+        zip -r "../output_assets/${path}.zip" "$path"
+        echo "Created output_assets/${path}.zip"
     else
         mv "$path/target/$platform/release/ouch" "$path"
         rm -rf "$path/target"
         chmod +x "$path/ouch"
 
-        tar czf "../output_assets/${output_name}.tar.gz" "$path"
-        echo "Created output_assets/${output_name}.tar.gz"
+        tar czf "../output_assets/${path}.tar.gz" "$path"
+        echo "Created output_assets/${path}.tar.gz"
     fi
 done
 
