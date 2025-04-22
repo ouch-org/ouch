@@ -100,6 +100,10 @@ pub enum Subcommand {
         /// Remove the source file after successful decompression
         #[arg(short = 'r', long)]
         remove: bool,
+
+        /// Disable Smart Unpack
+        #[arg(long)]
+        no_smart_unpack: bool,
     },
     /// List contents of an archive
     #[command(visible_aliases = ["l", "ls"])]
@@ -156,6 +160,7 @@ mod tests {
                 files: vec!["\x00\x11\x22".into()],
                 output_dir: None,
                 remove: false,
+                no_smart_unpack: false
             },
         }
     }
@@ -169,6 +174,7 @@ mod tests {
                     files: to_paths(["file.tar.gz"]),
                     output_dir: None,
                     remove: false,
+                    no_smart_unpack: false,
                 },
                 ..mock_cli_args()
             }
@@ -180,6 +186,7 @@ mod tests {
                     files: to_paths(["file.tar.gz"]),
                     output_dir: None,
                     remove: false,
+                    no_smart_unpack: false,
                 },
                 ..mock_cli_args()
             }
@@ -191,6 +198,7 @@ mod tests {
                     files: to_paths(["a", "b", "c"]),
                     output_dir: None,
                     remove: false,
+                    no_smart_unpack: false,
                 },
                 ..mock_cli_args()
             }
