@@ -21,6 +21,7 @@ Categories Used:
 ## [Unreleased](https://github.com/ouch-org/ouch/compare/0.6.1...HEAD)
 
 ### New Features
+- Merge folders in decompression [\#798](https://github.com/ouch-org/ouch/pull/798) ([tommady](https://github.com/tommady))
 ### Improvements
 ### Bug Fixes
 ### Tweaks
