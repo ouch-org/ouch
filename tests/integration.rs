@@ -638,9 +638,9 @@ fn unpack_multiple_sources_into_the_same_destination_with_merge(
     crate::utils::cargo_bin()
         .arg("compress")
         .args([
+            fs::File::create(source_path.join("file3.txt"))?.path(),
             fs::File::create(source_path.join("file4.txt"))?.path(),
             fs::File::create(source_path.join("file5.txt"))?.path(),
-            fs::File::create(source_path.join("file6.txt"))?.path(),
         ])
         .arg(&archive1)
         .assert()
@@ -666,5 +666,5 @@ fn unpack_multiple_sources_into_the_same_destination_with_merge(
         .assert()
         .success();
 
-    assert_eq!(6, out_path.as_path().read_dir()?.count());
+    assert_eq!(5, out_path.as_path().read_dir()?.count());
 }
