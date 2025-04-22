@@ -83,10 +83,8 @@ where
                     ));
                 }
 
-                let mode = file.unix_mode().ok_or_else(|| {
-                    std::io::Error::new(std::io::ErrorKind::InvalidData, "Cannot extract file's mode")
-                })?;
-                let is_symlink = (mode & 0o170000) == 0o120000;
+                let mode = file.unix_mode();
+                let is_symlink = mode.is_some_and(|mode| mode & 0o170000 == 0o120000);
 
                 if is_symlink {
                     let mut target = String::new();
