@@ -160,7 +160,7 @@ mod tests {
                 files: vec!["\x00\x11\x22".into()],
                 output_dir: None,
                 remove: false,
-                no_smart_unpack: false
+                no_smart_unpack: false,
             },
         }
     }
