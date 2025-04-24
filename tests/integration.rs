@@ -11,6 +11,7 @@ use fs_err as fs;
 use parse_display::Display;
 use proptest::sample::size_range;
 use rand::{rngs::SmallRng, Rng, SeedableRng};
+use sevenz_rust::Archive;
 use tempfile::tempdir;
 use test_strategy::{proptest, Arbitrary};
 
@@ -366,6 +367,99 @@ fn multiple_files_with_conflict_and_choice_to_rename_with_already_a_renamed(
 
     assert_same_directory(src_files_path, dest_files_path_renamed.join("src_files"), false);
 }
+
+
+#[proptest(cases = 25)]
+fn smart_unpack_with_single_file(
+    ext: DirectoryExtension,
+    #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
+) {
+    let temp_dir = tempdir().unwrap();
+    let root_path = temp_dir.path();
+
+    let src_files_path = root_path.join("src_files");
+    fs::create_dir_all(&src_files_path).unwrap();
+
+    let files_path = ["file1.txt"]
+        .into_iter()
+        .map(|f| src_files_path.join(f))
+        .map(|path| {
+            let mut file = fs::File::create(&path).unwrap();
+            file.write_all("Some content".as_bytes()).unwrap();
+            path
+        })
+        .collect::<Vec<_>>();
+
+    // let dest_files_path = root_path.join("dest_files");
+    // fs::create_dir_all(&dest_files_path).unwrap();
+
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
+
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .args(files_path)
+        .arg(archive)
+        .assert()
+        .success();
+
+    let output_file = root_path.join("file1.txt");
+    assert_eq!(false, output_file.exists());
+
+    // Decompress the archive with Smart Unpack
+    crate::utils::cargo_bin()
+        .current_dir(&root_path)
+        .arg("decompress")
+        .arg(archive)
+        .assert()
+        .success();
+
+    assert_eq!(true, output_file.exists());
+
+    let output_content = fs::read_to_string(&output_file).unwrap();
+    assert_eq!(output_content, "Some content");
+}
+
+#[proptest(cases = 25)]
+fn smart_unpack_with_multiple_files(
+    ext: DirectoryExtension,
+    #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
+) {
+    let temp_dir = tempdir().unwrap();
+    let root_path = temp_dir.path();
+
+    let src_files_path = root_path.join("src_files");
+    fs::create_dir_all(&src_files_path).unwrap();
+
+    ["file1.txt", "file2.txt", "file3.txt", "file4.txt", "file5.txt"]
+        .into_iter()
+        .map(|f| src_files_path.join(f))
+        .for_each(|path| {
+            let mut file = fs::File::create(&path).unwrap();
+            file.write_all("Some content".as_bytes()).unwrap();
+        });
+
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
+
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .arg(&src_files_path)
+        .arg(archive)
+        .assert()
+        .success();
+
+    let a = crate::utils::cargo_bin()
+        .current_dir(&root_path)
+        .arg("decompress")
+        .arg(archive)
+        .assert()
+        .success();
+
+    let output_path = root_path.join("archive");
+    assert_eq!(true, output_path.exists(), "Output directory does not exist");
+
+    assert_same_directory(src_files_path, output_path, false);
+}
+
 
 #[proptest(cases = 25)]
 fn multiple_files_with_disabled_smart_unpack_by_dir(
