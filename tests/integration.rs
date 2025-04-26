@@ -88,6 +88,24 @@ fn create_random_files(dir: impl Into<PathBuf>, depth: u8, rng: &mut SmallRng) {
     }
 }
 
+/// Create n random files on directory dir
+fn create_n_random_files(n: usize, dir: impl Into<PathBuf>, rng: &mut SmallRng) {
+    let dir: &PathBuf = &dir.into();
+
+    for _ in 0..n {
+        write_random_content(
+            &mut tempfile::Builder::new()
+                .prefix("file")
+                .tempfile_in(dir)
+                .unwrap()
+                .keep()
+                .unwrap()
+                .0,
+            rng,
+        );
+    }
+}
+
 /// Compress and decompress a single empty file
 #[proptest(cases = 200)]
 fn single_empty_file(ext: Extension, #[any(size_range(0..8).lift())] exts: Vec<FileExtension>) {
