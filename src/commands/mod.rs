@@ -177,8 +177,6 @@ pub fn run(
 
             check::check_missing_formats_when_decompressing(&files, &formats)?;
 
-            let is_smart_unpack = !no_smart_unpack && output_dir.is_none();
-
             let is_output_dir_provided = output_dir.is_some();
             let is_smart_unpack = !is_output_dir_provided && !no_smart_unpack;
 
