@@ -368,7 +368,6 @@ fn multiple_files_with_conflict_and_choice_to_rename_with_already_a_renamed(
     assert_same_directory(src_files_path, dest_files_path_renamed.join("src_files"), false);
 }
 
-
 #[proptest(cases = 25)]
 fn smart_unpack_with_single_file(
     ext: DirectoryExtension,
@@ -389,9 +388,6 @@ fn smart_unpack_with_single_file(
             path
         })
         .collect::<Vec<_>>();
-
-    // let dest_files_path = root_path.join("dest_files");
-    // fs::create_dir_all(&dest_files_path).unwrap();
 
     let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
 
@@ -438,28 +434,135 @@ fn smart_unpack_with_multiple_files(
             file.write_all("Some content".as_bytes()).unwrap();
         });
 
+    let input_files = src_files_path
+        .read_dir()
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .collect::<Vec<PathBuf>>();
+
     let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
+
+    let output_path = root_path.join("archive");
+    assert_eq!(false, output_path.exists());
 
     crate::utils::cargo_bin()
         .arg("compress")
-        .arg(&src_files_path)
+        .args(input_files)
         .arg(archive)
         .assert()
         .success();
 
-    let a = crate::utils::cargo_bin()
+    crate::utils::cargo_bin()
         .current_dir(&root_path)
         .arg("decompress")
         .arg(archive)
         .assert()
         .success();
 
-    let output_path = root_path.join("archive");
     assert_eq!(true, output_path.exists(), "Output directory does not exist");
 
     assert_same_directory(src_files_path, output_path, false);
 }
 
+#[proptest(cases = 25)]
+fn no_smart_unpack_with_single_file(
+    ext: DirectoryExtension,
+    #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
+) {
+    let temp_dir = tempdir().unwrap();
+    let root_path = temp_dir.path();
+
+    let src_files_path = root_path.join("src_files");
+    fs::create_dir_all(&src_files_path).unwrap();
+
+    ["file1.txt"]
+        .into_iter()
+        .map(|f| src_files_path.join(f))
+        .for_each(|path| {
+            let mut file = fs::File::create(&path).unwrap();
+            file.write_all("Some content".as_bytes()).unwrap();
+        });
+
+    let input_files = src_files_path
+        .read_dir()
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .collect::<Vec<PathBuf>>();
+
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
+
+    let output_path = root_path.join("archive");
+    assert_eq!(false, output_path.exists());
+
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .args(input_files)
+        .arg(archive)
+        .assert()
+        .success();
+
+    crate::utils::cargo_bin()
+        .current_dir(&root_path)
+        .arg("decompress")
+        .arg("--no-smart-unpack")
+        .arg(archive)
+        .assert()
+        .success();
+
+    assert_eq!(true, output_path.exists(), "Output directory does not exist");
+
+    assert_same_directory(src_files_path, output_path, false);
+}
+
+#[proptest(cases = 25)]
+fn no_smart_unpack_with_multiple_files(
+    ext: DirectoryExtension,
+    #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
+) {
+    let temp_dir = tempdir().unwrap();
+    let root_path = temp_dir.path();
+
+    let src_files_path = root_path.join("src_files");
+    fs::create_dir_all(&src_files_path).unwrap();
+
+    ["file1.txt", "file2.txt", "file3.txt", "file4.txt", "file5.txt"]
+        .into_iter()
+        .map(|f| src_files_path.join(f))
+        .for_each(|path| {
+            let mut file = fs::File::create(&path).unwrap();
+            file.write_all("Some content".as_bytes()).unwrap();
+        });
+
+    let input_files = src_files_path
+        .read_dir()
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .collect::<Vec<PathBuf>>();
+
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
+
+    let output_path = root_path.join("archive");
+    assert_eq!(false, output_path.exists());
+
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .args(input_files)
+        .arg(archive)
+        .assert()
+        .success();
+
+    crate::utils::cargo_bin()
+        .current_dir(&root_path)
+        .arg("decompress")
+        .arg("--no-smart-unpack")
+        .arg(archive)
+        .assert()
+        .success();
+
+    assert_eq!(true, output_path.exists(), "Output directory does not exist");
+
+    assert_same_directory(src_files_path, output_path, false);
+}
 
 #[proptest(cases = 25)]
 fn multiple_files_with_disabled_smart_unpack_by_dir(
