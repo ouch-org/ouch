@@ -146,7 +146,7 @@ pub fn run(
         }
         Subcommand::Decompress {
             files,
-            mut output_dir,
+            output_dir,
             remove,
             no_smart_unpack,
         } => {

@@ -11,7 +11,6 @@ use fs_err as fs;
 use parse_display::Display;
 use proptest::sample::size_range;
 use rand::{rngs::SmallRng, Rng, SeedableRng};
-use sevenz_rust::Archive;
 use tempfile::tempdir;
 use test_strategy::{proptest, Arbitrary};
 
@@ -382,10 +381,9 @@ fn smart_unpack_with_single_file(
     let files_path = ["file1.txt"]
         .into_iter()
         .map(|f| src_files_path.join(f))
-        .map(|path| {
-            let mut file = fs::File::create(&path).unwrap();
+        .inspect(|path| {
+            let mut file = fs::File::create(path).unwrap();
             file.write_all("Some content".as_bytes()).unwrap();
-            path
         })
         .collect::<Vec<_>>();
 
@@ -399,17 +397,17 @@ fn smart_unpack_with_single_file(
         .success();
 
     let output_file = root_path.join("file1.txt");
-    assert_eq!(false, output_file.exists());
+    assert!(!output_file.exists());
 
     // Decompress the archive with Smart Unpack
     crate::utils::cargo_bin()
-        .current_dir(&root_path)
+        .current_dir(root_path)
         .arg("decompress")
         .arg(archive)
         .assert()
         .success();
 
-    assert_eq!(true, output_file.exists());
+    assert!(output_file.exists());
 
     let output_content = fs::read_to_string(&output_file).unwrap();
     assert_eq!(output_content, "Some content");
@@ -443,7 +441,7 @@ fn smart_unpack_with_multiple_files(
     let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
 
     let output_path = root_path.join("archive");
-    assert_eq!(false, output_path.exists());
+    assert!(!output_path.exists());
 
     crate::utils::cargo_bin()
         .arg("compress")
@@ -453,13 +451,13 @@ fn smart_unpack_with_multiple_files(
         .success();
 
     crate::utils::cargo_bin()
-        .current_dir(&root_path)
+        .current_dir(root_path)
         .arg("decompress")
         .arg(archive)
         .assert()
         .success();
 
-    assert_eq!(true, output_path.exists(), "Output directory does not exist");
+    assert!(output_path.exists(), "Output directory does not exist");
 
     assert_same_directory(src_files_path, output_path, false);
 }
@@ -492,7 +490,7 @@ fn no_smart_unpack_with_single_file(
     let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
 
     let output_path = root_path.join("archive");
-    assert_eq!(false, output_path.exists());
+    assert!(!output_path.exists());
 
     crate::utils::cargo_bin()
         .arg("compress")
@@ -502,14 +500,14 @@ fn no_smart_unpack_with_single_file(
         .success();
 
     crate::utils::cargo_bin()
-        .current_dir(&root_path)
+        .current_dir(root_path)
         .arg("decompress")
         .arg("--no-smart-unpack")
         .arg(archive)
         .assert()
         .success();
 
-    assert_eq!(true, output_path.exists(), "Output directory does not exist");
+    assert!(output_path.exists(), "Output directory does not exist");
 
     assert_same_directory(src_files_path, output_path, false);
 }
@@ -542,7 +540,7 @@ fn no_smart_unpack_with_multiple_files(
     let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
 
     let output_path = root_path.join("archive");
-    assert_eq!(false, output_path.exists());
+    assert!(!output_path.exists());
 
     crate::utils::cargo_bin()
         .arg("compress")
@@ -552,14 +550,14 @@ fn no_smart_unpack_with_multiple_files(
         .success();
 
     crate::utils::cargo_bin()
-        .current_dir(&root_path)
+        .current_dir(root_path)
         .arg("decompress")
         .arg("--no-smart-unpack")
         .arg(archive)
         .assert()
         .success();
 
-    assert_eq!(true, output_path.exists(), "Output directory does not exist");
+    assert!(output_path.exists(), "Output directory does not exist");
 
     assert_same_directory(src_files_path, output_path, false);
 }
@@ -578,10 +576,9 @@ fn multiple_files_with_disabled_smart_unpack_by_dir(
     let files_path = ["file1.txt", "file2.txt", "file3.txt", "file4.txt", "file5.txt"]
         .into_iter()
         .map(|f| src_files_path.join(f))
-        .map(|path| {
-            let mut file = fs::File::create(&path).unwrap();
+        .inspect(|path| {
+            let mut file = fs::File::create(path).unwrap();
             file.write_all("Some content".as_bytes()).unwrap();
-            path
         })
         .collect::<Vec<_>>();
 
@@ -688,10 +685,9 @@ fn symlink_pack_and_unpack(
     let mut files_path = ["file1.txt", "file2.txt", "file3.txt", "file4.txt", "file5.txt"]
         .into_iter()
         .map(|f| src_files_path.join(f))
-        .map(|path| {
-            let mut file = fs::File::create(&path).unwrap();
+        .inspect(|path| {
+            let mut file = fs::File::create(path).unwrap();
             file.write_all("Some content".as_bytes()).unwrap();
-            path
         })
         .collect::<Vec<_>>();
 

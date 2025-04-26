@@ -314,7 +314,7 @@ fn execute_decompression(
         output_file_path
     };
 
-    return unpack(unpack_fn, target_output_dir, question_policy);
+    unpack(unpack_fn, target_output_dir, question_policy)
 }
 
 /// Unpacks an archive creating the output directory, this function will create the output_dir
