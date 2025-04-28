@@ -1,28 +1,60 @@
 #!/usr/bin/env bash
-
 set -e
 
-mkdir release
-cd artifacts
+mkdir output_assets
+echo "created folder 'output_assets/'"
+ls -lA -w 1
+cd downloaded_artifacts
+echo "entered 'downloaded_artifacts/'"
+ls -lA -w 1
 
-for dir in ouch-*; do
-    cp -r "$dir/artifacts" "$dir/completions"
-    mkdir "$dir/man"
-    mv "$dir"/completions/*.1 "$dir/man"
+PLATFORMS=(
+    "aarch64-pc-windows-msvc"
+    "aarch64-unknown-linux-gnu"
+    "aarch64-unknown-linux-musl"
+    "armv7-unknown-linux-gnueabihf"
+    "armv7-unknown-linux-musleabihf"
+    "x86_64-apple-darwin"
+    "x86_64-pc-windows-gnu"
+    "x86_64-pc-windows-msvc"
+    "x86_64-unknown-linux-gnu"
+    "x86_64-unknown-linux-musl"
+)
+# TODO: remove allow_piped_choice later
+DEFAULT_FEATURES="allow_piped_choice+unrar+use_zlib+use_zstd_thin"
 
-    cp ../{README.md,LICENSE,CHANGELOG.md} "$dir"
-    rm -r "$dir/artifacts"
+for platform in "${PLATFORMS[@]}"; do
+    path="ouch-${platform}"
+    echo "Processing $path"
 
-    if [[ "$dir" = *.exe ]]; then
-        target=${dir%.exe}
-        mv "$dir/target/${target/ouch-/}/release/ouch.exe" "$dir"
-        rm -r "$dir/target"
-        mv "$dir" "$target"
-        zip -r "../release/$target.zip" "$target"
+    if [ ! -d "${path}-${DEFAULT_FEATURES}" ]; then
+        echo "ERROR: Could not find artifact directory for $platform with default features ($path)"
+        exit 1
+    fi
+    mv "${path}-${DEFAULT_FEATURES}" "$path" # remove the annoying suffix
+
+    cp ../{README.md,LICENSE,CHANGELOG.md} "$path"
+    mkdir -p "$path/man"
+    mkdir -p "$path/completions"
+
+    mv "$path"/man-page-and-completions-artifacts/*.1 "$path/man"
+    mv "$path"/man-page-and-completions-artifacts/* "$path/completions"
+    rm -r "$path/man-page-and-completions-artifacts"
+
+    if [[ "$platform" == *"-windows-"* ]]; then
+        mv "$path/target/$platform/release/ouch.exe" "$path"
+        rm -rf "$path/target"
+
+        zip -r "../output_assets/${path}.zip" "$path"
+        echo "Created output_assets/${path}.zip"
     else
-        mv "$dir/target/${dir/ouch-/}/release/ouch" "$dir"
-        rm -r "$dir/target"
-        chmod +x "$dir/ouch"
-        tar czf "../release/$dir.tar.gz" "$dir"
+        mv "$path/target/$platform/release/ouch" "$path"
+        rm -rf "$path/target"
+        chmod +x "$path/ouch"
+
+        tar czf "../output_assets/${path}.tar.gz" "$path"
+        echo "Created output_assets/${path}.tar.gz"
     fi
 done
+
+echo "Done."

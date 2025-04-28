@@ -1,8 +1,8 @@
 [package]
 name = "ouch"
-version = "0.5.1"
+version = "0.6.1"
 authors = [
-    "João M. Bezerra <marcospb19@hotmail.com>",
+    "João Marcos <marcospb19@hotmail.com>",
     "Vinícius Rodrigues Miguel <vrmiguel99@gmail.com>",
 ]
 edition = "2021"
@@ -35,7 +35,7 @@ num_cpus = "1.16.0"
 once_cell = "1.20.2"
 rayon = "1.10.0"
 same-file = "1.0.6"
-sevenz-rust = { version = "0.6.1", features = ["compress", "aes256"] }
+sevenz-rust2 = { version = "0.13.1", features = ["compress", "aes256"] }
 snap = "1.1.1"
 tar = "0.4.42"
 tempfile = "3.10.1"
@@ -70,7 +70,7 @@ regex = "1.10.4"
 test-strategy = "0.4.0"
 
 [features]
-default = ["use_zlib", "use_zstd_thin", "unrar"]
+default = ["unrar", "use_zlib", "use_zstd_thin"]
 use_zlib = ["flate2/zlib", "gzp/deflate_zlib", "zip/deflate-zlib"]
 use_zstd_thin = ["zstd/thin"]
 allow_piped_choice = []

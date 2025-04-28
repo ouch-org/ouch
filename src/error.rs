@@ -235,8 +235,8 @@ impl From<unrar::error::UnrarError> for Error {
     }
 }
 
-impl From<sevenz_rust::Error> for Error {
-    fn from(err: sevenz_rust::Error) -> Self {
+impl From<sevenz_rust2::Error> for Error {
+    fn from(err: sevenz_rust2::Error) -> Self {
         Self::SevenzipError {
             reason: err.to_string(),
         }

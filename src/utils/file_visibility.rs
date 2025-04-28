@@ -69,11 +69,18 @@ impl FileVisibilityPolicy {
 
     /// Walks through a directory using [`ignore::Walk`]
     pub fn build_walker(&self, path: impl AsRef<Path>) -> ignore::Walk {
-        ignore::WalkBuilder::new(path)
+        let mut builder = ignore::WalkBuilder::new(path);
+
+        builder
             .git_exclude(self.read_git_exclude)
             .git_ignore(self.read_git_ignore)
             .ignore(self.read_ignore)
-            .hidden(self.read_hidden)
-            .build()
+            .hidden(self.read_hidden);
+
+        if self.read_git_ignore {
+            builder.filter_entry(|p| p.path().file_name().is_some_and(|name| name != ".git"));
+        }
+
+        builder.build()
     }
 }

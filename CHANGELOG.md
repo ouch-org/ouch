@@ -18,7 +18,18 @@ Categories Used:
 
 **Bullet points in chronological order by PR**
 
-## [Unreleased](https://github.com/ouch-org/ouch/compare/0.5.1...HEAD)
+## [Unreleased](https://github.com/ouch-org/ouch/compare/0.6.1...HEAD)
+
+### New Features
+### Improvements
+### Bug Fixes
+### Tweaks
+
+## [0.6.1](https://github.com/ouch-org/ouch/compare/0.6.0...0.6.1)
+
+- Fix .zip crash when file mode isn't present [\#804](https://github.com/ouch-org/ouch/pull/804) ([marcospb19](https://github.com/marcospb19))
+
+## [0.6.0](https://github.com/ouch-org/ouch/compare/0.5.1...0.6.0)
 
 ### New Features
 
@@ -37,7 +48,9 @@ Categories Used:
 
 - CI refactor [\#578](https://github.com/ouch-org/ouch/pull/578) ([cyqsimon](https://github.com/cyqsimon))
 - Use a prefix `tmp-ouch-` for temporary decompression path name to avoid conflicts [\#725](https://github.com/ouch-org/ouch/pull/725) ([valoq](https://github.com/valoq)) & [\#788](https://github.com/ouch-org/ouch/pull/788) ([talis-fb](https://github.com/talis-fb))
+- Ignore `.git/` when `-g/--gitignore` is set [\#507](https://github.com/ouch-org/ouch/pull/507) ([talis-fb](https://github.com/talis-fb))
 - Run clippy for tests too [\#738](https://github.com/ouch-org/ouch/pull/738) ([marcospb19](https://github.com/marcospb19))
+- Sevenz-rust is unmaintained, switch to sevenz-rust2 [\#796](https://github.com/ouch-org/ouch/pull/796) ([tommady](https://github.com/tommady))
 
 ### Improvements
 
@@ -46,6 +59,7 @@ Categories Used:
 - Make `--format` more forgiving with the formatting of the provided format [\#519](https://github.com/ouch-org/ouch/pull/519) ([marcospb19](https://github.com/marcospb19))
 - Use buffered writer for list output [\#764](https://github.com/ouch-org/ouch/pull/764) ([killercup](https://github.com/killercup))
 - Disable smart unpack when `--dir` flag is provided in decompress command [\#782](https://github.com/ouch-org/ouch/pull/782) ([talis-fb](https://github.com/talis-fb))
+- Align file sizes at left for each extracted file to make output clearer [\#792](https://github.com/ouch-org/ouch/pull/792) ([talis-fb](https://github.com/talis-fb))
 
 ## [0.5.1](https://github.com/ouch-org/ouch/compare/0.5.0...0.5.1)
 
