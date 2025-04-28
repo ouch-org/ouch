@@ -21,6 +21,7 @@ Categories Used:
 ## [Unreleased](https://github.com/ouch-org/ouch/compare/0.6.1...HEAD)
 
 ### New Features
+- Add `--no-smart-unpack` flag to decompression command to disable smart unpack [\#809](https://github.com/ouch-org/ouch/pull/809) ([talis-fb](https://github.com/talis-fb))
 ### Improvements
 ### Bug Fixes
 ### Tweaks
