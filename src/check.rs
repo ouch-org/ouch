@@ -20,10 +20,7 @@ use crate::{
 
 /// Check if the mime type matches the detected extensions.
 ///
-/// In case the file doesn't has any extensions, try to infer the format.
-///
-/// TODO: maybe the name of this should be "magic numbers" or "file signature",
-/// and not MIME.
+/// In case the file has no extension, try to infer the format
 pub fn check_mime_type(
     path: &Path,
     formats: &mut Vec<Extension>,
@@ -56,7 +53,7 @@ pub fn check_mime_type(
             .ends_with(detected_format.compression_formats)
         {
             warning(format!(
-                "The file extension: `{}` differ from the detected extension: `{}`",
+                "The file extension `{}` differs from the detected extension: `{}`",
                 outer_ext, detected_format
             ));
 
