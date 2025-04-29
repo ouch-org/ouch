@@ -387,7 +387,7 @@ fn smart_unpack_with_single_file(
         })
         .collect::<Vec<_>>();
 
-    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
 
     crate::utils::cargo_bin()
         .arg("compress")
@@ -438,7 +438,7 @@ fn smart_unpack_with_multiple_files(
         .map(|entry| entry.unwrap().path())
         .collect::<Vec<PathBuf>>();
 
-    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
 
     let output_path = root_path.join("archive");
     assert!(!output_path.exists());
@@ -487,7 +487,7 @@ fn no_smart_unpack_with_single_file(
         .map(|entry| entry.unwrap().path())
         .collect::<Vec<PathBuf>>();
 
-    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
 
     let output_path = root_path.join("archive");
     assert!(!output_path.exists());
@@ -537,7 +537,7 @@ fn no_smart_unpack_with_multiple_files(
         .map(|entry| entry.unwrap().path())
         .collect::<Vec<PathBuf>>();
 
-    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, extra_extensions)));
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
 
     let output_path = root_path.join("archive");
     assert!(!output_path.exists());
