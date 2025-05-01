@@ -23,6 +23,9 @@ use crate::{
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
+#[cfg(not(feature = "bzip3"))]
+use crate::archive;
+
 trait ReadSeek: Read + io::Seek {}
 impl<T: Read + io::Seek> ReadSeek for T {}
 
@@ -118,7 +121,13 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
         let decoder: Box<dyn Read> = match format {
             Gzip => Box::new(flate2::read::GzDecoder::new(decoder)),
             Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
-            Bzip3 => Box::new(bzip3::read::Bz3Decoder::new(decoder)?),
+            Bzip3 => {
+                #[cfg(not(feature = "bzip3"))]
+                return Err(archive::bzip3_stub::no_support());
+
+                #[cfg(feature = "bzip3")]
+                Box::new(bzip3::read::Bz3Decoder::new(decoder)?)
+            },
             Lz4 => Box::new(lz4_flex::frame::FrameDecoder::new(decoder)),
             Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
             Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),

@@ -133,7 +133,7 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
         buf.starts_with(&[0x42, 0x5A, 0x68])
     }
     fn is_bz3(buf: &[u8]) -> bool {
-        buf.starts_with(bzip3::MAGIC_NUMBER)
+        buf.starts_with(b"BZ3v1")
     }
     fn is_xz(buf: &[u8]) -> bool {
         buf.starts_with(&[0xFD, 0x37, 0x7A, 0x58, 0x5A, 0x00])
