@@ -91,6 +91,7 @@ fn create_random_files(dir: impl Into<PathBuf>, depth: u8, rng: &mut SmallRng) {
 }
 
 /// Create n random files on directory dir
+#[cfg_attr(feature = "allow_piped_choice", allow(unused))]
 fn create_n_random_files(n: usize, dir: impl Into<PathBuf>, rng: &mut SmallRng) {
     let dir: &PathBuf = &dir.into();
 
