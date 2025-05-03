@@ -56,7 +56,7 @@ pub fn list_archive_contents(
 
                     #[cfg(feature = "bzip3")]
                     Box::new(bzip3::read::Bz3Decoder::new(decoder).unwrap())
-                },
+                }
                 Lz4 => Box::new(lz4_flex::frame::FrameDecoder::new(decoder)),
                 Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
                 Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),

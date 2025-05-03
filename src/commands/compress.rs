@@ -66,7 +66,7 @@ pub fn compress_files(
                     // Use block size of 16 MiB
                     bzip3::write::Bz3Encoder::new(encoder, 16 * 2_usize.pow(20))?,
                 )
-            },
+            }
             Lz4 => Box::new(lz4_flex::frame::FrameEncoder::new(encoder).auto_finish()),
             Lzma => Box::new(xz2::write::XzEncoder::new(
                 encoder,

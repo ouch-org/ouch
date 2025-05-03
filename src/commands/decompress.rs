@@ -6,6 +6,8 @@ use std::{
 
 use fs_err as fs;
 
+#[cfg(not(feature = "bzip3"))]
+use crate::archive;
 use crate::{
     commands::{warn_user_about_loading_sevenz_in_memory, warn_user_about_loading_zip_in_memory},
     extension::{
@@ -22,9 +24,6 @@ use crate::{
     },
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
-
-#[cfg(not(feature = "bzip3"))]
-use crate::archive;
 
 trait ReadSeek: Read + io::Seek {}
 impl<T: Read + io::Seek> ReadSeek for T {}
@@ -127,7 +126,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
 
                 #[cfg(feature = "bzip3")]
                 Box::new(bzip3::read::Bz3Decoder::new(decoder)?)
-            },
+            }
             Lz4 => Box::new(lz4_flex::frame::FrameDecoder::new(decoder)),
             Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
             Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
