@@ -57,10 +57,16 @@ pub fn compress_files(
                 encoder,
                 level.map_or_else(Default::default, |l| bzip2::Compression::new((l as u32).clamp(1, 9))),
             )),
-            Bzip3 => Box::new(
-                // Use block size of 16 MiB
-                bzip3::write::Bz3Encoder::new(encoder, 16 * 2_usize.pow(20))?,
-            ),
+            Bzip3 => {
+                #[cfg(not(feature = "bzip3"))]
+                return Err(archive::bzip3_stub::no_support());
+
+                #[cfg(feature = "bzip3")]
+                Box::new(
+                    // Use block size of 16 MiB
+                    bzip3::write::Bz3Encoder::new(encoder, 16 * 2_usize.pow(20))?,
+                )
+            }
             Lz4 => Box::new(lz4_flex::frame::FrameEncoder::new(encoder).auto_finish()),
             Lzma => Box::new(xz2::write::XzEncoder::new(
                 encoder,

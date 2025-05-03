@@ -6,6 +6,8 @@ use std::{
 
 use fs_err as fs;
 
+#[cfg(not(feature = "bzip3"))]
+use crate::archive;
 use crate::{
     commands::{warn_user_about_loading_sevenz_in_memory, warn_user_about_loading_zip_in_memory},
     extension::{
@@ -118,7 +120,13 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
         let decoder: Box<dyn Read> = match format {
             Gzip => Box::new(flate2::read::GzDecoder::new(decoder)),
             Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
-            Bzip3 => Box::new(bzip3::read::Bz3Decoder::new(decoder)?),
+            Bzip3 => {
+                #[cfg(not(feature = "bzip3"))]
+                return Err(archive::bzip3_stub::no_support());
+
+                #[cfg(feature = "bzip3")]
+                Box::new(bzip3::read::Bz3Decoder::new(decoder)?)
+            }
             Lz4 => Box::new(lz4_flex::frame::FrameDecoder::new(decoder)),
             Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
             Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),

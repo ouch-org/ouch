@@ -29,6 +29,8 @@ Categories Used:
 ### Bug Fixes
 ### Tweaks
 
+- Make `.bz3` opt-out [\#814](https://github.com/ouch-org/ouch/pull/814) ([amyspark](https://github.com/amyspark))
+
 ## [0.6.1](https://github.com/ouch-org/ouch/compare/0.6.0...0.6.1)
 
 - Fix .zip crash when file mode isn't present [\#804](https://github.com/ouch-org/ouch/pull/804) ([marcospb19](https://github.com/marcospb19))

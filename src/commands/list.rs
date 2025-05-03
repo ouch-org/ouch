@@ -6,7 +6,7 @@ use std::{
 use fs_err as fs;
 
 use crate::{
-    archive::sevenz,
+    archive,
     commands::warn_user_about_loading_zip_in_memory,
     extension::CompressionFormat::{self, *},
     list::{self, FileInArchive, ListOptions},
@@ -50,7 +50,13 @@ pub fn list_archive_contents(
             let decoder: Box<dyn Read + Send> = match format {
                 Gzip => Box::new(flate2::read::GzDecoder::new(decoder)),
                 Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
-                Bzip3 => Box::new(bzip3::read::Bz3Decoder::new(decoder).unwrap()),
+                Bzip3 => {
+                    #[cfg(not(feature = "bzip3"))]
+                    return Err(archive::bzip3_stub::no_support());
+
+                    #[cfg(feature = "bzip3")]
+                    Box::new(bzip3::read::Bz3Decoder::new(decoder).unwrap())
+                }
                 Lz4 => Box::new(lz4_flex::frame::FrameDecoder::new(decoder)),
                 Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
                 Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
@@ -111,7 +117,7 @@ pub fn list_archive_contents(
                 }
             }
 
-            Box::new(sevenz::list_archive(archive_path, password)?)
+            Box::new(archive::sevenz::list_archive(archive_path, password)?)
         }
         Gzip | Bzip | Bzip3 | Lz4 | Lzma | Snappy | Zstd | Brotli => {
             panic!("Not an archive! This should never happen, if it does, something is wrong with `CompressionFormat::is_archive()`. Please report this error!");

@@ -200,6 +200,7 @@ impl From<std::io::Error> for Error {
     }
 }
 
+#[cfg(feature = "bzip3")]
 impl From<bzip3::Error> for Error {
     fn from(err: bzip3::Error) -> Self {
         use bzip3::Error as Bz3Error;
