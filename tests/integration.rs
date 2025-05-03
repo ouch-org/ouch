@@ -61,9 +61,9 @@ enum Extension {
 }
 
 /// Converts a list of extension structs to string
-fn merge_extensions(ext: impl ToString, exts: &Vec<FileExtension>) -> String {
+fn merge_extensions(ext: impl ToString, exts: &[FileExtension]) -> String {
     once(ext.to_string())
-        .chain(exts.into_iter().map(|x| x.to_string()))
+        .chain(exts.iter().map(|x| x.to_string()))
         .collect::<Vec<_>>()
         .join(".")
 }
@@ -91,7 +91,7 @@ fn create_random_files(dir: impl Into<PathBuf>, depth: u8, rng: &mut SmallRng) {
 }
 
 /// Create n random files on directory dir
-#[cfg_attr(feature = "allow_piped_choice", allow(unused))]
+#[cfg_attr(not(feature = "allow_piped_choice"), allow(dead_code))]
 fn create_n_random_files(n: usize, dir: impl Into<PathBuf>, rng: &mut SmallRng) {
     let dir: &PathBuf = &dir.into();
 

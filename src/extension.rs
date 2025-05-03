@@ -286,7 +286,7 @@ mod tests {
     #[test]
     /// Test extension parsing for input/output files
     fn test_separate_known_extensions_from_name() {
-        let _handler = spawn_logger_thread();
+        spawn_logger_thread();
         assert_eq!(
             separate_known_extensions_from_name("file".as_ref()),
             ("file".as_ref(), vec![])
