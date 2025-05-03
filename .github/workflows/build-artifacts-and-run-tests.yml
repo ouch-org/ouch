@@ -25,7 +25,7 @@ on:
         type: boolean
         required: true
       artifact_upload_mode:
-        description: "Control which artifacts to upload: 'none' for no uploads, 'with_default_features' to upload only artifacts with default features (use_zlib+use_zstd_thin+unrar), or 'all' to upload all feature combinations."
+        description: "Control which artifacts to upload: 'none' for no uploads, 'with_default_features' to upload only artifacts with default features (use_zlib+use_zstd_thin+unrar+bzip3), or 'all' to upload all feature combinations."
         type: string
         required: true
 
@@ -37,7 +37,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        feature-unrar: ${{ inputs.matrix_all_combinations && fromJSON('[true, false]') || fromJSON('[false]')}}
+        feature-unrar: ${{ inputs.matrix_all_combinations && fromJSON('[true, false]') || fromJSON('[true]')}}
+        feature-bzip3: ${{ inputs.matrix_all_combinations && fromJSON('[true, false]') || fromJSON('[true]')}}
         feature-use-zlib: ${{ inputs.matrix_all_combinations && fromJSON('[true, false]') || fromJSON('[false]')}}
         feature-use-zstd-thin: ${{ inputs.matrix_all_combinations && fromJSON('[true, false]') || fromJSON('[false]')}}
         target:
@@ -76,11 +77,13 @@ jobs:
           - target: armv7-unknown-linux-musleabihf
             use-cross: true
           # features (unless `matrix_all_combinations` is true, we only run these on linux-gnu)
-          - feature-unrar: true
+          - feature-unrar: false
             target: x86_64-unknown-linux-gnu
           - feature-use-zlib: true
             target: x86_64-unknown-linux-gnu
           - feature-use-zstd-thin: true
+            target: x86_64-unknown-linux-gnu
+          - feature-bzip3: false
             target: x86_64-unknown-linux-gnu
 
     steps:
@@ -105,6 +108,7 @@ jobs:
           if [[ "${{ matrix.feature-unrar }}" == true ]]; then FEATURES+=(unrar); fi
           if [[ "${{ matrix.feature-use-zlib }}" == true ]]; then FEATURES+=(use_zlib); fi
           if [[ "${{ matrix.feature-use-zstd-thin }}" == true ]]; then FEATURES+=(use_zstd_thin); fi
+          if [[ "${{ matrix.feature-bzip3 }}" == true ]]; then FEATURES+=(bzip3); fi
           # Output plus-separated list for artifact names
           IFS='+'
           echo "FEATURES_PLUS=${FEATURES[*]}" >> $GITHUB_OUTPUT
@@ -127,7 +131,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          key: "${{ matrix.target }}-${{ matrix.feature-unrar }}-${{ matrix.feature-use-zlib }}-${{ matrix.feature-use-zstd-thin }}"
+          key: "${{ matrix.target }}-${{ matrix.feature-unrar }}-${{ matrix.feature-use-zlib }}-${{ matrix.feature-use-zstd-thin }}-${{ matrix.feature-bzip3 }}"
 
       - name: Test on stable
         # there's no way to run tests for ARM64 Windows for now
@@ -146,7 +150,7 @@ jobs:
         if: |
           ${{ inputs.artifact_upload_mode != 'none' &&
              (inputs.artifact_upload_mode == 'all' ||
-              (matrix.feature-unrar && matrix.feature-use-zlib && matrix.feature-use-zstd-thin)) }}
+              (matrix.feature-unrar && matrix.feature-use-zlib && matrix.feature-use-zstd-thin && matrix.feature-bzip3)) }}
         uses: actions/upload-artifact@v4
         with:
           name: ouch-${{ matrix.target }}${{ steps.concat-features.outputs.FEATURES_PLUS != '' && format('-{0}', steps.concat-features.outputs.FEATURES_PLUS) || '' }}

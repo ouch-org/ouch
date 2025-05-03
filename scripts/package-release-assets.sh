@@ -21,7 +21,7 @@ PLATFORMS=(
     "x86_64-unknown-linux-musl"
 )
 # TODO: remove allow_piped_choice later
-DEFAULT_FEATURES="allow_piped_choice+unrar+use_zlib+use_zstd_thin"
+DEFAULT_FEATURES="allow_piped_choice+unrar+use_zlib+use_zstd_thin+bzip3"
 
 for platform in "${PLATFORMS[@]}"; do
     path="ouch-${platform}"
