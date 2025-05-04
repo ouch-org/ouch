@@ -33,7 +33,6 @@ pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;
 
 fn main() {
     spawn_logger_thread();
-
     let result = run();
     shutdown_logger_and_wait();
 
