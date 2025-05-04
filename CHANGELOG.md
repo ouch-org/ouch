@@ -18,12 +18,34 @@ Categories Used:
 
 **Bullet points in chronological order by PR**
 
-## [Unreleased](https://github.com/ouch-org/ouch/compare/0.5.1...HEAD)
+## [Unreleased](https://github.com/ouch-org/ouch/compare/0.6.1...HEAD)
+
+### New Features
+
+- Merge folders in decompression [\#798](https://github.com/ouch-org/ouch/pull/798) ([tommady](https://github.com/tommady))
+- Add `--no-smart-unpack` flag to decompression command to disable smart unpack [\#809](https://github.com/ouch-org/ouch/pull/809) ([talis-fb](https://github.com/talis-fb))
+- Add landlock support for linux filesystem isolation [\#723](https://github.com/ouch-org/ouch/pull/723) ([valoq](https://github.com/valoq)) 
+
+### Improvements
+### Bug Fixes
+### Tweaks
+
+- Make `.bz3` opt-out [\#814](https://github.com/ouch-org/ouch/pull/814) ([amyspark](https://github.com/amyspark))
+
+## [0.6.1](https://github.com/ouch-org/ouch/compare/0.6.0...0.6.1)
+
+- Fix .zip crash when file mode isn't present [\#804](https://github.com/ouch-org/ouch/pull/804) ([marcospb19](https://github.com/marcospb19))
+
+## [0.6.0](https://github.com/ouch-org/ouch/compare/0.5.1...0.6.0)
 
 ### New Features
 
 - Add multithreading support for `zstd` compression [\#689](https://github.com/ouch-org/ouch/pull/689) ([nalabrie](https://github.com/nalabrie))
-- Add landlock support for linux filesystem isolation [\#723](https://github.com/ouch-org/ouch/pull/723) ([valoq](https://github.com/valoq)) 
+- Add `bzip3` support [\#522](https://github.com/ouch-org/ouch/pull/522) ([freijon](https://github.com/freijon))
+- Add `--remove` flag for decompression subcommand to remove files after successful decompression [\#757](https://github.com/ouch-org/ouch/pull/757) ([ttys3](https://github.com/ttys3))
+- Add `br` (Brotli) support [\#765](https://github.com/ouch-org/ouch/pull/765) ([killercup](https://github.com/killercup))
+- Add rename option in overwrite menu [\#779](https://github.com/ouch-org/ouch/pull/779) ([talis-fb](https://github.com/talis-fb))
+- Store symlinks by default and add `--follow-symlinks` to store the target files [\#789](https://github.com/ouch-org/ouch/pull/789) ([tommady](https://github.com/tommady))
 
 ### Bug Fixes
 
@@ -32,12 +54,19 @@ Categories Used:
 ### Tweaks
 
 - CI refactor [\#578](https://github.com/ouch-org/ouch/pull/578) ([cyqsimon](https://github.com/cyqsimon))
+- Use a prefix `tmp-ouch-` for temporary decompression path name to avoid conflicts [\#725](https://github.com/ouch-org/ouch/pull/725) ([valoq](https://github.com/valoq)) & [\#788](https://github.com/ouch-org/ouch/pull/788) ([talis-fb](https://github.com/talis-fb))
+- Ignore `.git/` when `-g/--gitignore` is set [\#507](https://github.com/ouch-org/ouch/pull/507) ([talis-fb](https://github.com/talis-fb))
+- Run clippy for tests too [\#738](https://github.com/ouch-org/ouch/pull/738) ([marcospb19](https://github.com/marcospb19))
+- Sevenz-rust is unmaintained, switch to sevenz-rust2 [\#796](https://github.com/ouch-org/ouch/pull/796) ([tommady](https://github.com/tommady))
 
 ### Improvements
 
 - Fix logging IO bottleneck [\#642](https://github.com/ouch-org/ouch/pull/642) ([AntoniosBarotsis](https://github.com/AntoniosBarotsis))
 - Support decompression  over stdin [\#692](https://github.com/ouch-org/ouch/pull/692) ([rcorre](https://github.com/rcorre))
 - Make `--format` more forgiving with the formatting of the provided format [\#519](https://github.com/ouch-org/ouch/pull/519) ([marcospb19](https://github.com/marcospb19))
+- Use buffered writer for list output [\#764](https://github.com/ouch-org/ouch/pull/764) ([killercup](https://github.com/killercup))
+- Disable smart unpack when `--dir` flag is provided in decompress command [\#782](https://github.com/ouch-org/ouch/pull/782) ([talis-fb](https://github.com/talis-fb))
+- Align file sizes at left for each extracted file to make output clearer [\#792](https://github.com/ouch-org/ouch/pull/792) ([talis-fb](https://github.com/talis-fb))
 
 ## [0.5.1](https://github.com/ouch-org/ouch/compare/0.5.0...0.5.1)
 
@@ -54,7 +83,7 @@ Categories Used:
 ### New Features
 
 - Add support for listing and decompressing `.rar` archives [\#529](https://github.com/ouch-org/ouch/pull/529) ([lmkra](https://github.com/lmkra))
-- Add support for 7z [\#555](https://github.com/ouch-org/ouch/pull/555) ([Flat](https://github.com/flat) & [MissileLab](https://github.com/MisileLab))
+- Add support for 7z [\#555](https://github.com/ouch-org/ouch/pull/555) ([Flat](https://github.com/flat) & [MisileLab](https://github.com/MisileLab))
 
 ### Bug Fixes
 

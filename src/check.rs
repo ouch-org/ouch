@@ -35,10 +35,9 @@ pub fn check_mime_type(
         if let Some(detected_format) = try_infer_extension(path) {
             // Inferring the file extension can have unpredicted consequences (e.g. the user just
             // mistyped, ...) which we should always inform the user about.
-            info_accessible(format!(
-                "Detected file: `{}` extension as `{}`",
+            warning(format!(
+                "We detected a file named `{}`, do you want to decompress it?",
                 path.display(),
-                detected_format
             ));
 
             if user_wants_to_continue(path, question_policy, QuestionAction::Decompression)? {

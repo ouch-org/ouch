@@ -1,0 +1,35 @@
+name: PR workflow
+
+on:
+  pull_request:
+    paths-ignore:
+      - "**/*.md"
+
+jobs:
+  rustfmt-nightly-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: "Cargo: fmt"
+        run: |
+          rustup toolchain install nightly --profile minimal -c rustfmt
+          cargo +nightly fmt -- --check
+
+  clippy-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: "Cargo: clippy"
+        run: |
+          rustup toolchain install stable --profile minimal -c clippy
+          cargo +stable clippy -- -D warnings
+
+  build-and-test:
+    uses: ./.github/workflows/build-artifacts-and-run-tests.yml
+    with:
+      matrix_all_combinations: false
+      artifact_upload_mode: none

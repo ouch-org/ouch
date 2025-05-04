@@ -12,11 +12,15 @@ pub mod sandbox;
 use std::{env, path::PathBuf};
 
 use cli::CliArgs;
-use error::{Error, Result};
 use once_cell::sync::Lazy;
-use utils::{QuestionAction, QuestionPolicy};
 
-use crate::utils::logger::spawn_logger_thread;
+use self::{
+    error::{Error, Result},
+    utils::{
+        logger::{shutdown_logger_and_wait, spawn_logger_thread},
+        QuestionAction, QuestionPolicy,
+    },
+};
 
 // Used in BufReader and BufWriter to perform less syscalls
 const BUFFER_CAPACITY: usize = 1024 * 32;
@@ -28,17 +32,19 @@ static CURRENT_DIRECTORY: Lazy<PathBuf> = Lazy::new(|| env::current_dir().unwrap
 pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;
 
 fn main() {
-    let handler = spawn_logger_thread();
+    spawn_logger_thread();
 
     //restrict write permissions to the current workign directory
     let working_dir = get_current_working_dir().expect("Cannot get current working dir");
     let path_str = working_dir.to_str().expect("Cannot convert path");
     let status = sandbox::restrict_paths(&[path_str]).expect("failed to build the ruleset");
 
-    //todo: check status and report error or warnign if landlock restriction failed
+    //todo: check status and report error or warning if landlock restriction failed
+
+    spawn_logger_thread();
 
     let result = run();
-    handler.shutdown_and_wait();
+    shutdown_logger_and_wait();
 
     if let Err(err) = result {
         eprintln!("{err}");

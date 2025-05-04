@@ -5,7 +5,7 @@ use clap::{Parser, ValueHint};
 // Ouch command line options (docstrings below are part of --help)
 /// A command-line utility for easily compressing and decompressing files and directories.
 ///
-/// Supported formats: tar, zip, gz, 7z, xz/lzma, bz/bz2, lz4, sz (Snappy), zst and rar.
+/// Supported formats: tar, zip, gz, 7z, xz/lzma, bz/bz2, bz3, lz4, sz (Snappy), zst, rar and br.
 ///
 /// Repository: https://github.com/ouch-org/ouch
 #[derive(Parser, Debug, PartialEq)]
@@ -13,11 +13,11 @@ use clap::{Parser, ValueHint};
 // Disable rustdoc::bare_urls because rustdoc parses URLs differently than Clap
 #[allow(rustdoc::bare_urls)]
 pub struct CliArgs {
-    /// Skip [Y/n] questions positively
+    /// Skip [Y/n] questions, default to yes
     #[arg(short, long, conflicts_with = "no", global = true)]
     pub yes: bool,
 
-    /// Skip [Y/n] questions negatively
+    /// Skip [Y/n] questions, default to no
     #[arg(short, long, global = true)]
     pub no: bool,
 
@@ -25,15 +25,15 @@ pub struct CliArgs {
     #[arg(short = 'A', long, env = "ACCESSIBLE", global = true)]
     pub accessible: bool,
 
-    /// Ignores hidden files
+    /// Ignore hidden files
     #[arg(short = 'H', long, global = true)]
     pub hidden: bool,
 
-    /// Silences output
+    /// Silence output
     #[arg(short = 'q', long, global = true)]
     pub quiet: bool,
 
-    /// Ignores files matched by git's ignore files
+    /// Ignore files matched by git's ignore files
     #[arg(short = 'g', long, global = true)]
     pub gitignore: bool,
 
@@ -41,9 +41,13 @@ pub struct CliArgs {
     #[arg(short, long, global = true)]
     pub format: Option<OsString>,
 
-    /// decompress or list with password
+    /// Decompress or list with password
     #[arg(short = 'p', long = "password", global = true)]
     pub password: Option<OsString>,
+
+    /// Concurrent working threads
+    #[arg(short = 'c', long, global = true)]
+    pub threads: Option<usize>,
 
     // Ouch and claps subcommands
     #[command(subcommand)]
@@ -77,6 +81,10 @@ pub enum Subcommand {
         /// conflicts with --level and --fast
         #[arg(long, group = "compression-level")]
         slow: bool,
+
+        /// Archive target files instead of storing symlinks (supported by `tar` and `zip`)
+        #[arg(long, short = 'S')]
+        follow_symlinks: bool,
     },
     /// Decompresses one or more files, optionally into another folder
     #[command(visible_alias = "d")]
@@ -88,6 +96,14 @@ pub enum Subcommand {
         /// Place results in a directory other than the current one
         #[arg(short = 'd', long = "dir", value_hint = ValueHint::FilePath)]
         output_dir: Option<PathBuf>,
+
+        /// Remove the source file after successful decompression
+        #[arg(short = 'r', long)]
+        remove: bool,
+
+        /// Disable Smart Unpack
+        #[arg(long)]
+        no_smart_unpack: bool,
     },
     /// List contents of an archive
     #[command(visible_aliases = ["l", "ls"])]
@@ -138,10 +154,13 @@ mod tests {
             format: None,
             // This is usually replaced in assertion tests
             password: None,
+            threads: None,
             cmd: Subcommand::Decompress {
                 // Put a crazy value here so no test can assert it unintentionally
                 files: vec!["\x00\x11\x22".into()],
                 output_dir: None,
+                remove: false,
+                no_smart_unpack: false,
             },
         }
     }
@@ -154,6 +173,8 @@ mod tests {
                 cmd: Subcommand::Decompress {
                     files: to_paths(["file.tar.gz"]),
                     output_dir: None,
+                    remove: false,
+                    no_smart_unpack: false,
                 },
                 ..mock_cli_args()
             }
@@ -164,6 +185,8 @@ mod tests {
                 cmd: Subcommand::Decompress {
                     files: to_paths(["file.tar.gz"]),
                     output_dir: None,
+                    remove: false,
+                    no_smart_unpack: false,
                 },
                 ..mock_cli_args()
             }
@@ -174,6 +197,8 @@ mod tests {
                 cmd: Subcommand::Decompress {
                     files: to_paths(["a", "b", "c"]),
                     output_dir: None,
+                    remove: false,
+                    no_smart_unpack: false,
                 },
                 ..mock_cli_args()
             }
@@ -188,6 +213,7 @@ mod tests {
                     level: None,
                     fast: false,
                     slow: false,
+                    follow_symlinks: false,
                 },
                 ..mock_cli_args()
             }
@@ -201,6 +227,7 @@ mod tests {
                     level: None,
                     fast: false,
                     slow: false,
+                    follow_symlinks: false,
                 },
                 ..mock_cli_args()
             }
@@ -214,6 +241,7 @@ mod tests {
                     level: None,
                     fast: false,
                     slow: false,
+                    follow_symlinks: false,
                 },
                 ..mock_cli_args()
             }
@@ -238,6 +266,7 @@ mod tests {
                         level: None,
                         fast: false,
                         slow: false,
+                        follow_symlinks: false,
                     },
                     format: Some("tar.gz".into()),
                     ..mock_cli_args()

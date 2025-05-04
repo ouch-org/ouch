@@ -4,7 +4,11 @@ use std::path::Path;
 
 use unrar::Archive;
 
-use crate::{error::Error, list::FileInArchive, utils::logger::info};
+use crate::{
+    error::{Error, Result},
+    list::FileInArchive,
+    utils::{logger::info, Bytes},
+};
 
 /// Unpacks the archive given by `archive_path` into the folder given by `output_folder`.
 /// Assumes that output_folder is empty
@@ -14,8 +18,6 @@ pub fn unpack_archive(
     password: Option<&[u8]>,
     quiet: bool,
 ) -> crate::Result<usize> {
-    assert!(output_folder.read_dir().expect("dir exists").count() == 0);
-
     let archive = match password {
         Some(password) => Archive::with_password(archive_path, password),
         None => Archive::new(archive_path),
@@ -29,9 +31,9 @@ pub fn unpack_archive(
         archive = if entry.is_file() {
             if !quiet {
                 info(format!(
-                    "{} extracted. ({})",
+                    "extracted ({}) {}",
+                    Bytes::new(entry.unpacked_size),
                     entry.filename.display(),
-                    entry.unpacked_size
                 ));
             }
             unpacked += 1;
@@ -48,15 +50,13 @@ pub fn unpack_archive(
 pub fn list_archive(
     archive_path: &Path,
     password: Option<&[u8]>,
-) -> crate::Result<impl Iterator<Item = crate::Result<FileInArchive>>> {
+) -> Result<impl Iterator<Item = Result<FileInArchive>>> {
     let archive = match password {
         Some(password) => Archive::with_password(archive_path, password),
         None => Archive::new(archive_path),
     };
 
-    let archive = archive.open_for_listing()?;
-
-    Ok(archive.map(|item| {
+    Ok(archive.open_for_listing()?.map(|item| {
         let item = item?;
         let is_dir = item.is_directory();
         let path = item.filename;

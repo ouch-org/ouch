@@ -8,10 +8,10 @@ use std::{
 
 use fs_err as fs;
 
-use super::user_wants_to_overwrite;
+use super::{question::FileConflitOperation, user_wants_to_overwrite};
 use crate::{
     extension::Extension,
-    utils::{logger::info_accessible, EscapedPathDisplay},
+    utils::{logger::info_accessible, EscapedPathDisplay, QuestionAction},
     QuestionPolicy,
 };
 
@@ -19,19 +19,34 @@ pub fn is_path_stdin(path: &Path) -> bool {
     path.as_os_str() == "-"
 }
 
-/// Remove `path` asking the user to overwrite if necessary.
+/// Check if &Path exists, if it does then ask the user if they want to overwrite or rename it.
+/// If the user want to overwrite then the file or directory will be removed and returned the same input path
+/// If the user want to rename then nothing will be removed and a new path will be returned with a new name
 ///
-/// * `Ok(true)` means the path is clear,
-/// * `Ok(false)` means the user doesn't want to overwrite
+/// * `Ok(None)` means the user wants to cancel the operation
+/// * `Ok(Some(path))` returns a valid PathBuf without any another file or directory with the same name
 /// * `Err(_)` is an error
-pub fn clear_path(path: &Path, question_policy: QuestionPolicy) -> crate::Result<bool> {
-    if path.exists() && !user_wants_to_overwrite(path, question_policy)? {
-        return Ok(false);
+pub fn resolve_path_conflict(
+    path: &Path,
+    question_policy: QuestionPolicy,
+    question_action: QuestionAction,
+) -> crate::Result<Option<PathBuf>> {
+    if path.exists() {
+        match user_wants_to_overwrite(path, question_policy, question_action)? {
+            FileConflitOperation::Cancel => Ok(None),
+            FileConflitOperation::Overwrite => {
+                remove_file_or_dir(path)?;
+                Ok(Some(path.to_path_buf()))
+            }
+            FileConflitOperation::Rename => {
+                let renamed_path = rename_for_available_filename(path);
+                Ok(Some(renamed_path))
+            }
+            FileConflitOperation::Merge => Ok(Some(path.to_path_buf())),
+        }
+    } else {
+        Ok(Some(path.to_path_buf()))
     }
-
-    remove_file_or_dir(path)?;
-
-    Ok(true)
 }
 
 pub fn remove_file_or_dir(path: &Path) -> crate::Result<()> {
@@ -43,13 +58,48 @@ pub fn remove_file_or_dir(path: &Path) -> crate::Result<()> {
     Ok(())
 }
 
+/// Create a new path renaming the "filename" from &Path for a available name in the same directory
+pub fn rename_for_available_filename(path: &Path) -> PathBuf {
+    let mut renamed_path = rename_or_increment_filename(path);
+    while renamed_path.exists() {
+        renamed_path = rename_or_increment_filename(&renamed_path);
+    }
+    renamed_path
+}
+
+/// Create a new path renaming the "filename" from &Path to `filename_1`
+/// if its name already ends with `_` and some number, then it increments the number
+/// Example:
+/// - `file.txt` -> `file_1.txt`
+/// - `file_1.txt` -> `file_2.txt`
+pub fn rename_or_increment_filename(path: &Path) -> PathBuf {
+    let parent = path.parent().unwrap_or_else(|| Path::new(""));
+    let filename = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
+    let extension = path.extension().and_then(|s| s.to_str()).unwrap_or("");
+
+    let new_filename = match filename.rsplit_once('_') {
+        Some((base, number_str)) if number_str.chars().all(char::is_numeric) => {
+            let number = number_str.parse::<u32>().unwrap_or(0);
+            format!("{}_{}", base, number + 1)
+        }
+        _ => format!("{}_1", filename),
+    };
+
+    let mut new_path = parent.join(new_filename);
+    if !extension.is_empty() {
+        new_path.set_extension(extension);
+    }
+
+    new_path
+}
+
 /// Creates a directory at the path, if there is nothing there.
 pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
     if !path.exists() {
         fs::create_dir_all(path)?;
         // creating a directory is an important change to the file system we
         // should always inform the user about
-        info_accessible(format!("Directory {} created.", EscapedPathDisplay::new(path)));
+        info_accessible(format!("Directory {} created", EscapedPathDisplay::new(path)));
     }
     Ok(())
 }
@@ -82,6 +132,9 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
     fn is_bz2(buf: &[u8]) -> bool {
         buf.starts_with(&[0x42, 0x5A, 0x68])
     }
+    fn is_bz3(buf: &[u8]) -> bool {
+        buf.starts_with(b"BZ3v1")
+    }
     fn is_xz(buf: &[u8]) -> bool {
         buf.starts_with(&[0xFD, 0x37, 0x7A, 0x58, 0x5A, 0x00])
     }
@@ -95,6 +148,9 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
         buf.starts_with(&[0x28, 0xB5, 0x2F, 0xFD])
     }
     fn is_rar(buf: &[u8]) -> bool {
+        // ref https://www.rarlab.com/technote.htm#rarsign
+        // RAR 5.0 8 bytes length signature: 0x52 0x61 0x72 0x21 0x1A 0x07 0x01 0x00
+        // RAR 4.x 7 bytes length signature: 0x52 0x61 0x72 0x21 0x1A 0x07 0x00
         buf.len() >= 7
             && buf.starts_with(&[0x52, 0x61, 0x72, 0x21, 0x1A, 0x07])
             && (buf[6] == 0x00 || (buf.len() >= 8 && buf[6..=7] == [0x01, 0x00]))
@@ -125,6 +181,8 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
         Some(Extension::new(&[Gzip], "gz"))
     } else if is_bz2(&buf) {
         Some(Extension::new(&[Bzip], "bz2"))
+    } else if is_bz3(&buf) {
+        Some(Extension::new(&[Bzip3], "bz3"))
     } else if is_xz(&buf) {
         Some(Extension::new(&[Lzma], "xz"))
     } else if is_lz4(&buf) {
@@ -140,13 +198,4 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
     } else {
         None
     }
-}
-
-/// Returns true if a path is a symlink.
-/// This is the same as the nightly <https://doc.rust-lang.org/std/path/struct.Path.html#method.is_symlink>
-/// Useful to detect broken symlinks when compressing. (So we can safely ignore them)
-pub fn is_symlink(path: &Path) -> bool {
-    fs::symlink_metadata(path)
-        .map(|m| m.file_type().is_symlink())
-        .unwrap_or(false)
 }

@@ -20,8 +20,8 @@
 
 | Command | Mean [ms] | Min [ms] | Max [ms] | Relative |
 |:---|---:|---:|---:|---:|
-| `zip output.zip -r compiler` | 581.3 ± 9.1 | 573.2 | 600.9 | 1.06 ± 0.02 |
 | `ouch compress compiler output.zip` | 549.7 ± 4.3 | 543.6 | 558.6 | 1.00 |
+| `zip output.zip -r compiler` | 581.3 ± 9.1 | 573.2 | 600.9 | 1.06 ± 0.02 |
 
 | Command | Mean [ms] | Min [ms] | Max [ms] | Relative |
 |:---|---:|---:|---:|---:|

@@ -6,7 +6,7 @@ use std::{
 use fs_err as fs;
 
 use crate::{
-    archive::sevenz,
+    archive,
     commands::warn_user_about_loading_zip_in_memory,
     extension::CompressionFormat::{self, *},
     list::{self, FileInArchive, ListOptions},
@@ -34,7 +34,7 @@ pub fn list_archive_contents(
     // Any other Zip decompression done can take up the whole RAM and freeze ouch.
     if let &[Zip] = formats.as_slice() {
         let zip_archive = zip::ZipArchive::new(reader)?;
-        let files = crate::archive::zip::list_archive(zip_archive, password)?;
+        let files = crate::archive::zip::list_archive(zip_archive, password);
         list::list_files(archive_path, files, list_options)?;
 
         return Ok(());
@@ -50,10 +50,18 @@ pub fn list_archive_contents(
             let decoder: Box<dyn Read + Send> = match format {
                 Gzip => Box::new(flate2::read::GzDecoder::new(decoder)),
                 Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
+                Bzip3 => {
+                    #[cfg(not(feature = "bzip3"))]
+                    return Err(archive::bzip3_stub::no_support());
+
+                    #[cfg(feature = "bzip3")]
+                    Box::new(bzip3::read::Bz3Decoder::new(decoder).unwrap())
+                }
                 Lz4 => Box::new(lz4_flex::frame::FrameDecoder::new(decoder)),
                 Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
                 Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
                 Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
+                Brotli => Box::new(brotli::Decompressor::new(decoder, BUFFER_CAPACITY)),
                 Tar | Zip | Rar | SevenZip => unreachable!(),
             };
             Ok(decoder)
@@ -64,7 +72,7 @@ pub fn list_archive_contents(
     }
 
     let files: Box<dyn Iterator<Item = crate::Result<FileInArchive>>> = match formats[0] {
-        Tar => Box::new(crate::archive::tar::list_archive(tar::Archive::new(reader))?),
+        Tar => Box::new(crate::archive::tar::list_archive(tar::Archive::new(reader))),
         Zip => {
             if formats.len() > 1 {
                 // Locking necessary to guarantee that warning and question
@@ -81,7 +89,7 @@ pub fn list_archive_contents(
             io::copy(&mut reader, &mut vec)?;
             let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
 
-            Box::new(crate::archive::zip::list_archive(zip_archive, password)?)
+            Box::new(crate::archive::zip::list_archive(zip_archive, password))
         }
         #[cfg(feature = "unrar")]
         Rar => {
@@ -109,12 +117,12 @@ pub fn list_archive_contents(
                 }
             }
 
-            Box::new(sevenz::list_archive(archive_path, password)?)
+            Box::new(archive::sevenz::list_archive(archive_path, password)?)
         }
-        Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {
+        Gzip | Bzip | Bzip3 | Lz4 | Lzma | Snappy | Zstd | Brotli => {
             panic!("Not an archive! This should never happen, if it does, something is wrong with `CompressionFormat::is_archive()`. Please report this error!");
         }
     };
-    list::list_files(archive_path, files, list_options)?;
-    Ok(())
+
+    list::list_files(archive_path, files, list_options)
 }

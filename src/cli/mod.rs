@@ -54,7 +54,7 @@ fn canonicalize_files(files: &[impl AsRef<Path>]) -> io::Result<Vec<PathBuf>> {
     files
         .iter()
         .map(|f| {
-            if is_path_stdin(f.as_ref()) {
+            if is_path_stdin(f.as_ref()) || f.as_ref().is_symlink() {
                 Ok(f.as_ref().to_path_buf())
             } else {
                 fs::canonicalize(f)

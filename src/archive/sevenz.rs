@@ -9,13 +9,13 @@ use std::{
 use bstr::ByteSlice;
 use fs_err as fs;
 use same_file::Handle;
-use sevenz_rust::SevenZArchiveEntry;
+use sevenz_rust2::SevenZArchiveEntry;
 
 use crate::{
-    error::{Error, FinalError},
+    error::{Error, FinalError, Result},
     list::FileInArchive,
     utils::{
-        self, cd_into_same_dir_as,
+        cd_into_same_dir_as,
         logger::{info, warning},
         Bytes, EscapedPathDisplay, FileVisibilityPolicy,
     },
@@ -31,7 +31,7 @@ pub fn compress_sevenz<W>(
 where
     W: Write + Seek,
 {
-    let mut writer = sevenz_rust::SevenZWriter::new(writer)?;
+    let mut writer = sevenz_rust2::SevenZWriter::new(writer)?;
     let output_handle = Handle::from_path(output_path);
 
     for filename in files {
@@ -49,7 +49,7 @@ where
             if let Ok(handle) = &output_handle {
                 if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
                     warning(format!(
-                        "The output file and the input file are the same: `{}`, skipping...",
+                        "Cannot compress `{}` into itself, skipping",
                         output_path.display()
                     ));
 
@@ -62,15 +62,14 @@ where
             // spoken text for users using screen readers, braille displays
             // and so on
             if !quiet {
-                info(format!("Compressing '{}'.", EscapedPathDisplay::new(path)));
+                info(format!("Compressing '{}'", EscapedPathDisplay::new(path)));
             }
 
             let metadata = match path.metadata() {
                 Ok(metadata) => metadata,
                 Err(e) => {
-                    if e.kind() == std::io::ErrorKind::NotFound && utils::is_symlink(path) {
-                        // This path is for a broken symlink
-                        // We just ignore it
+                    if e.kind() == std::io::ErrorKind::NotFound && path.is_symlink() {
+                        // This path is for a broken symlink, ignore it
                         continue;
                     }
                     return Err(e.into());
@@ -82,7 +81,7 @@ where
                     .detail(format!("File at '{path:?}' has a non-UTF-8 name"))
             })?;
 
-            let entry = sevenz_rust::SevenZArchiveEntry::from_path(path, entry_name.to_owned());
+            let entry = sevenz_rust2::SevenZArchiveEntry::from_path(path, entry_name.to_owned());
             let entry_data = if metadata.is_dir() {
                 None
             } else {
@@ -128,9 +127,9 @@ where
         } else {
             if !quiet {
                 info(format!(
-                    "{:?} extracted. ({})",
+                    "extracted ({}) {:?}",
+                    Bytes::new(entry.size()),
                     file_path.display(),
-                    Bytes::new(entry.size())
                 ));
             }
 
@@ -157,15 +156,15 @@ where
     };
 
     match password {
-        Some(password) => sevenz_rust::decompress_with_extract_fn_and_password(
+        Some(password) => sevenz_rust2::decompress_with_extract_fn_and_password(
             reader,
             output_path,
-            sevenz_rust::Password::from(password.to_str().map_err(|err| Error::InvalidPassword {
+            sevenz_rust2::Password::from(password.to_str().map_err(|err| Error::InvalidPassword {
                 reason: err.to_string(),
             })?),
             entry_extract_fn,
         )?,
-        None => sevenz_rust::decompress_with_extract_fn(reader, output_path, entry_extract_fn)?,
+        None => sevenz_rust2::decompress_with_extract_fn(reader, output_path, entry_extract_fn)?,
     }
 
     Ok(count)
@@ -175,7 +174,7 @@ where
 pub fn list_archive(
     archive_path: &Path,
     password: Option<&[u8]>,
-) -> crate::Result<impl Iterator<Item = crate::Result<FileInArchive>>> {
+) -> Result<impl Iterator<Item = crate::Result<FileInArchive>>> {
     let reader = fs::File::open(archive_path)?;
 
     let mut files = Vec::new();
@@ -188,7 +187,7 @@ pub fn list_archive(
         Ok(true)
     };
 
-    let result = match password {
+    match password {
         Some(password) => {
             let password = match password.to_str() {
                 Ok(p) => p,
@@ -198,18 +197,14 @@ pub fn list_archive(
                     })
                 }
             };
-            sevenz_rust::decompress_with_extract_fn_and_password(
+            sevenz_rust2::decompress_with_extract_fn_and_password(
                 reader,
                 ".",
-                sevenz_rust::Password::from(password),
+                sevenz_rust2::Password::from(password),
                 entry_extract_fn,
-            )
+            )?;
         }
-        None => sevenz_rust::decompress_with_extract_fn(reader, ".", entry_extract_fn),
-    };
-
-    if let Err(e) = result {
-        return Err(e.into());
+        None => sevenz_rust2::decompress_with_extract_fn(reader, ".", entry_extract_fn)?,
     }
 
     Ok(files.into_iter())

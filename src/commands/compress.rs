@@ -31,6 +31,7 @@ pub fn compress_files(
     output_file: fs::File,
     output_path: &Path,
     quiet: bool,
+    follow_symlinks: bool,
     question_policy: QuestionPolicy,
     file_visibility_policy: FileVisibilityPolicy,
     level: Option<i16>,
@@ -56,6 +57,16 @@ pub fn compress_files(
                 encoder,
                 level.map_or_else(Default::default, |l| bzip2::Compression::new((l as u32).clamp(1, 9))),
             )),
+            Bzip3 => {
+                #[cfg(not(feature = "bzip3"))]
+                return Err(archive::bzip3_stub::no_support());
+
+                #[cfg(feature = "bzip3")]
+                Box::new(
+                    // Use block size of 16 MiB
+                    bzip3::write::Bz3Encoder::new(encoder, 16 * 2_usize.pow(20))?,
+                )
+            }
             Lz4 => Box::new(lz4_flex::frame::FrameEncoder::new(encoder).auto_finish()),
             Lzma => Box::new(xz2::write::XzEncoder::new(
                 encoder,
@@ -79,6 +90,12 @@ pub fn compress_files(
                 zstd_encoder.multithread(num_cpus::get_physical() as u32)?;
                 Box::new(zstd_encoder.auto_finish())
             }
+            Brotli => {
+                let default_level = 11; // Same as brotli CLI, default to highest compression
+                let level = level.unwrap_or(default_level).clamp(0, 11) as u32;
+                let win_size = 22; // default to 2^22 = 4 MiB window size
+                Box::new(brotli::CompressorWriter::new(encoder, BUFFER_CAPACITY, level, win_size))
+            }
             Tar | Zip | Rar | SevenZip => unreachable!(),
         };
         Ok(encoder)
@@ -91,14 +108,21 @@ pub fn compress_files(
     }
 
     match first_format {
-        Gzip | Bzip | Lz4 | Lzma | Snappy | Zstd => {
+        Gzip | Bzip | Bzip3 | Lz4 | Lzma | Snappy | Zstd | Brotli => {
             writer = chain_writer_encoder(&first_format, writer)?;
-            let mut reader = fs::File::open(&files[0]).unwrap();
+            let mut reader = fs::File::open(&files[0])?;
 
             io::copy(&mut reader, &mut writer)?;
         }
         Tar => {
-            archive::tar::build_archive_from_paths(&files, output_path, &mut writer, file_visibility_policy, quiet)?;
+            archive::tar::build_archive_from_paths(
+                &files,
+                output_path,
+                &mut writer,
+                file_visibility_policy,
+                quiet,
+                follow_symlinks,
+            )?;
             writer.flush()?;
         }
         Zip => {
@@ -121,6 +145,7 @@ pub fn compress_files(
                 &mut vec_buffer,
                 file_visibility_policy,
                 quiet,
+                follow_symlinks,
             )?;
             vec_buffer.rewind()?;
             io::copy(&mut vec_buffer, &mut writer)?;

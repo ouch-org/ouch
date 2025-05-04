@@ -24,14 +24,30 @@ use crate::{
 /// Unpacks the archive given by `archive` into the folder given by `into`.
 /// Assumes that output_folder is empty
 pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) -> crate::Result<usize> {
-    assert!(output_folder.read_dir().expect("dir exists").count() == 0);
     let mut archive = tar::Archive::new(reader);
 
     let mut files_unpacked = 0;
     for file in archive.entries()? {
         let mut file = file?;
 
-        file.unpack_in(output_folder)?;
+        match file.header().entry_type() {
+            tar::EntryType::Symlink => {
+                let relative_path = file.path()?.to_path_buf();
+                let full_path = output_folder.join(&relative_path);
+                let target = file
+                    .link_name()?
+                    .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidData, "Missing symlink target"))?;
+
+                #[cfg(unix)]
+                std::os::unix::fs::symlink(&target, &full_path)?;
+                #[cfg(windows)]
+                std::os::windows::fs::symlink_file(&target, &full_path)?;
+            }
+            tar::EntryType::Regular | tar::EntryType::Directory => {
+                file.unpack_in(output_folder)?;
+            }
+            _ => continue,
+        }
 
         // This is printed for every file in the archive and has little
         // importance for most users, but would generate lots of
@@ -39,9 +55,9 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) 
         // and so on
         if !quiet {
             info(format!(
-                "{:?} extracted. ({})",
-                utils::strip_cur_dir(&output_folder.join(file.path()?)),
+                "extracted ({}) {:?}",
                 Bytes::new(file.size()),
+                utils::strip_cur_dir(&output_folder.join(file.path()?)),
             ));
 
             files_unpacked += 1;
@@ -54,7 +70,7 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) 
 /// List contents of `archive`, returning a vector of archive entries
 pub fn list_archive(
     mut archive: tar::Archive<impl Read + Send + 'static>,
-) -> crate::Result<impl Iterator<Item = crate::Result<FileInArchive>>> {
+) -> impl Iterator<Item = crate::Result<FileInArchive>> {
     struct Files(Receiver<crate::Result<FileInArchive>>);
     impl Iterator for Files {
         type Item = crate::Result<FileInArchive>;
@@ -77,7 +93,7 @@ pub fn list_archive(
         }
     });
 
-    Ok(Files(rx))
+    Files(rx)
 }
 
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.
@@ -87,6 +103,7 @@ pub fn build_archive_from_paths<W>(
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
     quiet: bool,
+    follow_symlinks: bool,
 ) -> crate::Result<W>
 where
     W: Write,
@@ -109,7 +126,7 @@ where
             if let Ok(handle) = &output_handle {
                 if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
                     warning(format!(
-                        "The output file and the input file are the same: `{}`, skipping...",
+                        "Cannot compress `{}` into itself, skipping",
                         output_path.display()
                     ));
 
@@ -122,18 +139,29 @@ where
             // spoken text for users using screen readers, braille displays
             // and so on
             if !quiet {
-                info(format!("Compressing '{}'.", EscapedPathDisplay::new(path)));
+                info(format!("Compressing '{}'", EscapedPathDisplay::new(path)));
             }
 
             if path.is_dir() {
                 builder.append_dir(path, path)?;
+            } else if path.is_symlink() && !follow_symlinks {
+                let target_path = path.read_link()?;
+
+                let mut header = tar::Header::new_gnu();
+                header.set_entry_type(tar::EntryType::Symlink);
+                header.set_size(0);
+
+                builder.append_link(&mut header, path, &target_path).map_err(|err| {
+                    FinalError::with_title("Could not create archive")
+                        .detail("Unexpected error while trying to read link")
+                        .detail(format!("Error: {err}."))
+                })?;
             } else {
                 let mut file = match fs::File::open(path) {
                     Ok(f) => f,
                     Err(e) => {
-                        if e.kind() == std::io::ErrorKind::NotFound && utils::is_symlink(path) {
-                            // This path is for a broken symlink
-                            // We just ignore it
+                        if e.kind() == std::io::ErrorKind::NotFound && path.is_symlink() {
+                            // This path is for a broken symlink, ignore it
                             continue;
                         }
                         return Err(e.into());

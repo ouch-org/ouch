@@ -21,14 +21,15 @@ pub const SUPPORTED_EXTENSIONS: &[&str] = &[
     #[cfg(feature = "unrar")]
     "rar",
     "7z",
+    "br",
 ];
 
 pub const SUPPORTED_ALIASES: &[&str] = &["tgz", "tbz", "tlz4", "txz", "tzlma", "tsz", "tzst"];
 
 #[cfg(not(feature = "unrar"))]
-pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, gz, lz4, xz, lzma, sz, zst, 7z";
+pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, sz, zst, 7z";
 #[cfg(feature = "unrar")]
-pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, gz, lz4, xz, lzma, sz, zst, rar, 7z";
+pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, sz, zst, rar, 7z";
 
 pub const PRETTY_SUPPORTED_ALIASES: &str = "tgz, tbz, tlz4, txz, tzlma, tsz, tzst";
 
@@ -77,13 +78,15 @@ pub enum CompressionFormat {
     Gzip,
     /// .bz .bz2
     Bzip,
+    /// .bz3
+    Bzip3,
     /// .lz4
     Lz4,
     /// .xz .lzma
     Lzma,
     /// .sz
     Snappy,
-    /// tar, tgz, tbz, tbz2, txz, tlz4, tlzma, tsz, tzst
+    /// tar, tgz, tbz, tbz2, tbz3, txz, tlz4, tlzma, tsz, tzst
     Tar,
     /// .zst
     Zstd,
@@ -94,6 +97,8 @@ pub enum CompressionFormat {
     Rar,
     /// .7z
     SevenZip,
+    /// .br
+    Brotli,
 }
 
 impl CompressionFormat {
@@ -104,10 +109,12 @@ impl CompressionFormat {
             Tar | Zip | Rar | SevenZip => true,
             Gzip => false,
             Bzip => false,
+            Bzip3 => false,
             Lz4 => false,
             Lzma => false,
             Snappy => false,
             Zstd => false,
+            Brotli => false,
         }
     }
 }
@@ -118,12 +125,14 @@ fn to_extension(ext: &[u8]) -> Option<Extension> {
             b"tar" => &[Tar],
             b"tgz" => &[Tar, Gzip],
             b"tbz" | b"tbz2" => &[Tar, Bzip],
+            b"tbz3" => &[Tar, Bzip3],
             b"tlz4" => &[Tar, Lz4],
             b"txz" | b"tlzma" => &[Tar, Lzma],
             b"tsz" => &[Tar, Snappy],
             b"tzst" => &[Tar, Zstd],
             b"zip" => &[Zip],
             b"bz" | b"bz2" => &[Bzip],
+            b"bz3" => &[Bzip3],
             b"gz" => &[Gzip],
             b"lz4" => &[Lz4],
             b"xz" | b"lzma" => &[Lzma],
@@ -131,6 +140,7 @@ fn to_extension(ext: &[u8]) -> Option<Extension> {
             b"zst" => &[Zstd],
             b"rar" => &[Rar],
             b"7z" => &[SevenZip],
+            b"br" => &[Brotli],
             _ => return None,
         },
         ext.to_str_lossy(),
@@ -195,7 +205,7 @@ pub fn separate_known_extensions_from_name(path: &Path) -> (&Path, Vec<Extension
         let file_stem = name.trim_matches('.');
         if SUPPORTED_EXTENSIONS.contains(&file_stem) || SUPPORTED_ALIASES.contains(&file_stem) {
             warning(format!(
-                "Received a file with name '{file_stem}', but {file_stem} was expected as the extension."
+                "Received a file with name '{file_stem}', but {file_stem} was expected as the extension"
             ));
         }
     }
@@ -276,7 +286,7 @@ mod tests {
     #[test]
     /// Test extension parsing for input/output files
     fn test_separate_known_extensions_from_name() {
-        let _handler = spawn_logger_thread();
+        spawn_logger_thread();
         assert_eq!(
             separate_known_extensions_from_name("file".as_ref()),
             ("file".as_ref(), vec![])

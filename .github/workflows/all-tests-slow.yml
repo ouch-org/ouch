@@ -1,0 +1,17 @@
+name: Run tests for all combinations
+
+on:
+  schedule:
+    - cron: "0 0 1,15 * *" # biweekly
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**/*.md"
+
+jobs:
+  run-tests-for-all-combinations:
+    uses: ./.github/workflows/build-artifacts-and-run-tests.yml
+    with:
+      matrix_all_combinations: true
+      artifact_upload_mode: none

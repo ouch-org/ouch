@@ -1,4 +1,6 @@
 <!--
-Make sure to check out CONTRIBUTING.md.
-Don't forget to add a CHANGELOG.md entry!
+If your code changes text output, you might need to update snapshots
+of UI tests, read more about `insta` at CONTRIBUTING.md.
+
+Remember to edit `CHANGELOG.md` after opening the PR.
 -->
