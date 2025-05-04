@@ -41,8 +41,6 @@ fn main() {
 
     //todo: check status and report error or warning if landlock restriction failed
 
-    spawn_logger_thread();
-
     let result = run();
     shutdown_logger_and_wait();
 
