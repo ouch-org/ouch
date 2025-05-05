@@ -125,10 +125,14 @@ mod logger_thread {
     static SENDER: OnceLock<LogSender> = OnceLock::new();
 
     #[track_caller]
-    fn setup_channel() -> LogReceiver {
-        let (tx, rx) = mpsc::channel();
-        SENDER.set(tx).expect("`setup_channel` should only be called once");
-        rx
+    fn setup_channel() -> Option<LogReceiver> {
+        let mut optional = None;
+        SENDER.get_or_init(|| {
+            let (tx, rx) = mpsc::channel();
+            optional = Some(rx);
+            tx
+        });
+        optional
     }
 
     #[track_caller]
@@ -138,6 +142,9 @@ mod logger_thread {
 
     #[track_caller]
     pub(super) fn send_print_command(msg: PrintMessage) {
+        if cfg!(test) {
+            spawn_logger_thread();
+        }
         get_sender()
             .send(LoggerCommand::Print(msg))
             .expect("Failed to send print command");
@@ -170,8 +177,9 @@ mod logger_thread {
     }
 
     pub fn spawn_logger_thread() {
-        let log_receiver = setup_channel();
-        thread::spawn(move || run_logger(log_receiver));
+        if let Some(log_receiver) = setup_channel() {
+            thread::spawn(move || run_logger(log_receiver));
+        }
     }
 
     fn run_logger(log_receiver: LogReceiver) {

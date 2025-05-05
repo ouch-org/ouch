@@ -271,7 +271,6 @@ pub fn build_archive_file_suggestion(path: &Path, suggested_extension: &str) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::logger::spawn_logger_thread;
 
     #[test]
     fn test_extensions_from_path() {
@@ -286,7 +285,6 @@ mod tests {
     #[test]
     /// Test extension parsing for input/output files
     fn test_separate_known_extensions_from_name() {
-        spawn_logger_thread();
         assert_eq!(
             separate_known_extensions_from_name("file".as_ref()),
             ("file".as_ref(), vec![])
