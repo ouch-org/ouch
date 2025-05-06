@@ -1106,6 +1106,7 @@ dependencies = [
  "libc",
  "linked-hash-map",
  "lz4_flex",
+ "memchr",
  "num_cpus",
  "once_cell",
  "parse-display",

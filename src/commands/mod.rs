@@ -81,7 +81,7 @@ pub fn run(
                     let parsed_formats = parse_format_flag(&formats)?;
                     (Some(formats), parsed_formats)
                 }
-                None => (None, extension::extensions_from_path(&output_path)),
+                None => (None, extension::extensions_from_path(&output_path)?),
             };
 
             check::check_invalid_compression_with_non_archive_format(
@@ -167,7 +167,7 @@ pub fn run(
                 }
             } else {
                 for path in files.iter() {
-                    let (pathbase, mut file_formats) = extension::separate_known_extensions_from_name(path);
+                    let (pathbase, mut file_formats) = extension::separate_known_extensions_from_name(path)?;
 
                     if let ControlFlow::Break(_) = check::check_mime_type(path, &mut file_formats, question_policy)? {
                         return Ok(());
@@ -229,7 +229,7 @@ pub fn run(
                 }
             } else {
                 for path in files.iter() {
-                    let mut file_formats = extension::extensions_from_path(path);
+                    let mut file_formats = extension::extensions_from_path(path)?;
 
                     if let ControlFlow::Break(_) = check::check_mime_type(path, &mut file_formats, question_policy)? {
                         return Ok(());
