@@ -26,6 +26,9 @@ Categories Used:
 - Add `--no-smart-unpack` flag to decompression command to disable smart unpack [\#809](https://github.com/ouch-org/ouch/pull/809) ([talis-fb](https://github.com/talis-fb))
 
 ### Improvements
+
+- Give better error messages when archive extensions are invalid [\#817](https://github.com/ouch-org/ouch/pull/817) ([marcospb19](https://github.com/marcospb19))
+
 ### Bug Fixes
 ### Tweaks
 
