@@ -171,12 +171,10 @@ where
 }
 
 /// List contents of `archive_path`, returning a vector of archive entries
-pub fn list_archive(
-    archive_path: &Path,
-    password: Option<&[u8]>,
-) -> Result<impl Iterator<Item = crate::Result<FileInArchive>>> {
-    let reader = fs::File::open(archive_path)?;
-
+pub fn list_archive<R>(reader: R, password: Option<&[u8]>) -> Result<impl Iterator<Item = crate::Result<FileInArchive>>>
+where
+    R: Read + Seek,
+{
     let mut files = Vec::new();
 
     let entry_extract_fn = |entry: &SevenZArchiveEntry, _: &mut dyn Read, _: &PathBuf| {

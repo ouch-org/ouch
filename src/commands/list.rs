@@ -122,7 +122,10 @@ pub fn list_archive_contents(
                 }
             }
 
-            Box::new(archive::sevenz::list_archive(archive_path, password)?)
+            let mut vec = vec![];
+            io::copy(&mut reader, &mut vec)?;
+
+            Box::new(archive::sevenz::list_archive(io::Cursor::new(vec), password)?)
         }
         Gzip | Bzip | Bzip3 | Lz4 | Lzma | Snappy | Zstd | Brotli => {
             unreachable!("Not an archive, should be validated before calling this function.");

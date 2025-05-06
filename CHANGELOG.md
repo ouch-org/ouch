@@ -30,6 +30,9 @@ Categories Used:
 - Give better error messages when archive extensions are invalid [\#817](https://github.com/ouch-org/ouch/pull/817) ([marcospb19](https://github.com/marcospb19))
 
 ### Bug Fixes
+
+- Fix 7z BadSignature error when compressing and then listing [\#819](https://github.com/ouch-org/ouch/pull/819) ([tommady](https://github.com/tommady))
+
 ### Tweaks
 
 - Make `.bz3` opt-out [\#814](https://github.com/ouch-org/ouch/pull/814) ([amyspark](https://github.com/amyspark))

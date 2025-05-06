@@ -1065,3 +1065,27 @@ fn fail_when_compressing_archive_as_the_second_extension() {
         .is_some());
     }
 }
+
+#[test]
+fn sevenz_list_should_not_failed() {
+    let temp_dir = tempdir().unwrap();
+    let root_path = temp_dir.path();
+    let src_files_path = root_path.join("src_files");
+    fs::create_dir_all(&src_files_path).unwrap();
+
+    let archive = root_path.join("archive.7z.gz");
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .arg("--yes")
+        .arg(fs::File::create(src_files_path.join("README.md")).unwrap().path())
+        .arg(&archive)
+        .assert()
+        .success();
+
+    crate::utils::cargo_bin()
+        .arg("list")
+        .arg("--yes")
+        .arg(&archive)
+        .assert()
+        .success();
+}
