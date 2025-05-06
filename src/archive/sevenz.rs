@@ -175,8 +175,6 @@ pub fn list_archive<R>(reader: R, password: Option<&[u8]>) -> Result<impl Iterat
 where
     R: Read + Seek,
 {
-    // let reader = fs::File::open(archive_path)?;
-
     let mut files = Vec::new();
 
     let entry_extract_fn = |entry: &SevenZArchiveEntry, _: &mut dyn Read, _: &PathBuf| {
