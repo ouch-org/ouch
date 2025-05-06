@@ -60,8 +60,8 @@ impl Extension {
 
     /// Checks if the first format in `compression_formats` is an archive
     pub fn is_archive(&self) -> bool {
-        // Safety: we check that `compression_formats` is not empty in `Self::new`
-        self.compression_formats[0].is_archive_format()
+        // Index Safety: we check that `compression_formats` is not empty in `Self::new`
+        self.compression_formats[0].archive_format()
     }
 }
 
@@ -103,7 +103,7 @@ pub enum CompressionFormat {
 
 impl CompressionFormat {
     /// Currently supported archive formats are .tar (and aliases to it) and .zip
-    fn is_archive_format(&self) -> bool {
+    pub fn archive_format(&self) -> bool {
         // Keep this match like that without a wildcard `_` so we don't forget to update it
         match self {
             Tar | Zip | Rar | SevenZip => true,
@@ -147,14 +147,13 @@ fn to_extension(ext: &[u8]) -> Option<Extension> {
     ))
 }
 
-fn split_extension(name: &mut &[u8]) -> Option<Extension> {
+fn split_extension_at_end(name: &[u8]) -> Option<(&[u8], Extension)> {
     let (new_name, ext) = name.rsplit_once_str(b".")?;
     if matches!(new_name, b"" | b"." | b"..") {
         return None;
     }
     let ext = to_extension(ext)?;
-    *name = new_name;
-    Some(ext)
+    Some((new_name, ext))
 }
 
 pub fn parse_format_flag(input: &OsStr) -> crate::Result<Vec<Extension>> {
@@ -188,7 +187,7 @@ pub fn parse_format_flag(input: &OsStr) -> crate::Result<Vec<Extension>> {
 
 /// Extracts extensions from a path.
 ///
-/// Returns both the remaining path and the list of extension objects
+/// Returns both the remaining path and the list of extension objects.
 pub fn separate_known_extensions_from_name(path: &Path) -> (&Path, Vec<Extension>) {
     let mut extensions = vec![];
 
@@ -196,9 +195,12 @@ pub fn separate_known_extensions_from_name(path: &Path) -> (&Path, Vec<Extension
         return (path, extensions);
     };
 
-    // While there is known extensions at the tail, grab them
-    while let Some(extension) = split_extension(&mut name) {
+    while let Some((new_name, extension)) = split_extension_at_end(&name) {
+        name = new_name;
         extensions.insert(0, extension);
+        if extensions[0].is_archive() {
+            break;
+        }
     }
 
     if let Ok(name) = name.to_str() {
@@ -363,6 +365,21 @@ mod tests {
         assert_eq!(
             build_archive_file_suggestion(Path::new("linux.pkg.info.zst"), ".tar").unwrap(),
             "linux.pkg.info.tar.zst"
+        );
+    }
+
+    #[test]
+    fn test_extension_parsing_with_multiple_archive_formats() {
+        assert_eq!(
+            separate_known_extensions_from_name("file.tar.zip".as_ref()),
+            ("file.tar".as_ref(), vec![Extension::new(&[Zip], "zip")])
+        );
+        assert_eq!(
+            separate_known_extensions_from_name("file.7z.zst.zip.lz4".as_ref()),
+            (
+                "file.7z.zst".as_ref(),
+                vec![Extension::new(&[Zip], "zip"), Extension::new(&[Lz4], "lz4")]
+            )
         );
     }
 }

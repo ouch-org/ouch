@@ -36,7 +36,6 @@ pub fn list_archive_contents(
         let zip_archive = zip::ZipArchive::new(reader)?;
         let files = crate::archive::zip::list_archive(zip_archive, password);
         list::list_files(archive_path, files, list_options)?;
-
         return Ok(());
     }
 
@@ -46,7 +45,7 @@ pub fn list_archive_contents(
 
     // Grab previous decoder and wrap it inside of a new one
     let chain_reader_decoder =
-        |format: &CompressionFormat, decoder: Box<dyn Read + Send>| -> crate::Result<Box<dyn Read + Send>> {
+        |format: CompressionFormat, decoder: Box<dyn Read + Send>| -> crate::Result<Box<dyn Read + Send>> {
             let decoder: Box<dyn Read + Send> = match format {
                 Gzip => Box::new(flate2::read::GzDecoder::new(decoder)),
                 Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
@@ -62,16 +61,22 @@ pub fn list_archive_contents(
                 Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
                 Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
                 Brotli => Box::new(brotli::Decompressor::new(decoder, BUFFER_CAPACITY)),
-                Tar | Zip | Rar | SevenZip => unreachable!(),
+                Tar | Zip | Rar | SevenZip => unreachable!("should be treated by caller"),
             };
             Ok(decoder)
         };
 
-    for format in formats.iter().skip(1).rev() {
+    let mut misplaced_archive_format = None;
+    for &format in formats.iter().skip(1).rev() {
+        if format.archive_format() {
+            misplaced_archive_format = Some(format);
+            break;
+        }
         reader = chain_reader_decoder(format, reader)?;
     }
 
-    let files: Box<dyn Iterator<Item = crate::Result<FileInArchive>>> = match formats[0] {
+    let archive_format = misplaced_archive_format.unwrap_or(formats[0]);
+    let files: Box<dyn Iterator<Item = crate::Result<FileInArchive>>> = match archive_format {
         Tar => Box::new(crate::archive::tar::list_archive(tar::Archive::new(reader))),
         Zip => {
             if formats.len() > 1 {
@@ -120,7 +125,7 @@ pub fn list_archive_contents(
             Box::new(archive::sevenz::list_archive(archive_path, password)?)
         }
         Gzip | Bzip | Bzip3 | Lz4 | Lzma | Snappy | Zstd | Brotli => {
-            panic!("Not an archive! This should never happen, if it does, something is wrong with `CompressionFormat::is_archive()`. Please report this error!");
+            unreachable!("Not an archive, should be validated before calling this function.");
         }
     };
 

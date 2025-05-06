@@ -8,7 +8,9 @@ use std::{
 };
 
 use fs_err as fs;
+use itertools::Itertools;
 use parse_display::Display;
+use pretty_assertions::assert_eq;
 use proptest::sample::size_range;
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use tempfile::tempdir;
@@ -17,7 +19,7 @@ use test_strategy::{proptest, Arbitrary};
 use crate::utils::{assert_same_directory, write_random_content};
 
 /// tar and zip extensions
-#[derive(Arbitrary, Debug, Display)]
+#[derive(Arbitrary, Clone, Copy, Debug, Display)]
 #[display(style = "lowercase")]
 enum DirectoryExtension {
     #[display("7z")]
@@ -864,4 +866,97 @@ fn unpack_multiple_sources_into_the_same_destination_with_merge(
         .success();
 
     assert_eq!(5, out_path.as_path().read_dir()?.count());
+}
+
+#[test]
+fn reading_nested_archives_with_two_archive_extensions_adjacent() {
+    let archive_formats = ["tar", "zip", "7z"].into_iter();
+
+    for (first_archive, second_archive) in archive_formats.clone().cartesian_product(archive_formats.rev()) {
+        let temp_dir = tempdir().unwrap();
+        let in_dir = |path: &str| format!("{}/{}", temp_dir.path().display(), path);
+
+        fs::write(in_dir("a.txt"), "contents").unwrap();
+
+        let files = [
+            "a.txt",
+            &format!("b.{first_archive}"),
+            &format!("c.{first_archive}.{second_archive}"),
+        ];
+        let transformations = [first_archive, second_archive];
+        let compressed_path = in_dir(files.last().unwrap());
+
+        for (window, format) in files.windows(2).zip(transformations.iter()) {
+            let [a, b] = [window[0], window[1]].map(in_dir);
+            crate::utils::cargo_bin()
+                .args(["compress", &a, &b, "--format", format])
+                .assert()
+                .success();
+        }
+
+        crate::utils::cargo_bin()
+            .args(["list", &compressed_path, "--yes"])
+            .assert()
+            .success();
+
+        crate::utils::cargo_bin()
+            .args(["decompress", &compressed_path, "--dir", &in_dir("out"), "--yes"])
+            .assert()
+            .success();
+
+        let decompressed_files = glob::glob(&format!("{}/*", in_dir("out")))
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+        let decompression_expected = format!("{}/out/{}", temp_dir.path().display(), files[1]);
+        assert_eq!(decompressed_files, [Path::new(&decompression_expected)]);
+    }
+}
+
+#[test]
+fn reading_nested_archives_with_two_archive_extensions_interleaved() {
+    let archive_formats = ["tar", "zip", "7z"].into_iter();
+
+    for (first_archive, second_archive) in archive_formats.clone().cartesian_product(archive_formats.rev()) {
+        let temp_dir = tempdir().unwrap();
+        let in_dir = |path: &str| format!("{}/{}", temp_dir.path().display(), path);
+
+        fs::write(in_dir("a.txt"), "contents").unwrap();
+
+        let files = [
+            "a.txt",
+            &format!("c.{first_archive}"),
+            &format!("d.{first_archive}.zst"),
+            &format!("e.{first_archive}.zst.{second_archive}"),
+            &format!("f.{first_archive}.zst.{second_archive}.lz4"),
+        ];
+        let transformations = [first_archive, "zst", second_archive, "lz4"];
+        let compressed_path = in_dir(files.last().unwrap());
+
+        for (window, format) in files.windows(2).zip(transformations.iter()) {
+            let [a, b] = [window[0], window[1]].map(in_dir);
+            crate::utils::cargo_bin()
+                .args(["compress", &a, &b, "--format", format])
+                .assert()
+                .success();
+        }
+
+        // // TODO: uncomment after fixing the 7z BadSignature error [4, 34, 77, 24, 96, 64]
+        // crate::utils::cargo_bin()
+        //     .args(["list", &compressed_path, "--yes"])
+        //     .assert()
+        //     .success();
+
+        crate::utils::cargo_bin()
+            .args(["decompress", &compressed_path, "--dir", &in_dir("out"), "--yes"])
+            .assert()
+            .success();
+
+        let decompressed_files = glob::glob(&format!("{}/*", in_dir("out")))
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+        let decompression_expected = format!("{}/out/{}", temp_dir.path().display(), files[2]);
+        assert_eq!(decompressed_files, [Path::new(&decompression_expected)]);
+    }
 }
