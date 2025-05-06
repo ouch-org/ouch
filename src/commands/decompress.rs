@@ -132,7 +132,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
             Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
             Brotli => Box::new(brotli::Decompressor::new(decoder, BUFFER_CAPACITY)),
-            Tar | Zip | Rar | SevenZip => unreachable!(),
+            Tar | Zip | Rar | SevenZip => decoder,
         };
         Ok(decoder)
     };

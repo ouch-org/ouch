@@ -37,6 +37,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # TODO: avoid exploding the matrix by removing unrar and bzip3 from the all combinations runs
+        # I can add a monthly run with all combinations
         feature-unrar: ${{ inputs.matrix_all_combinations && fromJSON('[true, false]') || fromJSON('[true]')}}
         feature-bzip3: ${{ inputs.matrix_all_combinations && fromJSON('[true, false]') || fromJSON('[true]')}}
         feature-use-zlib: ${{ inputs.matrix_all_combinations && fromJSON('[true, false]') || fromJSON('[false]')}}

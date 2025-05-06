@@ -7,8 +7,12 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use bstr::ByteSlice;
 use fs_err as fs;
+use itertools::Itertools;
+use memchr::memmem;
 use parse_display::Display;
+use pretty_assertions::assert_eq;
 use proptest::sample::size_range;
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use tempfile::tempdir;
@@ -17,7 +21,7 @@ use test_strategy::{proptest, Arbitrary};
 use crate::utils::{assert_same_directory, write_random_content};
 
 /// tar and zip extensions
-#[derive(Arbitrary, Debug, Display)]
+#[derive(Arbitrary, Clone, Copy, Debug, Display)]
 #[display(style = "lowercase")]
 enum DirectoryExtension {
     #[display("7z")]
@@ -211,7 +215,7 @@ fn multiple_files(
     let before = &dir.join("before");
     let before_dir = &before.join("dir");
     fs::create_dir_all(before_dir).unwrap();
-    let archive = &dir.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
+    let archive = &dir.join(format!("archive.{}", merge_extensions(ext, &extra_extensions)));
     let after = &dir.join("after");
     create_random_files(before_dir, depth, &mut SmallRng::from_entropy());
     ouch!("-A", "c", before_dir, archive);
@@ -238,7 +242,7 @@ fn multiple_files_with_conflict_and_choice_to_overwrite(
     fs::create_dir_all(after_dir).unwrap();
     create_random_files(after_dir, depth, &mut SmallRng::from_entropy());
 
-    let archive = &dir.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
+    let archive = &dir.join(format!("archive.{}", merge_extensions(ext, &extra_extensions)));
     ouch!("-A", "c", before_dir, archive);
 
     crate::utils::cargo_bin()
@@ -279,7 +283,7 @@ fn multiple_files_with_conflict_and_choice_to_not_overwrite(
     fs::write(after_dir.join("something.txt"), "Some content").unwrap();
     fs::copy(after_dir.join("something.txt"), after_backup_dir.join("something.txt")).unwrap();
 
-    let archive = &dir.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
+    let archive = &dir.join(format!("archive.{}", merge_extensions(ext, &extra_extensions)));
     ouch!("-A", "c", before_dir, archive);
 
     crate::utils::cargo_bin()
@@ -390,7 +394,7 @@ fn smart_unpack_with_single_file(
         })
         .collect::<Vec<_>>();
 
-    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(ext, &extra_extensions)));
 
     crate::utils::cargo_bin()
         .arg("compress")
@@ -441,7 +445,7 @@ fn smart_unpack_with_multiple_files(
         .map(|entry| entry.unwrap().path())
         .collect::<Vec<PathBuf>>();
 
-    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(ext, &extra_extensions)));
 
     let output_path = root_path.join("archive");
     assert!(!output_path.exists());
@@ -490,7 +494,7 @@ fn no_smart_unpack_with_single_file(
         .map(|entry| entry.unwrap().path())
         .collect::<Vec<PathBuf>>();
 
-    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(ext, &extra_extensions)));
 
     let output_path = root_path.join("archive");
     assert!(!output_path.exists());
@@ -540,7 +544,7 @@ fn no_smart_unpack_with_multiple_files(
         .map(|entry| entry.unwrap().path())
         .collect::<Vec<PathBuf>>();
 
-    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(ext, &extra_extensions)));
 
     let output_path = root_path.join("archive");
     assert!(!output_path.exists());
@@ -588,7 +592,7 @@ fn multiple_files_with_disabled_smart_unpack_by_dir(
     let dest_files_path = root_path.join("dest_files");
     fs::create_dir_all(&dest_files_path).unwrap();
 
-    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(ext, &extra_extensions)));
 
     crate::utils::cargo_bin()
         .arg("compress")
@@ -705,7 +709,7 @@ fn symlink_pack_and_unpack(
 
     files_path.push(symlink_path);
 
-    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(ext, &extra_extensions)));
 
     crate::utils::cargo_bin()
         .arg("compress")
@@ -864,4 +868,200 @@ fn unpack_multiple_sources_into_the_same_destination_with_merge(
         .success();
 
     assert_eq!(5, out_path.as_path().read_dir()?.count());
+}
+
+#[test]
+fn reading_nested_archives_with_two_archive_extensions_adjacent() {
+    let archive_formats = ["tar", "zip", "7z"].into_iter();
+
+    for (first_archive, second_archive) in archive_formats.clone().cartesian_product(archive_formats.rev()) {
+        let temp_dir = tempdir().unwrap();
+        let in_dir = |path: &str| format!("{}/{}", temp_dir.path().display(), path);
+
+        fs::write(in_dir("a.txt"), "contents").unwrap();
+
+        let files = [
+            "a.txt",
+            &format!("b.{first_archive}"),
+            &format!("c.{first_archive}.{second_archive}"),
+        ];
+        let transformations = [first_archive, second_archive];
+        let compressed_path = in_dir(files.last().unwrap());
+
+        for (window, format) in files.windows(2).zip(transformations.iter()) {
+            let [a, b] = [window[0], window[1]].map(in_dir);
+            crate::utils::cargo_bin()
+                .args(["compress", &a, &b, "--format", format])
+                .assert()
+                .success();
+        }
+
+        let output = crate::utils::cargo_bin()
+            .args(["list", &compressed_path, "--yes"])
+            .assert()
+            .failure()
+            .get_output()
+            .clone();
+        let stderr = output.stderr.to_str().unwrap();
+        assert!(memmem::find(stderr.as_bytes(), b"use `--format` to specify what format to use").is_some());
+
+        let output = crate::utils::cargo_bin()
+            .args(["decompress", &compressed_path, "--dir", &in_dir("out"), "--yes"])
+            .assert()
+            .failure()
+            .get_output()
+            .clone();
+        let stderr = output.stderr.to_str().unwrap();
+        assert!(memmem::find(stderr.as_bytes(), b"use `--format` to specify what format to use").is_some());
+    }
+}
+
+#[test]
+fn reading_nested_archives_with_two_archive_extensions_interleaved() {
+    let archive_formats = ["tar", "zip", "7z"].into_iter();
+
+    for (first_archive, second_archive) in archive_formats.clone().cartesian_product(archive_formats.rev()) {
+        let temp_dir = tempdir().unwrap();
+        let in_dir = |path: &str| format!("{}/{}", temp_dir.path().display(), path);
+
+        fs::write(in_dir("a.txt"), "contents").unwrap();
+
+        let files = [
+            "a.txt",
+            &format!("c.{first_archive}"),
+            &format!("d.{first_archive}.zst"),
+            &format!("e.{first_archive}.zst.{second_archive}"),
+            &format!("f.{first_archive}.zst.{second_archive}.lz4"),
+        ];
+        let transformations = [first_archive, "zst", second_archive, "lz4"];
+        let compressed_path = in_dir(files.last().unwrap());
+
+        for (window, format) in files.windows(2).zip(transformations.iter()) {
+            let [a, b] = [window[0], window[1]].map(in_dir);
+            crate::utils::cargo_bin()
+                .args(["compress", &a, &b, "--format", format])
+                .assert()
+                .success();
+        }
+
+        let output = crate::utils::cargo_bin()
+            .args(["list", &compressed_path, "--yes"])
+            .assert()
+            .failure()
+            .get_output()
+            .clone();
+        let stderr = output.stderr.to_str().unwrap();
+        assert!(memmem::find(stderr.as_bytes(), b"use `--format` to specify what format to use").is_some());
+
+        let output = crate::utils::cargo_bin()
+            .args(["decompress", &compressed_path, "--dir", &in_dir("out"), "--yes"])
+            .assert()
+            .failure()
+            .get_output()
+            .clone();
+        let stderr = output.stderr.to_str().unwrap();
+        assert!(memmem::find(stderr.as_bytes(), b"use `--format` to specify what format to use").is_some());
+    }
+}
+
+#[test]
+fn compressing_archive_with_two_archive_formats() {
+    let archive_formats = ["tar", "zip", "7z"].into_iter();
+
+    for (first_archive, second_archive) in archive_formats.clone().cartesian_product(archive_formats.rev()) {
+        let temp_dir = tempdir().unwrap();
+        let dir = temp_dir.path().display().to_string();
+
+        let output = crate::utils::cargo_bin()
+            .args([
+                "compress",
+                "README.md",
+                &format!("{dir}/out.{first_archive}.{second_archive}"),
+                "--yes",
+            ])
+            .assert()
+            .failure()
+            .get_output()
+            .clone();
+
+        let stderr = output.stderr.to_str().unwrap();
+        assert!(memmem::find(stderr.as_bytes(), b"use `--format` to specify what format to use").is_some());
+
+        let output = crate::utils::cargo_bin()
+            .args([
+                "compress",
+                "README.md",
+                &format!("{dir}/out.{first_archive}.{second_archive}"),
+                "--yes",
+                "--format",
+                &format!("{first_archive}.{second_archive}"),
+            ])
+            .assert()
+            .failure()
+            .get_output()
+            .clone();
+
+        let stderr = output.stderr.to_str().unwrap();
+        assert!(memmem::find(
+            stderr.as_bytes(),
+            b"can only be used at the start of the file extension",
+        )
+        .is_some());
+
+        crate::utils::cargo_bin()
+            .args([
+                "compress",
+                "README.md",
+                &format!("{dir}/out.{first_archive}.{second_archive}"),
+                "--yes",
+                "--format",
+                first_archive,
+            ])
+            .assert()
+            .success();
+    }
+}
+
+#[test]
+fn fail_when_compressing_archive_as_the_second_extension() {
+    for archive_format in ["tar", "zip", "7z"] {
+        let temp_dir = tempdir().unwrap();
+        let dir = temp_dir.path().display().to_string();
+
+        let output = crate::utils::cargo_bin()
+            .args([
+                "compress",
+                "README.md",
+                &format!("{dir}/out.zst.{archive_format}"),
+                "--yes",
+            ])
+            .assert()
+            .failure()
+            .get_output()
+            .clone();
+
+        let stderr = output.stderr.to_str().unwrap();
+        assert!(memmem::find(stderr.as_bytes(), b"use `--format` to specify what format to use").is_some());
+
+        let output = crate::utils::cargo_bin()
+            .args([
+                "compress",
+                "README.md",
+                &format!("{dir}/out_file"),
+                "--yes",
+                "--format",
+                &format!("zst.{archive_format}"),
+            ])
+            .assert()
+            .failure()
+            .get_output()
+            .clone();
+
+        let stderr = output.stderr.to_str().unwrap();
+        assert!(memmem::find(
+            stderr.as_bytes(),
+            format!("'{archive_format}' can only be used at the start of the file extension").as_bytes(),
+        )
+        .is_some());
+    }
 }

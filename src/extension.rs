@@ -5,7 +5,10 @@ use std::{ffi::OsStr, fmt, path::Path};
 use bstr::ByteSlice;
 use CompressionFormat::*;
 
-use crate::{error::Error, utils::logger::warning};
+use crate::{
+    error::{Error, FinalError, Result},
+    utils::logger::warning,
+};
 
 pub const SUPPORTED_EXTENSIONS: &[&str] = &[
     "tar",
@@ -60,8 +63,8 @@ impl Extension {
 
     /// Checks if the first format in `compression_formats` is an archive
     pub fn is_archive(&self) -> bool {
-        // Safety: we check that `compression_formats` is not empty in `Self::new`
-        self.compression_formats[0].is_archive_format()
+        // Index Safety: we check that `compression_formats` is not empty in `Self::new`
+        self.compression_formats[0].archive_format()
     }
 }
 
@@ -103,7 +106,7 @@ pub enum CompressionFormat {
 
 impl CompressionFormat {
     /// Currently supported archive formats are .tar (and aliases to it) and .zip
-    fn is_archive_format(&self) -> bool {
+    pub fn archive_format(&self) -> bool {
         // Keep this match like that without a wildcard `_` so we don't forget to update it
         match self {
             Tar | Zip | Rar | SevenZip => true,
@@ -147,14 +150,13 @@ fn to_extension(ext: &[u8]) -> Option<Extension> {
     ))
 }
 
-fn split_extension(name: &mut &[u8]) -> Option<Extension> {
+fn split_extension_at_end(name: &[u8]) -> Option<(&[u8], Extension)> {
     let (new_name, ext) = name.rsplit_once_str(b".")?;
     if matches!(new_name, b"" | b"." | b"..") {
         return None;
     }
     let ext = to_extension(ext)?;
-    *name = new_name;
-    Some(ext)
+    Some((new_name, ext))
 }
 
 pub fn parse_format_flag(input: &OsStr) -> crate::Result<Vec<Extension>> {
@@ -188,17 +190,41 @@ pub fn parse_format_flag(input: &OsStr) -> crate::Result<Vec<Extension>> {
 
 /// Extracts extensions from a path.
 ///
-/// Returns both the remaining path and the list of extension objects
-pub fn separate_known_extensions_from_name(path: &Path) -> (&Path, Vec<Extension>) {
+/// Returns both the remaining path and the list of extension objects.
+pub fn separate_known_extensions_from_name(path: &Path) -> Result<(&Path, Vec<Extension>)> {
     let mut extensions = vec![];
 
     let Some(mut name) = path.file_name().and_then(<[u8] as ByteSlice>::from_os_str) else {
-        return (path, extensions);
+        return Ok((path, extensions));
     };
 
-    // While there is known extensions at the tail, grab them
-    while let Some(extension) = split_extension(&mut name) {
+    while let Some((new_name, extension)) = split_extension_at_end(name) {
+        name = new_name;
         extensions.insert(0, extension);
+        if extensions[0].is_archive() {
+            if let Some((_, misplaced_extension)) = split_extension_at_end(name) {
+                return Err(FinalError::with_title("File extensions are invalid for operation")
+                    .detail(format!(
+                        "The archive extension '.{}' must come before any non-archive extensions, like '.{}'",
+                        extensions[0].display_text, misplaced_extension.display_text
+                    ))
+                    .detail(format!(
+                        "File: '{path:?}' contains '.{}' and '.{}'",
+                        misplaced_extension.display_text, extensions[0].display_text,
+                    ))
+                    .detail(format!("'.{}' is an archive format", extensions[0].display_text))
+                    .detail(format!(
+                        "'.{}' isn't an archive format",
+                        misplaced_extension.display_text
+                    ))
+                    .hint("You can use `--format` to specify what format to use, examples:")
+                    .hint("  ouch compress 1 2 file --format zip")
+                    .hint("  ouch decompress file --format gz")
+                    .hint("  ouch list archive --format zip")
+                    .into());
+            }
+            break;
+        }
     }
 
     if let Ok(name) = name.to_str() {
@@ -210,13 +236,12 @@ pub fn separate_known_extensions_from_name(path: &Path) -> (&Path, Vec<Extension
         }
     }
 
-    (name.to_path().unwrap(), extensions)
+    Ok((name.to_path().unwrap(), extensions))
 }
 
 /// Extracts extensions from a path, return only the list of extension objects
-pub fn extensions_from_path(path: &Path) -> Vec<Extension> {
-    let (_, extensions) = separate_known_extensions_from_name(path);
-    extensions
+pub fn extensions_from_path(path: &Path) -> Result<Vec<Extension>> {
+    separate_known_extensions_from_name(path).map(|(_, extensions)| extensions)
 }
 
 /// Panics if formats has an empty list of compression formats
@@ -271,14 +296,13 @@ pub fn build_archive_file_suggestion(path: &Path, suggested_extension: &str) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::logger::spawn_logger_thread;
 
     #[test]
     fn test_extensions_from_path() {
         let path = Path::new("bolovo.tar.gz");
 
-        let extensions: Vec<Extension> = extensions_from_path(path);
-        let formats: Vec<CompressionFormat> = flatten_compression_formats(&extensions);
+        let extensions = extensions_from_path(path).unwrap();
+        let formats = flatten_compression_formats(&extensions);
 
         assert_eq!(formats, vec![Tar, Gzip]);
     }
@@ -286,32 +310,31 @@ mod tests {
     #[test]
     /// Test extension parsing for input/output files
     fn test_separate_known_extensions_from_name() {
-        spawn_logger_thread();
         assert_eq!(
-            separate_known_extensions_from_name("file".as_ref()),
+            separate_known_extensions_from_name("file".as_ref()).unwrap(),
             ("file".as_ref(), vec![])
         );
         assert_eq!(
-            separate_known_extensions_from_name("tar".as_ref()),
+            separate_known_extensions_from_name("tar".as_ref()).unwrap(),
             ("tar".as_ref(), vec![])
         );
         assert_eq!(
-            separate_known_extensions_from_name(".tar".as_ref()),
+            separate_known_extensions_from_name(".tar".as_ref()).unwrap(),
             (".tar".as_ref(), vec![])
         );
         assert_eq!(
-            separate_known_extensions_from_name("file.tar".as_ref()),
+            separate_known_extensions_from_name("file.tar".as_ref()).unwrap(),
             ("file".as_ref(), vec![Extension::new(&[Tar], "tar")])
         );
         assert_eq!(
-            separate_known_extensions_from_name("file.tar.gz".as_ref()),
+            separate_known_extensions_from_name("file.tar.gz".as_ref()).unwrap(),
             (
                 "file".as_ref(),
                 vec![Extension::new(&[Tar], "tar"), Extension::new(&[Gzip], "gz")]
             )
         );
         assert_eq!(
-            separate_known_extensions_from_name(".tar.gz".as_ref()),
+            separate_known_extensions_from_name(".tar.gz".as_ref()).unwrap(),
             (".tar".as_ref(), vec![Extension::new(&[Gzip], "gz")])
         );
     }
@@ -366,5 +389,11 @@ mod tests {
             build_archive_file_suggestion(Path::new("linux.pkg.info.zst"), ".tar").unwrap(),
             "linux.pkg.info.tar.zst"
         );
+    }
+
+    #[test]
+    fn test_extension_parsing_with_multiple_archive_formats() {
+        assert!(separate_known_extensions_from_name("file.tar.zip".as_ref()).is_err());
+        assert!(separate_known_extensions_from_name("file.7z.zst.zip.lz4".as_ref()).is_err());
     }
 }
