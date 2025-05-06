@@ -203,24 +203,23 @@ pub fn separate_known_extensions_from_name(path: &Path) -> Result<(&Path, Vec<Ex
         extensions.insert(0, extension);
         if extensions[0].is_archive() {
             if let Some((_, misplaced_extension)) = split_extension_at_end(name) {
-                return Err(FinalError::with_title("File extensions are invalid for operation")
-                    .detail(format!(
-                        "The archive extension '.{}' must come before any non-archive extensions, like '.{}'",
-                        extensions[0].display_text, misplaced_extension.display_text
-                    ))
-                    .detail(format!(
+                let mut error = FinalError::with_title("File extensions are invalid for operation").detail(format!(
+                    "The archive extension '.{}' can only be placed at the start of the extension list",
+                    extensions[0].display_text,
+                ));
+
+                if misplaced_extension.compression_formats == extensions[0].compression_formats {
+                    error = error.detail(format!(
                         "File: '{path:?}' contains '.{}' and '.{}'",
                         misplaced_extension.display_text, extensions[0].display_text,
-                    ))
-                    .detail(format!("'.{}' is an archive format", extensions[0].display_text))
-                    .detail(format!(
-                        "'.{}' isn't an archive format",
-                        misplaced_extension.display_text
-                    ))
+                    ));
+                }
+
+                return Err(error
                     .hint("You can use `--format` to specify what format to use, examples:")
-                    .hint("  ouch compress 1 2 file --format zip")
-                    .hint("  ouch decompress file --format gz")
-                    .hint("  ouch list archive --format zip")
+                    .hint("  ouch compress file.zip.zip file --format zip")
+                    .hint("  ouch decompress file --format zst")
+                    .hint("  ouch list archive --format tar.gz")
                     .into());
             }
             break;
