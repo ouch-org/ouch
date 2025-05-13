@@ -24,6 +24,7 @@ Categories Used:
 
 - Merge folders in decompression [\#798](https://github.com/ouch-org/ouch/pull/798) ([tommady](https://github.com/tommady))
 - Add `--no-smart-unpack` flag to decompression command to disable smart unpack [\#809](https://github.com/ouch-org/ouch/pull/809) ([talis-fb](https://github.com/talis-fb))
+- Add landlock support for linux filesystem isolation [\#723](https://github.com/ouch-org/ouch/pull/723) ([valoq](https://github.com/valoq)) 
 
 ### Improvements
 
