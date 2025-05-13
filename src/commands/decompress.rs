@@ -338,7 +338,7 @@ fn unpack(
     output_dir: &Path,
     question_policy: QuestionPolicy,
 ) -> crate::Result<ControlFlow<(), usize>> {
-    let is_valid_output_dir = !output_dir.exists() || (output_dir.is_dir() && output_dir.read_dir()?.next().is_none());
+    let is_valid_output_dir = !output_dir.exists() || output_dir.is_dir();
 
     let output_dir_cleaned = if is_valid_output_dir {
         output_dir.to_owned()
