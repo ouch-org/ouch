@@ -59,9 +59,8 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) 
                 Bytes::new(file.size()),
                 utils::strip_cur_dir(&output_folder.join(file.path()?)),
             ));
-
-            files_unpacked += 1;
         }
+        files_unpacked += 1;
     }
 
     Ok(files_unpacked)
