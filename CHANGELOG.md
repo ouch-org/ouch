@@ -30,6 +30,9 @@ Categories Used:
 - Give better error messages when archive extensions are invalid [\#817](https://github.com/ouch-org/ouch/pull/817) ([marcospb19](https://github.com/marcospb19))
 
 ### Bug Fixes
+
+- Fix tar extraction count when --quiet [\#824](https://github.com/ouch-org/ouch/pull/824) ([marcospb19](https://github.com/marcospb19))
+
 ### Tweaks
 
 - Make `.bz3` opt-out [\#814](https://github.com/ouch-org/ouch/pull/814) ([amyspark](https://github.com/amyspark))
