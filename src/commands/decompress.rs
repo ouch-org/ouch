@@ -344,7 +344,6 @@ fn unpack(
     let output_dir_cleaned = if is_valid_output_dir {
         output_dir
     } else {
-        // TODO: will enhance later
         match utils::check_conflics_and_ask_user(output_dir, question_policy, QuestionAction::Decompression)? {
             FileConflitOperation::Cancel => return Ok(ControlFlow::Break(())),
             FileConflitOperation::Overwrite => {
@@ -363,7 +362,7 @@ fn unpack(
         fs::create_dir(output_dir_cleaned)?;
     }
 
-    let files = unpack_fn(&output_dir_cleaned)?;
+    let files = unpack_fn(output_dir_cleaned)?;
 
     Ok(ControlFlow::Continue(files))
 }
@@ -407,7 +406,6 @@ fn smart_unpack(
         (temp_dir_path.to_owned(), output_file_path.to_owned())
     };
 
-    // TODO: will enhance later
     match utils::check_conflics_and_ask_user(&new_path, question_policy, QuestionAction::Decompression)? {
         FileConflitOperation::Cancel => return Ok(ControlFlow::Break(())),
         FileConflitOperation::GoodToGo => {
@@ -446,7 +444,7 @@ fn smart_unpack(
                     continue;
                 }
 
-                fs::copy(&path, &new_path.join(name))?;
+                fs::copy(&path, new_path.join(name))?;
             }
         }
     }

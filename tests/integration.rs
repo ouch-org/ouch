@@ -806,7 +806,7 @@ fn no_git_folder_after_decompression_with_gitignore_flag_active() {
     );
 }
 
-#[cfg(feature = "allow_piped_choice")]
+// #[cfg(feature = "allow_piped_choice")]
 #[proptest(cases = 25)]
 fn unpack_multiple_sources_into_the_same_destination_with_merge(
     ext: DirectoryExtension,
@@ -814,35 +814,63 @@ fn unpack_multiple_sources_into_the_same_destination_with_merge(
 ) {
     let temp_dir = tempdir()?;
     let root_path = temp_dir.path();
-    let source_path = root_path
-        .join(format!("example_{}", merge_extensions(&ext, &extra_extensions)))
-        .join("sub_a")
-        .join("sub_b")
-        .join("sub_c");
 
+    let source_path = root_path.join(format!("example_{}", merge_extensions(&ext, &extra_extensions)));
     fs::create_dir_all(&source_path)?;
+    fs::File::create(source_path.join("file1.txt"))?;
+    fs::File::create(source_path.join("file2.txt"))?;
+    fs::File::create(source_path.join("file3.txt"))?;
+    let sub_folder_path = source_path.join("sub_a");
+    fs::create_dir_all(&sub_folder_path)?;
+    fs::File::create(sub_folder_path.join("file1.txt"))?;
+    fs::File::create(sub_folder_path.join("file2.txt"))?;
+    fs::File::create(sub_folder_path.join("file3.txt"))?;
+    let sub_folder_path = sub_folder_path.join("sub_b");
+    fs::create_dir_all(&sub_folder_path)?;
+    fs::File::create(sub_folder_path.join("file1.txt"))?;
+    fs::File::create(sub_folder_path.join("file2.txt"))?;
+    fs::File::create(sub_folder_path.join("file3.txt"))?;
+    let sub_folder_path = sub_folder_path.join("sub_c");
+    fs::create_dir_all(&sub_folder_path)?;
+    fs::File::create(sub_folder_path.join("file1.txt"))?;
+    fs::File::create(sub_folder_path.join("file2.txt"))?;
+    fs::File::create(sub_folder_path.join("file3.txt"))?;
+
     let archive = root_path.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
     crate::utils::cargo_bin()
         .arg("compress")
-        .args([
-            fs::File::create(source_path.join("file1.txt"))?.path(),
-            fs::File::create(source_path.join("file2.txt"))?.path(),
-            fs::File::create(source_path.join("file3.txt"))?.path(),
-        ])
+        .arg(&source_path)
         .arg(&archive)
         .assert()
         .success();
 
     fs::remove_dir_all(&source_path)?;
+
+    let source_path = root_path.join(format!("example_{}", merge_extensions(&ext, &extra_extensions)));
     fs::create_dir_all(&source_path)?;
+    fs::File::create(source_path.join("file3.txt"))?;
+    fs::File::create(source_path.join("file4.txt"))?;
+    fs::File::create(source_path.join("file5.txt"))?;
+    let sub_folder_path = source_path.join("sub_a");
+    fs::create_dir_all(&sub_folder_path)?;
+    fs::File::create(sub_folder_path.join("file3.txt"))?;
+    fs::File::create(sub_folder_path.join("file4.txt"))?;
+    fs::File::create(sub_folder_path.join("file5.txt"))?;
+    let sub_folder_path = sub_folder_path.join("sub_b");
+    fs::create_dir_all(&sub_folder_path)?;
+    fs::File::create(sub_folder_path.join("file3.txt"))?;
+    fs::File::create(sub_folder_path.join("file4.txt"))?;
+    fs::File::create(sub_folder_path.join("file5.txt"))?;
+    let sub_folder_path = sub_folder_path.join("sub_c");
+    fs::create_dir_all(&sub_folder_path)?;
+    fs::File::create(sub_folder_path.join("file3.txt"))?;
+    fs::File::create(sub_folder_path.join("file4.txt"))?;
+    fs::File::create(sub_folder_path.join("file5.txt"))?;
+
     let archive1 = root_path.join(format!("archive1.{}", merge_extensions(&ext, &extra_extensions)));
     crate::utils::cargo_bin()
         .arg("compress")
-        .args([
-            fs::File::create(source_path.join("file3.txt"))?.path(),
-            fs::File::create(source_path.join("file4.txt"))?.path(),
-            fs::File::create(source_path.join("file5.txt"))?.path(),
-        ])
+        .arg(&source_path)
         .arg(&archive1)
         .assert()
         .success();
@@ -867,7 +895,24 @@ fn unpack_multiple_sources_into_the_same_destination_with_merge(
         .assert()
         .success();
 
-    assert_eq!(5, out_path.as_path().read_dir()?.count());
+    assert_eq!(20, count_files_recursively(&out_path));
+}
+
+fn count_files_recursively(dir: &Path) -> usize {
+    let mut count = 0;
+    // println!("{:?}", dir);
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() {
+                // println!("{:?}", path);
+                count += 1;
+            } else if path.is_dir() {
+                count += count_files_recursively(&path);
+            }
+        }
+    }
+    count
 }
 
 #[test]
