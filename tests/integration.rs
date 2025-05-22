@@ -895,24 +895,22 @@ fn unpack_multiple_sources_into_the_same_destination_with_merge(
         .assert()
         .success();
 
-    assert_eq!(20, count_files_recursively(&out_path));
-}
-
-fn count_files_recursively(dir: &Path) -> usize {
-    let mut count = 0;
-    // println!("{:?}", dir);
-    if let Ok(entries) = fs::read_dir(dir) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_file() {
-                // println!("{:?}", path);
-                count += 1;
-            } else if path.is_dir() {
-                count += count_files_recursively(&path);
+    fn count_files_recursively(dir: &Path) -> usize {
+        let mut count = 0;
+        if let Ok(entries) = fs::read_dir(dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_file() {
+                    count += 1;
+                } else if path.is_dir() {
+                    count += count_files_recursively(&path);
+                }
             }
         }
+        count
     }
-    count
+
+    assert_eq!(20, count_files_recursively(&out_path));
 }
 
 #[test]
