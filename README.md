@@ -125,7 +125,9 @@ Output:
 If you wish to exclude non-free code from your build, you can disable RAR support
 by building without the `unrar` feature.
 
-`tar` aliases are also supported: `tgz`, `tbz`, `tbz2`, `tlz4`, `txz`, `tlzma`, `tsz`, `tzst`.
+Comic book aliases: `cbt`, `cbz`, `cb7`, `cbr`  
+and `tar` aliases: `tgz`, `tbz`, `tbz2`, `tlz4`, `txz`, `tlzma`, `tsz`, `tzst`  
+are also supported.
 
 Formats can be chained:
 
