@@ -7,7 +7,7 @@ expression: "run_ouch(\"ouch decompress b.unknown\", dir)"
  - Decompression formats are detected automatically from file extension
 
 hint: Supported extensions are: tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, sz, zst, rar, 7z
-hint: Supported aliases are: tgz, tbz, tlz4, txz, tzlma, tsz, tzst
+hint: Supported aliases are: tgz, tbz, tlz4, txz, tzlma, tsz, tzst, cbt, cbz, cb7, cbr
 hint: 
 hint: Alternatively, you can pass an extension to the '--format' flag:
 hint:   ouch decompress <TMP_DIR>/b.unknown --format tar.gz

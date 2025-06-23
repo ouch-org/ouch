@@ -6,7 +6,7 @@ expression: "run_ouch(\"ouch compress input output --format .tar.$#!@.rest\", di
  - Unsupported extension '$#!@'
 
 hint: Supported extensions are: tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, sz, zst, rar, 7z
-hint: Supported aliases are: tgz, tbz, tlz4, txz, tzlma, tsz, tzst
+hint: Supported aliases are: tgz, tbz, tlz4, txz, tzlma, tsz, tzst, cbt, cbz, cb7, cbr
 hint: 
 hint: Examples:
 hint:   --format tar
