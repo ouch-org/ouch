@@ -27,14 +27,14 @@ pub const SUPPORTED_EXTENSIONS: &[&str] = &[
     "br",
 ];
 
-pub const SUPPORTED_ALIASES: &[&str] = &["tgz", "tbz", "tlz4", "txz", "tzlma", "tsz", "tzst", "cbt", "cbz", "cb7", "cbr", ];
+pub const SUPPORTED_ALIASES: &[&str] = &["tgz", "tbz", "tlz4", "txz", "tzlma", "tsz", "tzst", "cbt", "cbz", "cb7", "cbr"];
 
 #[cfg(not(feature = "unrar"))]
 pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, sz, zst, 7z";
 #[cfg(feature = "unrar")]
 pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, sz, zst, rar, 7z";
 
-pub const PRETTY_SUPPORTED_ALIASES: &str = "tgz, tbz, tlz4, txz, tzlma, tsz, tzst";
+pub const PRETTY_SUPPORTED_ALIASES: &str = "tgz, tbz, tlz4, txz, tzlma, tsz, tzst, cbt, cbz, cb7, cbr";
 
 /// A wrapper around `CompressionFormat` that allows combinations like `tgz`
 #[derive(Debug, Clone)]
