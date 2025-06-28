@@ -353,7 +353,7 @@ fn unpack(
         fs::create_dir(&output_dir_cleaned)?;
     }
 
-    let files = unpack_fn(output_dir_cleaned)?;
+    let files = unpack_fn(&output_dir_cleaned)?;
 
     Ok(ControlFlow::Continue(files))
 }
