@@ -7,7 +7,7 @@ pub mod error;
 pub mod extension;
 pub mod list;
 pub mod utils;
-pub mod sandbox;
+//pub mod sandbox;
 
 use std::{env, path::PathBuf};
 use std::path::Path;
@@ -22,6 +22,9 @@ use self::{
         QuestionAction, QuestionPolicy,
     },
 };
+
+//use utils::landlock::*;
+
 
 // Used in BufReader and BufWriter to perform less syscalls
 const BUFFER_CAPACITY: usize = 1024 * 32;
@@ -52,6 +55,19 @@ fn run() -> Result<()> {
         .unwrap_or_else(|| env::current_dir().unwrap_or_default());
 
     // restrict filesystem access to working_dir;
+    // 1. working_dir is either the output_dir specified by the -d option or
+    // 2. it is the temporary .tmp-ouch-XXXXXX directory that is renamed after decompression
+    //
+    //Case 1: Files are directly written to the output_directory, which may be created by ouch
+    //      full landlock permissions granted inside the specified directory
+    //Case 2: Files are written to the .tmp-ouch directory, requiring make_dir permissions on the
+    //      parent (cwd) for renaming and full permissions within the tmp-ouch directory itself
+    //
+    // Since either the specified output directory is created if it did not exist, or the .ouch-tmp
+    // directory is created in the current working directory, the parent directory of the target
+    // directory requires LANDLOCK_ACCESS_FS_MAKE_DIR
+    
+    // expects either the .tmp-ouch-XXXXXX path or the specified output directory (-d option)
     init_sandbox(&working_dir);
 
     commands::run(args, skip_questions_positively, file_visibility_policy)
@@ -64,10 +80,10 @@ fn init_sandbox(allowed_dir: &Path) {
     }
 
 
-    if utils::landlock_support::is_landlock_supported() {
+    if utils::landlock::is_landlock_supported() {
 
         let path_str = allowed_dir.to_str().expect("Cannot convert path");
-        match sandbox::restrict_paths(&[path_str]) {
+        match utils::landlock::restrict_paths(&[path_str]) {
             Ok(status) => {
                 //check
             }
