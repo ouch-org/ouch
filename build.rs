@@ -19,6 +19,7 @@ use std::{
 
 use clap::{CommandFactory, ValueEnum};
 use clap_complete::{generate_to, Shell};
+use clap_complete_nushell::Nushell;
 use clap_mangen::Man;
 
 include!("src/cli/args.rs");
@@ -45,5 +46,6 @@ fn main() {
         for shell in Shell::value_variants() {
             generate_to(*shell, cmd, "ouch", out).unwrap();
         }
+        generate_to(Nushell, cmd, "ouch", out).unwrap();
     }
 }

@@ -24,7 +24,8 @@ Categories Used:
 
 - Merge folders in decompression [\#798](https://github.com/ouch-org/ouch/pull/798) ([tommady](https://github.com/tommady))
 - Add `--no-smart-unpack` flag to decompression command to disable smart unpack [\#809](https://github.com/ouch-org/ouch/pull/809) ([talis-fb](https://github.com/talis-fb))
-- Add aliases for comic book archives []() ([md9753](https://github.com/md9753))
+- Provide Nushell completions (packages still need to install them) [\#827](https://github.com/ouch-org/ouch/pull/827) ([FrancescElies](https://github.com/FrancescElies))
+- Add aliases for comic book archives [\#835](https://github.com/ouch-org/ouch/pull/835https://github.com/ouch-org/ouch/pull/835) ([md9753](https://github.com/md9753))
 
 ### Improvements
 
