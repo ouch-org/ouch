@@ -17,7 +17,7 @@ use self::{
     error::{Error, Result},
     utils::{
         logger::{shutdown_logger_and_wait, spawn_logger_thread},
-        FileConflitOperation, QuestionAction, QuestionPolicy,
+        QuestionAction, QuestionPolicy,
     },
 };
 

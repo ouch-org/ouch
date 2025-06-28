@@ -8,13 +8,45 @@ use std::{
 
 use fs_err as fs;
 
+use super::{question::FileConflitOperation, user_wants_to_overwrite};
 use crate::{
     extension::Extension,
-    utils::{logger::info_accessible, EscapedPathDisplay},
+    utils::{logger::info_accessible, EscapedPathDisplay, QuestionAction},
+    QuestionPolicy,
 };
 
 pub fn is_path_stdin(path: &Path) -> bool {
     path.as_os_str() == "-"
+}
+
+/// Check if &Path exists, if it does then ask the user if they want to overwrite or rename it.
+/// If the user want to overwrite then the file or directory will be removed and returned the same input path
+/// If the user want to rename then nothing will be removed and a new path will be returned with a new name
+///
+/// * `Ok(None)` means the user wants to cancel the operation
+/// * `Ok(Some(path))` returns a valid PathBuf without any another file or directory with the same name
+/// * `Err(_)` is an error
+pub fn resolve_path_conflict(
+    path: &Path,
+    question_policy: QuestionPolicy,
+    question_action: QuestionAction,
+) -> crate::Result<Option<PathBuf>> {
+    if path.exists() {
+        match user_wants_to_overwrite(path, question_policy, question_action)? {
+            FileConflitOperation::Cancel => Ok(None),
+            FileConflitOperation::Overwrite => {
+                remove_file_or_dir(path)?;
+                Ok(Some(path.to_path_buf()))
+            }
+            FileConflitOperation::Rename => {
+                let renamed_path = rename_for_available_filename(path);
+                Ok(Some(renamed_path))
+            }
+            FileConflitOperation::Merge => Ok(Some(path.to_path_buf())),
+        }
+    } else {
+        Ok(Some(path.to_path_buf()))
+    }
 }
 
 pub fn remove_file_or_dir(path: &Path) -> crate::Result<()> {

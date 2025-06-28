@@ -50,41 +50,6 @@ pub enum FileConflitOperation {
     Rename,
     /// Merge conflicting folders
     Merge,
-    /// There is no conflict, good to go
-    GoodToGo,
-}
-
-/// Check if &Path exists, if it does then ask the user what to do.
-/// If the user want to overwrite then the file or directory will be removed and returned the same input path
-/// If the user want to rename then nothing will be removed and a new path will be returned with a new name
-/// If the user want to merge then the conflics file or directory will be skiped
-///
-/// * `Ok(None)` means the user wants to cancel the operation
-/// * `Ok(Some(path))` returns a valid PathBuf without any another file or directory with the same name
-/// * `Err(_)` is an error
-pub fn check_conflics_and_ask_user(
-    path: &Path,
-    question_policy: QuestionPolicy,
-    question_action: QuestionAction,
-) -> crate::Result<FileConflitOperation> {
-    if path.exists() {
-        user_wants_to_overwrite(path, question_policy, question_action)
-        // match user_wants_to_overwrite(path, question_policy, question_action)? {
-        //     FileConflitOperation::Cancel => Ok(None),
-        //     FileConflitOperation::Overwrite => {
-        //         remove_file_or_dir(path)?;
-        //         Ok(Some(path.to_path_buf()))
-        //     }
-        //     FileConflitOperation::Rename => {
-        //         let renamed_path = rename_for_available_filename(path);
-        //         Ok(Some(renamed_path))
-        //     }
-        //     FileConflitOperation::Merge => Ok(Some(path.to_path_buf())),
-        // }
-    } else {
-        Ok(FileConflitOperation::GoodToGo)
-        // Ok(Some(path.to_path_buf()))
-    }
 }
 
 /// Check if QuestionPolicy flags were set, otherwise, ask user if they want to overwrite.
@@ -147,7 +112,7 @@ pub fn ask_to_create_file(
             };
 
             match action {
-                FileConflitOperation::Merge | FileConflitOperation::GoodToGo => Ok(Some(fs::File::create(path)?)),
+                FileConflitOperation::Merge => Ok(Some(fs::File::create(path)?)),
                 FileConflitOperation::Overwrite => {
                     utils::remove_file_or_dir(path)?;
                     Ok(Some(fs::File::create(path)?))

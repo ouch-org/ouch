@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     io::{self, BufReader, Read},
     ops::ControlFlow,
     path::{Path, PathBuf},
@@ -23,7 +22,7 @@ use crate::{
         logger::{info, info_accessible},
         nice_directory_display, user_wants_to_continue,
     },
-    FileConflitOperation, QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
+    QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
 trait ReadSeek: Read + io::Seek {}
@@ -342,24 +341,16 @@ fn unpack(
     let is_valid_output_dir = !output_dir.exists() || (output_dir.is_dir() && output_dir.read_dir()?.next().is_none());
 
     let output_dir_cleaned = if is_valid_output_dir {
-        output_dir
+        output_dir.to_owned()
     } else {
-        match utils::check_conflics_and_ask_user(output_dir, question_policy, QuestionAction::Decompression)? {
-            FileConflitOperation::Cancel => return Ok(ControlFlow::Break(())),
-            FileConflitOperation::Overwrite => {
-                // TODO: issue 820 could try to enhance here to fix the issue
-                // https://github.com/ouch-org/ouch/issues/820
-                utils::remove_file_or_dir(output_dir)?;
-                output_dir
-            }
-            FileConflitOperation::Rename => &utils::rename_for_available_filename(output_dir),
-            FileConflitOperation::Merge => output_dir,
-            FileConflitOperation::GoodToGo => output_dir,
+        match utils::resolve_path_conflict(output_dir, question_policy, QuestionAction::Decompression)? {
+            Some(path) => path,
+            None => return Ok(ControlFlow::Break(())),
         }
     };
 
     if !output_dir_cleaned.exists() {
-        fs::create_dir(output_dir_cleaned)?;
+        fs::create_dir(&output_dir_cleaned)?;
     }
 
     let files = unpack_fn(output_dir_cleaned)?;
@@ -392,7 +383,7 @@ fn smart_unpack(
 
     let root_contains_only_one_element = fs::read_dir(temp_dir_path)?.take(2).count() == 1;
 
-    let (previous_path, new_path) = if root_contains_only_one_element {
+    let (previous_path, mut new_path) = if root_contains_only_one_element {
         // Only one file in the root directory, so we can just move it to the output directory
         let file = fs::read_dir(temp_dir_path)?.next().expect("item exists")?;
         let file_path = file.path();
@@ -406,49 +397,15 @@ fn smart_unpack(
         (temp_dir_path.to_owned(), output_file_path.to_owned())
     };
 
-    match utils::check_conflics_and_ask_user(&new_path, question_policy, QuestionAction::Decompression)? {
-        FileConflitOperation::Cancel => return Ok(ControlFlow::Break(())),
-        FileConflitOperation::GoodToGo => {
-            fs::rename(&previous_path, &new_path)?;
-        }
-        FileConflitOperation::Overwrite => {
-            // TODO: issue 820 could try to enhance here to fix the issue
-            // https://github.com/ouch-org/ouch/issues/820
-            utils::remove_file_or_dir(&new_path)?;
-            fs::rename(&previous_path, &new_path)?;
-        }
-        FileConflitOperation::Rename => {
-            fs::rename(&previous_path, utils::rename_for_available_filename(&new_path))?;
-        }
-        FileConflitOperation::Merge => {
-            // TODO: just a simple way to verify, will enhance later
-            let mut seen = HashMap::new();
-            for entry in fs::read_dir(&new_path)? {
-                let entry = entry?;
-                let path = entry.path();
-                let name = path
-                    .file_name()
-                    .expect("The paths were read by the program, so it should be safe.");
+    // Before moving, need to check if a file with the same name already exists
+    // If it does, need to ask the user what to do
+    new_path = match utils::resolve_path_conflict(&new_path, question_policy, QuestionAction::Decompression)? {
+        Some(path) => path,
+        None => return Ok(ControlFlow::Break(())),
+    };
 
-                seen.insert(name.to_os_string(), path);
-            }
-
-            for entry in fs::read_dir(&previous_path)? {
-                let entry = entry?;
-                let path = entry.path();
-                let name = path
-                    .file_name()
-                    .expect("The paths were read by the program, so it should be safe.");
-
-                if seen.contains_key(&name.to_os_string()) {
-                    continue;
-                }
-
-                fs::copy(&path, new_path.join(name))?;
-            }
-        }
-    }
-
+    // Rename the temporary directory to the archive name, which is output_file_path
+    fs::rename(&previous_path, &new_path)?;
     info_accessible(format!(
         "Successfully moved \"{}\" to \"{}\"",
         nice_directory_display(&previous_path),
