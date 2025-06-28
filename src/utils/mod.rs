@@ -10,6 +10,7 @@ mod fs;
 pub mod io;
 pub mod logger;
 mod question;
+pub mod landlock_support;
 
 pub use self::{
     file_visibility::FileVisibilityPolicy,

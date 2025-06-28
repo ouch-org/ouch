@@ -49,6 +49,8 @@ pub struct CliArgs {
     #[arg(short = 'c', long, global = true)]
     pub threads: Option<usize>,
 
+    pub output_dir: Option<PathBuf>,
+
     // Ouch and claps subcommands
     #[command(subcommand)]
     pub cmd: Subcommand,
@@ -155,6 +157,7 @@ mod tests {
             // This is usually replaced in assertion tests
             password: None,
             threads: None,
+            output_dir: None,
             cmd: Subcommand::Decompress {
                 // Put a crazy value here so no test can assert it unintentionally
                 files: vec!["\x00\x11\x22".into()],
