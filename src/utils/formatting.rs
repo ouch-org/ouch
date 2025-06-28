@@ -109,7 +109,7 @@ impl std::fmt::Display for Bytes {
 
         debug_assert!(num >= 0.0);
         if num < 1_f64 {
-            return write!(f, "{:>6.2}   B", num);
+            return write!(f, "{num:>6.2}   B");
         }
 
         let delimiter = 1000_f64;
