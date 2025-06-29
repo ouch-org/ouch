@@ -25,8 +25,11 @@ pub fn list_archive_contents(
     password: Option<&[u8]>,
 ) -> crate::Result<()> {
 
-    // Initialize landlock sandbox with write access restricted to /tmp as required by some formats
-    landlock::init_sandbox(Some(Path::new("/tmp")));
+    //rar uses a temporary file which needs to be defined early to be permitted in landlock
+    let mut temp_file = tempfile::NamedTempFile::new()?;
+
+    // Initialize landlock sandbox with write access restricted to /tmp/<tmp_file> as required by some formats
+    landlock::init_sandbox(Some(temp_file.path()));
 
     let reader = fs::File::open(archive_path)?;
 
@@ -104,7 +107,6 @@ pub fn list_archive_contents(
         #[cfg(feature = "unrar")]
         Rar => {
             if formats.len() > 1 {
-                let mut temp_file = tempfile::NamedTempFile::new()?;
                 io::copy(&mut reader, &mut temp_file)?;
                 Box::new(crate::archive::rar::list_archive(temp_file.path(), password)?)
             } else {
