@@ -319,6 +319,8 @@ fn execute_decompression(
 ) -> crate::Result<ControlFlow<(), usize>> {
 
     // init landlock sandbox to restrict file system write access to output_dir
+    // The output directory iseither specified with the -d option or the current working directory is used
+    // TODO: restrict acess to the current working directory to allow only creating new files
     landlock::init_sandbox(Some(output_dir));
 
     if is_smart_unpack {
@@ -383,6 +385,9 @@ fn smart_unpack(
         "Created temporary directory {} to hold decompressed elements",
         nice_directory_display(temp_dir_path)
     ));
+
+    //first attempt to restict to the tmp file and allow only to rename it in the parent 
+    //landlock::init_sandbox(Some(temp_dir_path));
 
     let files = unpack_fn(temp_dir_path)?;
 

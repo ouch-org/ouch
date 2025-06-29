@@ -25,9 +25,8 @@ pub fn list_archive_contents(
     password: Option<&[u8]>,
 ) -> crate::Result<()> {
 
-    // Initialize landlock sandbox with empty write path
-    // This allows only read access to the filesystem
-    landlock::init_sandbox(None);
+    // Initialize landlock sandbox with write access restricted to /tmp as required by some formats
+    landlock::init_sandbox(Some(Path::new("/tmp")));
 
     let reader = fs::File::open(archive_path)?;
 
