@@ -29,7 +29,7 @@ pub fn list_archive_contents(
     let mut temp_file = tempfile::NamedTempFile::new()?;
 
     // Initialize landlock sandbox with write access restricted to /tmp/<tmp_file> as required by some formats
-    landlock::init_sandbox(Some(temp_file.path()));
+    landlock::init_sandbox(&[temp_file.path()]);
 
     let reader = fs::File::open(archive_path)?;
 

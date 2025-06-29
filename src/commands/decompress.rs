@@ -321,9 +321,17 @@ fn execute_decompression(
     // init landlock sandbox to restrict file system write access to output_dir
     // The output directory iseither specified with the -d option or the current working directory is used
     // TODO: restrict acess to the current working directory to allow only creating new files
-    landlock::init_sandbox(Some(output_dir));
+   
+    // TODO: move to unpack and smart_unpack to cover the differetn dirctories used for
+    // decompression
 
-    if is_smart_unpack {
+    //if !input_is_stdin && options.remove {
+        //permit write access to input_file_path
+    //} else {
+        landlock::init_sandbox(&[output_dir]);
+    //}
+    
+     if is_smart_unpack {
         return smart_unpack(unpack_fn, output_dir, output_file_path, question_policy);
     }
 

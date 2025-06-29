@@ -96,10 +96,10 @@ pub fn init_sandbox(allowed_dirs: &[&Path]) {
 
         match status {
             Ok(_status) => {
-                //check
+                // check
             }
             Err(_e) => {
-                //log warning
+                // log warning
                 std::process::exit(EXIT_FAILURE);
             }
         }
