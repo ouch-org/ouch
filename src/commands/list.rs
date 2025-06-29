@@ -4,6 +4,7 @@ use std::{
 };
 
 use fs_err as fs;
+use crate::utils::landlock;
 
 use crate::{
     archive,
@@ -23,6 +24,13 @@ pub fn list_archive_contents(
     question_policy: QuestionPolicy,
     password: Option<&[u8]>,
 ) -> crate::Result<()> {
+
+    //rar uses a temporary file which needs to be defined early to be permitted in landlock
+    let mut temp_file = tempfile::NamedTempFile::new()?;
+
+    // Initialize landlock sandbox with write access restricted to /tmp/<tmp_file> as required by some formats
+    landlock::init_sandbox(&[temp_file.path()]);
+
     let reader = fs::File::open(archive_path)?;
 
     // Zip archives are special, because they require io::Seek, so it requires it's logic separated
@@ -99,7 +107,6 @@ pub fn list_archive_contents(
         #[cfg(feature = "unrar")]
         Rar => {
             if formats.len() > 1 {
-                let mut temp_file = tempfile::NamedTempFile::new()?;
                 io::copy(&mut reader, &mut temp_file)?;
                 Box::new(crate::archive::rar::list_archive(temp_file.path(), password)?)
             } else {

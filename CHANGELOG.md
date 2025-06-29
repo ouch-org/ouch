@@ -20,6 +20,8 @@ Categories Used:
 
 ## [Unreleased](https://github.com/ouch-org/ouch/compare/0.6.1...HEAD)
 
+- Add landlock support for linux filesystem isolation [\#723](https://github.com/ouch-org/ouch/pull/723) ([valoq](https://github.com/valoq)) 
+
 ### New Features
 
 - Merge folders in decompression [\#798](https://github.com/ouch-org/ouch/pull/798) ([tommady](https://github.com/tommady))
