@@ -79,9 +79,9 @@ fn restrict_paths(hierarchies: &[&str]) -> Result<RestrictionStatus, MyRestrictE
 
 pub fn init_sandbox(allowed_dir: Option<&Path>) {
 
-    if std::env::var("CI").is_ok() {
-       return;
-    }
+//    if std::env::var("CI").is_ok() {
+//       return;
+//    }
 
 
     if is_landlock_supported() {
