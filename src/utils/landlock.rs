@@ -77,7 +77,7 @@ fn restrict_paths(hierarchies: &[&str]) -> Result<RestrictionStatus, MyRestrictE
 }
 
 
-pub fn init_sandbox(allowed_dir: &Path) {
+pub fn init_sandbox(allowed_dir: Option<&Path>) {
 
     if std::env::var("CI").is_ok() {
        return;
@@ -85,21 +85,27 @@ pub fn init_sandbox(allowed_dir: &Path) {
 
 
     if is_landlock_supported() {
+        let status = if let Some(allowed_dir) = allowed_dir {
+            let path_str = allowed_dir.to_str().expect("Cannot convert path");
+            restrict_paths(&[path_str])
+        } else {
+            restrict_paths(&[])
+        };
 
-        let path_str = allowed_dir.to_str().expect("Cannot convert path");
-        
-        match restrict_paths(&[path_str]) {
-            Ok(status) => {
+        match status {
+            Ok(_status) => {
                 //check
             }
-            Err(e) => {
+            Err(_e) => {
                 //log warning
                 std::process::exit(EXIT_FAILURE);
             }
         }
     } else {
-//        warn!("Landlock is NOT supported on this platform or kernel (<5.19).");
+        // warn!("Landlock is NOT supported on this platform or kernel (<5.19).");
     }
+
+
 
 }
 

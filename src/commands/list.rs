@@ -27,7 +27,7 @@ pub fn list_archive_contents(
 
     // Initialize landlock sandbox with empty write path
     // This allows only read access to the filesystem
-    //landlock::init_sandbox(None);
+    landlock::init_sandbox(None);
 
     let reader = fs::File::open(archive_path)?;
 
