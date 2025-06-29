@@ -7,6 +7,11 @@ use landlock::{
 };
 use thiserror::Error;
 
+use std::path::Path;
+
+/// The status code returned from `ouch` on error
+pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;
+
 /// Returns true if Landlock is supported by the running kernel (Linux kernel >= 5.19).
 #[cfg(target_os = "linux")]
 pub fn is_landlock_supported() -> bool {
@@ -43,24 +48,58 @@ pub enum MyRestrictError {
 ///
 /// The Landlock ABI is set to v2 for compatibility with Linux 5.19+.
 /// All hierarchies are given full access, but root ("/") is read-only.
-pub fn restrict_paths(hierarchies: &[&str]) -> Result<RestrictionStatus, MyRestrictError> {
+fn restrict_paths(hierarchies: &[&str]) -> Result<RestrictionStatus, MyRestrictError> {
     // The Landlock ABI should be incremented (and tested) regularly.
     // ABI set to 2 in compatibility with linux 5.19 and higher
     let abi = ABI::V2;
     let access_all = AccessFs::from_all(abi);
     let access_read = AccessFs::from_read(abi);
 
-    Ok(Ruleset::default()
+
+    let mut ruleset = Ruleset::default()
         .handle_access(access_all)?
         .create()?
         // Read-only access to / (entire filesystem).
-        .add_rules(landlock::path_beneath_rules(&["/"], access_read))?
-        .add_rules(
+        .add_rules(landlock::path_beneath_rules(&["/"], access_read))?;
+
+    // Add write permissions to specified directory of provided
+    if !hierarchies.is_empty() {
+        ruleset = ruleset.add_rules(
             hierarchies
                 .iter()
                 .map::<Result<_, MyRestrictError>, _>(|p| {
                     Ok(PathBeneath::new(PathFd::new(p)?, access_all))
                 }),
-        )?
-        .restrict_self()?)
+        )?;
+    }
+
+    Ok(ruleset.restrict_self()?)
 }
+
+
+pub fn init_sandbox(allowed_dir: &Path) {
+
+    if std::env::var("CI").is_ok() {
+       return;
+    }
+
+
+    if is_landlock_supported() {
+
+        let path_str = allowed_dir.to_str().expect("Cannot convert path");
+        
+        match restrict_paths(&[path_str]) {
+            Ok(status) => {
+                //check
+            }
+            Err(e) => {
+                //log warning
+                std::process::exit(EXIT_FAILURE);
+            }
+        }
+    } else {
+//        warn!("Landlock is NOT supported on this platform or kernel (<5.19).");
+    }
+
+}
+

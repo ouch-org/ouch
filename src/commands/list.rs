@@ -4,6 +4,7 @@ use std::{
 };
 
 use fs_err as fs;
+use crate::utils::landlock;
 
 use crate::{
     archive,
@@ -23,6 +24,11 @@ pub fn list_archive_contents(
     question_policy: QuestionPolicy,
     password: Option<&[u8]>,
 ) -> crate::Result<()> {
+
+    // Initialize landlock sandbox with empty write path
+    // This allows only read access to the filesystem
+    //landlock::init_sandbox(None);
+
     let reader = fs::File::open(archive_path)?;
 
     // Zip archives are special, because they require io::Seek, so it requires it's logic separated

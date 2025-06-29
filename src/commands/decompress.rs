@@ -5,6 +5,7 @@ use std::{
 };
 
 use fs_err as fs;
+use crate::utils::landlock;
 
 #[cfg(not(feature = "bzip3"))]
 use crate::archive;
@@ -316,6 +317,10 @@ fn execute_decompression(
     is_output_dir_provided: bool,
     is_smart_unpack: bool,
 ) -> crate::Result<ControlFlow<(), usize>> {
+
+    // init landlock sandbox to restrict file system write access to output_dir
+    landlock::init_sandbox(output_dir);
+
     if is_smart_unpack {
         return smart_unpack(unpack_fn, output_dir, output_file_path, question_policy);
     }
