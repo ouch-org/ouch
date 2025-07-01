@@ -57,7 +57,7 @@ pub fn list_archive_contents(
                     Box::new(bzip3::read::Bz3Decoder::new(decoder).unwrap())
                 }
                 Lz4 => Box::new(lz4_flex::frame::FrameDecoder::new(decoder)),
-                Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
+                Lzma => Box::new(liblzma::read::XzDecoder::new(decoder)),
                 Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
                 Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
                 Brotli => Box::new(brotli::Decompressor::new(decoder, BUFFER_CAPACITY)),

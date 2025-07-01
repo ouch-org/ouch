@@ -68,7 +68,7 @@ pub fn compress_files(
                 )
             }
             Lz4 => Box::new(lz4_flex::frame::FrameEncoder::new(encoder).auto_finish()),
-            Lzma => Box::new(xz2::write::XzEncoder::new(
+            Lzma => Box::new(liblzma::write::XzEncoder::new(
                 encoder,
                 level.map_or(6, |l| (l as u32).clamp(0, 9)),
             )),
