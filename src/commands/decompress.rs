@@ -4,6 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use backhand::BufReadSeek;
 use fs_err as fs;
 
 #[cfg(not(feature = "bzip3"))]
@@ -24,9 +25,6 @@ use crate::{
     },
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
-
-trait ReadSeek: Read + io::Seek {}
-impl<T: Read + io::Seek> ReadSeek for T {}
 
 pub struct DecompressOptions<'a> {
     pub input_file_path: &'a Path,
@@ -59,21 +57,32 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
     //
     // Any other Zip decompression done can take up the whole RAM and freeze ouch.
     if let [Extension {
-        compression_formats: [Zip],
+        compression_formats: [archive_format @ (Zip | Squashfs)],
         ..
     }] = options.formats.as_slice()
     {
+        let is_zip = matches!(archive_format, Zip);
+
         let mut vec = vec![];
-        let reader: Box<dyn ReadSeek> = if input_is_stdin {
-            warn_user_about_loading_in_memory(".zip");
+        let reader: Box<dyn BufReadSeek> = if input_is_stdin {
+            warn_user_about_loading_in_memory(if is_zip { ".zip" } else { ".sqfs" });
             io::copy(&mut io::stdin(), &mut vec)?;
             Box::new(io::Cursor::new(vec))
         } else {
-            Box::new(fs::File::open(options.input_file_path)?)
+            let file = fs::File::open(options.input_file_path)?;
+            let file = BufReader::new(file);
+            Box::new(file)
         };
-        let zip_archive = zip::ZipArchive::new(reader)?;
         let files_unpacked = if let ControlFlow::Continue(files) = execute_decompression(
-            |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, options.password, options.quiet),
+            |output_dir| {
+                if is_zip {
+                    let zip_archive = zip::ZipArchive::new(reader)?;
+                    crate::archive::zip::unpack_archive(zip_archive, output_dir, options.password, options.quiet)
+                } else {
+                    let archive = backhand::FilesystemReader::from_reader(reader)?;
+                    crate::archive::squashfs::unpack_archive(archive, output_dir, options.quiet)
+                }
+            },
             options.output_dir,
             &options.output_file_path,
             options.question_policy,
@@ -174,14 +183,15 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 return Ok(());
             }
         }
-        Squashfs => todo!(),
-        Zip => {
+        Zip | Squashfs => {
+            let is_zip = matches!(first_extension, Zip);
+
             if options.formats.len() > 1 {
                 // Locking necessary to guarantee that warning and question
                 // messages stay adjacent
                 let _locks = lock_and_flush_output_stdio();
 
-                warn_user_about_loading_in_memory(".zip");
+                warn_user_about_loading_in_memory(if is_zip { ".zip" } else { ".sqfs" });
                 if !user_wants_to_continue(
                     options.input_file_path,
                     options.question_policy,
@@ -193,11 +203,17 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
 
             let mut vec = vec![];
             io::copy(&mut reader, &mut vec)?;
-            let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
+            let reader = io::Cursor::new(vec);
 
             if let ControlFlow::Continue(files) = execute_decompression(
-                |output_dir| {
-                    crate::archive::zip::unpack_archive(zip_archive, output_dir, options.password, options.quiet)
+                move |output_dir| {
+                    if is_zip {
+                        let archive = zip::ZipArchive::new(reader)?;
+                        crate::archive::zip::unpack_archive(archive, output_dir, options.password, options.quiet)
+                    } else {
+                        let archive = backhand::FilesystemReader::from_reader(reader)?;
+                        crate::archive::squashfs::unpack_archive(archive, output_dir, options.quiet)
+                    }
                 },
                 options.output_dir,
                 &options.output_file_path,
