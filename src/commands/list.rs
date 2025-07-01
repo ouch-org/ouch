@@ -7,7 +7,7 @@ use fs_err as fs;
 
 use crate::{
     archive,
-    commands::warn_user_about_loading_zip_in_memory,
+    commands::warn_user_about_loading_in_memory,
     extension::CompressionFormat::{self, *},
     list::{self, FileInArchive, ListOptions},
     utils::{io::lock_and_flush_output_stdio, user_wants_to_continue},
@@ -38,6 +38,13 @@ pub fn list_archive_contents(
         list::list_files(archive_path, files, list_options)?;
         return Ok(());
     }
+    if let &[Squashfs] = formats.as_slice() {
+        let reader = BufReader::with_capacity(BUFFER_CAPACITY, reader);
+        let archive = backhand::FilesystemReader::from_reader(reader)?;
+        let files = crate::archive::squashfs::list_archive(archive);
+        list::list_files(archive_path, files, list_options)?;
+        return Ok(());
+    }
 
     // Will be used in decoder chaining
     let reader = BufReader::with_capacity(BUFFER_CAPACITY, reader);
@@ -61,7 +68,7 @@ pub fn list_archive_contents(
                 Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
                 Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
                 Brotli => Box::new(brotli::Decompressor::new(decoder, BUFFER_CAPACITY)),
-                Tar | Zip | Rar | SevenZip => unreachable!("should be treated by caller"),
+                Tar | Zip | Rar | SevenZip | Squashfs => unreachable!("should be treated by caller"),
             };
             Ok(decoder)
         };
@@ -78,13 +85,15 @@ pub fn list_archive_contents(
     let archive_format = misplaced_archive_format.unwrap_or(formats[0]);
     let files: Box<dyn Iterator<Item = crate::Result<FileInArchive>>> = match archive_format {
         Tar => Box::new(crate::archive::tar::list_archive(tar::Archive::new(reader))),
-        Zip => {
+        Zip | Squashfs => {
+            let is_zip = matches!(archive_format, Zip);
+
             if formats.len() > 1 {
                 // Locking necessary to guarantee that warning and question
                 // messages stay adjacent
                 let _locks = lock_and_flush_output_stdio();
 
-                warn_user_about_loading_zip_in_memory();
+                warn_user_about_loading_in_memory(if is_zip { ".zip" } else { ".sqfs" });
                 if !user_wants_to_continue(archive_path, question_policy, QuestionAction::Decompression)? {
                     return Ok(());
                 }
@@ -92,9 +101,14 @@ pub fn list_archive_contents(
 
             let mut vec = vec![];
             io::copy(&mut reader, &mut vec)?;
-            let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
-
-            Box::new(crate::archive::zip::list_archive(zip_archive, password))
+            let reader = io::Cursor::new(vec);
+            if is_zip {
+                let zip_archive = zip::ZipArchive::new(reader)?;
+                Box::new(crate::archive::zip::list_archive(zip_archive, password))
+            } else {
+                let archive = backhand::FilesystemReader::from_reader(reader)?;
+                Box::new(crate::archive::squashfs::list_archive(archive))
+            }
         }
         #[cfg(feature = "unrar")]
         Rar => {
@@ -116,7 +130,7 @@ pub fn list_archive_contents(
                 // messages stay adjacent
                 let _locks = lock_and_flush_output_stdio();
 
-                warn_user_about_loading_zip_in_memory();
+                warn_user_about_loading_in_memory(".7z");
                 if !user_wants_to_continue(archive_path, question_policy, QuestionAction::Decompression)? {
                     return Ok(());
                 }

@@ -102,6 +102,14 @@ pub enum CompressionFormat {
     SevenZip,
     /// .br
     Brotli,
+    /// .squashfs, .sqfs
+    //
+    // Note: There is not canonical extension for squashfs, we pick the two semi-official ones:
+    // - `.squashfs`: The most popular one from a quick search on GitHub. Also used by some distros.
+    //   https://github.com/NixOS/nixpkgs/blob/6576d979e9a64d870b1f298a5c598116891a6c25/nixos/modules/installer/cd-dvd/iso-image.nix#L797
+    // - `.sqfs`: Mentioned in `man mksquashfs` by squashfs-tools, the reference implementation.
+    //   https://github.com/plougher/squashfs-tools/blob/9f9bbd79016ff04967800f4301c7a9d0024c0c91/Documentation/manpages/mksquashfs.1#L494
+    Squashfs,
 }
 
 impl CompressionFormat {
@@ -109,7 +117,7 @@ impl CompressionFormat {
     pub fn archive_format(&self) -> bool {
         // Keep this match like that without a wildcard `_` so we don't forget to update it
         match self {
-            Tar | Zip | Rar | SevenZip => true,
+            Tar | Zip | Rar | SevenZip | Squashfs => true,
             Gzip => false,
             Bzip => false,
             Bzip3 => false,
@@ -144,6 +152,7 @@ fn to_extension(ext: &[u8]) -> Option<Extension> {
             b"rar" => &[Rar],
             b"7z" => &[SevenZip],
             b"br" => &[Brotli],
+            b"sqfs" | b"squashfs" => &[Squashfs],
             _ => return None,
         },
         ext.to_str_lossy(),

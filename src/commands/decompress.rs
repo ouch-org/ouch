@@ -9,7 +9,7 @@ use fs_err as fs;
 #[cfg(not(feature = "bzip3"))]
 use crate::archive;
 use crate::{
-    commands::{warn_user_about_loading_sevenz_in_memory, warn_user_about_loading_zip_in_memory},
+    commands::warn_user_about_loading_in_memory,
     extension::{
         split_first_compression_format,
         CompressionFormat::{self, *},
@@ -65,7 +65,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
     {
         let mut vec = vec![];
         let reader: Box<dyn ReadSeek> = if input_is_stdin {
-            warn_user_about_loading_zip_in_memory();
+            warn_user_about_loading_in_memory(".zip");
             io::copy(&mut io::stdin(), &mut vec)?;
             Box::new(io::Cursor::new(vec))
         } else {
@@ -132,7 +132,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
             Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
             Brotli => Box::new(brotli::Decompressor::new(decoder, BUFFER_CAPACITY)),
-            Tar | Zip | Rar | SevenZip => decoder,
+            Tar | Zip | Rar | SevenZip | Squashfs => decoder,
         };
         Ok(decoder)
     };
@@ -174,13 +174,14 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 return Ok(());
             }
         }
+        Squashfs => todo!(),
         Zip => {
             if options.formats.len() > 1 {
                 // Locking necessary to guarantee that warning and question
                 // messages stay adjacent
                 let _locks = lock_and_flush_output_stdio();
 
-                warn_user_about_loading_zip_in_memory();
+                warn_user_about_loading_in_memory(".zip");
                 if !user_wants_to_continue(
                     options.input_file_path,
                     options.question_policy,
@@ -252,7 +253,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 // messages stay adjacent
                 let _locks = lock_and_flush_output_stdio();
 
-                warn_user_about_loading_sevenz_in_memory();
+                warn_user_about_loading_in_memory(".7z");
                 if !user_wants_to_continue(
                     options.input_file_path,
                     options.question_policy,

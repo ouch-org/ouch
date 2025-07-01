@@ -5,10 +5,9 @@ use std::{
 
 use fs_err as fs;
 
-use super::warn_user_about_loading_sevenz_in_memory;
 use crate::{
     archive,
-    commands::warn_user_about_loading_zip_in_memory,
+    commands::warn_user_about_loading_in_memory,
     extension::{split_first_compression_format, CompressionFormat::*, Extension},
     utils::{io::lock_and_flush_output_stdio, user_wants_to_continue, FileVisibilityPolicy},
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
@@ -96,7 +95,7 @@ pub fn compress_files(
                 let win_size = 22; // default to 2^22 = 4 MiB window size
                 Box::new(brotli::CompressorWriter::new(encoder, BUFFER_CAPACITY, level, win_size))
             }
-            Tar | Zip | Rar | SevenZip => unreachable!(),
+            Tar | Zip | Rar | SevenZip | Squashfs => unreachable!(),
         };
         Ok(encoder)
     };
@@ -125,13 +124,14 @@ pub fn compress_files(
             )?;
             writer.flush()?;
         }
+        Squashfs => todo!(),
         Zip => {
             if !formats.is_empty() {
                 // Locking necessary to guarantee that warning and question
                 // messages stay adjacent
                 let _locks = lock_and_flush_output_stdio();
 
-                warn_user_about_loading_zip_in_memory();
+                warn_user_about_loading_in_memory(".zip");
                 if !user_wants_to_continue(output_path, question_policy, QuestionAction::Compression)? {
                     return Ok(false);
                 }
@@ -163,7 +163,7 @@ pub fn compress_files(
                 // messages stay adjacent
                 let _locks = lock_and_flush_output_stdio();
 
-                warn_user_about_loading_sevenz_in_memory();
+                warn_user_about_loading_in_memory(".7z");
                 if !user_wants_to_continue(output_path, question_policy, QuestionAction::Compression)? {
                     return Ok(false);
                 }
