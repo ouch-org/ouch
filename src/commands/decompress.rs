@@ -49,13 +49,13 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
     assert!(options.output_dir.exists());
     let input_is_stdin = is_path_stdin(options.input_file_path);
 
-    // Zip archives are special, because they require io::Seek, so it requires it's logic separated
+    // Zip and squashfs archives are special, because they require io::Seek, so it requires it's logic separated
     // from decoder chaining.
     //
     // This is the only case where we can read and unpack it directly, without having to do
     // in-memory decompression/copying first.
     //
-    // Any other Zip decompression done can take up the whole RAM and freeze ouch.
+    // Any other decompression done can take up the whole RAM and freeze ouch.
     if let [Extension {
         compression_formats: [archive_format @ (Zip | Squashfs)],
         ..

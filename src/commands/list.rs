@@ -25,7 +25,7 @@ pub fn list_archive_contents(
 ) -> crate::Result<()> {
     let reader = fs::File::open(archive_path)?;
 
-    // Zip archives are special, because they require io::Seek, so it requires it's logic separated
+    // Zip and squashfs archives are special, because they require io::Seek, so it requires it's logic separated
     // from decoder chaining.
     //
     // This is the only case where we can read and unpack it directly, without having to do
