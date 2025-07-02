@@ -158,6 +158,10 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
     fn is_sevenz(buf: &[u8]) -> bool {
         buf.starts_with(&[0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C])
     }
+    fn is_squashfs(buf: &[u8]) -> bool {
+        // Ref: https://dr-emann.github.io/squashfs/squashfs.html#_the_superblock
+        buf.starts_with(b"hsqs")
+    }
 
     let buf = {
         let mut buf = [0; 270];
@@ -195,6 +199,8 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
         Some(Extension::new(&[Rar], "rar"))
     } else if is_sevenz(&buf) {
         Some(Extension::new(&[SevenZip], "7z"))
+    } else if is_squashfs(&buf) {
+        Some(Extension::new(&[Squashfs], "sqfs"))
     } else {
         None
     }

@@ -5,8 +5,8 @@ expression: "run_ouch(\"ouch compress input output --format targz\", dir)"
 [ERROR] Failed to parse `--format targz`
  - Unsupported extension 'targz'
 
-hint: Supported extensions are: tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, sz, zst, rar, 7z
-hint: Supported aliases are: tgz, tbz, tlz4, txz, tzlma, tsz, tzst
+hint: Supported extensions are: tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, sz, zst, rar, 7z, sqfs
+hint: Supported aliases are: tgz, tbz, tlz4, txz, tzlma, tsz, tzst, squashfs
 hint: 
 hint: Examples:
 hint:   --format tar

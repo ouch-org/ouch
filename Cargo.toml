@@ -15,6 +15,8 @@ description = "A command-line utility for easily compressing and decompressing f
 
 [dependencies]
 atty = "0.2.14"
+# FIXME: `xz` features cannot be enabled because it uses `lzma-sys` which cannot co-exist with our dependency `xz2`.
+backhand = { version = "0.23.0", default-features = false, features = ["parallel", "gzip", "lz4", "zstd"] }
 brotli = "7.0.0"
 bstr = { version = "1.10.0", default-features = false, features = ["std"] }
 bytesize = "1.3.0"
