@@ -124,29 +124,41 @@ pub fn compress_files(
             )?;
             writer.flush()?;
         }
-        Squashfs => todo!(),
-        Zip => {
+        Zip | Squashfs => {
+            let is_zip = matches!(first_format, Zip);
+
             if !formats.is_empty() {
                 // Locking necessary to guarantee that warning and question
                 // messages stay adjacent
                 let _locks = lock_and_flush_output_stdio();
 
-                warn_user_about_loading_in_memory(".zip");
+                warn_user_about_loading_in_memory(if is_zip { ".zip" } else { ".sqfs" });
                 if !user_wants_to_continue(output_path, question_policy, QuestionAction::Compression)? {
                     return Ok(false);
                 }
             }
 
             let mut vec_buffer = Cursor::new(vec![]);
+            if is_zip {
+                archive::zip::build_archive_from_paths(
+                    &files,
+                    output_path,
+                    &mut vec_buffer,
+                    file_visibility_policy,
+                    quiet,
+                    follow_symlinks,
+                )?;
+            } else {
+                archive::squashfs::build_archive_from_paths(
+                    &files,
+                    output_path,
+                    &mut vec_buffer,
+                    file_visibility_policy,
+                    quiet,
+                    follow_symlinks,
+                )?;
+            }
 
-            archive::zip::build_archive_from_paths(
-                &files,
-                output_path,
-                &mut vec_buffer,
-                file_visibility_policy,
-                quiet,
-                follow_symlinks,
-            )?;
             vec_buffer.rewind()?;
             io::copy(&mut vec_buffer, &mut writer)?;
         }
