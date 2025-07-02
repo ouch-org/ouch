@@ -90,7 +90,7 @@ pub fn unpack_archive(archive: FilesystemReader<'_>, output_folder: &Path, quiet
                 let target = &symlink.link;
                 #[cfg(unix)]
                 {
-                    std::os::unix::fs::symlink(&target, &file_path)?;
+                    std::os::unix::fs::symlink(target, &file_path)?;
                     filetime_creation::set_symlink_file_times(&file_path, mtime, mtime, mtime)?;
                     // Note: Symlink permissions are ignored on *NIX anyway. No need to set them.
                 }
@@ -138,6 +138,8 @@ pub fn unpack_archive(archive: FilesystemReader<'_>, output_folder: &Path, quiet
     Ok(unpacked_files)
 }
 
+// Re-assignments work bettwe with `cfg` blocks.
+#[allow(clippy::field_reassign_with_default)]
 pub fn build_archive_from_paths<W>(
     input_filenames: &[PathBuf],
     output_path: &Path,
@@ -258,7 +260,7 @@ where
     }
 
     if !quiet {
-        info(format!("Compressing data"));
+        info("Compressing data".to_string());
     }
 
     // Finalize the superblock and write data. This should be done before
@@ -330,7 +332,7 @@ impl io::Read for LazyFile {
             }
             LazyFile::Opened(file) => {
                 let cnt = file.read(buf)?;
-                if buf.len() != 0 && cnt == 0 {
+                if !buf.is_empty() && cnt == 0 {
                     *self = Self::Closed;
                 }
                 Ok(cnt)
