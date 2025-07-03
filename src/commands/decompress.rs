@@ -128,8 +128,9 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 Box::new(bzip3::read::Bz3Decoder::new(decoder)?)
             }
             Lz4 => Box::new(lz4_flex::frame::FrameDecoder::new(decoder)),
-            Lzma => Box::new(liblzma::read::XzDecoder::new_stream(decoder, 
-                liblzma::stream::Stream::new_lzma_decoder(u64::MAX).unwrap()
+            Lzma => Box::new(liblzma::read::XzDecoder::new_stream(
+                decoder,
+                liblzma::stream::Stream::new_lzma_decoder(u64::MAX).unwrap(),
             )),
             Xz => Box::new(liblzma::read::XzDecoder::new(decoder)),
             Lzip => Box::new(liblzma::read::XzDecoder::new_stream(

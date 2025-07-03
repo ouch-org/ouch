@@ -86,7 +86,7 @@ pub enum CompressionFormat {
     Bzip3,
     /// .lz4
     Lz4,
-    /// .xz 
+    /// .xz
     Xz,
     /// .lzma
     Lzma,

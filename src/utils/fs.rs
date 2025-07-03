@@ -136,10 +136,7 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
         buf.starts_with(b"BZ3v1")
     }
     fn is_lzma(buf: &[u8]) -> bool {
-        buf.len() >= 14 
-            && buf[0] == 0x5d 
-            && (buf[12] == 0x00 || buf[12] == 0xff)
-            && buf[13] == 0x00
+        buf.len() >= 14 && buf[0] == 0x5d && (buf[12] == 0x00 || buf[12] == 0xff) && buf[13] == 0x00
     }
     fn is_xz(buf: &[u8]) -> bool {
         buf.starts_with(&[0xFD, 0x37, 0x7A, 0x58, 0x5A, 0x00])
