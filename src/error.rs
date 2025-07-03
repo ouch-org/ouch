@@ -135,8 +135,8 @@ impl FinalError {
     ///
     /// This is what it looks like:
     /// ```
-    /// hint: Supported extensions are: tar, zip, bz, bz2, gz, lz4, xz, lzma, sz, zst
-    /// hint: Supported aliases are: tgz, tbz, tlz4, txz, tzlma, tsz, tzst
+    /// hint: Supported extensions are: tar, zip, bz, bz2, gz, lz4, xz, lzma, lz, sz, zst
+    /// hint: Supported aliases are: tgz, tbz, tlz4, txz, tlzma, tsz, tzst, tlz
     /// ```
     pub fn hint_all_supported_formats(self) -> Self {
         self.hint(format!("Supported extensions are: {}", PRETTY_SUPPORTED_EXTENSIONS))
