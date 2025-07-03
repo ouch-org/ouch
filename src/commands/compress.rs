@@ -68,10 +68,20 @@ pub fn compress_files(
                 )
             }
             Lz4 => Box::new(lz4_flex::frame::FrameEncoder::new(encoder).auto_finish()),
-            Lzma => Box::new(xz2::write::XzEncoder::new(
+            Lzma => {
+                return Err(crate::Error::UnsupportedFormat {
+                    reason: "LZMA1 compression is not supported in ouch, use .xz instead.".to_string(),
+                })
+            }
+            Xz => Box::new(liblzma::write::XzEncoder::new(
                 encoder,
                 level.map_or(6, |l| (l as u32).clamp(0, 9)),
             )),
+            Lzip => {
+                return Err(crate::Error::UnsupportedFormat {
+                    reason: "Lzip compression is not supported in ouch.".to_string(),
+                })
+            }
             Snappy => Box::new(
                 gzp::par::compress::ParCompress::<gzp::snap::Snap>::builder()
                     .compression_level(gzp::par::compress::Compression::new(
@@ -108,7 +118,7 @@ pub fn compress_files(
     }
 
     match first_format {
-        Gzip | Bzip | Bzip3 | Lz4 | Lzma | Snappy | Zstd | Brotli => {
+        Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {
             writer = chain_writer_encoder(&first_format, writer)?;
             let mut reader = fs::File::open(&files[0])?;
 
