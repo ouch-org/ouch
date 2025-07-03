@@ -62,6 +62,10 @@ pub fn list_archive_contents(
                     liblzma::stream::Stream::new_lzma_decoder(u64::MAX).unwrap(),
                 )),
                 Xz => Box::new(liblzma::read::XzDecoder::new(decoder)),
+                Lzip => Box::new(liblzma::read::XzDecoder::new_stream(
+                    decoder,
+                    liblzma::stream::Stream::new_lzip_decoder(u64::MAX, 0).unwrap(),
+                )),
                 Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
                 Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
                 Brotli => Box::new(brotli::Decompressor::new(decoder, BUFFER_CAPACITY)),
@@ -131,7 +135,7 @@ pub fn list_archive_contents(
 
             Box::new(archive::sevenz::list_archive(io::Cursor::new(vec), password)?)
         }
-        Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Snappy | Zstd | Brotli => {
+        Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {
             unreachable!("Not an archive, should be validated before calling this function.");
         }
     };

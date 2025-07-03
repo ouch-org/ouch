@@ -89,6 +89,8 @@ pub enum CompressionFormat {
     Xz,
     /// .lzma
     Lzma,
+    /// .lzip
+    Lzip,
     /// .sz
     Snappy,
     /// tar, tgz, tbz, tbz2, tbz3, txz, tlz4, tlzma, tsz, tzst
@@ -118,6 +120,7 @@ impl CompressionFormat {
             Lz4 => false,
             Lzma => false,
             Xz => false,
+            Lzip => false,
             Snappy => false,
             Zstd => false,
             Brotli => false,
@@ -135,6 +138,7 @@ fn to_extension(ext: &[u8]) -> Option<Extension> {
             b"tlz4" => &[Tar, Lz4],
             b"txz" => &[Tar, Xz],
             b"tlzma" => &[Tar, Lzma],
+            b"tlz" => &[Tar, Lzip],
             b"tsz" => &[Tar, Snappy],
             b"tzst" => &[Tar, Zstd],
             b"zip" => &[Zip],
@@ -144,6 +148,7 @@ fn to_extension(ext: &[u8]) -> Option<Extension> {
             b"lz4" => &[Lz4],
             b"xz" => &[Xz],
             b"lzma" => &[Lzma],
+            b"lz" => &[Lzip],
             b"sz" => &[Snappy],
             b"zst" => &[Zstd],
             b"rar" => &[Rar],
