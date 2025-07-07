@@ -42,7 +42,7 @@ tempfile = "3.10.1"
 time = { version = "0.3.36", default-features = false }
 unrar = { version = "0.5.7", optional = true }
 xz2 = "0.1.7"
-zip = { version = "0.6.6", default-features = false, features = [
+zip = { version = "4.2", default-features = false, features = [
     "time",
     "aes-crypto",
 ] }
@@ -76,7 +76,7 @@ test-strategy = "0.4.0"
 
 [features]
 default = ["unrar", "use_zlib", "use_zstd_thin", "bzip3"]
-use_zlib = ["flate2/zlib", "gzp/deflate_zlib", "zip/deflate-zlib"]
+use_zlib = ["flate2/zlib", "gzp/deflate_zlib", "zip/deflate-flate2-zlib"]
 use_zstd_thin = ["zstd/thin"]
 allow_piped_choice = []
 

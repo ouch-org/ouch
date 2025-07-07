@@ -41,9 +41,7 @@ where
 
     for idx in 0..archive.len() {
         let mut file = match password {
-            Some(password) => archive
-                .by_index_decrypt(idx, password)?
-                .map_err(|_| zip::result::ZipError::UnsupportedArchive("Password required to decrypt file"))?,
+            Some(password) => archive.by_index_decrypt(idx, password)?,
             None => archive.by_index(idx)?,
         };
         let file_path = match file.enclosed_name() {
@@ -65,6 +63,9 @@ where
                     info(format!("File {} extracted to \"{}\"", idx, file_path.display()));
                 }
                 fs::create_dir_all(&file_path)?;
+
+                #[cfg(unix)]
+                unix_set_permissions(&file_path, &file)?;
             }
             _is_file @ false => {
                 if let Some(path) = file_path.parent() {
@@ -74,21 +75,16 @@ where
                 }
                 let file_path = strip_cur_dir(file_path.as_path());
 
-                // same reason is in _is_dir: long, often not needed text
-                if !quiet {
-                    info(format!(
-                        "extracted ({}) {:?}",
-                        Bytes::new(file.size()),
-                        file_path.display(),
-                    ));
-                }
-
                 let mode = file.unix_mode();
                 let is_symlink = mode.is_some_and(|mode| mode & 0o170000 == 0o120000);
 
                 if is_symlink {
                     let mut target = String::new();
                     file.read_to_string(&mut target)?;
+
+                    if !quiet {
+                        info(format!("linking {} -> {}", file_path.display(), target));
+                    }
 
                     #[cfg(unix)]
                     std::os::unix::fs::symlink(&target, file_path)?;
@@ -97,14 +93,21 @@ where
                 } else {
                     let mut output_file = fs::File::create(file_path)?;
                     io::copy(&mut file, &mut output_file)?;
+                    set_last_modified_time(&file, file_path)?;
+                    #[cfg(unix)]
+                    unix_set_permissions(&file_path, &file)?;
                 }
 
-                set_last_modified_time(&file, file_path)?;
+                // same reason is in _is_dir: long, often not needed text
+                if !quiet {
+                    info(format!(
+                        "extracted ({}) {:?}",
+                        Bytes::new(file.size()),
+                        file_path.display(),
+                    ));
+                }
             }
         }
-
-        #[cfg(unix)]
-        unix_set_permissions(&file_path, &file)?;
 
         unpacked_files += 1;
     }
@@ -136,9 +139,7 @@ where
         for idx in 0..archive.len() {
             let file_in_archive = (|| {
                 let zip_result = match password.clone() {
-                    Some(password) => archive
-                        .by_index_decrypt(idx, &password)?
-                        .map_err(|_| zip::result::ZipError::UnsupportedArchive("Password required to decrypt file")),
+                    Some(password) => archive.by_index_decrypt(idx, &password),
                     None => archive.by_index(idx),
                 };
 
@@ -147,7 +148,7 @@ where
                     Err(e) => return Err(e.into()),
                 };
 
-                let path = file.enclosed_name().unwrap_or(&*file.mangled_name()).to_owned();
+                let path = file.enclosed_name().unwrap_or_else(|| file.mangled_name()).to_owned();
                 let is_dir = file.is_dir();
 
                 Ok(FileInArchive { path, is_dir })
@@ -174,7 +175,7 @@ where
     let mut writer = zip::ZipWriter::new(writer);
     // always use ZIP64 to allow compression of files larger than 4GB
     // the format is widely supported and the extra 20B is negligible in most cases
-    let options = zip::write::FileOptions::default().large_file(true);
+    let options = zip::write::SimpleFileOptions::default().large_file(true);
     let output_handle = Handle::from_path(output_path);
 
     #[cfg(not(unix))]
@@ -286,7 +287,7 @@ where
     Ok(bytes)
 }
 
-fn display_zip_comment_if_exists(file: &ZipFile) {
+fn display_zip_comment_if_exists<R: Read>(file: &ZipFile<'_, R>) {
     let comment = file.comment();
     if !comment.is_empty() {
         // Zip file comments seem to be pretty rare, but if they are used,
@@ -311,23 +312,26 @@ fn get_last_modified_time(file: &fs::File) -> DateTime {
         .unwrap_or_default()
 }
 
-fn set_last_modified_time(zip_file: &ZipFile, path: &Path) -> crate::Result<()> {
-    let modification_time = zip_file.last_modified().to_time();
+fn set_last_modified_time<R: Read>(zip_file: &ZipFile<'_, R>, path: &Path) -> crate::Result<()> {
+    // Extract modification time from zip file and convert to FileTime
+    let file_time = zip_file
+        .last_modified()
+        .and_then(|datetime| OffsetDateTime::try_from(datetime).ok())
+        .map(|time| {
+            // Zip does not support nanoseconds, so we can assume zero here
+            FileTime::from_unix_time(time.unix_timestamp(), 0)
+        });
 
-    let Ok(time_in_seconds) = modification_time else {
-        return Ok(());
-    };
-
-    // Zip does not support nanoseconds, so we can assume zero here
-    let modification_time = FileTime::from_unix_time(time_in_seconds.unix_timestamp(), 0);
-
-    set_file_mtime(path, modification_time)?;
+    // Set the modification time if available
+    if let Some(modification_time) = file_time {
+        set_file_mtime(path, modification_time)?;
+    }
 
     Ok(())
 }
 
 #[cfg(unix)]
-fn unix_set_permissions(file_path: &Path, file: &ZipFile) -> crate::Result<()> {
+fn unix_set_permissions<R: Read>(file_path: &Path, file: &ZipFile<'_, R>) -> crate::Result<()> {
     use std::fs::Permissions;
 
     if let Some(mode) = file.unix_mode() {
