@@ -242,6 +242,8 @@ where
                 FinalError::with_title("Zip requires that all directories names are valid UTF-8")
                     .detail(format!("File at '{path:?}' has a non-UTF-8 name"))
             })?;
+            // ZIP format requires forward slashes as path separators, regardless of platform
+            let entry_name = entry_name.replace(std::path::MAIN_SEPARATOR, "/");
 
             if metadata.is_dir() {
                 writer.add_directory(entry_name, options)?;
@@ -251,6 +253,8 @@ where
                     FinalError::with_title("Zip requires that all directories names are valid UTF-8")
                         .detail(format!("File at '{target_path:?}' has a non-UTF-8 name"))
                 })?;
+                // ZIP format requires forward slashes as path separators, regardless of platform
+                let target_name = target_name.replace(std::path::MAIN_SEPARATOR, "/");
 
                 // This approach writes the symlink target path as the content of the symlink entry.
                 // We detect symlinks during extraction by checking for the Unix symlink mode (0o120000) in the entry's permissions.
