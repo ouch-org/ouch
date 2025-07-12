@@ -241,6 +241,7 @@ mod tests {
                     fast: false,
                     slow: false,
                     follow_symlinks: false,
+                    disable_sandbox: true,
                 },
                 ..mock_cli_args()
             }
@@ -255,6 +256,7 @@ mod tests {
                     fast: false,
                     slow: false,
                     follow_symlinks: false,
+                    disable_sandbox: true,
                 },
                 ..mock_cli_args()
             }
