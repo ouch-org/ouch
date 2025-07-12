@@ -171,14 +171,14 @@ mod tests {
             // This is usually replaced in assertion tests
             password: None,
             threads: None,
-            disable_sandbox: true,
+            disable_sandbox: false,
             cmd: Subcommand::Decompress {
                 // Put a crazy value here so no test can assert it unintentionally
                 files: vec!["\x00\x11\x22".into()],
                 output_dir: None,
                 remove: false,
                 no_smart_unpack: false,
-                disable_sandbox: true,
+                disable_sandbox: false,
             },
         }
     }
@@ -193,7 +193,7 @@ mod tests {
                     output_dir: None,
                     remove: false,
                     no_smart_unpack: false,
-                    disable_sandbox: true,
+                    disable_sandbox: false,
                 },
                 ..mock_cli_args()
             }
@@ -206,7 +206,7 @@ mod tests {
                     output_dir: None,
                     remove: false,
                     no_smart_unpack: false,
-                    disable_sandbox: true,
+                    disable_sandbox: false,
                 },
                 ..mock_cli_args()
             }
@@ -219,7 +219,7 @@ mod tests {
                     output_dir: None,
                     remove: false,
                     no_smart_unpack: false,
-                    disable_sandbox: true,
+                    disable_sandbox: false,
                 },
                 ..mock_cli_args()
             }
@@ -235,7 +235,7 @@ mod tests {
                     fast: false,
                     slow: false,
                     follow_symlinks: false,
-                    disable_sandbox: true,
+                    disable_sandbox: false,
                 },
                 ..mock_cli_args()
             }
@@ -250,7 +250,7 @@ mod tests {
                     fast: false,
                     slow: false,
                     follow_symlinks: false,
-                    disable_sandbox: true,
+                    disable_sandbox: false,
                 },
                 ..mock_cli_args()
             }
@@ -265,7 +265,7 @@ mod tests {
                     fast: false,
                     slow: false,
                     follow_symlinks: false,
-                    disable_sandbox: true,
+                    disable_sandbox: false,
                 },
                 ..mock_cli_args()
             }
@@ -291,7 +291,7 @@ mod tests {
                         fast: false,
                         slow: false,
                         follow_symlinks: false,
-                        disable_sandbox: true,
+                        disable_sandbox: false,
                     },
                     format: Some("tar.gz".into()),
                     ..mock_cli_args()
