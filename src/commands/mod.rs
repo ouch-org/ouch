@@ -116,6 +116,7 @@ pub fn run(
                 question_policy,
                 file_visibility_policy,
                 level,
+                args.disable_sandbox,
             );
 
             if let Ok(true) = compress_result {
