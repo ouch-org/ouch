@@ -261,9 +261,7 @@ pub fn run(
                         .map(|str| <[u8] as ByteSlice>::from_os_str(str).expect("convert password to bytes failed")),
                     args.disable_sandbox,
                 )?;
-
             }
-
             Ok(())
         }
     }

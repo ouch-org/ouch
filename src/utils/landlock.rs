@@ -1,13 +1,13 @@
 // Landlock support and generic Landlock sandbox implementation.
 // https://landlock.io/rust-landlock/landlock/struct.Ruleset.html
 
+use std::path::Path;
+
 use landlock::{
     Access, AccessFs, PathBeneath, PathFd, PathFdError, RestrictionStatus, Ruleset,
     RulesetAttr, RulesetCreatedAttr, RulesetError, ABI,
 };
 use thiserror::Error;
-
-use std::path::Path;
 
 /// The status code returned from `ouch` on error
 pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;

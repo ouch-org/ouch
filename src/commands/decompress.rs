@@ -5,7 +5,7 @@ use std::{
 };
 
 use fs_err as fs;
-use crate::utils::landlock;
+//use crate::utils::landlock;
 
 #[cfg(not(feature = "bzip3"))]
 use crate::archive;
@@ -19,7 +19,7 @@ use crate::{
     utils::{
         self,
         io::lock_and_flush_output_stdio,
-        is_path_stdin,
+        is_path_stdin, landlock,
         logger::{info, info_accessible},
         nice_directory_display, user_wants_to_continue,
     },
@@ -324,21 +324,17 @@ fn execute_decompression(
     is_smart_unpack: bool,
     disable_sandbox: bool,
 ) -> crate::Result<ControlFlow<(), usize>> {
-
     // init landlock sandbox to restrict file system write access to output_dir
     // The output directory iseither specified with the -d option or the current working directory is used
     // TODO: restrict acess to the current working directory to allow only creating new files
-   
     // TODO: move to unpack and smart_unpack to cover the differetn dirctories used for
     // decompression
-
     //if !input_is_stdin && options.remove {
         //permit write access to input_file_path
     //} else {
     //}
-    
+
     landlock::init_sandbox(&[output_dir], disable_sandbox);
-    
 
     if is_smart_unpack {
         return smart_unpack(unpack_fn, output_dir, output_file_path, question_policy);

@@ -4,14 +4,14 @@ use std::{
 };
 
 use fs_err as fs;
-use crate::utils::landlock;
+//use crate::utils::landlock;
 
 use crate::{
     archive,
     commands::warn_user_about_loading_zip_in_memory,
     extension::CompressionFormat::{self, *},
     list::{self, FileInArchive, ListOptions},
-    utils::{io::lock_and_flush_output_stdio, user_wants_to_continue},
+    utils::{io::lock_and_flush_output_stdio, user_wants_to_continue, landlock},
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
@@ -25,7 +25,6 @@ pub fn list_archive_contents(
     password: Option<&[u8]>,
     disable_sandbox: bool,
 ) -> crate::Result<()> {
-
     //rar uses a temporary file which needs to be defined early to be permitted in landlock
     let mut temp_file = tempfile::NamedTempFile::new()?;
 

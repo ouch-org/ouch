@@ -8,9 +8,9 @@ mod file_visibility;
 mod formatting;
 mod fs;
 pub mod io;
+pub mod landlock;
 pub mod logger;
 mod question;
-pub mod landlock;
 
 pub use self::{
     file_visibility::FileVisibilityPolicy,
