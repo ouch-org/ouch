@@ -108,7 +108,7 @@ pub enum Subcommand {
         /// Disable Smart Unpack
         #[arg(long)]
         no_smart_unpack: bool,
-        
+
         /// Mark sandbox as disabled
         #[arg(long, global = true)]
         disable_sandbox: bool,
@@ -280,6 +280,7 @@ mod tests {
                         fast: false,
                         slow: false,
                         follow_symlinks: false,
+                        disable_sandbox: true,
                     },
                     format: Some("tar.gz".into()),
                     ..mock_cli_args()

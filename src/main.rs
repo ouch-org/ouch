@@ -48,7 +48,6 @@ fn run() -> Result<()> {
     //let working_dir = args.output_dir
     //    .clone()
     //    .unwrap_or_else(|| env::current_dir().unwrap_or_default());
-    
     // restrict filesystem access to working_dir;
     // 1. working_dir is either the output_dir specified by the -d option or
     // 2. it is the temporary .tmp-ouch-XXXXXX directory that is renamed after decompression
