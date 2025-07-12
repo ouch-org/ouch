@@ -151,6 +151,7 @@ pub fn run(
             output_dir,
             remove,
             no_smart_unpack,
+            disable_sandbox,
         } => {
             let mut output_paths = vec![];
             let mut formats = vec![];
