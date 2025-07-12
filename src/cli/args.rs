@@ -180,6 +180,7 @@ mod tests {
                     output_dir: None,
                     remove: false,
                     no_smart_unpack: false,
+                    disable_sandbox: true,
                 },
                 ..mock_cli_args()
             }
@@ -192,6 +193,7 @@ mod tests {
                     output_dir: None,
                     remove: false,
                     no_smart_unpack: false,
+                    disable_sandbox: true,
                 },
                 ..mock_cli_args()
             }
@@ -204,6 +206,7 @@ mod tests {
                     output_dir: None,
                     remove: false,
                     no_smart_unpack: false,
+                    disable_sandbox: true,
                 },
                 ..mock_cli_args()
             }
@@ -219,6 +222,7 @@ mod tests {
                     fast: false,
                     slow: false,
                     follow_symlinks: false,
+                    disable_sandbox: true,
                 },
                 ..mock_cli_args()
             }
