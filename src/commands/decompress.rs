@@ -328,10 +328,12 @@ fn execute_decompression(
     //if !input_is_stdin && options.remove {
         //permit write access to input_file_path
     //} else {
-        landlock::init_sandbox(&[output_dir]);
     //}
     
-     if is_smart_unpack {
+    //landlock::init_sandbox(&[output_dir]);
+    
+
+    if is_smart_unpack {
         return smart_unpack(unpack_fn, output_dir, output_file_path, question_policy);
     }
 

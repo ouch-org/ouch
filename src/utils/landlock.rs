@@ -77,10 +77,15 @@ fn restrict_paths(hierarchies: &[&str]) -> Result<RestrictionStatus, MyRestrictE
 
 /// Restricts the process to only access the given hierarchies using Landlock, if supported.
 /// Accepts multiple allowed directories as &[&Path].
-pub fn init_sandbox(allowed_dirs: &[&Path]) {
+pub fn init_sandbox(allowed_dirs: &[&Path], disable_sandbox: bool) {
     // if std::env::var("CI").is_ok() {
     //    return;
     // }
+    if disable_sandbox {
+        println!("Sandbox feature disabled via --no-sandbox flag.");
+        // warn!("Security Process isolation disabled");
+        return;
+    }
 
     if is_landlock_supported() {
         let paths: Vec<&str> = allowed_dirs

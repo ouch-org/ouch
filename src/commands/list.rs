@@ -23,13 +23,14 @@ pub fn list_archive_contents(
     list_options: ListOptions,
     question_policy: QuestionPolicy,
     password: Option<&[u8]>,
+    disable_sandbox: bool,
 ) -> crate::Result<()> {
 
     //rar uses a temporary file which needs to be defined early to be permitted in landlock
     let mut temp_file = tempfile::NamedTempFile::new()?;
 
     // Initialize landlock sandbox with write access restricted to /tmp/<tmp_file> as required by some formats
-    landlock::init_sandbox(&[temp_file.path()]);
+    landlock::init_sandbox(&[temp_file.path()], disable_sandbox);
 
     let reader = fs::File::open(archive_path)?;
 

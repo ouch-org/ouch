@@ -257,7 +257,9 @@ pub fn run(
                     args.password
                         .as_deref()
                         .map(|str| <[u8] as ByteSlice>::from_os_str(str).expect("convert password to bytes failed")),
+                    args.no_sandbox,
                 )?;
+
             }
 
             Ok(())

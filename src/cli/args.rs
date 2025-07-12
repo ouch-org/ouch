@@ -49,6 +49,10 @@ pub struct CliArgs {
     #[arg(short = 'c', long, global = true)]
     pub threads: Option<usize>,
 
+    /// Disable the sandbox feature
+    #[arg(long, global = true)]
+    pub no_sandbox: bool,
+
     // Ouch and claps subcommands
     #[command(subcommand)]
     pub cmd: Subcommand,
