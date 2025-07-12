@@ -108,6 +108,10 @@ pub enum Subcommand {
         /// Disable Smart Unpack
         #[arg(long)]
         no_smart_unpack: bool,
+        
+        /// Mark sandbox as disabled
+        #[arg(long, global = true)]
+        disable_sandbox: bool,
     },
     /// List contents of an archive
     #[command(visible_aliases = ["l", "ls"])]
