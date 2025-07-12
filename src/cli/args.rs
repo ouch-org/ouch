@@ -89,6 +89,10 @@ pub enum Subcommand {
         /// Archive target files instead of storing symlinks (supported by `tar` and `zip`)
         #[arg(long, short = 'S')]
         follow_symlinks: bool,
+
+        /// Mark sandbox as disabled
+        #[arg(long, global = true)]
+        disable_sandbox: bool,
     },
     /// Decompresses one or more files, optionally into another folder
     #[command(visible_alias = "d")]
@@ -123,6 +127,10 @@ pub enum Subcommand {
         /// Show archive contents as a tree
         #[arg(short, long)]
         tree: bool,
+
+        /// Mark sandbox as disabled
+        #[arg(long, global = true)]
+        disable_sandbox: bool,
     },
 }
 
@@ -170,6 +178,7 @@ mod tests {
                 output_dir: None,
                 remove: false,
                 no_smart_unpack: false,
+                disable_sandbox: true,
             },
         }
     }
