@@ -69,6 +69,7 @@ pub fn run(
             fast,
             slow,
             follow_symlinks,
+            disable_sandbox,
         } => {
             // After cleaning, if there are no input files left, exit
             if files.is_empty() {
@@ -222,7 +223,8 @@ pub fn run(
                     })
                 })
         }
-        Subcommand::List { archives: files, tree } => {
+        // check again if we need to provide disable_sandbox as argument here
+        Subcommand::List { archives: files, tree, disable_sandbox} => {
             let mut formats = vec![];
 
             if let Some(format) = args.format {
