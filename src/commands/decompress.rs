@@ -40,6 +40,7 @@ pub struct DecompressOptions<'a> {
     pub quiet: bool,
     pub password: Option<&'a [u8]>,
     pub remove: bool,
+    pub disable_sandbox: bool,
 }
 
 /// Decompress a file
@@ -80,6 +81,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             options.question_policy,
             options.is_output_dir_provided,
             options.is_smart_unpack,
+            options.disable_sandbox,
         )? {
             files
         } else {
@@ -169,6 +171,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 options.question_policy,
                 options.is_output_dir_provided,
                 options.is_smart_unpack,
+                options.disable_sandbox,
             )? {
                 files
             } else {
@@ -204,6 +207,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 options.question_policy,
                 options.is_output_dir_provided,
                 options.is_smart_unpack,
+                options.disable_sandbox,
             )? {
                 files
             } else {
@@ -237,6 +241,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 options.question_policy,
                 options.is_output_dir_provided,
                 options.is_smart_unpack,
+                options.disable_sandbox,
             )? {
                 files
             } else {
@@ -280,6 +285,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 options.question_policy,
                 options.is_output_dir_provided,
                 options.is_smart_unpack,
+                options.disable_sandbox,
             )? {
                 files
             } else {
@@ -316,6 +322,7 @@ fn execute_decompression(
     question_policy: QuestionPolicy,
     is_output_dir_provided: bool,
     is_smart_unpack: bool,
+    disable_sandbox: bool,
 ) -> crate::Result<ControlFlow<(), usize>> {
 
     // init landlock sandbox to restrict file system write access to output_dir
@@ -330,7 +337,7 @@ fn execute_decompression(
     //} else {
     //}
     
-    //landlock::init_sandbox(&[output_dir]);
+    landlock::init_sandbox(&[output_dir], disable_sandbox);
     
 
     if is_smart_unpack {

@@ -51,7 +51,7 @@ pub struct CliArgs {
 
     /// Disable the sandbox feature
     #[arg(long, global = true)]
-    pub no_sandbox: bool,
+    pub disable_sandbox: bool,
 
     // Ouch and claps subcommands
     #[command(subcommand)]
