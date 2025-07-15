@@ -5,6 +5,7 @@ use std::{
 };
 
 use fs_err as fs;
+//use crate::utils::landlock;
 
 #[cfg(not(feature = "bzip3"))]
 use crate::archive;
@@ -18,7 +19,7 @@ use crate::{
     utils::{
         self,
         io::lock_and_flush_output_stdio,
-        is_path_stdin,
+        is_path_stdin, landlock,
         logger::{info, info_accessible},
         nice_directory_display, user_wants_to_continue,
     },
@@ -39,6 +40,7 @@ pub struct DecompressOptions<'a> {
     pub quiet: bool,
     pub password: Option<&'a [u8]>,
     pub remove: bool,
+    pub disable_sandbox: bool,
 }
 
 /// Decompress a file
@@ -79,6 +81,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             options.question_policy,
             options.is_output_dir_provided,
             options.is_smart_unpack,
+            options.disable_sandbox,
         )? {
             files
         } else {
@@ -176,6 +179,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 options.question_policy,
                 options.is_output_dir_provided,
                 options.is_smart_unpack,
+                options.disable_sandbox,
             )? {
                 files
             } else {
@@ -211,6 +215,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 options.question_policy,
                 options.is_output_dir_provided,
                 options.is_smart_unpack,
+                options.disable_sandbox,
             )? {
                 files
             } else {
@@ -244,6 +249,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 options.question_policy,
                 options.is_output_dir_provided,
                 options.is_smart_unpack,
+                options.disable_sandbox,
             )? {
                 files
             } else {
@@ -287,6 +293,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 options.question_policy,
                 options.is_output_dir_provided,
                 options.is_smart_unpack,
+                options.disable_sandbox,
             )? {
                 files
             } else {
@@ -323,7 +330,20 @@ fn execute_decompression(
     question_policy: QuestionPolicy,
     is_output_dir_provided: bool,
     is_smart_unpack: bool,
+    disable_sandbox: bool,
 ) -> crate::Result<ControlFlow<(), usize>> {
+    // init landlock sandbox to restrict file system write access to output_dir
+    // The output directory iseither specified with the -d option or the current working directory is used
+    // TODO: restrict acess to the current working directory to allow only creating new files
+    // TODO: move to unpack and smart_unpack to cover the differetn dirctories used for
+    // decompression
+    //if !input_is_stdin && options.remove {
+        //permit write access to input_file_path
+    //} else {
+    //}
+
+    landlock::init_sandbox(&[output_dir], disable_sandbox);
+
     if is_smart_unpack {
         return smart_unpack(unpack_fn, output_dir, output_file_path, question_policy);
     }
@@ -386,6 +406,9 @@ fn smart_unpack(
         "Created temporary directory {} to hold decompressed elements",
         nice_directory_display(temp_dir_path)
     ));
+
+    //first attempt to restict to the tmp file and allow only to rename it in the parent 
+    //landlock::init_sandbox(Some(temp_dir_path));
 
     let files = unpack_fn(temp_dir_path)?;
 
