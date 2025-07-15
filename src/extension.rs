@@ -173,7 +173,7 @@ pub fn parse_format_flag(input: &OsStr) -> crate::Result<Vec<Extension>> {
         .map(|extension| {
             to_extension(extension.as_bytes()).ok_or_else(|| Error::InvalidFormatFlag {
                 text: input.to_owned(),
-                reason: format!("Unsupported extension '{}'", extension),
+                reason: format!("Unsupported extension '{extension}'"),
             })
         })
         .collect::<crate::Result<_>>()?;
