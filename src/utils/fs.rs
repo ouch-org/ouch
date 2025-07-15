@@ -82,7 +82,7 @@ pub fn rename_or_increment_filename(path: &Path) -> PathBuf {
             let number = number_str.parse::<u32>().unwrap_or(0);
             format!("{}_{}", base, number + 1)
         }
-        _ => format!("{}_1", filename),
+        _ => format!("{filename}_1"),
     };
 
     let mut new_path = parent.join(new_filename);

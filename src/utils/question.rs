@@ -187,7 +187,7 @@ impl<'a, T: Default> ChoicePrompt<'a, T> {
 
         #[cfg(not(feature = "allow_piped_choice"))]
         if !stdin().is_terminal() {
-            eprintln!("{}", message);
+            eprintln!("{message}");
             eprintln!("Pass --yes to proceed");
             return Ok(T::default());
         }
@@ -222,10 +222,10 @@ impl<'a, T: Default> ChoicePrompt<'a, T> {
                     .collect::<Vec<_>>()
                     .join("/");
 
-                format!("[{}]", choises)
+                format!("[{choises}]")
             };
 
-            eprintln!("{} {}", message, choice_prompt);
+            eprintln!("{message} {choice_prompt}");
 
             let mut answer = String::new();
             let bytes_read = stdin_lock.read_line(&mut answer)?;
@@ -284,7 +284,7 @@ impl<'a> Confirmation<'a> {
 
         #[cfg(not(feature = "allow_piped_choice"))]
         if !stdin().is_terminal() {
-            eprintln!("{}", message);
+            eprintln!("{message}");
             eprintln!("Pass --yes to proceed");
             return Ok(false);
         }

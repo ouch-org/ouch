@@ -139,8 +139,8 @@ impl FinalError {
     /// hint: Supported aliases are: tgz, tbz, tlz4, txz, tlzma, tsz, tzst, tlz
     /// ```
     pub fn hint_all_supported_formats(self) -> Self {
-        self.hint(format!("Supported extensions are: {}", PRETTY_SUPPORTED_EXTENSIONS))
-            .hint(format!("Supported aliases are: {}", PRETTY_SUPPORTED_ALIASES))
+        self.hint(format!("Supported extensions are: {PRETTY_SUPPORTED_EXTENSIONS}"))
+            .hint(format!("Supported aliases are: {PRETTY_SUPPORTED_ALIASES}"))
     }
 }
 
