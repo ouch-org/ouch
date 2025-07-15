@@ -100,7 +100,6 @@ pub enum CompressionFormat {
     Zstd,
     /// .zip
     Zip,
-    // even if built without RAR support, we still want to recognise the format
     /// .rar
     Rar,
     /// .7z
@@ -110,21 +109,11 @@ pub enum CompressionFormat {
 }
 
 impl CompressionFormat {
-    /// Currently supported archive formats are .tar (and aliases to it) and .zip
     pub fn archive_format(&self) -> bool {
-        // Keep this match like that without a wildcard `_` so we don't forget to update it
+        // Keep this match without a wildcard `_` so we never forget to update it
         match self {
             Tar | Zip | Rar | SevenZip => true,
-            Gzip => false,
-            Bzip => false,
-            Bzip3 => false,
-            Lz4 => false,
-            Lzma => false,
-            Xz => false,
-            Lzip => false,
-            Snappy => false,
-            Zstd => false,
-            Brotli => false,
+            Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli | Gzip => false,
         }
     }
 }
