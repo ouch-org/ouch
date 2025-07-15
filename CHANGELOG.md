@@ -40,6 +40,7 @@ Categories Used:
 ### Tweaks
 
 - Make `.bz3` opt-out [\#814](https://github.com/ouch-org/ouch/pull/814) ([amyspark](https://github.com/amyspark))
+- Add alias `--concurrency` to `--threads` flag (then swap alias with original) [\#848](https://github.com/ouch-org/ouch/pull/848) ([marcospb19](https://github.com/marcospb19))
 
 ## [0.6.1](https://github.com/ouch-org/ouch/compare/0.6.0...0.6.1)
 
