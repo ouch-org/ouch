@@ -19,6 +19,7 @@ pub const SUPPORTED_EXTENSIONS: &[&str] = &[
     "lz4",
     "xz",
     "lzma",
+    "lz",
     "sz",
     "zst",
     #[cfg(feature = "unrar")]
@@ -27,14 +28,14 @@ pub const SUPPORTED_EXTENSIONS: &[&str] = &[
     "br",
 ];
 
-pub const SUPPORTED_ALIASES: &[&str] = &["tgz", "tbz", "tlz4", "txz", "tzlma", "tsz", "tzst"];
+pub const SUPPORTED_ALIASES: &[&str] = &["tgz", "tbz", "tlz4", "txz", "tlzma", "tsz", "tzst", "tlz"];
 
 #[cfg(not(feature = "unrar"))]
-pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, sz, zst, 7z";
+pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, lz, sz, zst, 7z";
 #[cfg(feature = "unrar")]
-pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, sz, zst, rar, 7z";
+pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, lz, sz, zst, rar, 7z";
 
-pub const PRETTY_SUPPORTED_ALIASES: &str = "tgz, tbz, tlz4, txz, tzlma, tsz, tzst";
+pub const PRETTY_SUPPORTED_ALIASES: &str = "tgz, tbz, tlz4, txz, tlzma, tsz, tzst, tlz";
 
 /// A wrapper around `CompressionFormat` that allows combinations like `tgz`
 #[derive(Debug, Clone)]
@@ -85,8 +86,12 @@ pub enum CompressionFormat {
     Bzip3,
     /// .lz4
     Lz4,
-    /// .xz .lzma
+    /// .xz
+    Xz,
+    /// .lzma
     Lzma,
+    /// .lzip
+    Lzip,
     /// .sz
     Snappy,
     /// tar, tgz, tbz, tbz2, tbz3, txz, tlz4, tlzma, tsz, tzst
@@ -95,7 +100,6 @@ pub enum CompressionFormat {
     Zstd,
     /// .zip
     Zip,
-    // even if built without RAR support, we still want to recognise the format
     /// .rar
     Rar,
     /// .7z
@@ -105,19 +109,11 @@ pub enum CompressionFormat {
 }
 
 impl CompressionFormat {
-    /// Currently supported archive formats are .tar (and aliases to it) and .zip
     pub fn archive_format(&self) -> bool {
-        // Keep this match like that without a wildcard `_` so we don't forget to update it
+        // Keep this match without a wildcard `_` so we never forget to update it
         match self {
             Tar | Zip | Rar | SevenZip => true,
-            Gzip => false,
-            Bzip => false,
-            Bzip3 => false,
-            Lz4 => false,
-            Lzma => false,
-            Snappy => false,
-            Zstd => false,
-            Brotli => false,
+            Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli | Gzip => false,
         }
     }
 }
@@ -130,7 +126,9 @@ fn to_extension(ext: &[u8]) -> Option<Extension> {
             b"tbz" | b"tbz2" => &[Tar, Bzip],
             b"tbz3" => &[Tar, Bzip3],
             b"tlz4" => &[Tar, Lz4],
-            b"txz" | b"tlzma" => &[Tar, Lzma],
+            b"txz" => &[Tar, Xz],
+            b"tlzma" => &[Tar, Lzma],
+            b"tlz" => &[Tar, Lzip],
             b"tsz" => &[Tar, Snappy],
             b"tzst" => &[Tar, Zstd],
             b"zip" => &[Zip],
@@ -138,7 +136,9 @@ fn to_extension(ext: &[u8]) -> Option<Extension> {
             b"bz3" => &[Bzip3],
             b"gz" => &[Gzip],
             b"lz4" => &[Lz4],
-            b"xz" | b"lzma" => &[Lzma],
+            b"xz" => &[Xz],
+            b"lzma" => &[Lzma],
+            b"lz" => &[Lzip],
             b"sz" => &[Snappy],
             b"zst" => &[Zstd],
             b"rar" => &[Rar],

@@ -111,9 +111,9 @@ Output:
 
 # Supported formats
 
-| Format    | `.tar` | `.zip` | `7z` | `.gz` | `.xz`, `.lzma` | `.bz`, `.bz2` | `.bz3` | `.lz4` | `.sz` (Snappy) | `.zst` | `.rar` | `.br` |
-|:---------:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Supported | ✓ | ✓¹ | ✓¹ | ✓² | ✓ | ✓ | ✓ | ✓ | ✓² | ✓² | ✓³ | ✓ |
+| Format    | `.tar` | `.zip` | `7z` | `.gz` | `.xz` | `.lzma` | `.lz` | `.bz`, `.bz2` | `.bz3` | `.lz4` | `.sz` (Snappy) | `.zst` | `.rar` | `.br` |
+|:---------:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Supported | ✓ | ✓¹ | ✓¹ | ✓² | ✓ | ✓⁴ | ✓⁴ | ✓ | ✓ | ✓ | ✓² | ✓² | ✓³ | ✓ |
 
 ✓: Supports compression and decompression.
 
@@ -122,10 +122,13 @@ Output:
 ✓²: Supported, and compression runs in parallel.
 
 ✓³: Due to RAR's restrictive license, only decompression and listing can be supported.
+
+✓⁴: Only decompression is supported, compression is not implemented yet.
+
 If you wish to exclude non-free code from your build, you can disable RAR support
 by building without the `unrar` feature.
 
-`tar` aliases are also supported: `tgz`, `tbz`, `tbz2`, `tlz4`, `txz`, `tlzma`, `tsz`, `tzst`.
+`tar` aliases are also supported: `tgz`, `tbz`, `tbz2`, `tlz4`, `txz`, `tlzma`, `tsz`, `tzst`, `tlz`.
 
 Formats can be chained:
 
