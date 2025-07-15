@@ -312,7 +312,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
         "Successfully decompressed archive in {}",
         nice_directory_display(options.output_dir)
     ));
-    info_accessible(format!("Files unpacked: {}", files_unpacked));
+    info_accessible(format!("Files unpacked: {files_unpacked}"));
 
     if !input_is_stdin && options.remove {
         fs::remove_file(options.input_file_path)?;
