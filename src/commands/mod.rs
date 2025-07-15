@@ -25,24 +25,15 @@ use crate::{
     CliArgs, QuestionPolicy,
 };
 
-/// Warn the user that (de)compressing this .zip archive might freeze their system.
-fn warn_user_about_loading_zip_in_memory() {
-    const ZIP_IN_MEMORY_LIMITATION_WARNING: &str = "\n  \
-        The format '.zip' is limited by design and cannot be (de)compressed with encoding streams.\n  \
-        When chaining '.zip' with other formats, all (de)compression needs to be done in-memory\n  \
-        Careful, you might run out of RAM if the archive is too large!";
-
-    eprintln!("{}[WARNING]{}: {ZIP_IN_MEMORY_LIMITATION_WARNING}", *ORANGE, *RESET);
-}
-
-/// Warn the user that (de)compressing this .7z archive might freeze their system.
-fn warn_user_about_loading_sevenz_in_memory() {
-    const SEVENZ_IN_MEMORY_LIMITATION_WARNING: &str = "\n  \
-        The format '.7z' is limited by design and cannot be (de)compressed with encoding streams.\n  \
-        When chaining '.7z' with other formats, all (de)compression needs to be done in-memory\n  \
-        Careful, you might run out of RAM if the archive is too large!";
-
-    eprintln!("{}[WARNING]{}: {SEVENZ_IN_MEMORY_LIMITATION_WARNING}", *ORANGE, *RESET);
+/// Warn the user that (de)compressing this format might freeze their system.
+fn warn_user_about_loading_in_memory(ext: &str) {
+    eprintln!(
+        "{}[WARNING]{}:\n  \
+        The format '{ext}' is limited by design and cannot be (de)compressed with encoding streams.\n  \
+        When chaining '{ext}' with other formats, all (de)compression needs to be done in-memory\n  \
+        Careful, you might run out of RAM if the archive is too large!",
+        *ORANGE, *RESET
+    );
 }
 
 /// This function checks what command needs to be run and performs A LOT of ahead-of-time checks

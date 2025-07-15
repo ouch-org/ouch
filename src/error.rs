@@ -47,6 +47,10 @@ pub enum Error {
     UnsupportedFormat { reason: String },
     /// Invalid password provided
     InvalidPassword { reason: String },
+    /// From backhand::BackhandError
+    InvalidSquashfs { reason: String },
+    /// From backhand::BackhandError
+    UnsupportedSquashfs { reason: String },
 }
 
 /// Alias to std's Result with ouch's Error
@@ -158,8 +162,10 @@ impl From<Error> for FinalError {
             Error::Lz4Error { reason } => FinalError::with_title(reason),
             Error::AlreadyExists { error_title } => FinalError::with_title(error_title).detail("File already exists"),
             Error::InvalidZipArchive(reason) => FinalError::with_title("Invalid zip archive").detail(reason),
+            Error::InvalidSquashfs { reason } => FinalError::with_title("Invalid squashfs").detail(reason),
             Error::PermissionDenied { error_title } => FinalError::with_title(error_title).detail("Permission denied"),
             Error::UnsupportedZipArchive(reason) => FinalError::with_title("Unsupported zip archive").detail(reason),
+            Error::UnsupportedSquashfs { reason } => FinalError::with_title("Unsupported squashfs").detail(reason),
             Error::InvalidFormatFlag { reason, text } => {
                 FinalError::with_title(format!("Failed to parse `--format {}`", os_str_to_str(&text)))
                     .detail(reason)
@@ -223,6 +229,23 @@ impl From<zip::result::ZipError> for Error {
                 reason: FinalError::with_title("Unexpected error in zip archive").detail("File not found"),
             },
             ZipError::UnsupportedArchive(filename) => Self::UnsupportedZipArchive(filename),
+        }
+    }
+}
+
+impl From<backhand::BackhandError> for Error {
+    fn from(err: backhand::BackhandError) -> Self {
+        use backhand::BackhandError;
+        match err {
+            BackhandError::StdIo(io_err) => Self::from(io_err),
+            err @ (BackhandError::UnsupportedCompression(_) | BackhandError::UnsupportedInode(_)) => {
+                Self::UnsupportedSquashfs {
+                    reason: err.to_string(),
+                }
+            }
+            err => Self::InvalidSquashfs {
+                reason: err.to_string(),
+            },
         }
     }
 }
