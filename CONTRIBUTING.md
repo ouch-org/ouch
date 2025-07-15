@@ -27,6 +27,10 @@ Before opening the PR, open an issue to discuss your addition, this increases th
 
 [CHANGELOG.md]: https://github.com/ouch-org/ouch
 
+### CI Tests
+
+The CI tests will run for a combination of features, `--no-default-features` will also be tested.
+
 ## Dealing with UI tests
 
 We use snapshots to do UI testing and guarantee a consistent output, this way, you can catch accidental changes or see what output changed in the PR diff.
@@ -46,3 +50,5 @@ cargo insta review
 ```
 
 - After addressing all, you should be able to `git add` and `commit` accordingly.
+
+NOTE: Sometimes, you'll have to run these two commands multiple times.
