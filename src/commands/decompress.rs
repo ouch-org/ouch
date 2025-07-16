@@ -415,22 +415,6 @@ fn smart_unpack(
     // Rename the temporary directory to the archive name, which is output_file_path
     if fs::rename(&previous_path, &new_path).is_err() {
         utils::copy_dir(&previous_path, &new_path)?;
-        // println!("###################   {:?}", e);
-        // if e.kind() == io::ErrorKind::CrossesDevices || e.raw_os_error() == Some(18) {
-        //     println!("⚠️ Rename failed due to a cross-device link. Falling back to copy-and-delete.");
-
-        //     // The rename failed, so we fall back to a copy and remove.
-        //     // This is more expensive but works across devices.
-        //     fs::copy(&previous_path, &new_path)?; // Copy the file to the new location.
-        //     fs::symlink_metadata(path)
-
-        //     println!("✅ Successfully moved file via copy-and-delete fallback.");
-        //     Ok(())
-        // } else {
-        //     // If it's a different error (e.g., permissions), we should fail.
-        //     println!("❌ Rename failed with an unrecoverable error.");
-        //     Err(e)
-        // }
     };
     info_accessible(format!(
         "Successfully moved \"{}\" to \"{}\"",
