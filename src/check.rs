@@ -56,8 +56,7 @@ pub fn check_mime_type(
             .ends_with(detected_format.compression_formats)
         {
             warning(format!(
-                "The file extension: `{}` differ from the detected extension: `{}`",
-                outer_ext, detected_format
+                "The file extension: `{outer_ext}` differ from the detected extension: `{detected_format}`"
             ));
 
             if !user_wants_to_continue(path, question_policy, QuestionAction::Decompression)? {

@@ -25,10 +25,13 @@ Categories Used:
 - Merge folders in decompression [\#798](https://github.com/ouch-org/ouch/pull/798) ([tommady](https://github.com/tommady))
 - Add `--no-smart-unpack` flag to decompression command to disable smart unpack [\#809](https://github.com/ouch-org/ouch/pull/809) ([talis-fb](https://github.com/talis-fb))
 - Provide Nushell completions (packages still need to install them) [\#827](https://github.com/ouch-org/ouch/pull/827) ([FrancescElies](https://github.com/FrancescElies))
+- Support `.lz` decompression [\#838](https://github.com/ouch-org/ouch/pull/838) ([zzzsyyy](https://github.com/zzzsyyy))
+- Support `.lzma` decompression (and fix `.lzma` being a wrong alias for `.xz`) [\#838](https://github.com/ouch-org/ouch/pull/838) ([zzzsyyy](https://github.com/zzzsyyy))
 
 ### Improvements
 
 - Give better error messages when archive extensions are invalid [\#817](https://github.com/ouch-org/ouch/pull/817) ([marcospb19](https://github.com/marcospb19))
+- Add aliases for `--password` flag (`--pass` and `--pw`) [\#847](https://github.com/ouch-org/ouch/pull/847) ([marcospb19](https://github.com/marcospb19))
 
 ### Bug Fixes
 

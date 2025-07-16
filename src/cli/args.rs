@@ -5,7 +5,7 @@ use clap::{Parser, ValueHint};
 // Ouch command line options (docstrings below are part of --help)
 /// A command-line utility for easily compressing and decompressing files and directories.
 ///
-/// Supported formats: tar, zip, gz, 7z, xz/lzma, bz/bz2, bz3, lz4, sz (Snappy), zst, rar and br.
+/// Supported formats: tar, zip, gz, 7z, xz, lzma, lzip, bz/bz2, bz3, lz4, sz (Snappy), zst, rar and br.
 ///
 /// Repository: https://github.com/ouch-org/ouch
 #[derive(Parser, Debug, PartialEq)]
@@ -30,11 +30,11 @@ pub struct CliArgs {
     pub hidden: bool,
 
     /// Silence output
-    #[arg(short = 'q', long, global = true)]
+    #[arg(short, long, global = true)]
     pub quiet: bool,
 
     /// Ignore files matched by git's ignore files
-    #[arg(short = 'g', long, global = true)]
+    #[arg(short, long, global = true)]
     pub gitignore: bool,
 
     /// Specify the format of the archive
@@ -42,7 +42,7 @@ pub struct CliArgs {
     pub format: Option<OsString>,
 
     /// Decompress or list with password
-    #[arg(short = 'p', long = "password", global = true)]
+    #[arg(short, long = "password", aliases = ["pass", "pw"], global = true)]
     pub password: Option<OsString>,
 
     /// Concurrent working threads

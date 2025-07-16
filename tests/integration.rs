@@ -33,7 +33,6 @@ enum DirectoryExtension {
     Tbz3,
     Tgz,
     Tlz4,
-    Tlzma,
     Tsz,
     Txz,
     Tzst,
@@ -50,7 +49,6 @@ enum FileExtension {
     Bz3,
     Gz,
     Lz4,
-    Lzma,
     Sz,
     Xz,
     Zst,
@@ -175,7 +173,7 @@ fn single_file_stdin(
     fs::create_dir(before).unwrap();
     let before_file = &before.join("file");
     let format = merge_extensions(&ext, &exts);
-    let archive = &dir.join(format!("file.{}", format));
+    let archive = &dir.join(format!("file.{format}"));
     let after = &dir.join("after");
     write_random_content(
         &mut fs::File::create(before_file).unwrap(),

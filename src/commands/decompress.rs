@@ -128,7 +128,15 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 Box::new(bzip3::read::Bz3Decoder::new(decoder)?)
             }
             Lz4 => Box::new(lz4_flex::frame::FrameDecoder::new(decoder)),
-            Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
+            Lzma => Box::new(liblzma::read::XzDecoder::new_stream(
+                decoder,
+                liblzma::stream::Stream::new_lzma_decoder(u64::MAX).unwrap(),
+            )),
+            Xz => Box::new(liblzma::read::XzDecoder::new(decoder)),
+            Lzip => Box::new(liblzma::read::XzDecoder::new_stream(
+                decoder,
+                liblzma::stream::Stream::new_lzip_decoder(u64::MAX, 0).unwrap(),
+            )),
             Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
             Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
             Brotli => Box::new(brotli::Decompressor::new(decoder, BUFFER_CAPACITY)),
@@ -144,7 +152,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
     }
 
     let files_unpacked = match first_extension {
-        Gzip | Bzip | Bzip3 | Lz4 | Lzma | Snappy | Zstd | Brotli => {
+        Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {
             reader = chain_reader_decoder(&first_extension, reader)?;
 
             let mut writer = match utils::ask_to_create_file(
@@ -295,7 +303,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
         "Successfully decompressed archive in {}",
         nice_directory_display(options.output_dir)
     ));
-    info_accessible(format!("Files unpacked: {}", files_unpacked));
+    info_accessible(format!("Files unpacked: {files_unpacked}"));
 
     if !input_is_stdin && options.remove {
         fs::remove_file(options.input_file_path)?;
