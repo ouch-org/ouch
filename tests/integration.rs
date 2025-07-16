@@ -813,14 +813,13 @@ fn unpack_multiple_sources_into_the_same_destination_with_merge(
     let temp_dir = tempdir()?;
     let root_path = temp_dir.path();
     let source_path = root_path
-        .join(format!("example_{}", merge_extensions(ext, &extra_extensions)))
+        .join(format!("example_{}", merge_extensions(&ext, &extra_extensions)))
         .join("sub_a")
         .join("sub_b")
         .join("sub_c");
 
     fs::create_dir_all(&source_path)?;
-
-    let archive = root_path.join(format!("archive.{}", merge_extensions(ext, &extra_extensions)));
+    let archive = root_path.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
     crate::utils::cargo_bin()
         .arg("compress")
         .args([
@@ -834,8 +833,7 @@ fn unpack_multiple_sources_into_the_same_destination_with_merge(
 
     fs::remove_dir_all(&source_path)?;
     fs::create_dir_all(&source_path)?;
-
-    let archive1 = root_path.join(format!("archive1.{}", merge_extensions(ext, &extra_extensions)));
+    let archive1 = root_path.join(format!("archive1.{}", merge_extensions(&ext, &extra_extensions)));
     crate::utils::cargo_bin()
         .arg("compress")
         .args([
@@ -847,7 +845,7 @@ fn unpack_multiple_sources_into_the_same_destination_with_merge(
         .assert()
         .success();
 
-    let out_path = root_path.join(format!("out_{}", merge_extensions(ext, &extra_extensions)));
+    let out_path = root_path.join(format!("out_{}", merge_extensions(&ext, &extra_extensions)));
     fs::create_dir_all(&out_path)?;
 
     crate::utils::cargo_bin()
