@@ -812,68 +812,42 @@ fn unpack_multiple_sources_into_the_same_destination_with_merge(
 ) {
     let temp_dir = tempdir()?;
     let root_path = temp_dir.path();
+    let source_path = root_path
+        .join(format!("example_{}", merge_extensions(ext, &extra_extensions)))
+        .join("sub_a")
+        .join("sub_b")
+        .join("sub_c");
 
-    let source_path = root_path.join(format!("example_{}", merge_extensions(&ext, &extra_extensions)));
     fs::create_dir_all(&source_path)?;
-    fs::File::create(source_path.join("file1.txt"))?;
-    fs::File::create(source_path.join("file2.txt"))?;
-    fs::File::create(source_path.join("file3.txt"))?;
-    let sub_folder_path = source_path.join("sub_a");
-    fs::create_dir_all(&sub_folder_path)?;
-    fs::File::create(sub_folder_path.join("file1.txt"))?;
-    fs::File::create(sub_folder_path.join("file2.txt"))?;
-    fs::File::create(sub_folder_path.join("file3.txt"))?;
-    let sub_folder_path = sub_folder_path.join("sub_b");
-    fs::create_dir_all(&sub_folder_path)?;
-    fs::File::create(sub_folder_path.join("file1.txt"))?;
-    fs::File::create(sub_folder_path.join("file2.txt"))?;
-    fs::File::create(sub_folder_path.join("file3.txt"))?;
-    let sub_folder_path = sub_folder_path.join("sub_c");
-    fs::create_dir_all(&sub_folder_path)?;
-    fs::File::create(sub_folder_path.join("file1.txt"))?;
-    fs::File::create(sub_folder_path.join("file2.txt"))?;
-    fs::File::create(sub_folder_path.join("file3.txt"))?;
 
-    let archive = root_path.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
+    let archive = root_path.join(format!("archive.{}", merge_extensions(ext, &extra_extensions)));
     crate::utils::cargo_bin()
         .arg("compress")
-        .arg(&source_path)
+        .args([
+            fs::File::create(source_path.join("file1.txt"))?.path(),
+            fs::File::create(source_path.join("file2.txt"))?.path(),
+            fs::File::create(source_path.join("file3.txt"))?.path(),
+        ])
         .arg(&archive)
         .assert()
         .success();
 
     fs::remove_dir_all(&source_path)?;
-
-    let source_path = root_path.join(format!("example_{}", merge_extensions(&ext, &extra_extensions)));
     fs::create_dir_all(&source_path)?;
-    fs::File::create(source_path.join("file3.txt"))?;
-    fs::File::create(source_path.join("file4.txt"))?;
-    fs::File::create(source_path.join("file5.txt"))?;
-    let sub_folder_path = source_path.join("sub_a");
-    fs::create_dir_all(&sub_folder_path)?;
-    fs::File::create(sub_folder_path.join("file3.txt"))?;
-    fs::File::create(sub_folder_path.join("file4.txt"))?;
-    fs::File::create(sub_folder_path.join("file5.txt"))?;
-    let sub_folder_path = sub_folder_path.join("sub_b");
-    fs::create_dir_all(&sub_folder_path)?;
-    fs::File::create(sub_folder_path.join("file3.txt"))?;
-    fs::File::create(sub_folder_path.join("file4.txt"))?;
-    fs::File::create(sub_folder_path.join("file5.txt"))?;
-    let sub_folder_path = sub_folder_path.join("sub_c");
-    fs::create_dir_all(&sub_folder_path)?;
-    fs::File::create(sub_folder_path.join("file3.txt"))?;
-    fs::File::create(sub_folder_path.join("file4.txt"))?;
-    fs::File::create(sub_folder_path.join("file5.txt"))?;
 
-    let archive1 = root_path.join(format!("archive1.{}", merge_extensions(&ext, &extra_extensions)));
+    let archive1 = root_path.join(format!("archive1.{}", merge_extensions(ext, &extra_extensions)));
     crate::utils::cargo_bin()
         .arg("compress")
-        .arg(&source_path)
+        .args([
+            fs::File::create(source_path.join("file3.txt"))?.path(),
+            fs::File::create(source_path.join("file4.txt"))?.path(),
+            fs::File::create(source_path.join("file5.txt"))?.path(),
+        ])
         .arg(&archive1)
         .assert()
         .success();
 
-    let out_path = root_path.join(format!("out_{}", merge_extensions(&ext, &extra_extensions)));
+    let out_path = root_path.join(format!("out_{}", merge_extensions(ext, &extra_extensions)));
     fs::create_dir_all(&out_path)?;
 
     crate::utils::cargo_bin()
@@ -893,22 +867,57 @@ fn unpack_multiple_sources_into_the_same_destination_with_merge(
         .assert()
         .success();
 
-    fn count_files_recursively(dir: &Path) -> usize {
-        let mut count = 0;
-        if let Ok(entries) = fs::read_dir(dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path.is_file() {
-                    count += 1;
-                } else if path.is_dir() {
-                    count += count_files_recursively(&path);
-                }
-            }
-        }
-        count
-    }
+    assert_eq!(5, out_path.as_path().read_dir()?.count());
+}
 
-    assert_eq!(20, count_files_recursively(&out_path));
+#[cfg(feature = "allow_piped_choice")]
+#[test]
+fn unpack_multiple_sources_into_the_same_destination_with_merge_issue_825() {
+    let temp_dir = tempdir().unwrap();
+    let root_path = temp_dir.path();
+    let source_path = root_path.join("parent");
+
+    fs::create_dir_all(&source_path).unwrap();
+    fs::File::create(source_path.join("file1.txt")).unwrap();
+    fs::File::create(source_path.join("file2.txt")).unwrap();
+    fs::File::create(source_path.join("file3.txt")).unwrap();
+
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .arg(&source_path)
+        .arg("a.tar")
+        .assert()
+        .success();
+
+    fs::remove_dir_all(&source_path).unwrap();
+    fs::create_dir_all(&source_path).unwrap();
+    fs::File::create(source_path.join("file3.txt")).unwrap();
+    fs::File::create(source_path.join("file4.txt")).unwrap();
+    fs::File::create(source_path.join("file5.txt")).unwrap();
+
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .arg(&source_path)
+        .arg("b.tar")
+        .assert()
+        .success();
+
+    fs::remove_dir_all(&source_path).unwrap();
+
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg("a.tar")
+        .assert()
+        .success();
+
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg("b.tar")
+        .write_stdin("m")
+        .assert()
+        .success();
+
+    assert_eq!(5, source_path.read_dir().unwrap().count());
 }
 
 #[test]
