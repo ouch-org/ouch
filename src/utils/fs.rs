@@ -210,6 +210,7 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
     }
 }
 
+/// Copy the src directory into the dst directory recursively
 pub fn copy_dir(src: &Path, dst: &Path) -> crate::Result<()> {
     for entry in fs::read_dir(src)? {
         let entry = entry?;
