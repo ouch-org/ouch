@@ -209,3 +209,16 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
         None
     }
 }
+
+pub fn copy_dir(src: &Path, dst: &Path) -> crate::Result<()> {
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+        if ty.is_dir() {
+            copy_dir(entry.path().as_path(), dst.join(entry.file_name()).as_path())?;
+        } else {
+            fs::copy(entry.path(), dst.join(entry.file_name()).as_path())?;
+        }
+    }
+    Ok(())
+}

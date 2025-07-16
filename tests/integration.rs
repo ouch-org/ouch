@@ -870,56 +870,6 @@ fn unpack_multiple_sources_into_the_same_destination_with_merge(
     assert_eq!(5, out_path.as_path().read_dir()?.count());
 }
 
-#[cfg(feature = "allow_piped_choice")]
-#[test]
-fn unpack_multiple_sources_into_the_same_destination_with_merge_issue_825() {
-    let temp_dir = tempdir().unwrap();
-    let root_path = temp_dir.path();
-    let source_path = root_path.join("parent");
-
-    fs::create_dir_all(&source_path).unwrap();
-    fs::File::create(source_path.join("file1.txt")).unwrap();
-    fs::File::create(source_path.join("file2.txt")).unwrap();
-    fs::File::create(source_path.join("file3.txt")).unwrap();
-
-    crate::utils::cargo_bin()
-        .arg("compress")
-        .arg(&source_path)
-        .arg("a.tar")
-        .assert()
-        .success();
-
-    fs::remove_dir_all(&source_path).unwrap();
-    fs::create_dir_all(&source_path).unwrap();
-    fs::File::create(source_path.join("file3.txt")).unwrap();
-    fs::File::create(source_path.join("file4.txt")).unwrap();
-    fs::File::create(source_path.join("file5.txt")).unwrap();
-
-    crate::utils::cargo_bin()
-        .arg("compress")
-        .arg(&source_path)
-        .arg("b.tar")
-        .assert()
-        .success();
-
-    fs::remove_dir_all(&source_path).unwrap();
-
-    crate::utils::cargo_bin()
-        .arg("decompress")
-        .arg("a.tar")
-        .assert()
-        .success();
-
-    crate::utils::cargo_bin()
-        .arg("decompress")
-        .arg("b.tar")
-        .write_stdin("m")
-        .assert()
-        .success();
-
-    assert_eq!(5, source_path.read_dir().unwrap().count());
-}
-
 #[test]
 fn reading_nested_archives_with_two_archive_extensions_adjacent() {
     let archive_formats = ["tar", "zip", "7z"].into_iter();
