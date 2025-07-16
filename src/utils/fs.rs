@@ -209,3 +209,23 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
         None
     }
 }
+
+/// Copy the src directory into the dst directory recursively
+pub fn copy_dir(src: &Path, dst: &Path) -> crate::Result<()> {
+    if !src.exists() || !dst.exists() {
+        return Err(crate::Error::NotFound {
+            error_title: "source or destination directory does not exist".to_string(),
+        });
+    }
+
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+        if ty.is_dir() {
+            copy_dir(entry.path().as_path(), dst.join(entry.file_name()).as_path())?;
+        } else {
+            fs::copy(entry.path(), dst.join(entry.file_name()).as_path())?;
+        }
+    }
+    Ok(())
+}

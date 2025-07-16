@@ -18,7 +18,7 @@ pub use self::{
         EscapedPathDisplay,
     },
     fs::{
-        cd_into_same_dir_as, create_dir_if_non_existent, is_path_stdin, remove_file_or_dir,
+        cd_into_same_dir_as, copy_dir, create_dir_if_non_existent, is_path_stdin, remove_file_or_dir,
         rename_for_available_filename, resolve_path_conflict, try_infer_extension,
     },
     question::{
