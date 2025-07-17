@@ -141,9 +141,7 @@ where
                 info(format!("Compressing '{}'", EscapedPathDisplay::new(path)));
             }
 
-            if path.is_dir() {
-                builder.append_dir(path, path)?;
-            } else if path.is_symlink() && !follow_symlinks {
+            if ((path.is_dir() && path.symlink_metadata()?.is_symlink()) || path.is_symlink()) && !follow_symlinks {
                 let target_path = path.read_link()?;
 
                 let mut header = tar::Header::new_gnu();
@@ -155,6 +153,8 @@ where
                         .detail("Unexpected error while trying to read link")
                         .detail(format!("Error: {err}."))
                 })?;
+            } else if path.is_dir() {
+                builder.append_dir(path, path)?;
             } else {
                 let mut file = match fs::File::open(path) {
                     Ok(f) => f,

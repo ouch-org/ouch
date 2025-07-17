@@ -242,9 +242,7 @@ where
                     .detail(format!("File at '{path:?}' has a non-UTF-8 name"))
             })?;
 
-            if metadata.is_dir() {
-                writer.add_directory(entry_name, options)?;
-            } else if path.is_symlink() && !follow_symlinks {
+            if ((path.is_dir() && path.symlink_metadata()?.is_symlink()) || path.is_symlink()) && !follow_symlinks {
                 let target_path = path.read_link()?;
                 let target_name = target_path.to_str().ok_or_else(|| {
                     FinalError::with_title("Zip requires that all directories names are valid UTF-8")
@@ -259,6 +257,8 @@ where
                 let symlink_options = options.unix_permissions(0o120777);
 
                 writer.add_symlink(entry_name, target_name, symlink_options)?;
+            } else if path.is_dir() {
+                writer.add_directory(entry_name, options)?;
             } else {
                 #[cfg(not(unix))]
                 let options = if is_executable::is_executable(path) {
