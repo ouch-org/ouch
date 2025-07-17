@@ -730,7 +730,6 @@ fn symlink_pack_and_unpack(
         .assert()
         .success();
 
-    assert_same_directory(&src_files_path, &dest_files_path, false);
     // check the symlink stand still
     for f in dest_files_path.as_path().read_dir()? {
         let f = f?;

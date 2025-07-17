@@ -38,10 +38,18 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) 
                     .link_name()?
                     .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidData, "Missing symlink target"))?;
 
-                #[cfg(unix)]
-                std::os::unix::fs::symlink(&target, &full_path)?;
-                #[cfg(windows)]
-                std::os::windows::fs::symlink_file(&target, &full_path)?;
+                if target.is_file() {
+                    #[cfg(unix)]
+                    std::os::unix::fs::symlink(&target, &full_path)?;
+                    #[cfg(windows)]
+                    std::os::windows::fs::symlink_file(&target, &full_path)?;
+                }
+                if target.is_dir() {
+                    #[cfg(unix)]
+                    std::os::unix::fs::symlink(&target, &full_path)?;
+                    #[cfg(windows)]
+                    std::os::windows::fs::symlink_dir(&target, &full_path)?;
+                }
             }
             tar::EntryType::Regular | tar::EntryType::Directory => {
                 file.unpack_in(output_folder)?;

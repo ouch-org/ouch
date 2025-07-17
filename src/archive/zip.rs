@@ -64,7 +64,21 @@ where
                 if !quiet {
                     info(format!("File {} extracted to \"{}\"", idx, file_path.display()));
                 }
-                fs::create_dir_all(&file_path)?;
+
+                let mode = file.unix_mode();
+                let is_symlink = mode.is_some_and(|mode| mode & 0o170000 == 0o120000);
+
+                if is_symlink {
+                    let mut target = String::new();
+                    file.read_to_string(&mut target)?;
+
+                    #[cfg(unix)]
+                    std::os::unix::fs::symlink(&target, &file_path)?;
+                    #[cfg(windows)]
+                    std::os::windows::fs::symlink_dir(&target, file_path)?;
+                } else {
+                    fs::create_dir_all(&file_path)?;
+                }
             }
             _is_file @ false => {
                 if let Some(path) = file_path.parent() {
