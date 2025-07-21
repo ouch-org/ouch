@@ -8,6 +8,7 @@ mod file_visibility;
 mod formatting;
 mod fs;
 pub mod io;
+pub mod landlock;
 pub mod logger;
 mod question;
 
