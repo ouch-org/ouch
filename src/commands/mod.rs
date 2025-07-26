@@ -69,6 +69,7 @@ pub fn run(
             fast,
             slow,
             follow_symlinks,
+            disable_sandbox,
         } => {
             // After cleaning, if there are no input files left, exit
             if files.is_empty() {
@@ -116,6 +117,7 @@ pub fn run(
                 question_policy,
                 file_visibility_policy,
                 level,
+                args.disable_sandbox,
             );
 
             if let Ok(true) = compress_result {
@@ -151,6 +153,7 @@ pub fn run(
             output_dir,
             remove,
             no_smart_unpack,
+            disable_sandbox,
         } => {
             let mut output_paths = vec![];
             let mut formats = vec![];
@@ -216,10 +219,12 @@ pub fn run(
                             <[u8] as ByteSlice>::from_os_str(str).expect("convert password to bytes failed")
                         }),
                         remove,
+                        disable_sandbox: args.disable_sandbox,
                     })
                 })
         }
-        Subcommand::List { archives: files, tree } => {
+        // check again if we need to provide disable_sandbox as argument here
+        Subcommand::List { archives: files, tree, disable_sandbox} => {
             let mut formats = vec![];
 
             if let Some(format) = args.format {
@@ -257,9 +262,9 @@ pub fn run(
                     args.password
                         .as_deref()
                         .map(|str| <[u8] as ByteSlice>::from_os_str(str).expect("convert password to bytes failed")),
+                    args.disable_sandbox,
                 )?;
             }
-
             Ok(())
         }
     }

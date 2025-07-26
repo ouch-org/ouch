@@ -49,6 +49,10 @@ pub struct CliArgs {
     #[arg(short = 'c', long, global = true)]
     pub threads: Option<usize>,
 
+    /// Disable the sandbox feature
+    #[arg(long, global = true)]
+    pub disable_sandbox: bool,
+
     // Ouch and claps subcommands
     #[command(subcommand)]
     pub cmd: Subcommand,
@@ -85,6 +89,10 @@ pub enum Subcommand {
         /// Archive target files instead of storing symlinks (supported by `tar` and `zip`)
         #[arg(long, short = 'S')]
         follow_symlinks: bool,
+
+        /// Mark sandbox as disabled
+        #[arg(long, global = true)]
+        disable_sandbox: bool,
     },
     /// Decompresses one or more files, optionally into another folder
     #[command(visible_alias = "d")]
@@ -104,6 +112,10 @@ pub enum Subcommand {
         /// Disable Smart Unpack
         #[arg(long)]
         no_smart_unpack: bool,
+
+        /// Mark sandbox as disabled
+        #[arg(long, global = true)]
+        disable_sandbox: bool,
     },
     /// List contents of an archive
     #[command(visible_aliases = ["l", "ls"])]
@@ -115,6 +127,10 @@ pub enum Subcommand {
         /// Show archive contents as a tree
         #[arg(short, long)]
         tree: bool,
+
+        /// Mark sandbox as disabled
+        #[arg(long, global = true)]
+        disable_sandbox: bool,
     },
 }
 
@@ -155,12 +171,14 @@ mod tests {
             // This is usually replaced in assertion tests
             password: None,
             threads: None,
+            disable_sandbox: false,
             cmd: Subcommand::Decompress {
                 // Put a crazy value here so no test can assert it unintentionally
                 files: vec!["\x00\x11\x22".into()],
                 output_dir: None,
                 remove: false,
                 no_smart_unpack: false,
+                disable_sandbox: false,
             },
         }
     }
@@ -175,6 +193,7 @@ mod tests {
                     output_dir: None,
                     remove: false,
                     no_smart_unpack: false,
+                    disable_sandbox: false,
                 },
                 ..mock_cli_args()
             }
@@ -187,6 +206,7 @@ mod tests {
                     output_dir: None,
                     remove: false,
                     no_smart_unpack: false,
+                    disable_sandbox: false,
                 },
                 ..mock_cli_args()
             }
@@ -199,6 +219,7 @@ mod tests {
                     output_dir: None,
                     remove: false,
                     no_smart_unpack: false,
+                    disable_sandbox: false,
                 },
                 ..mock_cli_args()
             }
@@ -214,6 +235,7 @@ mod tests {
                     fast: false,
                     slow: false,
                     follow_symlinks: false,
+                    disable_sandbox: false,
                 },
                 ..mock_cli_args()
             }
@@ -228,6 +250,7 @@ mod tests {
                     fast: false,
                     slow: false,
                     follow_symlinks: false,
+                    disable_sandbox: false,
                 },
                 ..mock_cli_args()
             }
@@ -242,6 +265,7 @@ mod tests {
                     fast: false,
                     slow: false,
                     follow_symlinks: false,
+                    disable_sandbox: false,
                 },
                 ..mock_cli_args()
             }
@@ -267,6 +291,7 @@ mod tests {
                         fast: false,
                         slow: false,
                         follow_symlinks: false,
+                        disable_sandbox: false,
                     },
                     format: Some("tar.gz".into()),
                     ..mock_cli_args()

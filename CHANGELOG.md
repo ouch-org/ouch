@@ -27,6 +27,7 @@ Categories Used:
 - Provide Nushell completions (packages still need to install them) [\#827](https://github.com/ouch-org/ouch/pull/827) ([FrancescElies](https://github.com/FrancescElies))
 - Support `.lz` decompression [\#838](https://github.com/ouch-org/ouch/pull/838) ([zzzsyyy](https://github.com/zzzsyyy))
 - Support `.lzma` decompression (and fix `.lzma` being a wrong alias for `.xz`) [\#838](https://github.com/ouch-org/ouch/pull/838) ([zzzsyyy](https://github.com/zzzsyyy))
+- Add landlock support for linux filesystem isolation [\#723](https://github.com/ouch-org/ouch/pull/723) ([valoq](https://github.com/valoq)) 
 
 ### Improvements
 

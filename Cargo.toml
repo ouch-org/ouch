@@ -28,6 +28,7 @@ gzp = { version = "0.11.3", default-features = false, features = [
     "snappy_default",
 ] }
 ignore = "0.4.23"
+landlock = "0.4.2"
 libc = "0.2.155"
 linked-hash-map = "0.5.6"
 lz4_flex = "0.11.3"
@@ -39,6 +40,7 @@ sevenz-rust2 = { version = "0.13.1", features = ["compress", "aes256"] }
 snap = "1.1.1"
 tar = "0.4.42"
 tempfile = "3.10.1"
+thiserror = "2.0.12"
 time = { version = "0.3.36", default-features = false }
 unrar = { version = "0.5.7", optional = true }
 liblzma = "0.4"
