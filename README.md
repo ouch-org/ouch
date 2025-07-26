@@ -143,10 +143,20 @@ If the filename has no extensions, `Ouch` will try to infer the format by the [f
   <img align="right" src="https://repology.org/badge/vertical-allrepos/ouch.svg" alt="Packaging status" />
 </a>
 
+Refer to the packages list on the right.
+
+The most commonly used installation methods:
+
 ## On Arch Linux
 
 ```bash
 pacman -S ouch
+```
+
+## On MacOS via homebrew
+
+```cmd
+brew install ouch
 ```
 
 ## On Windows via Scoop
@@ -160,6 +170,8 @@ scoop install ouch
 ```bash
 cargo install ouch
 ```
+
+(If you're in Ubuntu, you might need to install `clang` to build it from crates.io.)
 
 ## Download the latest release bundle
 
