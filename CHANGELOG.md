@@ -37,7 +37,7 @@ Categories Used:
 
 - Fix tar extraction count when --quiet [\#824](https://github.com/ouch-org/ouch/pull/824) ([marcospb19](https://github.com/marcospb19))
 - Fix 7z BadSignature error when compressing and then listing [\#819](https://github.com/ouch-org/ouch/pull/819) ([tommady](https://github.com/tommady))
-- Fix Unpacking with merge flag failed without --dir flag [\#826](https://github.com/ouch-org/ouch/pull/826) ([tommady](https://github.com/tommady))
+- Fix unpacking with merge flag failing without --dir flag [\#826](https://github.com/ouch-org/ouch/pull/826) ([tommady](https://github.com/tommady))
 
 ### Tweaks
 
