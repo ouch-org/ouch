@@ -256,7 +256,7 @@ where
                     .detail(format!("File at '{path:?}' has a non-UTF-8 name"))
             })?;
 
-            if ((path.is_dir() && path.symlink_metadata()?.is_symlink()) || path.is_symlink()) && !follow_symlinks {
+            if !follow_symlinks && path.symlink_metadata()?.is_symlink() {
                 let target_path = path.read_link()?;
                 let target_name = target_path.to_str().ok_or_else(|| {
                     FinalError::with_title("Zip requires that all directories names are valid UTF-8")

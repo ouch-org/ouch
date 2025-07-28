@@ -43,7 +43,7 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) 
 
                 // FIXME: how to detect whether the destination is a folder or a regular file?
                 // regular file should use fs::symlink_file
-                // folder should use fs::symlink_file
+                // folder should use fs::symlink_dir
                 #[cfg(windows)]
                 std::os::windows::fs::symlink_file(&target, &full_path)?;
             }
@@ -145,7 +145,7 @@ where
                 info(format!("Compressing '{}'", EscapedPathDisplay::new(path)));
             }
 
-            if ((path.is_dir() && path.symlink_metadata()?.is_symlink()) || path.is_symlink()) && !follow_symlinks {
+            if !follow_symlinks && path.symlink_metadata()?.is_symlink() {
                 let target_path = path.read_link()?;
 
                 let mut header = tar::Header::new_gnu();
