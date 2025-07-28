@@ -413,7 +413,9 @@ fn smart_unpack(
     };
 
     // Rename the temporary directory to the archive name, which is output_file_path
-    fs::rename(&previous_path, &new_path)?;
+    if fs::rename(&previous_path, &new_path).is_err() {
+        utils::rename_recursively(&previous_path, &new_path)?;
+    };
     info_accessible(format!(
         "Successfully moved \"{}\" to \"{}\"",
         nice_directory_display(&previous_path),
