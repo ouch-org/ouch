@@ -45,11 +45,11 @@ impl Display for EscapedPathDisplay<'_> {
 /// This is different from [`Path::display`].
 ///
 /// See <https://gist.github.com/marcospb19/ebce5572be26397cf08bbd0fd3b65ac1> for a comparison.
-pub fn path_to_str(path: &Path) -> Cow<str> {
+pub fn path_to_str(path: &Path) -> Cow<'_, str> {
     os_str_to_str(path.as_ref())
 }
 
-pub fn os_str_to_str(os_str: &OsStr) -> Cow<str> {
+pub fn os_str_to_str(os_str: &OsStr) -> Cow<'_, str> {
     let format = || {
         let text = format!("{os_str:?}");
         Cow::Owned(text.trim_matches('"').to_string())
@@ -83,7 +83,7 @@ pub fn pretty_format_list_of_paths(paths: &[impl AsRef<Path>]) -> String {
 }
 
 /// Display the directory name, but use "current directory" when necessary.
-pub fn nice_directory_display(path: &Path) -> Cow<str> {
+pub fn nice_directory_display(path: &Path) -> Cow<'_, str> {
     if path == Path::new(".") {
         Cow::Borrowed("current directory")
     } else {
