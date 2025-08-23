@@ -106,7 +106,9 @@ pub fn compress_files(
                 let win_size = 22; // default to 2^22 = 4 MiB window size
                 Box::new(brotli::CompressorWriter::new(encoder, BUFFER_CAPACITY, level, win_size))
             }
-            Tar | Zip | Rar | SevenZip => unreachable!(),
+            Tar | Zip | SevenZip => unreachable!(),
+            #[cfg(feature = "unrar")]
+            Rar => unreachable!(),
         };
         Ok(encoder)
     };

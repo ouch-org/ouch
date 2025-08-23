@@ -69,14 +69,16 @@ pub fn list_archive_contents(
                 Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
                 Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
                 Brotli => Box::new(brotli::Decompressor::new(decoder, BUFFER_CAPACITY)),
-                Tar | Zip | Rar | SevenZip => unreachable!("should be treated by caller"),
+                Tar | Zip | SevenZip => unreachable!("should be treated by caller"),
+                #[cfg(feature = "unrar")]
+                Rar => unreachable!("should be treated by caller"),
             };
             Ok(decoder)
         };
 
     let mut misplaced_archive_format = None;
     for &format in formats.iter().skip(1).rev() {
-        if format.archive_format() {
+        if format.is_archive() {
             misplaced_archive_format = Some(format);
             break;
         }
@@ -114,10 +116,7 @@ pub fn list_archive_contents(
                 Box::new(crate::archive::rar::list_archive(archive_path, password)?)
             }
         }
-        #[cfg(not(feature = "unrar"))]
-        Rar => {
-            return Err(crate::archive::rar_stub::no_support());
-        }
+
         SevenZip => {
             if formats.len() > 1 {
                 // Locking necessary to guarantee that warning and question

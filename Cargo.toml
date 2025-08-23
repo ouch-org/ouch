@@ -47,6 +47,11 @@ zip = { version = "0.6.6", default-features = false, features = [
     "aes-crypto",
 ] }
 zstd = { version = "0.13.2", default-features = false, features = ["zstdmt"] }
+phf = { version = "0.13", features = ["macros"] }
+comfy-table = { version = "7.1", features = ["tty", "custom_styling"] }
+terminal_size = "0.4"
+unicode-width = "0.2"
+strip-ansi-escapes = "0.2"
 
 [target.'cfg(not(unix))'.dependencies]
 is_executable = "1.0.1"

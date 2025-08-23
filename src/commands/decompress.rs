@@ -140,7 +140,9 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
             Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
             Brotli => Box::new(brotli::Decompressor::new(decoder, BUFFER_CAPACITY)),
-            Tar | Zip | Rar | SevenZip => decoder,
+            Tar | Zip | SevenZip => decoder,
+            #[cfg(feature = "unrar")]
+            Rar => decoder,
         };
         Ok(decoder)
     };
@@ -250,10 +252,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 return Ok(());
             }
         }
-        #[cfg(not(feature = "unrar"))]
-        Rar => {
-            return Err(crate::archive::rar_stub::no_support());
-        }
+
         SevenZip => {
             if options.formats.len() > 1 {
                 // Locking necessary to guarantee that warning and question

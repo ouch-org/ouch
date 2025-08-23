@@ -116,6 +116,9 @@ pub enum Subcommand {
         #[arg(short, long)]
         tree: bool,
     },
+    /// List supported formats and their capabilities
+    #[command(name = "list-formats", visible_aliases = ["formats", "support"])]
+    ListFormats,
 }
 
 #[cfg(test)]

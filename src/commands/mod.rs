@@ -262,5 +262,10 @@ pub fn run(
 
             Ok(())
         }
+        Subcommand::ListFormats => {
+            // Print a concise explanation + the capability table + the shorthand table.
+            println!("{}", crate::formats::render_capabilities_and_shorthands(crate::formats::SupportedOp::Any));
+            Ok(())
+        }
     }
 }

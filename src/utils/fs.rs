@@ -180,34 +180,50 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
 
     use crate::extension::CompressionFormat::*;
     if is_zip(&buf) {
-        Some(Extension::new(&[Zip], "zip"))
-    } else if is_tar(&buf) {
-        Some(Extension::new(&[Tar], "tar"))
-    } else if is_gz(&buf) {
-        Some(Extension::new(&[Gzip], "gz"))
-    } else if is_bz2(&buf) {
-        Some(Extension::new(&[Bzip], "bz2"))
-    } else if is_bz3(&buf) {
-        Some(Extension::new(&[Bzip3], "bz3"))
-    } else if is_lzma(&buf) {
-        Some(Extension::new(&[Lzma], "lzma"))
-    } else if is_xz(&buf) {
-        Some(Extension::new(&[Xz], "xz"))
-    } else if is_lzip(&buf) {
-        Some(Extension::new(&[Lzip], "lzip"))
-    } else if is_lz4(&buf) {
-        Some(Extension::new(&[Lz4], "lz4"))
-    } else if is_sz(&buf) {
-        Some(Extension::new(&[Snappy], "sz"))
-    } else if is_zst(&buf) {
-        Some(Extension::new(&[Zstd], "zst"))
-    } else if is_rar(&buf) {
-        Some(Extension::new(&[Rar], "rar"))
-    } else if is_sevenz(&buf) {
-        Some(Extension::new(&[SevenZip], "7z"))
-    } else {
-        None
+        return Some(Extension::new(&[Zip], "zip"));
     }
+    if is_tar(&buf) {
+        return Some(Extension::new(&[Tar], "tar"));
+    }
+    if is_gz(&buf) {
+        return Some(Extension::new(&[Gzip], "gz"));
+    }
+    if is_bz2(&buf) {
+        return Some(Extension::new(&[Bzip], "bz2"));
+    }
+    if is_bz3(&buf) {
+        return Some(Extension::new(&[Bzip3], "bz3"));
+    }
+    if is_lzma(&buf) {
+        return Some(Extension::new(&[Lzma], "lzma"));
+    }
+    if is_xz(&buf) {
+        return Some(Extension::new(&[Xz], "xz"));
+    }
+    if is_lzip(&buf) {
+        return Some(Extension::new(&[Lzip], "lzip"));
+    }
+    if is_lz4(&buf) {
+        return Some(Extension::new(&[Lz4], "lz4"));
+    }
+    if is_sz(&buf) {
+        return Some(Extension::new(&[Snappy], "sz"));
+    }
+    if is_zst(&buf) {
+        return Some(Extension::new(&[Zstd], "zst"));
+    }
+    #[cfg(feature = "unrar")]
+    {
+        if is_rar(&buf) {
+            return Some(Extension::new(&[Rar], "rar"));
+        }
+    }
+
+    if is_sevenz(&buf) {
+        return Some(Extension::new(&[SevenZip], "7z"));
+    }
+
+    None
 }
 
 /// Rename the src directory into the dst directory recursively

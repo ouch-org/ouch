@@ -11,3 +11,6 @@ hint:   ouch compress <FILES>... output.zip
 hint: 
 hint: Alternatively, you can overwrite this option by using the '--format' flag:
 hint:   ouch compress <FILES>... output --format tar.gz
+hint: Supported extensions for compression are: tar, zip, 7z, gz, bz2, bz3, xz, lz4, sz, zst, br
+hint: Supported aliases are: tgz, tbz, tbz2, tbz3, tlz4, txz, tlzma, tlz, tsz, tzst
+hint: For detailed capabilities and notes, run: ouch list-formats

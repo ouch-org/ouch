@@ -5,6 +5,7 @@ pub mod cli;
 pub mod commands;
 pub mod error;
 pub mod extension;
+pub mod formats;
 pub mod list;
 pub mod utils;
 

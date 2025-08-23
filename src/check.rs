@@ -159,7 +159,7 @@ pub fn check_missing_formats_when_decompressing(files: &[PathBuf], formats: &[Ve
     }
 
     error = error.detail("Decompression formats are detected automatically from file extension");
-    error = error.hint_all_supported_formats();
+    error = error.hint_supported_formats_for_decompress();
 
     // If there's exactly one file, give a suggestion to use `--format`
     if let &[path] = files_with_broken_extension.as_slice() {
@@ -187,6 +187,7 @@ pub fn check_first_format_when_compressing<'a>(formats: &'a [Extension], output_
             .hint("")
             .hint("Alternatively, you can overwrite this option by using the '--format' flag:")
             .hint(format!("  ouch compress <FILES>... {output_path} --format tar.gz"))
+            .hint_supported_formats_for_compress()
             .into()
     })
 }
@@ -246,7 +247,8 @@ pub fn check_invalid_compression_with_non_archive_format(
         .detail("Formats that bundle files into an archive are tar and zip.")
         .hint(format!("Try inserting 'tar.' or 'zip.' before '{first_format}'."))
         .hint(from_hint)
-        .hint(to_hint);
+        .hint(to_hint)
+        .hint_supported_formats_for_compress();
 
     Err(error.into())
 }

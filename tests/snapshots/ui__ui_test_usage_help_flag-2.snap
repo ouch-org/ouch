@@ -1,17 +1,17 @@
 ---
 source: tests/ui.rs
 expression: "output_to_string(ouch!(\"-h\"))"
-snapshot_kind: text
 ---
 A command-line utility for easily compressing and decompressing files and directories.
 
 Usage: <OUCH_BIN> [OPTIONS] <COMMAND>
 
 Commands:
-  compress    Compress one or more files into one output file [aliases: c]
-  decompress  Decompresses one or more files, optionally into another folder [aliases: d]
-  list        List contents of an archive [aliases: l, ls]
-  help        Print this message or the help of the given subcommand(s)
+  compress      Compress one or more files into one output file [aliases: c]
+  decompress    Decompresses one or more files, optionally into another folder [aliases: d]
+  list          List contents of an archive [aliases: l, ls]
+  list-formats  List supported formats and their capabilities [aliases: formats, support]
+  help          Print this message or the help of the given subcommand(s)
 
 Options:
   -y, --yes                  Skip [Y/n] questions, default to yes
