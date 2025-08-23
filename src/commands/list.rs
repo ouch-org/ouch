@@ -14,7 +14,7 @@ use crate::{
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
-/// File at input_file_path is opened for reading, example: "archive.tar.gz"
+/// File at archive_path is opened for reading, example: "archive.tar.gz"
 /// formats contains each format necessary for decompression, example: [Gz, Tar] (in decompression order)
 pub fn list_archive_contents(
     archive_path: &Path,
@@ -25,7 +25,7 @@ pub fn list_archive_contents(
 ) -> crate::Result<()> {
     let reader = fs::File::open(archive_path)?;
 
-    // Zip archives are special, because they require io::Seek, so it requires it's logic separated
+    // Zip archives are special, because they require io::Seek, so it requires its logic separated
     // from decoder chaining.
     //
     // This is the only case where we can read and unpack it directly, without having to do
