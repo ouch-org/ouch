@@ -122,12 +122,14 @@ pub fn list_archive_contents(
                 if !user_wants_to_continue(archive_path, question_policy, QuestionAction::Decompression)? {
                     return Ok(());
                 }
+                let mut vec = vec![];
+                io::copy(&mut reader, &mut vec)?;
+
+                Box::new(archive::sevenz::list_archive(io::Cursor::new(vec), password)?)
+            } else {
+                // If it's the only format, we can read the archive directly.
+                Box::new(archive::sevenz::list_archive(fs::File::open(archive_path)?, password)?)
             }
-
-            let mut vec = vec![];
-            io::copy(&mut reader, &mut vec)?;
-
-            Box::new(archive::sevenz::list_archive(io::Cursor::new(vec), password)?)
         }
         Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {
             unreachable!("Not an archive, should be validated before calling this function.");
