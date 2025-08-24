@@ -4,18 +4,16 @@ use std::{ffi::OsStr, fmt, path::Path};
 
 use bstr::ByteSlice;
 
+// Re-export the enum so callers can keep using `extension::CompressionFormat::{..}`
+pub use crate::formats::CompressionFormat;
+// Re-export supported lists from the single source of truth in formats.rs
+pub use crate::formats::KNOWN_SHORTHANDS as SUPPORTED_ALIASES;
+pub use crate::formats::KNOWN_SINGLE_EXTS as SUPPORTED_EXTENSIONS;
 use crate::{
     error::{Error, FinalError, Result},
     formats,
     utils::logger::warning,
 };
-
-// Re-export the enum so callers can keep using `extension::CompressionFormat::{..}`
-pub use crate::formats::CompressionFormat;
-
-// Re-export supported lists from the single source of truth in formats.rs
-pub use crate::formats::KNOWN_SHORTHANDS as SUPPORTED_ALIASES;
-pub use crate::formats::KNOWN_SINGLE_EXTS as SUPPORTED_EXTENSIONS;
 
 /// A wrapper around `CompressionFormat` that allows combinations like `tgz`
 #[derive(Debug, Clone)]

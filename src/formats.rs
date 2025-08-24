@@ -1,10 +1,11 @@
 //! Formats registry, capabilities and pretty table rendering.
 
-use crate::utils::colors::{BLUE, RESET, YELLOW};
 use comfy_table::{presets::UTF8_FULL, Attribute, Cell, CellAlignment, Color, ContentArrangement, Row, Table};
 use strip_ansi_escapes::strip as strip_ansi;
 use terminal_size::{terminal_size, Width};
 use unicode_width::UnicodeWidthStr;
+
+use crate::utils::colors::{BLUE, RESET, YELLOW};
 /// Accepted formats for input and output.
 ///
 /// Notes:
