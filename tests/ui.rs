@@ -5,11 +5,12 @@
 #[macro_use]
 mod utils;
 
-use insta::assert_snapshot as ui;
-use regex::Regex;
 #[cfg(target_os = "linux")]
 use std::collections::BTreeSet;
 use std::{ffi::OsStr, io, path::Path, process::Output};
+
+use insta::assert_snapshot as ui;
+use regex::Regex;
 
 use crate::utils::create_files_in;
 
