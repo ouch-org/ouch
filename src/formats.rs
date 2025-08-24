@@ -448,11 +448,11 @@ pub fn render_capabilities_and_shorthands(op: SupportedOp) -> String {
     let right_plain = format!("{right_intro_plain}\n\n{}", shorthand_table());
 
     // Side-by-side attempt with top padding to align headings.
-    let (left_intro_pad, right_intro_pad) = pad_top_to_equal_lines(&left_intro_plain, &right_intro_plain);
+    let (left_intro_pad, right_intro_pad) = pad_top_to_equal_lines(left_intro_plain.as_str(), right_intro_plain);
     let left_sbs = format!("{left_intro_pad}\n\n{}", table(op));
     let right_sbs = format!("{right_intro_pad}\n\n{}", shorthand_table());
 
-    if let Some(sbs) = side_by_side(&left_sbs, &right_sbs, 4) {
+    if let Some(sbs) = side_by_side(left_sbs.as_str(), right_sbs.as_str(), 4) {
         sbs
     } else {
         format!("{left_plain}\n\n{right_plain}")
