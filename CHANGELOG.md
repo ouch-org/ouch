@@ -27,6 +27,7 @@ Categories Used:
 - Provide Nushell completions (packages still need to install them) [\#827](https://github.com/ouch-org/ouch/pull/827) ([FrancescElies](https://github.com/FrancescElies))
 - Support `.lz` decompression [\#838](https://github.com/ouch-org/ouch/pull/838) ([zzzsyyy](https://github.com/zzzsyyy))
 - Support `.lzma` decompression (and fix `.lzma` being a wrong alias for `.xz`) [\#838](https://github.com/ouch-org/ouch/pull/838) ([zzzsyyy](https://github.com/zzzsyyy))
+- Support `.lz` compression [\#863](https://github.com/ouch-org/ouch/pull/863) ([sorairolake](https://github.com/sorairolake))
 
 ### Improvements
 

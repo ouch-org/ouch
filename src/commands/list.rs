@@ -62,10 +62,7 @@ pub fn list_archive_contents(
                     liblzma::stream::Stream::new_lzma_decoder(u64::MAX).unwrap(),
                 )),
                 Xz => Box::new(liblzma::read::XzDecoder::new(decoder)),
-                Lzip => Box::new(liblzma::read::XzDecoder::new_stream(
-                    decoder,
-                    liblzma::stream::Stream::new_lzip_decoder(u64::MAX, 0).unwrap(),
-                )),
+                Lzip => Box::new(lzma_rust2::LzipReader::new(decoder)?),
                 Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
                 Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
                 Brotli => Box::new(brotli::Decompressor::new(decoder, BUFFER_CAPACITY)),
