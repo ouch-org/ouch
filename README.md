@@ -113,7 +113,7 @@ Output:
 
 | Format    | `.tar` | `.zip` | `7z` | `.gz` | `.xz` | `.lzma` | `.lz` | `.bz`, `.bz2` | `.bz3` | `.lz4` | `.sz` (Snappy) | `.zst` | `.rar` | `.br` |
 |:---------:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Supported | ✓ | ✓¹ | ✓¹ | ✓² | ✓ | ✓⁴ | ✓⁴ | ✓ | ✓ | ✓ | ✓² | ✓² | ✓³ | ✓ |
+| Supported | ✓ | ✓¹ | ✓¹ | ✓² | ✓ | ✓⁴ | ✓ | ✓ | ✓ | ✓ | ✓² | ✓² | ✓³ | ✓ |
 
 ✓: Supports compression and decompression.
 
@@ -189,7 +189,6 @@ If you're downloading binaries from the [releases page](https://github.com/ouch-
 
 Otherwise, you'll need these libraries installed on your system:
 
-* [liblzma](https://www.7-zip.org/sdk.html)
 * [libbz2](https://www.sourceware.org/bzip2)
 * [libbz3](https://github.com/kspalaiologos/bzip3)
 * [libz](https://www.zlib.net)

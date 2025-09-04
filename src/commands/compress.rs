@@ -1,5 +1,6 @@
 use std::{
     io::{self, BufWriter, Cursor, Seek, Write},
+    num::NonZeroU64,
     path::{Path, PathBuf},
 };
 
@@ -73,14 +74,22 @@ pub fn compress_files(
                     reason: "LZMA1 compression is not supported in ouch, use .xz instead.".to_string(),
                 })
             }
-            Xz => Box::new(liblzma::write::XzEncoder::new(
-                encoder,
-                level.map_or(6, |l| (l as u32).clamp(0, 9)),
-            )),
+            Xz => {
+                let mut options = level.map_or_else(Default::default, |l| {
+                    lzma_rust2::XzOptions::with_preset((l as u32).clamp(0, 9))
+                });
+                let dict_size = options.lzma_options.dict_size as u64;
+                options.set_block_size(NonZeroU64::new(dict_size));
+                // Use up to 256 PHYSICAL cores for compression
+                let writer = lzma_rust2::XzWriterMt::new(encoder, options, num_cpus::get_physical() as u32)?;
+                Box::new(writer.auto_finish())
+            }
             Lzip => {
-                return Err(crate::Error::UnsupportedFormat {
-                    reason: "Lzip compression is not supported in ouch.".to_string(),
-                })
+                let options = level.map_or_else(Default::default, |l| {
+                    lzma_rust2::LzipOptions::with_preset((l as u32).clamp(0, 9))
+                });
+                let writer = lzma_rust2::LzipWriter::new(encoder, options);
+                Box::new(writer.auto_finish())
             }
             Snappy => Box::new(
                 gzp::par::compress::ParCompress::<gzp::snap::Snap>::builder()
