@@ -119,7 +119,7 @@ impl std::fmt::Display for Bytes {
             f,
             "{:>6.2} {:>2}B",
             num / delimiter.powi(exponent),
-            Bytes::UNIT_PREFIXES[exponent as usize],
+            Self::UNIT_PREFIXES[exponent as usize],
         )
     }
 }
