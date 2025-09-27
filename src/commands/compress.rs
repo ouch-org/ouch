@@ -70,9 +70,11 @@ pub fn compress_files(
             }
             Lz4 => Box::new(lz4_flex::frame::FrameEncoder::new(encoder).auto_finish()),
             Lzma => {
-                return Err(crate::Error::UnsupportedFormat {
-                    reason: "LZMA1 compression is not supported in ouch, use .xz instead.".to_string(),
-                })
+                let options = level.map_or_else(Default::default, |l| {
+                    lzma_rust2::LzmaOptions::with_preset((l as u32).clamp(0, 9))
+                });
+                let writer = lzma_rust2::LzmaWriter::new_use_header(encoder, &options, None)?;
+                Box::new(writer.auto_finish())
             }
             Xz => {
                 let mut options = level.map_or_else(Default::default, |l| {
