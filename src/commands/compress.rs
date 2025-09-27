@@ -85,9 +85,11 @@ pub fn compress_files(
                 Box::new(writer.auto_finish())
             }
             Lzip => {
-                return Err(crate::Error::UnsupportedFormat {
-                    reason: "Lzip compression is not supported in ouch.".to_string(),
-                })
+                let options = level.map_or_else(Default::default, |l| {
+                    lzma_rust2::LzipOptions::with_preset((l as u32).clamp(0, 9))
+                });
+                let writer = lzma_rust2::LzipWriter::new(encoder, options);
+                Box::new(writer.auto_finish())
             }
             Snappy => Box::new(
                 gzp::par::compress::ParCompress::<gzp::snap::Snap>::builder()
