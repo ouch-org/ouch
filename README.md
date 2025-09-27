@@ -189,7 +189,6 @@ If you're downloading binaries from the [releases page](https://github.com/ouch-
 
 Otherwise, you'll need these libraries installed on your system:
 
-* [liblzma](https://www.7-zip.org/sdk.html)
 * [libbz2](https://www.sourceware.org/bzip2)
 * [libbz3](https://github.com/kspalaiologos/bzip3)
 * [libz](https://www.zlib.net)
