@@ -42,6 +42,7 @@ Categories Used:
 ### Tweaks
 
 - Make `.bz3` opt-out [\#814](https://github.com/ouch-org/ouch/pull/814) ([amyspark](https://github.com/amyspark))
+- fix: adjust INFO color to green  [\#858](https://github.com/ouch-org/ouch/pull/858) ([etolbakov](https://github.com/etolbakov))
 
 ## [0.6.1](https://github.com/ouch-org/ouch/compare/0.6.0...0.6.1)
 
