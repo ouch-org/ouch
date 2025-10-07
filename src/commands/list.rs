@@ -10,7 +10,7 @@ use crate::{
     commands::warn_user_about_loading_zip_in_memory,
     extension::CompressionFormat::{self, *},
     list::{self, FileInArchive, ListOptions},
-    utils::{io::lock_and_flush_output_stdio, user_wants_to_continue},
+    utils::{io::lock_and_flush_output_stdio, landlock, user_wants_to_continue},
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
@@ -22,7 +22,14 @@ pub fn list_archive_contents(
     list_options: ListOptions,
     question_policy: QuestionPolicy,
     password: Option<&[u8]>,
+    disable_sandbox: bool,
 ) -> crate::Result<()> {
+    //rar uses a temporary file which needs to be defined early to be permitted in landlock
+    let mut temp_file = tempfile::NamedTempFile::new()?;
+
+    // Initialize landlock sandbox with write access restricted to /tmp/<tmp_file> as required by some formats
+    landlock::init_sandbox(&[temp_file.path()], disable_sandbox);
+
     let reader = fs::File::open(archive_path)?;
 
     // Zip archives are special, because they require io::Seek, so it requires it's logic separated
