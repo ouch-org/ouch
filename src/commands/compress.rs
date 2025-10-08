@@ -9,7 +9,8 @@ use super::warn_user_about_loading_sevenz_in_memory;
 use crate::{
     archive,
     commands::warn_user_about_loading_zip_in_memory,
-    extension::{split_first_compression_format, CompressionFormat::*, Extension},
+    extension::{split_first_compression_format, Extension},
+    formats::CompressionFormat,
     utils::{io::lock_and_flush_output_stdio, user_wants_to_continue, FileVisibilityPolicy},
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
@@ -42,9 +43,9 @@ pub fn compress_files(
     let mut writer: Box<dyn Send + Write> = Box::new(file_writer);
 
     // Grab previous encoder and wrap it inside of a new one
-    let chain_writer_encoder = |format: &_, encoder| -> crate::Result<_> {
+    let chain_writer_encoder = |format: &CompressionFormat, encoder| -> crate::Result<_> {
         let encoder: Box<dyn Send + Write> = match format {
-            Gzip => Box::new(
+            CompressionFormat::Gzip => Box::new(
                 // by default, ParCompress uses a default compression level of 3
                 // instead of the regular default that flate2 uses
                 gzp::par::compress::ParCompress::<gzp::deflate::Gzip>::builder()
@@ -53,11 +54,11 @@ pub fn compress_files(
                     )
                     .from_writer(encoder),
             ),
-            Bzip => Box::new(bzip2::write::BzEncoder::new(
+            CompressionFormat::Bzip => Box::new(bzip2::write::BzEncoder::new(
                 encoder,
                 level.map_or_else(Default::default, |l| bzip2::Compression::new((l as u32).clamp(1, 9))),
             )),
-            Bzip3 => {
+            CompressionFormat::Bzip3 => {
                 #[cfg(not(feature = "bzip3"))]
                 return Err(archive::bzip3_stub::no_support());
 
@@ -67,29 +68,29 @@ pub fn compress_files(
                     bzip3::write::Bz3Encoder::new(encoder, 16 * 2_usize.pow(20))?,
                 )
             }
-            Lz4 => Box::new(lz4_flex::frame::FrameEncoder::new(encoder).auto_finish()),
-            Lzma => {
+            CompressionFormat::Lz4 => Box::new(lz4_flex::frame::FrameEncoder::new(encoder).auto_finish()),
+            CompressionFormat::Lzma => {
                 return Err(crate::Error::UnsupportedFormat {
                     reason: "LZMA1 compression is not supported in ouch, use .xz instead.".to_string(),
                 })
             }
-            Xz => Box::new(liblzma::write::XzEncoder::new(
+            CompressionFormat::Xz => Box::new(liblzma::write::XzEncoder::new(
                 encoder,
                 level.map_or(6, |l| (l as u32).clamp(0, 9)),
             )),
-            Lzip => {
+            CompressionFormat::Lzip => {
                 return Err(crate::Error::UnsupportedFormat {
                     reason: "Lzip compression is not supported in ouch.".to_string(),
                 })
             }
-            Snappy => Box::new(
+            CompressionFormat::Snappy => Box::new(
                 gzp::par::compress::ParCompress::<gzp::snap::Snap>::builder()
                     .compression_level(gzp::par::compress::Compression::new(
                         level.map_or_else(Default::default, |l| (l as u32).clamp(0, 9)),
                     ))
                     .from_writer(encoder),
             ),
-            Zstd => {
+            CompressionFormat::Zstd => {
                 let mut zstd_encoder = zstd::stream::write::Encoder::new(
                     encoder,
                     level.map_or(zstd::DEFAULT_COMPRESSION_LEVEL, |l| {
@@ -100,13 +101,15 @@ pub fn compress_files(
                 zstd_encoder.multithread(num_cpus::get_physical() as u32)?;
                 Box::new(zstd_encoder.auto_finish())
             }
-            Brotli => {
+            CompressionFormat::Brotli => {
                 let default_level = 11; // Same as brotli CLI, default to highest compression
                 let level = level.unwrap_or(default_level).clamp(0, 11) as u32;
                 let win_size = 22; // default to 2^22 = 4 MiB window size
                 Box::new(brotli::CompressorWriter::new(encoder, BUFFER_CAPACITY, level, win_size))
             }
-            Tar | Zip | Rar | SevenZip => unreachable!(),
+            CompressionFormat::Tar | CompressionFormat::Zip | CompressionFormat::SevenZip => unreachable!(),
+            #[cfg(feature = "unrar")]
+            CompressionFormat::Rar => unreachable!(),
         };
         Ok(encoder)
     };
@@ -118,13 +121,22 @@ pub fn compress_files(
     }
 
     match first_format {
-        Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {
+        CompressionFormat::Gzip
+        | CompressionFormat::Bzip
+        | CompressionFormat::Bzip3
+        | CompressionFormat::Lz4
+        | CompressionFormat::Lzma
+        | CompressionFormat::Xz
+        | CompressionFormat::Lzip
+        | CompressionFormat::Snappy
+        | CompressionFormat::Zstd
+        | CompressionFormat::Brotli => {
             writer = chain_writer_encoder(&first_format, writer)?;
             let mut reader = fs::File::open(&files[0])?;
 
             io::copy(&mut reader, &mut writer)?;
         }
-        Tar => {
+        CompressionFormat::Tar => {
             archive::tar::build_archive_from_paths(
                 &files,
                 output_path,
@@ -135,7 +147,7 @@ pub fn compress_files(
             )?;
             writer.flush()?;
         }
-        Zip => {
+        CompressionFormat::Zip => {
             if !formats.is_empty() {
                 // Locking necessary to guarantee that warning and question
                 // messages stay adjacent
@@ -160,14 +172,11 @@ pub fn compress_files(
             vec_buffer.rewind()?;
             io::copy(&mut vec_buffer, &mut writer)?;
         }
-        Rar => {
-            #[cfg(feature = "unrar")]
+        #[cfg(feature = "unrar")]
+        CompressionFormat::Rar => {
             return Err(archive::rar::no_compression());
-
-            #[cfg(not(feature = "unrar"))]
-            return Err(archive::rar_stub::no_support());
         }
-        SevenZip => {
+        CompressionFormat::SevenZip => {
             if !formats.is_empty() {
                 // Locking necessary to guarantee that warning and question
                 // messages stay adjacent

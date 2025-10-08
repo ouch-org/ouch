@@ -28,10 +28,19 @@ impl CliArgs {
 
         set_accessible(args.accessible);
 
-        let (Subcommand::Compress { files, .. }
-        | Subcommand::Decompress { files, .. }
-        | Subcommand::List { archives: files, .. }) = &mut args.cmd;
-        *files = canonicalize_files(files)?;
+        match &mut args.cmd {
+            // These subcommands receive file paths and must be canonicalized
+            Subcommand::Compress { files, .. } | Subcommand::Decompress { files, .. } => {
+                *files = canonicalize_files(files)?;
+            }
+            Subcommand::List { archives: files, .. } => {
+                *files = canonicalize_files(files)?;
+            }
+            // New subcommand: no paths to canonicalize
+            Subcommand::ListFormats => {
+                // No-op
+            }
+        }
 
         let skip_questions_positively = match (args.yes, args.no) {
             (false, false) => QuestionPolicy::Ask,

@@ -7,5 +7,6 @@ expression: "run_ouch(\"ouch decompress a b.unknown\", dir)"
  - Files with missing extensions: <TMP_DIR>/a
  - Decompression formats are detected automatically from file extension
 
-hint: Supported extensions are: tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, lz, sz, zst, rar, 7z
-hint: Supported aliases are: tgz, tbz, tlz4, txz, tlzma, tsz, tzst, tlz
+hint: Supported extensions for decompression are: tar, zip, rar, 7z, gz, bz2, bz3, xz, lzma, lz, lz4, sz, zst, br
+hint: Supported aliases are: tgz, tbz, tbz2, tbz3, tlz4, txz, tlzma, tlz, tsz, tzst
+hint: For detailed capabilities and notes, run: ouch list-formats

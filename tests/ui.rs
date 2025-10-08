@@ -5,7 +5,9 @@
 #[macro_use]
 mod utils;
 
-use std::{collections::BTreeSet, ffi::OsStr, io, path::Path, process::Output};
+#[cfg(target_os = "linux")]
+use std::collections::BTreeSet;
+use std::{ffi::OsStr, io, path::Path, process::Output};
 
 use insta::assert_snapshot as ui;
 use regex::Regex;
@@ -173,6 +175,59 @@ fn ui_test_usage_help_flag() {
         ui!(output_to_string(ouch!("--help")));
         ui!(output_to_string(ouch!("-h")));
     });
+}
+
+#[test]
+fn ui_test_rar_feature_toggle_in_list_formats() {
+    let (_dropper, dir) = testdir().unwrap();
+
+    // Run and strip ANSI for stable checks.
+    let raw = run_ouch("ouch list-formats", dir);
+    let ansi_re = Regex::new(r"\x1b\[[0-9;]*[mK]").unwrap();
+
+    // Lowercase so the regex is simple, and don't anchor to line starts because of box chars.
+    let clean = ansi_re.replace_all(&raw, "").to_lowercase();
+
+    // Match "rar" as a standalone token (surrounded by non-alphanumerics or boundaries).
+    let rar_token = Regex::new(r"(?:^|[^a-z0-9])rar(?:[^a-z0-9]|$)").unwrap();
+
+    if cfg!(feature = "unrar") {
+        assert!(
+            rar_token.is_match(&clean),
+            "RAR should be shown in `list-formats` when the `unrar` feature is enabled.\n{clean}"
+        );
+    } else {
+        assert!(
+            !rar_token.is_match(&clean),
+            "RAR should NOT be shown in `list-formats` when the `unrar` feature is disabled.\n{clean}"
+        );
+    }
+}
+
+#[test]
+fn ui_test_rar_flag_parsing_respects_feature_toggle() {
+    let (_dropper, dir) = testdir().unwrap();
+    create_files_in(dir, &["a"]); // dummy input
+
+    // Force the format via flag; we only care about the error message shape.
+    let out = run_ouch("ouch decompress a --format rar", dir);
+
+    let ansi_re = Regex::new(r"\x1b\[[0-9;]*[mK]").unwrap();
+    let clean = ansi_re.replace_all(&out, "").to_string();
+
+    if cfg!(feature = "unrar") {
+        // With feature enabled, parsing should NOT reject 'rar'.
+        assert!(
+            !clean.contains("Unsupported extension 'rar'"),
+            "With `unrar` enabled, '--format rar' must be recognized at parse time.\n{clean}"
+        );
+    } else {
+        // Without feature, it must be rejected at parse time.
+        assert!(
+            clean.contains("Unsupported extension 'rar'"),
+            "Without `unrar`, '--format rar' must be rejected at parse time.\n{clean}"
+        );
+    }
 }
 
 /// Concatenates `with_rar` or `without_rar` if the feature is toggled or not.

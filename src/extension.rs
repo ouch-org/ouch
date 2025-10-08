@@ -3,39 +3,17 @@
 use std::{ffi::OsStr, fmt, path::Path};
 
 use bstr::ByteSlice;
-use CompressionFormat::*;
 
+// Re-export the enum so callers can keep using `extension::CompressionFormat::{..}`
+pub use crate::formats::CompressionFormat;
+// Re-export supported lists from the single source of truth in formats.rs
+pub use crate::formats::KNOWN_SHORTHANDS as SUPPORTED_ALIASES;
+pub use crate::formats::KNOWN_SINGLE_EXTS as SUPPORTED_EXTENSIONS;
 use crate::{
     error::{Error, FinalError, Result},
+    formats,
     utils::logger::warning,
 };
-
-pub const SUPPORTED_EXTENSIONS: &[&str] = &[
-    "tar",
-    "zip",
-    "bz",
-    "bz2",
-    "gz",
-    "lz4",
-    "xz",
-    "lzma",
-    "lz",
-    "sz",
-    "zst",
-    #[cfg(feature = "unrar")]
-    "rar",
-    "7z",
-    "br",
-];
-
-pub const SUPPORTED_ALIASES: &[&str] = &["tgz", "tbz", "tlz4", "txz", "tlzma", "tsz", "tzst", "tlz"];
-
-#[cfg(not(feature = "unrar"))]
-pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, lz, sz, zst, 7z";
-#[cfg(feature = "unrar")]
-pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, lz, sz, zst, rar, 7z";
-
-pub const PRETTY_SUPPORTED_ALIASES: &str = "tgz, tbz, tlz4, txz, tlzma, tsz, tzst, tlz";
 
 /// A wrapper around `CompressionFormat` that allows combinations like `tgz`
 #[derive(Debug, Clone)]
@@ -45,7 +23,7 @@ pub const PRETTY_SUPPORTED_ALIASES: &str = "tgz, tbz, tlz4, txz, tlzma, tsz, tzs
 // Should only be built with constructors
 #[non_exhaustive]
 pub struct Extension {
-    /// One extension like "tgz" can be made of multiple CompressionFormats ([Tar, Gz])
+    /// One extension like "tgz" can be made of multiple CompressionFormats ([Tar, Gzip])
     pub compression_formats: &'static [CompressionFormat],
     /// The input text for this extension, like "tgz", "tar" or "xz"
     display_text: String,
@@ -65,7 +43,7 @@ impl Extension {
     /// Checks if the first format in `compression_formats` is an archive
     pub fn is_archive(&self) -> bool {
         // Index Safety: we check that `compression_formats` is not empty in `Self::new`
-        self.compression_formats[0].archive_format()
+        self.compression_formats[0].is_archive()
     }
 }
 
@@ -75,79 +53,11 @@ impl fmt::Display for Extension {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-/// Accepted extensions for input and output
-pub enum CompressionFormat {
-    /// .gz
-    Gzip,
-    /// .bz .bz2
-    Bzip,
-    /// .bz3
-    Bzip3,
-    /// .lz4
-    Lz4,
-    /// .xz
-    Xz,
-    /// .lzma
-    Lzma,
-    /// .lzip
-    Lzip,
-    /// .sz
-    Snappy,
-    /// tar, tgz, tbz, tbz2, tbz3, txz, tlz4, tlzma, tsz, tzst
-    Tar,
-    /// .zst
-    Zstd,
-    /// .zip
-    Zip,
-    /// .rar
-    Rar,
-    /// .7z
-    SevenZip,
-    /// .br
-    Brotli,
-}
-
-impl CompressionFormat {
-    pub fn archive_format(&self) -> bool {
-        // Keep this match without a wildcard `_` so we never forget to update it
-        match self {
-            Tar | Zip | Rar | SevenZip => true,
-            Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli | Gzip => false,
-        }
-    }
-}
-
+/// Returns the `Extension` for a given raw extension bytes if known.
 fn to_extension(ext: &[u8]) -> Option<Extension> {
-    Some(Extension::new(
-        match ext {
-            b"tar" => &[Tar],
-            b"tgz" => &[Tar, Gzip],
-            b"tbz" | b"tbz2" => &[Tar, Bzip],
-            b"tbz3" => &[Tar, Bzip3],
-            b"tlz4" => &[Tar, Lz4],
-            b"txz" => &[Tar, Xz],
-            b"tlzma" => &[Tar, Lzma],
-            b"tlz" => &[Tar, Lzip],
-            b"tsz" => &[Tar, Snappy],
-            b"tzst" => &[Tar, Zstd],
-            b"zip" => &[Zip],
-            b"bz" | b"bz2" => &[Bzip],
-            b"bz3" => &[Bzip3],
-            b"gz" => &[Gzip],
-            b"lz4" => &[Lz4],
-            b"xz" => &[Xz],
-            b"lzma" => &[Lzma],
-            b"lz" => &[Lzip],
-            b"sz" => &[Snappy],
-            b"zst" => &[Zstd],
-            b"rar" => &[Rar],
-            b"7z" => &[SevenZip],
-            b"br" => &[Brotli],
-            _ => return None,
-        },
-        ext.to_str_lossy(),
-    ))
+    let s = std::str::from_utf8(ext).ok()?;
+    let formats = formats::ext_to_formats(s)?;
+    Some(Extension::new(formats, s))
 }
 
 fn split_extension_at_end(name: &[u8]) -> Option<(&[u8], Extension)> {
@@ -159,6 +69,7 @@ fn split_extension_at_end(name: &[u8]) -> Option<(&[u8], Extension)> {
     Some((new_name, ext))
 }
 
+/// Parses `--format FORMAT`, returning the chain of `Extension`s.
 pub fn parse_format_flag(input: &OsStr) -> crate::Result<Vec<Extension>> {
     let format = input.as_encoded_bytes();
 
@@ -295,6 +206,7 @@ pub fn build_archive_file_suggestion(path: &Path, suggested_extension: &str) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::formats::CompressionFormat::{Gzip, Tar};
 
     #[test]
     fn test_extensions_from_path() {

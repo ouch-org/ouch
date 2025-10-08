@@ -10,11 +10,8 @@ use fs_err as fs;
 use crate::archive;
 use crate::{
     commands::{warn_user_about_loading_sevenz_in_memory, warn_user_about_loading_zip_in_memory},
-    extension::{
-        split_first_compression_format,
-        CompressionFormat::{self, *},
-        Extension,
-    },
+    extension::{split_first_compression_format, Extension},
+    formats::CompressionFormat,
     utils::{
         self,
         io::lock_and_flush_output_stdio,
@@ -59,7 +56,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
     //
     // Any other Zip decompression done can take up the whole RAM and freeze ouch.
     if let [Extension {
-        compression_formats: [Zip],
+        compression_formats: [CompressionFormat::Zip],
         ..
     }] = options.formats.as_slice()
     {
@@ -118,29 +115,31 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
     // Grab previous decoder and wrap it inside of a new one
     let chain_reader_decoder = |format: &CompressionFormat, decoder: Box<dyn Read>| -> crate::Result<Box<dyn Read>> {
         let decoder: Box<dyn Read> = match format {
-            Gzip => Box::new(flate2::read::GzDecoder::new(decoder)),
-            Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
-            Bzip3 => {
+            CompressionFormat::Gzip => Box::new(flate2::read::GzDecoder::new(decoder)),
+            CompressionFormat::Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
+            CompressionFormat::Bzip3 => {
                 #[cfg(not(feature = "bzip3"))]
                 return Err(archive::bzip3_stub::no_support());
 
                 #[cfg(feature = "bzip3")]
                 Box::new(bzip3::read::Bz3Decoder::new(decoder)?)
             }
-            Lz4 => Box::new(lz4_flex::frame::FrameDecoder::new(decoder)),
-            Lzma => Box::new(liblzma::read::XzDecoder::new_stream(
+            CompressionFormat::Lz4 => Box::new(lz4_flex::frame::FrameDecoder::new(decoder)),
+            CompressionFormat::Lzma => Box::new(liblzma::read::XzDecoder::new_stream(
                 decoder,
                 liblzma::stream::Stream::new_lzma_decoder(u64::MAX).unwrap(),
             )),
-            Xz => Box::new(liblzma::read::XzDecoder::new(decoder)),
-            Lzip => Box::new(liblzma::read::XzDecoder::new_stream(
+            CompressionFormat::Xz => Box::new(liblzma::read::XzDecoder::new(decoder)),
+            CompressionFormat::Lzip => Box::new(liblzma::read::XzDecoder::new_stream(
                 decoder,
                 liblzma::stream::Stream::new_lzip_decoder(u64::MAX, 0).unwrap(),
             )),
-            Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
-            Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
-            Brotli => Box::new(brotli::Decompressor::new(decoder, BUFFER_CAPACITY)),
-            Tar | Zip | Rar | SevenZip => decoder,
+            CompressionFormat::Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
+            CompressionFormat::Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
+            CompressionFormat::Brotli => Box::new(brotli::Decompressor::new(decoder, BUFFER_CAPACITY)),
+            CompressionFormat::Tar | CompressionFormat::Zip | CompressionFormat::SevenZip => decoder,
+            #[cfg(feature = "unrar")]
+            CompressionFormat::Rar => decoder,
         };
         Ok(decoder)
     };
@@ -152,7 +151,16 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
     }
 
     let files_unpacked = match first_extension {
-        Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {
+        CompressionFormat::Gzip
+        | CompressionFormat::Bzip
+        | CompressionFormat::Bzip3
+        | CompressionFormat::Lz4
+        | CompressionFormat::Lzma
+        | CompressionFormat::Xz
+        | CompressionFormat::Lzip
+        | CompressionFormat::Snappy
+        | CompressionFormat::Zstd
+        | CompressionFormat::Brotli => {
             reader = chain_reader_decoder(&first_extension, reader)?;
 
             let mut writer = match utils::ask_to_create_file(
@@ -168,7 +176,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
 
             1
         }
-        Tar => {
+        CompressionFormat::Tar => {
             if let ControlFlow::Continue(files) = execute_decompression(
                 |output_dir| crate::archive::tar::unpack_archive(reader, output_dir, options.quiet),
                 options.output_dir,
@@ -182,7 +190,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 return Ok(());
             }
         }
-        Zip => {
+        CompressionFormat::Zip => {
             if options.formats.len() > 1 {
                 // Locking necessary to guarantee that warning and question
                 // messages stay adjacent
@@ -218,7 +226,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             }
         }
         #[cfg(feature = "unrar")]
-        Rar => {
+        CompressionFormat::Rar => {
             type UnpackResult = crate::Result<usize>;
             let unpack_fn: Box<dyn FnOnce(&Path) -> UnpackResult> = if options.formats.len() > 1 || input_is_stdin {
                 let mut temp_file = tempfile::NamedTempFile::new()?;
@@ -250,11 +258,8 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 return Ok(());
             }
         }
-        #[cfg(not(feature = "unrar"))]
-        Rar => {
-            return Err(crate::archive::rar_stub::no_support());
-        }
-        SevenZip => {
+
+        CompressionFormat::SevenZip => {
             if options.formats.len() > 1 {
                 // Locking necessary to guarantee that warning and question
                 // messages stay adjacent
