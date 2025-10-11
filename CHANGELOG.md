@@ -28,11 +28,14 @@ Categories Used:
 - Add aliases for comic book archives [\#835](https://github.com/ouch-org/ouch/pull/835) ([md9753](https://github.com/md9753))
 - Support `.lz` decompression [\#838](https://github.com/ouch-org/ouch/pull/838) ([zzzsyyy](https://github.com/zzzsyyy))
 - Support `.lzma` decompression (and fix `.lzma` being a wrong alias for `.xz`) [\#838](https://github.com/ouch-org/ouch/pull/838) ([zzzsyyy](https://github.com/zzzsyyy))
+- Support `.lz` compression [\#867](https://github.com/ouch-org/ouch/pull/867) ([sorairolake](https://github.com/sorairolake))
+- Support `.lzma` compression [\#867](https://github.com/ouch-org/ouch/pull/867) ([sorairolake](https://github.com/sorairolake))
 
 ### Improvements
 
 - Give better error messages when archive extensions are invalid [\#817](https://github.com/ouch-org/ouch/pull/817) ([marcospb19](https://github.com/marcospb19))
 - Add aliases for `--password` flag (`--pass` and `--pw`) [\#847](https://github.com/ouch-org/ouch/pull/847) ([marcospb19](https://github.com/marcospb19))
+- Use `lzma-rust2` crate instead of `liblzma` crate [\#867](https://github.com/ouch-org/ouch/pull/867) ([sorairolake](https://github.com/sorairolake))
 
 ### Bug Fixes
 

@@ -5,7 +5,7 @@ use std::{
 
 pub use logger_thread::spawn_logger_thread;
 
-use super::colors::{ORANGE, RESET, YELLOW};
+use super::colors::{GREEN, ORANGE, RESET};
 use crate::accessible::is_running_in_accessible_mode;
 
 /// Asks logger to shutdown and waits till it flushes all pending messages.
@@ -84,12 +84,12 @@ impl PrintMessage {
             MessageLevel::Info => {
                 if self.accessible {
                     if is_running_in_accessible_mode() {
-                        Some(format!("{}Info:{} {}", *YELLOW, *RESET, self.contents))
+                        Some(format!("{}Info:{} {}", *GREEN, *RESET, self.contents))
                     } else {
-                        Some(format!("{}[INFO]{} {}", *YELLOW, *RESET, self.contents))
+                        Some(format!("{}[INFO]{} {}", *GREEN, *RESET, self.contents))
                     }
                 } else if !is_running_in_accessible_mode() {
-                    Some(format!("{}[INFO]{} {}", *YELLOW, *RESET, self.contents))
+                    Some(format!("{}[INFO]{} {}", *GREEN, *RESET, self.contents))
                 } else {
                     None
                 }
