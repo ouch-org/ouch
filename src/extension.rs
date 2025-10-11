@@ -94,7 +94,7 @@ pub enum CompressionFormat {
     Lzip,
     /// .sz
     Snappy,
-    /// tar, tgz, tbz, tbz2, tbz3, txz, tlz4, tlzma, tsz, tzst
+    /// tar, tgz, tbz, tbz2, tbz3, txz, tlz, tlz4, tlzma, tsz, tzst
     Tar,
     /// .zst
     Zstd,

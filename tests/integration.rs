@@ -32,7 +32,9 @@ enum DirectoryExtension {
     #[cfg(feature = "bzip3")]
     Tbz3,
     Tgz,
+    Tlz,
     Tlz4,
+    Tlzma,
     Tsz,
     Txz,
     Tzst,
@@ -48,7 +50,9 @@ enum FileExtension {
     #[cfg(feature = "bzip3")]
     Bz3,
     Gz,
+    Lz,
     Lz4,
+    Lzma,
     Sz,
     Xz,
     Zst,
