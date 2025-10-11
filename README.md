@@ -123,8 +123,6 @@ Output:
 
 ✓³: Due to RAR's restrictive license, only decompression and listing can be supported.
 
-✓⁴: Only decompression is supported, compression is not implemented yet.
-
 If you wish to exclude non-free code from your build, you can disable RAR support
 by building without the `unrar` feature.
 
