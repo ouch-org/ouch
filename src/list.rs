@@ -52,22 +52,28 @@ pub fn list_files(
 fn print_entry(out: &mut impl Write, name: impl std::fmt::Display, is_dir: bool) {
     use crate::utils::colors::*;
 
-    if is_dir {
-        // if colors are deactivated, print final / to mark directories
-        if BLUE.is_empty() {
-            let _ = writeln!(out, "{name}/");
-        // if in ACCESSIBLE mode, use colors but print final / in case colors
-        // aren't read out aloud with a screen reader or aren't printed on a
-        // braille reader
-        } else if is_running_in_accessible_mode() {
-            let _ = writeln!(out, "{}{}{}/{}", *BLUE, *STYLE_BOLD, name, *ALL_RESET);
-        } else {
-            let _ = writeln!(out, "{}{}{}{}", *BLUE, *STYLE_BOLD, name, *ALL_RESET);
-        }
-    } else {
-        // not a dir -> just print the file name
+    if !is_dir {
+        // Not a directory -> just print the file name
         let _ = writeln!(out, "{name}");
+        return;
     }
+
+    // Handle directory display
+    let name_str = name.to_string();
+    let display_name = name_str.strip_suffix('/').unwrap_or(&name_str);
+
+    let output = if BLUE.is_empty() {
+        // Colors are deactivated, print final / to mark directories
+        format!("{display_name}/")
+    } else if is_running_in_accessible_mode() {
+        // Accessible mode: use colors but print final / for screen readers
+        format!("{}{}{}/{}", *BLUE, *STYLE_BOLD, display_name, *ALL_RESET)
+    } else {
+        // Normal mode: use colors without trailing slash
+        format!("{}{}{}{}", *BLUE, *STYLE_BOLD, display_name, *ALL_RESET)
+    };
+
+    let _ = writeln!(out, "{output}");
 }
 
 /// Since archives store files as a list of entries -> without direct
