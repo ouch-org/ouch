@@ -36,6 +36,7 @@ Categories Used:
 - Give better error messages when archive extensions are invalid [\#817](https://github.com/ouch-org/ouch/pull/817) ([marcospb19](https://github.com/marcospb19))
 - Add aliases for `--password` flag (`--pass` and `--pw`) [\#847](https://github.com/ouch-org/ouch/pull/847) ([marcospb19](https://github.com/marcospb19))
 - Use `lzma-rust2` crate instead of `liblzma` crate [\#867](https://github.com/ouch-org/ouch/pull/867) ([sorairolake](https://github.com/sorairolake))
+- Avoid loading entire 7z archive into memory when listing [\#860](https://github.com/ouch-org/ouch/pull/860) ([86xsk](https://github.com/86xsk))
 
 ### Bug Fixes
 
