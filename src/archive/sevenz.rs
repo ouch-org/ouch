@@ -12,6 +12,7 @@ use same_file::Handle;
 use sevenz_rust2::SevenZArchiveEntry;
 
 use crate::{
+    commands::Unpacked,
     error::{Error, FinalError, Result},
     list::FileInArchive,
     utils::{
@@ -98,7 +99,12 @@ where
     Ok(bytes)
 }
 
-pub fn decompress_sevenz<R>(reader: R, output_path: &Path, password: Option<&[u8]>, quiet: bool) -> crate::Result<usize>
+pub fn decompress_sevenz<R>(
+    reader: R,
+    output_path: &Path,
+    password: Option<&[u8]>,
+    quiet: bool,
+) -> crate::Result<Unpacked>
 where
     R: Read + Seek,
 {
@@ -167,7 +173,10 @@ where
         None => sevenz_rust2::decompress_with_extract_fn(reader, output_path, entry_extract_fn)?,
     }
 
-    Ok(count)
+    Ok(Unpacked {
+        files_unpacked: count,
+        read_only_directories: Vec::new(),
+    })
 }
 
 /// List contents of `archive_path`, returning a vector of archive entries
