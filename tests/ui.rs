@@ -5,7 +5,7 @@
 #[macro_use]
 mod utils;
 
-use std::{collections::BTreeSet, ffi::OsStr, io, path::Path, process::Output};
+use std::{ffi::OsStr, io, path::Path, process::Output};
 
 use insta::assert_snapshot as ui;
 use regex::Regex;

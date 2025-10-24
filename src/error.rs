@@ -27,11 +27,11 @@ pub enum Error {
     /// NEEDS MORE CONTEXT
     AlreadyExists { error_title: String },
     /// From zip::result::ZipError::InvalidArchive
-    InvalidZipArchive(String),
+    InvalidZipArchive(Cow<'static, str>),
     /// Detected from io::Error if .kind() is io::ErrorKind::PermissionDenied
     PermissionDenied { error_title: String },
     /// From zip::result::ZipError::UnsupportedArchive
-    UnsupportedZipArchive(String),
+    UnsupportedZipArchive(&'static str),
     /// We don't support compressing the root folder.
     CompressingRootFolder,
     /// Specialized walkdir's io::Error wrapper with additional information on the error
@@ -216,11 +216,11 @@ impl From<zip::result::ZipError> for Error {
         use zip::result::ZipError;
         match err {
             ZipError::Io(io_err) => Self::from(io_err),
-            ZipError::InvalidArchive(filename) => Self::InvalidZipArchive(filename.to_string()),
+            ZipError::InvalidArchive(filename) => Self::InvalidZipArchive(filename),
             ZipError::FileNotFound => Self::Custom {
                 reason: FinalError::with_title("Unexpected error in zip archive").detail("File not found"),
             },
-            ZipError::UnsupportedArchive(filename) => Self::UnsupportedZipArchive(filename.to_string()),
+            ZipError::UnsupportedArchive(filename) => Self::UnsupportedZipArchive(filename),
             ZipError::InvalidPassword => Self::InvalidPassword {
                 reason: "The provided password is incorrect".to_string(),
             },

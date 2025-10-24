@@ -229,3 +229,17 @@ pub fn rename_recursively(src: &Path, dst: &Path) -> crate::Result<()> {
     }
     Ok(())
 }
+
+#[inline]
+pub fn symlink(target: &Path, full_path: &Path) -> crate::Result<()> {
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(target, full_path)?;
+
+    // FIXME: how to detect whether the destination is a folder or a regular file?
+    // regular file should use fs::symlink_file
+    // folder should use fs::symlink_dir
+    #[cfg(windows)]
+    std::os::windows::fs::symlink_file(target, full_path)?;
+
+    Ok(())
+}

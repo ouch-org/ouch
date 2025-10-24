@@ -8,7 +8,7 @@ use std::{
     thread,
 };
 
-use fs_err as fs;
+use fs_err::{self as fs, os::unix::fs::symlink};
 use same_file::Handle;
 
 use crate::{
@@ -38,14 +38,7 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) 
                     .link_name()?
                     .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidData, "Missing symlink target"))?;
 
-                #[cfg(unix)]
-                std::os::unix::fs::symlink(&target, &full_path)?;
-
-                // FIXME: how to detect whether the destination is a folder or a regular file?
-                // regular file should use fs::symlink_file
-                // folder should use fs::symlink_dir
-                #[cfg(windows)]
-                std::os::windows::fs::symlink_file(&target, &full_path)?;
+                symlink(&target, &full_path)?;
             }
             tar::EntryType::Regular | tar::EntryType::Directory => {
                 file.unpack_in(output_folder)?;
