@@ -7,8 +7,9 @@ use unrar::Archive;
 use crate::{
     commands::Unpacked,
     error::{Error, Result},
+    info,
     list::FileInArchive,
-    utils::{logger::info, Bytes},
+    utils::Bytes,
 };
 
 /// Unpacks the archive given by `archive_path` into the folder given by `output_folder`.
@@ -31,11 +32,11 @@ pub fn unpack_archive(
         let entry = header.entry();
         archive = if entry.is_file() {
             if !quiet {
-                info(format!(
+                info!(
                     "extracted ({}) {}",
                     Bytes::new(entry.unpacked_size),
                     entry.filename.display(),
-                ));
+                );
             }
             unpacked += 1;
             header.extract_with_base(output_folder)?

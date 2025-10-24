@@ -15,12 +15,10 @@ use crate::{
         CompressionFormat::{self, *},
         Extension,
     },
+    info, info_accessible,
     utils::{
-        self,
-        io::lock_and_flush_output_stdio,
-        is_path_stdin,
-        logger::{info, info_accessible},
-        nice_directory_display, set_permission_mode, user_wants_to_continue,
+        self, io::lock_and_flush_output_stdio, is_path_stdin, nice_directory_display, set_permission_mode,
+        user_wants_to_continue,
     },
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
@@ -100,18 +98,15 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
         // having a final status message is important especially in an accessibility context
         // as screen readers may not read a commands exit code, making it hard to reason
         // about whether the command succeeded without such a message
-        info_accessible(format!(
+        info_accessible!(
             "Successfully decompressed archive in {} ({} files)",
             nice_directory_display(options.output_dir),
             files_unpacked
-        ));
+        );
 
         if !input_is_stdin && options.remove {
             fs::remove_file(options.input_file_path)?;
-            info(format!(
-                "Removed input file {}",
-                nice_directory_display(options.input_file_path)
-            ));
+            info!("Removed input file {}", nice_directory_display(options.input_file_path));
         }
 
         return Ok(());
@@ -306,18 +301,15 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
     // having a final status message is important especially in an accessibility context
     // as screen readers may not read a commands exit code, making it hard to reason
     // about whether the command succeeded without such a message
-    info_accessible(format!(
+    info_accessible!(
         "Successfully decompressed archive in {}",
         nice_directory_display(options.output_dir)
-    ));
-    info_accessible(format!("Files unpacked: {files_unpacked}"));
+    );
+    info_accessible!("Files unpacked: {files_unpacked}");
 
     if !input_is_stdin && options.remove {
         fs::remove_file(options.input_file_path)?;
-        info(format!(
-            "Removed input file {}",
-            nice_directory_display(options.input_file_path)
-        ));
+        info!("Removed input file {}", nice_directory_display(options.input_file_path));
     }
 
     Ok(())
@@ -389,10 +381,10 @@ fn smart_unpack(
     let temp_dir = tempfile::Builder::new().prefix("tmp-ouch-").tempdir_in(output_dir)?;
     let temp_dir_path = temp_dir.path();
 
-    info_accessible(format!(
+    info_accessible!(
         "Created temporary directory {} to hold decompressed elements",
         nice_directory_display(temp_dir_path)
-    ));
+    );
 
     let Unpacked {
         files_unpacked,
@@ -438,11 +430,11 @@ fn smart_unpack(
         }
     }
 
-    info_accessible(format!(
+    info_accessible!(
         "Successfully moved \"{}\" to \"{}\"",
         nice_directory_display(&previous_path),
         nice_directory_display(&new_path),
-    ));
+    );
 
     Ok(ControlFlow::Continue(Unpacked {
         files_unpacked,

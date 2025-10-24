@@ -7,7 +7,7 @@ use CompressionFormat::*;
 
 use crate::{
     error::{Error, FinalError, Result},
-    utils::logger::warning,
+    warning,
 };
 
 pub const SUPPORTED_EXTENSIONS: &[&str] = &[
@@ -231,9 +231,7 @@ pub fn separate_known_extensions_from_name(path: &Path) -> Result<(&Path, Vec<Ex
     if let Ok(name) = name.to_str() {
         let file_stem = name.trim_matches('.');
         if SUPPORTED_EXTENSIONS.contains(&file_stem) || SUPPORTED_ALIASES.contains(&file_stem) {
-            warning(format!(
-                "Received a file with name '{file_stem}', but {file_stem} was expected as the extension"
-            ));
+            warning!("Received a file with name '{file_stem}', but {file_stem} was expected as the extension");
         }
     }
 
