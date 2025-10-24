@@ -20,9 +20,9 @@ use crate::{
     error::FinalError,
     list::FileInArchive,
     utils::{
-        cd_into_same_dir_as, get_invalid_utf8_paths,
+        cd_into_same_dir_as, create_symlink, get_invalid_utf8_paths,
         logger::{info, info_accessible, warning},
-        pretty_format_list_of_paths, strip_cur_dir, symlink, Bytes, EscapedPathDisplay, FileVisibilityPolicy,
+        pretty_format_list_of_paths, strip_cur_dir, Bytes, EscapedPathDisplay, FileVisibilityPolicy,
     },
 };
 
@@ -97,7 +97,7 @@ where
                         info(format!("linking {} -> {}", file_path.display(), target));
                     }
 
-                    symlink(Path::new(&target), file_path)?;
+                    create_symlink(Path::new(&target), file_path)?;
                 } else {
                     let mut output_file = fs::File::create(file_path)?;
                     io::copy(&mut file, &mut output_file)?;

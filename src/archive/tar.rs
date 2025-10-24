@@ -8,14 +8,14 @@ use std::{
     thread,
 };
 
-use fs_err::{self as fs, os::unix::fs::symlink};
+use fs_err::{self as fs};
 use same_file::Handle;
 
 use crate::{
     error::FinalError,
     list::FileInArchive,
     utils::{
-        self,
+        self, create_symlink,
         logger::{info, warning},
         Bytes, EscapedPathDisplay, FileVisibilityPolicy,
     },
@@ -38,7 +38,7 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) 
                     .link_name()?
                     .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidData, "Missing symlink target"))?;
 
-                symlink(&target, &full_path)?;
+                create_symlink(&target, &full_path)?;
             }
             tar::EntryType::Regular | tar::EntryType::Directory => {
                 file.unpack_in(output_folder)?;

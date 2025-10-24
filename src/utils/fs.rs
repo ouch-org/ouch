@@ -231,7 +231,7 @@ pub fn rename_recursively(src: &Path, dst: &Path) -> crate::Result<()> {
 }
 
 #[inline]
-pub fn symlink(target: &Path, full_path: &Path) -> crate::Result<()> {
+pub fn create_symlink(target: &Path, full_path: &Path) -> crate::Result<()> {
     #[cfg(unix)]
     std::os::unix::fs::symlink(target, full_path)?;
 
