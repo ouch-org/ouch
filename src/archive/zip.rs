@@ -11,7 +11,7 @@ use std::{
 };
 
 use filetime_creation::{set_file_mtime, FileTime};
-use fs_err as fs;
+use fs_err::{self as fs};
 use same_file::Handle;
 use time::OffsetDateTime;
 use zip::{self, read::ZipFile, DateTime, ZipArchive};
@@ -20,7 +20,7 @@ use crate::{
     error::FinalError,
     list::FileInArchive,
     utils::{
-        cd_into_same_dir_as, get_invalid_utf8_paths,
+        cd_into_same_dir_as, create_symlink, get_invalid_utf8_paths,
         logger::{info, info_accessible, warning},
         pretty_format_list_of_paths, strip_cur_dir, Bytes, EscapedPathDisplay, FileVisibilityPolicy,
     },
@@ -97,16 +97,13 @@ where
                         info(format!("linking {} -> {}", file_path.display(), target));
                     }
 
-                    #[cfg(unix)]
-                    std::os::unix::fs::symlink(&target, file_path)?;
-                    #[cfg(windows)]
-                    std::os::windows::fs::symlink_file(&target, file_path)?;
+                    create_symlink(Path::new(&target), file_path)?;
                 } else {
                     let mut output_file = fs::File::create(file_path)?;
                     io::copy(&mut file, &mut output_file)?;
                     set_last_modified_time(&file, file_path)?;
                     #[cfg(unix)]
-                    unix_set_permissions(&file_path, &file)?;
+                    unix_set_permissions(file_path, &file)?;
                 }
 
                 // same reason is in _is_dir: long, often not needed text
