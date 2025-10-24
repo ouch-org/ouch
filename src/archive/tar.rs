@@ -3,6 +3,7 @@
 use std::{
     env,
     io::prelude::*,
+    ops::Not,
     path::{Path, PathBuf},
     sync::mpsc::{self, Receiver},
     thread,
@@ -12,27 +13,30 @@ use fs_err::{self as fs};
 use same_file::Handle;
 
 use crate::{
+    commands::Unpacked,
     error::FinalError,
     list::FileInArchive,
     utils::{
         self, create_symlink,
         logger::{info, warning},
-        Bytes, EscapedPathDisplay, FileVisibilityPolicy,
+        set_permission_mode, Bytes, EscapedPathDisplay, FileVisibilityPolicy,
     },
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `into`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) -> crate::Result<usize> {
+pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) -> crate::Result<Unpacked> {
     let mut archive = tar::Archive::new(reader);
 
     let mut files_unpacked = 0;
+    let mut read_only_directories = Vec::new();
+
     for file in archive.entries()? {
         let mut file = file?;
 
         match file.header().entry_type() {
             tar::EntryType::Symlink => {
-                let relative_path = file.path()?.to_path_buf();
+                let relative_path = file.path()?;
                 let full_path = output_folder.join(&relative_path);
                 let target = file
                     .link_name()?
@@ -40,8 +44,26 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) 
 
                 create_symlink(&target, &full_path)?;
             }
-            tar::EntryType::Regular | tar::EntryType::Directory => {
+            tar::EntryType::Regular => {
                 file.unpack_in(output_folder)?;
+            }
+            tar::EntryType::Directory => {
+                let original_mode = file.header().mode()?;
+                let is_writeable = (original_mode & 0o200) != 0;
+
+                file.unpack_in(output_folder)?;
+
+                if cfg!(unix) && is_writeable.not() {
+                    // We just unpacked a read-only directory
+                    // If any following entries are inside it (very likely), this would fail
+                    //
+                    // To get around that, we'll set this to writeable, then revert once finished
+                    let original_path = file.path()?.to_path_buf();
+                    let unpacked = output_folder.join(&original_path);
+                    set_permission_mode(&unpacked, original_mode | 0o200)?;
+
+                    read_only_directories.push((original_path, original_mode));
+                }
             }
             _ => continue,
         }
@@ -60,7 +82,10 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) 
         files_unpacked += 1;
     }
 
-    Ok(files_unpacked)
+    Ok(Unpacked {
+        files_unpacked,
+        read_only_directories,
+    })
 }
 
 /// List contents of `archive`, returning a vector of archive entries

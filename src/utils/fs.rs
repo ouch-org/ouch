@@ -243,3 +243,19 @@ pub fn create_symlink(target: &Path, full_path: &Path) -> crate::Result<()> {
 
     Ok(())
 }
+
+#[cfg(unix)]
+#[inline]
+pub fn set_permission_mode(path: &Path, mode: u32) -> crate::Result<()> {
+    use std::{fs::Permissions, os::unix::fs::PermissionsExt};
+
+    fs::set_permissions(path, Permissions::from_mode(mode))?;
+
+    Ok(())
+}
+
+#[cfg(windows)]
+#[inline]
+pub fn set_permission_mode(path: &Path, mode: u32) -> crate::Result<()> {
+    Ok(())
+}

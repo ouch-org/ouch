@@ -17,6 +17,7 @@ use time::OffsetDateTime;
 use zip::{self, read::ZipFile, DateTime, ZipArchive};
 
 use crate::{
+    commands::Unpacked,
     error::FinalError,
     list::FileInArchive,
     utils::{
@@ -33,7 +34,7 @@ pub fn unpack_archive<R>(
     output_folder: &Path,
     password: Option<&[u8]>,
     quiet: bool,
-) -> crate::Result<usize>
+) -> crate::Result<Unpacked>
 where
     R: Read + Seek,
 {
@@ -120,7 +121,10 @@ where
         unpacked_files += 1;
     }
 
-    Ok(unpacked_files)
+    Ok(Unpacked {
+        files_unpacked: unpacked_files,
+        read_only_directories: Vec::new(),
+    })
 }
 
 /// List contents of `archive`, returning a vector of archive entries

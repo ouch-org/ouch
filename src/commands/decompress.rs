@@ -20,13 +20,21 @@ use crate::{
         io::lock_and_flush_output_stdio,
         is_path_stdin,
         logger::{info, info_accessible},
-        nice_directory_display, user_wants_to_continue,
+        nice_directory_display, set_permission_mode, user_wants_to_continue,
     },
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
 trait ReadSeek: Read + io::Seek {}
 impl<T: Read + io::Seek> ReadSeek for T {}
+
+pub type Mode = u32;
+pub type UnpackRes = crate::Result<Unpacked>;
+
+pub struct Unpacked {
+    pub files_unpacked: usize,
+    pub read_only_directories: Vec<(PathBuf, Mode)>,
+}
 
 pub struct DecompressOptions<'a> {
     pub input_file_path: &'a Path,
@@ -72,7 +80,10 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             Box::new(fs::File::open(options.input_file_path)?)
         };
         let zip_archive = zip::ZipArchive::new(reader)?;
-        let files_unpacked = if let ControlFlow::Continue(files) = execute_decompression(
+        let Unpacked {
+            files_unpacked,
+            read_only_directories: _,
+        } = if let ControlFlow::Continue(files) = execute_decompression(
             |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, options.password, options.quiet),
             options.output_dir,
             &options.output_file_path,
@@ -145,7 +156,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
         reader = chain_reader_decoder(format, reader)?;
     }
 
-    let files_unpacked = match first_extension {
+    let Unpacked { files_unpacked, .. } = match first_extension {
         Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {
             reader = chain_reader_decoder(&first_extension, reader)?;
 
@@ -160,7 +171,10 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
 
             io::copy(&mut reader, &mut writer)?;
 
-            1
+            Unpacked {
+                files_unpacked: 1,
+                read_only_directories: Vec::new(),
+            }
         }
         Tar => {
             if let ControlFlow::Continue(files) = execute_decompression(
@@ -213,8 +227,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
         }
         #[cfg(feature = "unrar")]
         Rar => {
-            type UnpackResult = crate::Result<usize>;
-            let unpack_fn: Box<dyn FnOnce(&Path) -> UnpackResult> = if options.formats.len() > 1 || input_is_stdin {
+            let unpack_fn: Box<dyn FnOnce(&Path) -> UnpackRes> = if options.formats.len() > 1 || input_is_stdin {
                 let mut temp_file = tempfile::NamedTempFile::new()?;
                 io::copy(&mut reader, &mut temp_file)?;
                 Box::new(move |output_dir| {
@@ -311,13 +324,13 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
 }
 
 fn execute_decompression(
-    unpack_fn: impl FnOnce(&Path) -> crate::Result<usize>,
+    unpack_fn: impl FnOnce(&Path) -> crate::Result<Unpacked>,
     output_dir: &Path,
     output_file_path: &Path,
     question_policy: QuestionPolicy,
     is_output_dir_provided: bool,
     is_smart_unpack: bool,
-) -> crate::Result<ControlFlow<(), usize>> {
+) -> crate::Result<ControlFlow<(), Unpacked>> {
     if is_smart_unpack {
         return smart_unpack(unpack_fn, output_dir, output_file_path, question_policy);
     }
@@ -336,10 +349,10 @@ fn execute_decompression(
 /// - If `output_dir` does not exist OR is a empty directory, it will unpack there
 /// - If `output_dir` exist OR is a directory not empty, the user will be asked what to do
 fn unpack(
-    unpack_fn: impl FnOnce(&Path) -> crate::Result<usize>,
+    unpack_fn: impl FnOnce(&Path) -> crate::Result<Unpacked>,
     output_dir: &Path,
     question_policy: QuestionPolicy,
-) -> crate::Result<ControlFlow<(), usize>> {
+) -> crate::Result<ControlFlow<(), Unpacked>> {
     let is_valid_output_dir = !output_dir.exists() || (output_dir.is_dir() && output_dir.read_dir()?.next().is_none());
 
     let output_dir_cleaned = if is_valid_output_dir {
@@ -367,11 +380,11 @@ fn unpack(
 ///
 /// Note: This functions assumes that `output_dir` exists
 fn smart_unpack(
-    unpack_fn: impl FnOnce(&Path) -> crate::Result<usize>,
+    unpack_fn: impl FnOnce(&Path) -> crate::Result<Unpacked>,
     output_dir: &Path,
     output_file_path: &Path,
     question_policy: QuestionPolicy,
-) -> crate::Result<ControlFlow<(), usize>> {
+) -> crate::Result<ControlFlow<(), Unpacked>> {
     assert!(output_dir.exists());
     let temp_dir = tempfile::Builder::new().prefix("tmp-ouch-").tempdir_in(output_dir)?;
     let temp_dir_path = temp_dir.path();
@@ -381,7 +394,10 @@ fn smart_unpack(
         nice_directory_display(temp_dir_path)
     ));
 
-    let files = unpack_fn(temp_dir_path)?;
+    let Unpacked {
+        files_unpacked,
+        read_only_directories,
+    } = unpack_fn(temp_dir_path)?;
 
     let root_contains_only_one_element = fs::read_dir(temp_dir_path)?.take(2).count() == 1;
 
@@ -410,11 +426,26 @@ fn smart_unpack(
     if fs::rename(&previous_path, &new_path).is_err() {
         utils::rename_recursively(&previous_path, &new_path)?;
     };
+
+    if cfg!(unix) {
+        for (path, mode) in &read_only_directories {
+            let components = path.components();
+            let mut path = new_path.clone();
+            for component in components {
+                path.push(component);
+            }
+            set_permission_mode(&path, *mode)?;
+        }
+    }
+
     info_accessible(format!(
         "Successfully moved \"{}\" to \"{}\"",
         nice_directory_display(&previous_path),
         nice_directory_display(&new_path),
     ));
 
-    Ok(ControlFlow::Continue(files))
+    Ok(ControlFlow::Continue(Unpacked {
+        files_unpacked,
+        read_only_directories,
+    }))
 }
