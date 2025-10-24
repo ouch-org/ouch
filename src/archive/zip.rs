@@ -64,7 +64,21 @@ where
                 if !quiet {
                     info(format!("File {} extracted to \"{}\"", idx, file_path.display()));
                 }
-                fs::create_dir_all(&file_path)?;
+
+                let mode = file.unix_mode();
+                let is_symlink = mode.is_some_and(|mode| mode & 0o170000 == 0o120000);
+
+                if is_symlink {
+                    let mut target = String::new();
+                    file.read_to_string(&mut target)?;
+
+                    #[cfg(unix)]
+                    std::os::unix::fs::symlink(&target, &file_path)?;
+                    #[cfg(windows)]
+                    std::os::windows::fs::symlink_dir(&target, file_path)?;
+                } else {
+                    fs::create_dir_all(&file_path)?;
+                }
             }
             _is_file @ false => {
                 if let Some(path) = file_path.parent() {
@@ -242,9 +256,7 @@ where
                     .detail(format!("File at '{path:?}' has a non-UTF-8 name"))
             })?;
 
-            if metadata.is_dir() {
-                writer.add_directory(entry_name, options)?;
-            } else if path.is_symlink() && !follow_symlinks {
+            if !follow_symlinks && path.symlink_metadata()?.is_symlink() {
                 let target_path = path.read_link()?;
                 let target_name = target_path.to_str().ok_or_else(|| {
                     FinalError::with_title("Zip requires that all directories names are valid UTF-8")
@@ -259,6 +271,8 @@ where
                 let symlink_options = options.unix_permissions(0o120777);
 
                 writer.add_symlink(entry_name, target_name, symlink_options)?;
+            } else if path.is_dir() {
+                writer.add_directory(entry_name, options)?;
             } else {
                 #[cfg(not(unix))]
                 let options = if is_executable::is_executable(path) {

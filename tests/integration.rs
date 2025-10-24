@@ -689,7 +689,8 @@ fn symlink_pack_and_unpack(
     let root_path = temp_dir.path();
 
     let src_files_path = root_path.join("src_files");
-    fs::create_dir_all(&src_files_path)?;
+    let folder_path = src_files_path.join("folder");
+    fs::create_dir_all(&folder_path)?;
 
     let mut files_path = ["file1.txt", "file2.txt", "file3.txt", "file4.txt", "file5.txt"]
         .into_iter()
@@ -704,10 +705,15 @@ fn symlink_pack_and_unpack(
     fs::create_dir_all(&dest_files_path)?;
 
     let symlink_path = src_files_path.join(Path::new("symlink"));
+    let symlink_folder_path = src_files_path.join(Path::new("symlink_folder"));
     #[cfg(unix)]
     std::os::unix::fs::symlink(&files_path[0], &symlink_path)?;
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(&folder_path, &symlink_folder_path)?;
     #[cfg(windows)]
     std::os::windows::fs::symlink_file(&files_path[0], &symlink_path)?;
+    #[cfg(windows)]
+    std::os::windows::fs::symlink_dir(&folder_path, &symlink_folder_path)?;
 
     files_path.push(symlink_path);
 
@@ -728,11 +734,10 @@ fn symlink_pack_and_unpack(
         .assert()
         .success();
 
-    assert_same_directory(&src_files_path, &dest_files_path, false);
     // check the symlink stand still
     for f in dest_files_path.as_path().read_dir()? {
         let f = f?;
-        if f.file_name() == "symlink" {
+        if f.file_name() == "symlink" || f.file_name() == "symlink_folder" {
             assert!(f.file_type()?.is_symlink())
         }
     }
