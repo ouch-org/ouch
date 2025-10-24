@@ -17,24 +17,25 @@ fn sanity_check_through_mime() {
     write_random_content(test_file, &mut SmallRng::from_entropy());
 
     let formats = [
-        "7z", "tar", "zip", "tar.gz", "tgz", "tbz", "tbz2", "txz", "tlzma", "tzst", "tar.bz", "tar.bz2", "tar.lzma",
+        "7z", "cb7", "tar", "cbt", "zip", "cbz", "tar.gz", "tgz", "tbz", "tbz2", "txz", "tzst", "tar.bz", "tar.bz2",
         "tar.xz", "tar.zst",
     ];
 
     let expected_mimes = [
         "application/x-7z-compressed",
+        "application/x-7z-compressed",
         "application/x-tar",
+        "application/x-tar",
+        "application/zip",
         "application/zip",
         "application/gzip",
         "application/gzip",
         "application/x-bzip2",
         "application/x-bzip2",
         "application/x-xz",
-        "application/x-xz",
         "application/zstd",
         "application/x-bzip2",
         "application/x-bzip2",
-        "application/x-xz",
         "application/x-xz",
         "application/zstd",
     ];

@@ -19,7 +19,7 @@ pub use self::{
     },
     fs::{
         cd_into_same_dir_as, create_dir_if_non_existent, is_path_stdin, remove_file_or_dir,
-        rename_for_available_filename, resolve_path_conflict, try_infer_extension,
+        rename_for_available_filename, rename_recursively, resolve_path_conflict, try_infer_extension,
     },
     question::{
         ask_to_create_file, user_wants_to_continue, user_wants_to_overwrite, FileConflitOperation, QuestionAction,

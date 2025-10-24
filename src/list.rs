@@ -113,7 +113,7 @@ mod tree {
                 if let Some(t) = self.children.get_mut(part) {
                     t.insert_(file, path)
                 } else {
-                    let mut child = Tree::default();
+                    let mut child = Self::default();
                     child.insert_(file, path);
                     self.children.insert(part.to_os_string(), child);
                 }

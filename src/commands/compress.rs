@@ -1,5 +1,6 @@
 use std::{
     io::{self, BufWriter, Cursor, Seek, Write},
+    num::NonZeroU64,
     path::{Path, PathBuf},
 };
 
@@ -68,10 +69,30 @@ pub fn compress_files(
                 )
             }
             Lz4 => Box::new(lz4_flex::frame::FrameEncoder::new(encoder).auto_finish()),
-            Lzma => Box::new(xz2::write::XzEncoder::new(
-                encoder,
-                level.map_or(6, |l| (l as u32).clamp(0, 9)),
-            )),
+            Lzma => {
+                let options = level.map_or_else(Default::default, |l| {
+                    lzma_rust2::LzmaOptions::with_preset((l as u32).clamp(0, 9))
+                });
+                let writer = lzma_rust2::LzmaWriter::new_use_header(encoder, &options, None)?;
+                Box::new(writer.auto_finish())
+            }
+            Xz => {
+                let mut options = level.map_or_else(Default::default, |l| {
+                    lzma_rust2::XzOptions::with_preset((l as u32).clamp(0, 9))
+                });
+                let dict_size = options.lzma_options.dict_size as u64;
+                options.set_block_size(NonZeroU64::new(dict_size));
+                // Use up to 256 PHYSICAL cores for compression
+                let writer = lzma_rust2::XzWriterMt::new(encoder, options, num_cpus::get_physical() as u32)?;
+                Box::new(writer.auto_finish())
+            }
+            Lzip => {
+                let options = level.map_or_else(Default::default, |l| {
+                    lzma_rust2::LzipOptions::with_preset((l as u32).clamp(0, 9))
+                });
+                let writer = lzma_rust2::LzipWriter::new(encoder, options);
+                Box::new(writer.auto_finish())
+            }
             Snappy => Box::new(
                 gzp::par::compress::ParCompress::<gzp::snap::Snap>::builder()
                     .compression_level(gzp::par::compress::Compression::new(
@@ -108,7 +129,7 @@ pub fn compress_files(
     }
 
     match first_format {
-        Gzip | Bzip | Bzip3 | Lz4 | Lzma | Snappy | Zstd | Brotli => {
+        Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {
             writer = chain_writer_encoder(&first_format, writer)?;
             let mut reader = fs::File::open(&files[0])?;
 

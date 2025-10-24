@@ -128,7 +128,9 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 Box::new(bzip3::read::Bz3Decoder::new(decoder)?)
             }
             Lz4 => Box::new(lz4_flex::frame::FrameDecoder::new(decoder)),
-            Lzma => Box::new(xz2::read::XzDecoder::new(decoder)),
+            Lzma => Box::new(lzma_rust2::LzmaReader::new_mem_limit(decoder, u32::MAX, None)?),
+            Xz => Box::new(lzma_rust2::XzReader::new(decoder, true)),
+            Lzip => Box::new(lzma_rust2::LzipReader::new(decoder)?),
             Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
             Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
             Brotli => Box::new(brotli::Decompressor::new(decoder, BUFFER_CAPACITY)),
@@ -144,7 +146,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
     }
 
     let files_unpacked = match first_extension {
-        Gzip | Bzip | Bzip3 | Lz4 | Lzma | Snappy | Zstd | Brotli => {
+        Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {
             reader = chain_reader_decoder(&first_extension, reader)?;
 
             let mut writer = match utils::ask_to_create_file(
@@ -295,7 +297,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
         "Successfully decompressed archive in {}",
         nice_directory_display(options.output_dir)
     ));
-    info_accessible(format!("Files unpacked: {}", files_unpacked));
+    info_accessible(format!("Files unpacked: {files_unpacked}"));
 
     if !input_is_stdin && options.remove {
         fs::remove_file(options.input_file_path)?;
@@ -405,7 +407,9 @@ fn smart_unpack(
     };
 
     // Rename the temporary directory to the archive name, which is output_file_path
-    fs::rename(&previous_path, &new_path)?;
+    if fs::rename(&previous_path, &new_path).is_err() {
+        utils::rename_recursively(&previous_path, &new_path)?;
+    };
     info_accessible(format!(
         "Successfully moved \"{}\" to \"{}\"",
         nice_directory_display(&previous_path),

@@ -82,7 +82,7 @@ pub fn rename_or_increment_filename(path: &Path) -> PathBuf {
             let number = number_str.parse::<u32>().unwrap_or(0);
             format!("{}_{}", base, number + 1)
         }
-        _ => format!("{}_1", filename),
+        _ => format!("{filename}_1"),
     };
 
     let mut new_path = parent.join(new_filename);
@@ -135,8 +135,14 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
     fn is_bz3(buf: &[u8]) -> bool {
         buf.starts_with(b"BZ3v1")
     }
+    fn is_lzma(buf: &[u8]) -> bool {
+        buf.len() >= 14 && buf[0] == 0x5d && (buf[12] == 0x00 || buf[12] == 0xff) && buf[13] == 0x00
+    }
     fn is_xz(buf: &[u8]) -> bool {
         buf.starts_with(&[0xFD, 0x37, 0x7A, 0x58, 0x5A, 0x00])
+    }
+    fn is_lzip(buf: &[u8]) -> bool {
+        buf.starts_with(&[0x4C, 0x5A, 0x49, 0x50])
     }
     fn is_lz4(buf: &[u8]) -> bool {
         buf.starts_with(&[0x04, 0x22, 0x4D, 0x18])
@@ -183,8 +189,12 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
         Some(Extension::new(&[Bzip], "bz2"))
     } else if is_bz3(&buf) {
         Some(Extension::new(&[Bzip3], "bz3"))
+    } else if is_lzma(&buf) {
+        Some(Extension::new(&[Lzma], "lzma"))
     } else if is_xz(&buf) {
-        Some(Extension::new(&[Lzma], "xz"))
+        Some(Extension::new(&[Xz], "xz"))
+    } else if is_lzip(&buf) {
+        Some(Extension::new(&[Lzip], "lzip"))
     } else if is_lz4(&buf) {
         Some(Extension::new(&[Lz4], "lz4"))
     } else if is_sz(&buf) {
@@ -198,4 +208,24 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
     } else {
         None
     }
+}
+
+/// Rename the src directory into the dst directory recursively
+pub fn rename_recursively(src: &Path, dst: &Path) -> crate::Result<()> {
+    if !src.exists() || !dst.exists() {
+        return Err(crate::Error::NotFound {
+            error_title: "source or destination directory does not exist".to_string(),
+        });
+    }
+
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+        if ty.is_dir() {
+            rename_recursively(entry.path().as_path(), dst.join(entry.file_name()).as_path())?;
+        } else {
+            fs::rename(entry.path(), dst.join(entry.file_name()).as_path())?;
+        }
+    }
+    Ok(())
 }
