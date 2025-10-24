@@ -144,6 +144,8 @@ fn ui_test_ok_decompress() {
 #[cfg(target_os = "linux")]
 #[test]
 fn ui_test_ok_decompress_multiple_files() {
+    use std::collections::BTreeSet;
+
     let (_dropper, dir) = testdir().unwrap();
 
     let inputs_dir = dir.join("inputs");
