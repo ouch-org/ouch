@@ -113,7 +113,7 @@ Output:
 
 | Format    | `.tar` | `.zip` | `7z` | `.gz` | `.xz` | `.lzma` | `.lz` | `.bz`, `.bz2` | `.bz3` | `.lz4` | `.sz` (Snappy) | `.zst` | `.rar` | `.br` |
 |:---------:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Supported | ✓ | ✓¹ | ✓¹ | ✓² | ✓ | ✓⁴ | ✓⁴ | ✓ | ✓ | ✓ | ✓² | ✓² | ✓³ | ✓ |
+| Supported | ✓ | ✓¹ | ✓¹ | ✓² | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓² | ✓² | ✓³ | ✓ |
 
 ✓: Supports compression and decompression.
 
@@ -123,12 +123,14 @@ Output:
 
 ✓³: Due to RAR's restrictive license, only decompression and listing can be supported.
 
-✓⁴: Only decompression is supported, compression is not implemented yet.
-
 If you wish to exclude non-free code from your build, you can disable RAR support
 by building without the `unrar` feature.
 
-`tar` aliases are also supported: `tgz`, `tbz`, `tbz2`, `tlz4`, `txz`, `tlzma`, `tsz`, `tzst`, `tlz`.
+Aliases for these formats are also supported:
+- `tar`: `tgz`, `tbz`, `tbz2`, `tlz4`, `txz`, `tlzma`, `tsz`, `tzst`, `tlz`, `cbt`
+- `zip`: `cbz`
+- `7z`: `cb7`
+- `rar`: `cbr`
 
 Formats can be chained:
 
@@ -189,7 +191,6 @@ If you're downloading binaries from the [releases page](https://github.com/ouch-
 
 Otherwise, you'll need these libraries installed on your system:
 
-* [liblzma](https://www.7-zip.org/sdk.html)
 * [libbz2](https://www.sourceware.org/bzip2)
 * [libbz3](https://github.com/kspalaiologos/bzip3)
 * [libz](https://www.zlib.net)

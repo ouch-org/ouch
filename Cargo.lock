@@ -477,6 +477,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "crc"
+version = "3.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9710d3b3739c2e349eb44fe848ad0b7c8cb1e42bd87ee49371df2f7acaf3e675"
+dependencies = [
+ "crc-catalog",
+]
+
+[[package]]
+name = "crc-catalog"
+version = "2.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "19d374276b40fb8bbdee95aef7c7fa6b5316ec764510eb64b8dd0e2ed0d7e7f5"
+
+[[package]]
 name = "crc32fast"
 version = "1.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -927,26 +942,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "liblzma"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0791ab7e08ccc8e0ce893f6906eb2703ed8739d8e89b57c0714e71bad09024c8"
-dependencies = [
- "liblzma-sys",
-]
-
-[[package]]
-name = "liblzma-sys"
-version = "0.4.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01b9596486f6d60c3bbe644c0e1be1aa6ccc472ad630fe8927b456973d7cb736"
-dependencies = [
- "cc",
- "libc",
- "pkg-config",
-]
-
-[[package]]
 name = "libredox"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1013,6 +1008,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "561d131e2d9b07641ac55bc35de5ae4ac3e783fdeebd3c4c1dd3b6a7b920051a"
 dependencies = [
  "byteorder",
+]
+
+[[package]]
+name = "lzma-rust2"
+version = "0.14.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96d3176655c152883186e161a1031192759660878ac04b2f776290b4f4e770a9"
+dependencies = [
+ "crc",
+ "sha2",
 ]
 
 [[package]]
@@ -1124,9 +1129,9 @@ dependencies = [
  "is_executable",
  "itertools",
  "libc",
- "liblzma",
  "linked-hash-map",
  "lz4_flex",
+ "lzma-rust2 0.14.2",
  "memchr",
  "num_cpus",
  "once_cell",
@@ -1558,7 +1563,7 @@ dependencies = [
  "filetime_creation",
  "getrandom 0.3.1",
  "js-sys",
- "lzma-rust2",
+ "lzma-rust2 0.2.0",
  "nt-time",
  "sha2",
  "wasm-bindgen",
@@ -1577,9 +1582,9 @@ dependencies = [
 
 [[package]]
 name = "sha2"
-version = "0.10.8"
+version = "0.10.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "793db75ad2bcafc3ffa7c68b215fee268f537982cd901d132f89c6343f3a3dc8"
+checksum = "a7507d819769d01a365ab707794a4084392c824f54a7a6a7862f8c3d0892b283"
 dependencies = [
  "cfg-if",
  "cpufeatures",
