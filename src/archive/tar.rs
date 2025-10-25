@@ -1,5 +1,7 @@
 //! Contains Tar-specific building and unpacking functions
 
+#[cfg(unix)]
+use std::os::unix::fs::MetadataExt;
 use std::{
     collections::HashMap,
     env,
@@ -9,9 +11,6 @@ use std::{
     sync::mpsc::{self, Receiver},
     thread,
 };
-
-#[cfg(unix)]
-use std::os::unix::fs::MetadataExt;
 
 use fs_err::{self as fs};
 use same_file::Handle;
