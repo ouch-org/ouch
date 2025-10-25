@@ -16,15 +16,15 @@ description = "A command-line utility for easily compressing and decompressing f
 
 [dependencies]
 atty = "0.2.14"
-brotli = "7.0.0"
+brotli = "8.0.2"
 bstr = { version = "1.10.0", default-features = false, features = ["std"] }
-bytesize = "1.3.0"
-bzip2 = "0.4.4"
-bzip3 = { version = "0.9.0", features = ["bundled"], optional = true }
+bytesize = "2.1.0"
+bzip2 = "0.6.1"
+bzip3 = { version = "0.11.0", features = ["bundled"], optional = true }
 clap = { version = "4.5.20", features = ["derive", "env"] }
 filetime_creation = "0.2"
 flate2 = { version = "1.0.30", default-features = false }
-fs-err = "2.11.0"
+fs-err = "3.1.3"
 gzp = { version = "2.0.0", default-features = false, features = [
     "snappy_default",
 ] }
