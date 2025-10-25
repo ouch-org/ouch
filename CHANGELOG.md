@@ -35,20 +35,23 @@ Categories Used:
 
 - Give better error messages when archive extensions are invalid [\#817](https://github.com/ouch-org/ouch/pull/817) ([marcospb19](https://github.com/marcospb19))
 - Add aliases for `--password` flag (`--pass` and `--pw`) [\#847](https://github.com/ouch-org/ouch/pull/847) ([marcospb19](https://github.com/marcospb19))
-- Use `lzma-rust2` crate instead of `liblzma` crate [\#867](https://github.com/ouch-org/ouch/pull/867) ([sorairolake](https://github.com/sorairolake))
 - Avoid loading entire 7z archive into memory when listing [\#860](https://github.com/ouch-org/ouch/pull/860) ([86xsk](https://github.com/86xsk))
+- Use `lzma-rust2` crate instead of `liblzma` crate [\#867](https://github.com/ouch-org/ouch/pull/867) ([sorairolake](https://github.com/sorairolake))
 
 ### Bug Fixes
 
 - Fix tar extraction count when --quiet [\#824](https://github.com/ouch-org/ouch/pull/824) ([marcospb19](https://github.com/marcospb19))
 - Fix 7z BadSignature error when compressing and then listing [\#819](https://github.com/ouch-org/ouch/pull/819) ([tommady](https://github.com/tommady))
 - Fix unpacking with merge flag failing without --dir flag [\#826](https://github.com/ouch-org/ouch/pull/826) ([tommady](https://github.com/tommady))
+- Handle broken symlinks in zip archives and normalize path separators [\#841](https://github.com/ouch-org/ouch/pull/841) ([zzzsyyy](https://github.com/zzzsyyy))
 - Fix folder softlink is not preserved after packing [\#850](https://github.com/ouch-org/ouch/pull/850) ([tommady](https://github.com/tommady))
+- Handle read-only directories in tar extraction [\#873](https://github.com/ouch-org/ouch/pull/873) ([vrmiguel](https://github.com/vrmiguel))
 
 ### Tweaks
 
 - Make `.bz3` opt-out [\#814](https://github.com/ouch-org/ouch/pull/814) ([amyspark](https://github.com/amyspark))
 - fix: adjust INFO color to green  [\#858](https://github.com/ouch-org/ouch/pull/858) ([etolbakov](https://github.com/etolbakov))
+- Bump zip crate to 6.0.0 [\#872](https://github.com/ouch-org/ouch/pull/872) ([vrmiguel](https://github.com/vrmiguel))
 
 ## [0.6.1](https://github.com/ouch-org/ouch/compare/0.6.0...0.6.1)
 
