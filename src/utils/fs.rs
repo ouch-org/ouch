@@ -2,13 +2,9 @@
 
 use std::{
     env,
-    fs::Metadata,
     io::Read,
     path::{Path, PathBuf},
 };
-
-#[cfg(windows)]
-use std::sync::atomic::{AtomicU64, Ordering};
 
 use fs_err as fs;
 
@@ -263,54 +259,4 @@ pub fn set_permission_mode(path: &Path, mode: u32) -> crate::Result<()> {
 #[inline]
 pub fn set_permission_mode(path: &Path, mode: u32) -> crate::Result<()> {
     Ok(())
-}
-
-#[inline]
-pub fn get_nlink(meta: &Metadata) -> u64 {
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::MetadataExt;
-        meta.nlink()
-    }
-    #[cfg(windows)]
-    {
-        use std::os::windows::fs::MetadataExt;
-        meta.number_of_links().map_or(1, |n| n as u64)
-    }
-}
-
-#[derive(PartialEq, Eq, Hash, Clone, Copy)]
-pub struct FileId {
-    volume: u64,
-    index: u64,
-}
-
-#[cfg(windows)]
-static FALLBACK_FILE_INDEX: AtomicU64 = AtomicU64::new(1);
-
-impl FileId {
-    pub fn new(meta: &Metadata) -> FileId {
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::MetadataExt;
-            FileId {
-                volume: meta.dev(),
-                index: meta.ino(),
-            }
-        }
-        #[cfg(windows)]
-        {
-            use std::os::windows::fs::MetadataExt;
-            match (meta.volume_serial_number(), meta.file_index()) {
-                (Some(vol), Some(idx)) => FileId {
-                    volume: vol as u64,
-                    index: idx,
-                },
-                _ => FileId {
-                    volume: 0,
-                    index: FALLBACK_FILE_INDEX.fetch_add(1, Ordering::SeqCst),
-                },
-            }
-        }
-    }
 }
