@@ -5,7 +5,6 @@ use std::{
     env,
     io::prelude::*,
     ops::Not,
-    os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
     sync::mpsc::{self, Receiver},
     thread,
@@ -19,9 +18,9 @@ use crate::{
     error::FinalError,
     list::FileInArchive,
     utils::{
-        self, create_symlink,
+        self, create_symlink, get_nlink,
         logger::{info, warning},
-        set_permission_mode, Bytes, EscapedPathDisplay, FileVisibilityPolicy,
+        set_permission_mode, Bytes, EscapedPathDisplay, FileId, FileVisibilityPolicy,
     },
 };
 
@@ -144,7 +143,7 @@ where
 {
     let mut builder = tar::Builder::new(writer);
     let output_handle = Handle::from_path(output_path);
-    let mut inode_map: HashMap<(u64, u64), PathBuf> = HashMap::new();
+    let mut inode_map: HashMap<FileId, PathBuf> = HashMap::new();
 
     for filename in input_filenames {
         let previous_location = utils::cd_into_same_dir_as(filename)?;
@@ -191,8 +190,8 @@ where
                         .detail("Unexpected error while trying to read link")
                         .detail(format!("Error: {err}."))
                 })?;
-            } else if link_meta.nlink() > 1 && link_meta.is_file() {
-                let key = (link_meta.dev(), link_meta.ino());
+            } else if get_nlink(&link_meta) > 1 && link_meta.is_file() {
+                let key = FileId::new(&link_meta);
 
                 if let Some(target_path) = inode_map.get(&key) {
                     let mut header = tar::Header::new_gnu();

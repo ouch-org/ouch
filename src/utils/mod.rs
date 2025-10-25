@@ -18,9 +18,9 @@ pub use self::{
         EscapedPathDisplay,
     },
     fs::{
-        cd_into_same_dir_as, create_dir_if_non_existent, create_symlink, is_path_stdin, remove_file_or_dir,
+        cd_into_same_dir_as, create_dir_if_non_existent, create_symlink, get_nlink, is_path_stdin, remove_file_or_dir,
         rename_for_available_filename, rename_recursively, resolve_path_conflict, set_permission_mode,
-        try_infer_extension,
+        try_infer_extension, FileId,
     },
     question::{
         ask_to_create_file, user_wants_to_continue, user_wants_to_overwrite, FileConflitOperation, QuestionAction,
