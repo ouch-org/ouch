@@ -15,7 +15,8 @@ use fs_err as fs;
 use super::{question::FileConflitOperation, user_wants_to_overwrite};
 use crate::{
     extension::Extension,
-    utils::{logger::info_accessible, EscapedPathDisplay, QuestionAction},
+    info_accessible,
+    utils::{EscapedPathDisplay, QuestionAction},
     QuestionPolicy,
 };
 
@@ -103,7 +104,7 @@ pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
         fs::create_dir_all(path)?;
         // creating a directory is an important change to the file system we
         // should always inform the user about
-        info_accessible(format!("Directory {} created", EscapedPathDisplay::new(path)));
+        info_accessible!("Directory {} created", EscapedPathDisplay::new(path));
     }
     Ok(())
 }

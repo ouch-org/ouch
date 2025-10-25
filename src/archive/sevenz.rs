@@ -9,17 +9,15 @@ use std::{
 use bstr::ByteSlice;
 use fs_err as fs;
 use same_file::Handle;
-use sevenz_rust2::SevenZArchiveEntry;
+use sevenz_rust2::ArchiveEntry;
 
 use crate::{
     commands::Unpacked,
     error::{Error, FinalError, Result},
+    info,
     list::FileInArchive,
-    utils::{
-        cd_into_same_dir_as,
-        logger::{info, warning},
-        Bytes, EscapedPathDisplay, FileVisibilityPolicy,
-    },
+    utils::{cd_into_same_dir_as, Bytes, EscapedPathDisplay, FileVisibilityPolicy},
+    warning,
 };
 
 pub fn compress_sevenz<W>(
@@ -32,7 +30,7 @@ pub fn compress_sevenz<W>(
 where
     W: Write + Seek,
 {
-    let mut writer = sevenz_rust2::SevenZWriter::new(writer)?;
+    let mut writer = sevenz_rust2::ArchiveWriter::new(writer)?;
     let output_handle = Handle::from_path(output_path);
 
     for filename in files {
@@ -49,10 +47,7 @@ where
             // If the output_path is the same as the input file, warn the user and skip the input (in order to avoid compression recursion)
             if let Ok(handle) = &output_handle {
                 if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
-                    warning(format!(
-                        "Cannot compress `{}` into itself, skipping",
-                        output_path.display()
-                    ));
+                    warning!("Cannot compress `{}` into itself, skipping", output_path.display());
 
                     continue;
                 }
@@ -63,7 +58,7 @@ where
             // spoken text for users using screen readers, braille displays
             // and so on
             if !quiet {
-                info(format!("Compressing '{}'", EscapedPathDisplay::new(path)));
+                info!("Compressing '{}'", EscapedPathDisplay::new(path));
             }
 
             let metadata = match path.metadata() {
@@ -82,7 +77,7 @@ where
                     .detail(format!("File at '{path:?}' has a non-UTF-8 name"))
             })?;
 
-            let entry = sevenz_rust2::SevenZArchiveEntry::from_path(path, entry_name.to_owned());
+            let entry = sevenz_rust2::ArchiveEntry::from_path(path, entry_name.to_owned());
             let entry_data = if metadata.is_dir() {
                 None
             } else {
@@ -110,7 +105,7 @@ where
 {
     let mut count: usize = 0;
 
-    let entry_extract_fn = |entry: &SevenZArchiveEntry, reader: &mut dyn Read, path: &PathBuf| {
+    let entry_extract_fn = |entry: &ArchiveEntry, reader: &mut dyn Read, path: &PathBuf| {
         count += 1;
         // Manually handle writing all files from 7z archive, due to library exluding empty files
         use std::io::BufWriter;
@@ -121,22 +116,14 @@ where
 
         if entry.is_directory() {
             if !quiet {
-                info(format!(
-                    "File {} extracted to \"{}\"",
-                    entry.name(),
-                    file_path.display()
-                ));
+                info!("File {} extracted to \"{}\"", entry.name(), file_path.display());
             }
             if !path.exists() {
                 fs::create_dir_all(path)?;
             }
         } else {
             if !quiet {
-                info(format!(
-                    "extracted ({}) {:?}",
-                    Bytes::new(entry.size()),
-                    file_path.display(),
-                ));
+                info!("extracted ({}) {:?}", Bytes::new(entry.size()), file_path.display(),);
             }
 
             if let Some(parent) = path.parent() {
@@ -186,7 +173,7 @@ where
 {
     let mut files = Vec::new();
 
-    let entry_extract_fn = |entry: &SevenZArchiveEntry, _: &mut dyn Read, _: &PathBuf| {
+    let entry_extract_fn = |entry: &ArchiveEntry, _: &mut dyn Read, _: &PathBuf| {
         files.push(Ok(FileInArchive {
             path: entry.name().into(),
             is_dir: entry.is_directory(),

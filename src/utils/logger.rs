@@ -8,6 +8,27 @@ pub use logger_thread::spawn_logger_thread;
 use super::colors::{GREEN, ORANGE, RESET};
 use crate::accessible::is_running_in_accessible_mode;
 
+#[macro_export]
+macro_rules! info {
+    ($($arg:tt)*) => {
+        $crate::utils::logger::info(format!($($arg)*))
+    };
+}
+
+#[macro_export]
+macro_rules! info_accessible {
+    ($($arg:tt)*) => {
+        $crate::utils::logger::info_accessible(format!($($arg)*))
+    };
+}
+
+#[macro_export]
+macro_rules! warning {
+    ($($arg:tt)*) => {
+        $crate::utils::logger::warning(format!($($arg)*))
+    };
+}
+
 /// Asks logger to shutdown and waits till it flushes all pending messages.
 #[track_caller]
 pub fn shutdown_logger_and_wait() {
