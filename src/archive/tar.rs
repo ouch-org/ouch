@@ -10,7 +10,9 @@ use std::{
     thread,
 };
 
-use cap_fs_ext::MetadataExt;
+#[cfg(unix)]
+use std::os::unix::fs::MetadataExt;
+
 use fs_err::{self as fs};
 use same_file::Handle;
 
@@ -192,46 +194,59 @@ where
                         .detail("Unexpected error while trying to read link")
                         .detail(format!("Error: {err}."))
                 })?;
-            } else if link_meta.nlink() > 1 && link_meta.is_file() {
+                continue;
+            }
+
+            // for supporting windows hard link easier
+            // we should wait for this issue
+            // https://github.com/rust-lang/rust/issues/63010
+            #[cfg(unix)]
+            if link_meta.nlink() > 1 && link_meta.is_file() {
                 let key = (link_meta.dev(), link_meta.ino());
 
-                if let Some(target_path) = inode_map.get(&key) {
-                    let mut header = tar::Header::new_gnu();
-                    header.set_entry_type(tar::EntryType::Link);
-                    header.set_size(0);
+                match inode_map.get(&key) {
+                    Some(target_path) => {
+                        let mut header = tar::Header::new_gnu();
+                        header.set_entry_type(tar::EntryType::Link);
+                        header.set_size(0);
 
-                    builder.append_link(&mut header, path, target_path).map_err(|err| {
-                        FinalError::with_title("Could not create archive").detail(format!(
-                            "Error appending hard link '{}': {}",
-                            path.display(),
-                            err
-                        ))
-                    })?;
-                    continue;
-                } else {
-                    inode_map.insert(key, path.to_path_buf());
-                    let mut file = fs::File::open(path)?;
-                    builder.append_file(path, file.file_mut())?
-                }
-            } else if path.is_dir() {
-                builder.append_dir(path, path)?;
-            } else {
-                let mut file = match fs::File::open(path) {
-                    Ok(f) => f,
-                    Err(e) => {
-                        if e.kind() == std::io::ErrorKind::NotFound && path.is_symlink() {
-                            // This path is for a broken symlink, ignore it
-                            continue;
-                        }
-                        return Err(e.into());
+                        builder.append_link(&mut header, path, target_path).map_err(|err| {
+                            FinalError::with_title("Could not create archive").detail(format!(
+                                "Error appending hard link '{}': {}",
+                                path.display(),
+                                err
+                            ))
+                        })?;
                     }
-                };
-                builder.append_file(path, file.file_mut()).map_err(|err| {
-                    FinalError::with_title("Could not create archive")
-                        .detail("Unexpected error while trying to read file")
-                        .detail(format!("Error: {err}."))
-                })?;
+                    None => {
+                        inode_map.insert(key, path.to_path_buf());
+                        let mut file = fs::File::open(path)?;
+                        builder.append_file(path, file.file_mut())?
+                    }
+                }
+                continue;
             }
+
+            if path.is_dir() {
+                builder.append_dir(path, path)?;
+                continue;
+            }
+
+            let mut file = match fs::File::open(path) {
+                Ok(f) => f,
+                Err(e) => {
+                    if e.kind() == std::io::ErrorKind::NotFound && path.is_symlink() {
+                        // This path is for a broken symlink, ignore it
+                        continue;
+                    }
+                    return Err(e.into());
+                }
+            };
+            builder.append_file(path, file.file_mut()).map_err(|err| {
+                FinalError::with_title("Could not create archive")
+                    .detail("Unexpected error while trying to read file")
+                    .detail(format!("Error: {err}."))
+            })?;
         }
         env::set_current_dir(previous_location)?;
     }

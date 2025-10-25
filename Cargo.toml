@@ -21,7 +21,6 @@ bstr = { version = "1.10.0", default-features = false, features = ["std"] }
 bytesize = "1.3.0"
 bzip2 = "0.4.4"
 bzip3 = { version = "0.9.0", features = ["bundled"], optional = true }
-cap-fs-ext = "3.4.5"
 clap = { version = "4.5.20", features = ["derive", "env"] }
 filetime_creation = "0.2"
 flate2 = { version = "1.0.30", default-features = false }
