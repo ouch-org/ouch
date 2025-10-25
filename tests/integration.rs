@@ -1089,10 +1089,12 @@ fn sevenz_list_should_not_failed() {
         .assert()
         .success();
 
-    crate::utils::cargo_bin()
+    let res = crate::utils::cargo_bin()
         .arg("list")
         .arg("--yes")
         .arg(&archive)
         .assert()
         .success();
+
+    assert!(res.get_output().stdout.find(b"README.md").is_some());
 }
