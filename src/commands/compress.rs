@@ -5,6 +5,7 @@ use std::{
 };
 
 use fs_err as fs;
+use gzp::par::compress::{ParCompress, ParCompressBuilder};
 
 use super::warn_user_about_loading_sevenz_in_memory;
 use crate::{
@@ -45,15 +46,16 @@ pub fn compress_files(
     // Grab previous encoder and wrap it inside of a new one
     let chain_writer_encoder = |format: &_, encoder| -> crate::Result<_> {
         let encoder: Box<dyn Send + Write> = match format {
-            Gzip => Box::new(
+            Gzip => Box::new({
                 // by default, ParCompress uses a default compression level of 3
                 // instead of the regular default that flate2 uses
-                gzp::par::compress::ParCompress::<gzp::deflate::Gzip>::builder()
+                let parz: ParCompress<gzp::deflate::Gzip, _> = ParCompressBuilder::new()
                     .compression_level(
                         level.map_or_else(Default::default, |l| gzp::Compression::new((l as u32).clamp(0, 9))),
                     )
-                    .from_writer(encoder),
-            ),
+                    .from_writer(encoder);
+                parz
+            }),
             Bzip => Box::new(bzip2::write::BzEncoder::new(
                 encoder,
                 level.map_or_else(Default::default, |l| bzip2::Compression::new((l as u32).clamp(1, 9))),
@@ -93,13 +95,15 @@ pub fn compress_files(
                 let writer = lzma_rust2::LzipWriter::new(encoder, options);
                 Box::new(writer.auto_finish())
             }
-            Snappy => Box::new(
-                gzp::par::compress::ParCompress::<gzp::snap::Snap>::builder()
+            Snappy => Box::new({
+                let parz: ParCompress<gzp::snap::Snap, _> = ParCompressBuilder::new()
                     .compression_level(gzp::par::compress::Compression::new(
                         level.map_or_else(Default::default, |l| (l as u32).clamp(0, 9)),
                     ))
-                    .from_writer(encoder),
-            ),
+                    .from_writer(encoder);
+
+                parz
+            }),
             Zstd => {
                 let mut zstd_encoder = zstd::stream::write::Encoder::new(
                     encoder,
