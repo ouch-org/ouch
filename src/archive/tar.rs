@@ -1,9 +1,11 @@
 //! Contains Tar-specific building and unpacking functions
 
 use std::{
+    collections::HashMap,
     env,
     io::prelude::*,
     ops::Not,
+    os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
     sync::mpsc::{self, Receiver},
     thread,
@@ -43,6 +45,17 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) 
                     .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidData, "Missing symlink target"))?;
 
                 create_symlink(&target, &full_path)?;
+            }
+            tar::EntryType::Link => {
+                let link_path = file.path()?;
+                let target = file
+                    .link_name()?
+                    .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidData, "Missing hardlink target"))?;
+
+                let full_link_path = output_folder.join(&link_path);
+                let full_target_path = output_folder.join(&target);
+
+                std::fs::hard_link(&full_target_path, &full_link_path)?;
             }
             tar::EntryType::Regular => {
                 file.unpack_in(output_folder)?;
@@ -131,6 +144,7 @@ where
 {
     let mut builder = tar::Builder::new(writer);
     let output_handle = Handle::from_path(output_path);
+    let mut inode_map: HashMap<(u64, u64), PathBuf> = HashMap::new();
 
     for filename in input_filenames {
         let previous_location = utils::cd_into_same_dir_as(filename)?;
@@ -163,7 +177,9 @@ where
                 info(format!("Compressing '{}'", EscapedPathDisplay::new(path)));
             }
 
-            if !follow_symlinks && path.symlink_metadata()?.is_symlink() {
+            let link_meta = path.symlink_metadata()?;
+
+            if !follow_symlinks && link_meta.is_symlink() {
                 let target_path = path.read_link()?;
 
                 let mut header = tar::Header::new_gnu();
@@ -175,6 +191,27 @@ where
                         .detail("Unexpected error while trying to read link")
                         .detail(format!("Error: {err}."))
                 })?;
+            } else if link_meta.nlink() > 1 && link_meta.is_file() {
+                let key = (link_meta.dev(), link_meta.ino());
+
+                if let Some(target_path) = inode_map.get(&key) {
+                    let mut header = tar::Header::new_gnu();
+                    header.set_entry_type(tar::EntryType::Link);
+                    header.set_size(0);
+
+                    builder.append_link(&mut header, path, target_path).map_err(|err| {
+                        FinalError::with_title("Could not create archive").detail(format!(
+                            "Error appending hard link '{}': {}",
+                            path.display(),
+                            err
+                        ))
+                    })?;
+                    continue;
+                } else {
+                    inode_map.insert(key, path.to_path_buf());
+                    let mut file = fs::File::open(path)?;
+                    builder.append_file(path, file.file_mut())?
+                }
             } else if path.is_dir() {
                 builder.append_dir(path, path)?;
             } else {
