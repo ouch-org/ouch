@@ -15,12 +15,10 @@ use same_file::Handle;
 use crate::{
     commands::Unpacked,
     error::FinalError,
+    info,
     list::FileInArchive,
-    utils::{
-        self, create_symlink,
-        logger::{info, warning},
-        set_permission_mode, Bytes, EscapedPathDisplay, FileVisibilityPolicy,
-    },
+    utils::{self, create_symlink, set_permission_mode, Bytes, EscapedPathDisplay, FileVisibilityPolicy},
+    warning,
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `into`.
@@ -73,11 +71,17 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) 
         // spoken text for users using screen readers, braille displays
         // and so on
         if !quiet {
-            info(format!(
+            // info(format!(
+            //     "extracted ({}) {:?}",
+            //     Bytes::new(file.size()),
+            //     utils::strip_cur_dir(&output_folder.join(file.path()?)),
+            // ));
+
+            info!(
                 "extracted ({}) {:?}",
                 Bytes::new(file.size()),
                 utils::strip_cur_dir(&output_folder.join(file.path()?)),
-            ));
+            );
         }
         files_unpacked += 1;
     }
@@ -146,10 +150,7 @@ where
             // If the output_path is the same as the input file, warn the user and skip the input (in order to avoid compression recursion)
             if let Ok(handle) = &output_handle {
                 if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
-                    warning(format!(
-                        "Cannot compress `{}` into itself, skipping",
-                        output_path.display()
-                    ));
+                    warning!("Cannot compress `{}` into itself, skipping", output_path.display());
 
                     continue;
                 }
@@ -160,7 +161,7 @@ where
             // spoken text for users using screen readers, braille displays
             // and so on
             if !quiet {
-                info(format!("Compressing '{}'", EscapedPathDisplay::new(path)));
+                info!("Compressing '{}'", EscapedPathDisplay::new(path));
             }
 
             if !follow_symlinks && path.symlink_metadata()?.is_symlink() {
