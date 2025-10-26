@@ -149,7 +149,7 @@ where
 {
     let mut builder = tar::Builder::new(writer);
     let output_handle = Handle::from_path(output_path);
-    let mut inode_map: HashMap<(u64, u64), PathBuf> = HashMap::new();
+    let mut seen_inode: HashMap<(u64, u64), PathBuf> = HashMap::new();
 
     for filename in input_filenames {
         let previous_location = utils::cd_into_same_dir_as(filename)?;
@@ -196,14 +196,14 @@ where
                 continue;
             }
 
-            // for supporting windows hard link easier
+            // TODO: for supporting windows hard link easier
             // we should wait for this issue
             // https://github.com/rust-lang/rust/issues/63010
             #[cfg(unix)]
             if link_meta.nlink() > 1 && link_meta.is_file() {
                 let key = (link_meta.dev(), link_meta.ino());
 
-                match inode_map.get(&key) {
+                match seen_inode.get(&key) {
                     Some(target_path) => {
                         let mut header = tar::Header::new_gnu();
                         header.set_entry_type(tar::EntryType::Link);
@@ -218,7 +218,7 @@ where
                         })?;
                     }
                     None => {
-                        inode_map.insert(key, path.to_path_buf());
+                        seen_inode.insert(key, path.to_path_buf());
                         let mut file = fs::File::open(path)?;
                         builder.append_file(path, file.file_mut())?
                     }
