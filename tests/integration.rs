@@ -813,6 +813,56 @@ fn no_git_folder_after_decompression_with_gitignore_flag_active() {
     );
 }
 
+#[proptest(cases = 25)]
+fn enable_gitignore_flag_should_work_without_git(
+    ext: DirectoryExtension,
+    #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
+) {
+    let temp_dir = tempdir()?;
+    let root_path = temp_dir.path();
+    let source_path = root_path.join(format!("in_{}", merge_extensions(ext, &extra_extensions)));
+    fs::create_dir_all(&source_path)?;
+    let out_path = root_path.join(format!("out_{}", merge_extensions(ext, &extra_extensions)));
+    fs::create_dir_all(&out_path)?;
+
+    let mut gitignore_file = fs::File::create(source_path.join(".gitignore"))?;
+    gitignore_file.write_all(b"a")?;
+    let mut ignore_file = fs::File::create(source_path.join(".ignore"))?;
+    ignore_file.write_all(b"b")?;
+
+    fs::File::create(source_path.join("a"))?;
+    fs::File::create(source_path.join("b"))?;
+    fs::File::create(source_path.join("c"))?;
+
+    let archive = root_path.join(format!("archive.{}", merge_extensions(ext, &extra_extensions)));
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .arg("--gitignore")
+        .arg("--hidden")
+        .arg(&source_path)
+        .arg(&archive)
+        .assert()
+        .success();
+
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(archive)
+        .arg("-d")
+        .arg(&out_path)
+        .assert()
+        .success();
+
+    // only the file name 'c' exists
+    assert_eq!(
+        1,
+        out_path
+            .join(format!("in_{}", merge_extensions(ext, &extra_extensions)))
+            .as_path()
+            .read_dir()?
+            .count()
+    );
+}
+
 #[cfg(feature = "allow_piped_choice")]
 #[proptest(cases = 25)]
 fn unpack_multiple_sources_into_the_same_destination_with_merge(

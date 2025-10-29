@@ -47,6 +47,7 @@ Categories Used:
 - Fix folder softlink is not preserved after packing [\#850](https://github.com/ouch-org/ouch/pull/850) ([tommady](https://github.com/tommady))
 - Handle read-only directories in tar extraction [\#873](https://github.com/ouch-org/ouch/pull/873) ([vrmiguel](https://github.com/vrmiguel))
 - Fix tar hardlink is not preserved after decompressing or compressing [\#879](https://github.com/ouch-org/ouch/pull/879) ([tommady](https://github.com/tommady))
+- Fix enable gitignore flag should work without git [\#881](https://github.com/ouch-org/ouch/pull/881) ([tommady](https://github.com/tommady))
 
 ### Tweaks
 
