@@ -1,6 +1,9 @@
 //! Contains Tar-specific building and unpacking functions
 
+#[cfg(unix)]
+use std::os::unix::fs::MetadataExt;
 use std::{
+    collections::HashMap,
     env,
     io::prelude::*,
     ops::Not,
@@ -41,6 +44,17 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) 
                     .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidData, "Missing symlink target"))?;
 
                 create_symlink(&target, &full_path)?;
+            }
+            tar::EntryType::Link => {
+                let link_path = file.path()?;
+                let target = file
+                    .link_name()?
+                    .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidData, "Missing hardlink target"))?;
+
+                let full_link_path = output_folder.join(&link_path);
+                let full_target_path = output_folder.join(&target);
+
+                std::fs::hard_link(&full_target_path, &full_link_path)?;
             }
             tar::EntryType::Regular => {
                 file.unpack_in(output_folder)?;
@@ -135,6 +149,7 @@ where
 {
     let mut builder = tar::Builder::new(writer);
     let output_handle = Handle::from_path(output_path);
+    let mut seen_inode: HashMap<(u64, u64), PathBuf> = HashMap::new();
 
     for filename in input_filenames {
         let previous_location = utils::cd_into_same_dir_as(filename)?;
@@ -164,7 +179,9 @@ where
                 info!("Compressing '{}'", EscapedPathDisplay::new(path));
             }
 
-            if !follow_symlinks && path.symlink_metadata()?.is_symlink() {
+            let link_meta = path.symlink_metadata()?;
+
+            if !follow_symlinks && link_meta.is_symlink() {
                 let target_path = path.read_link()?;
 
                 let mut header = tar::Header::new_gnu();
@@ -176,25 +193,59 @@ where
                         .detail("Unexpected error while trying to read link")
                         .detail(format!("Error: {err}."))
                 })?;
-            } else if path.is_dir() {
-                builder.append_dir(path, path)?;
-            } else {
-                let mut file = match fs::File::open(path) {
-                    Ok(f) => f,
-                    Err(e) => {
-                        if e.kind() == std::io::ErrorKind::NotFound && path.is_symlink() {
-                            // This path is for a broken symlink, ignore it
-                            continue;
-                        }
-                        return Err(e.into());
-                    }
-                };
-                builder.append_file(path, file.file_mut()).map_err(|err| {
-                    FinalError::with_title("Could not create archive")
-                        .detail("Unexpected error while trying to read file")
-                        .detail(format!("Error: {err}."))
-                })?;
+                continue;
             }
+
+            // TODO: for supporting windows hard link easier
+            // we should wait for this issue
+            // https://github.com/rust-lang/rust/issues/63010
+            #[cfg(unix)]
+            if link_meta.nlink() > 1 && link_meta.is_file() {
+                let key = (link_meta.dev(), link_meta.ino());
+
+                match seen_inode.get(&key) {
+                    Some(target_path) => {
+                        let mut header = tar::Header::new_gnu();
+                        header.set_entry_type(tar::EntryType::Link);
+                        header.set_size(0);
+
+                        builder.append_link(&mut header, path, target_path).map_err(|err| {
+                            FinalError::with_title("Could not create archive").detail(format!(
+                                "Error appending hard link '{}': {}",
+                                path.display(),
+                                err
+                            ))
+                        })?;
+                    }
+                    None => {
+                        seen_inode.insert(key, path.to_path_buf());
+                        let mut file = fs::File::open(path)?;
+                        builder.append_file(path, file.file_mut())?
+                    }
+                }
+                continue;
+            }
+
+            if path.is_dir() {
+                builder.append_dir(path, path)?;
+                continue;
+            }
+
+            let mut file = match fs::File::open(path) {
+                Ok(f) => f,
+                Err(e) => {
+                    if e.kind() == std::io::ErrorKind::NotFound && path.is_symlink() {
+                        // This path is for a broken symlink, ignore it
+                        continue;
+                    }
+                    return Err(e.into());
+                }
+            };
+            builder.append_file(path, file.file_mut()).map_err(|err| {
+                FinalError::with_title("Could not create archive")
+                    .detail("Unexpected error while trying to read file")
+                    .detail(format!("Error: {err}."))
+            })?;
         }
         env::set_current_dir(previous_location)?;
     }

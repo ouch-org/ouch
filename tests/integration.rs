@@ -1148,3 +1148,64 @@ fn sevenz_list_should_not_failed() {
 
     assert!(res.get_output().stdout.find(b"README.md").is_some());
 }
+
+// TODO: for supporting windows hard link easier
+// we should wait for this issue
+// https://github.com/rust-lang/rust/issues/63010
+#[cfg(unix)]
+#[test]
+fn tar_hardlink_pack_and_unpack() {
+    use std::{fs::hard_link, os::unix::fs::MetadataExt};
+
+    let temp_dir = tempdir().unwrap();
+    let root_path = temp_dir.path();
+    let source_path = root_path.join("hardlink");
+    fs::create_dir_all(&source_path).unwrap();
+    let out_path = root_path.join("out");
+    fs::create_dir_all(&out_path).unwrap();
+
+    let source = fs::File::create(source_path.join("source")).unwrap();
+    let link1 = source_path.join("link1");
+    let link2 = source_path.join("link2");
+    hard_link(source.path(), link1.as_path()).unwrap();
+    hard_link(source.path(), link2.as_path()).unwrap();
+
+    let archive = root_path.join("archive.tar.gz");
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .arg(&source_path)
+        .arg(&archive)
+        .assert()
+        .success();
+
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(archive)
+        .arg("-d")
+        .arg(&out_path)
+        .assert()
+        .success();
+
+    let out_source_meta = fs::File::open(out_path.join("hardlink").join("source"))
+        .unwrap()
+        .metadata()
+        .unwrap();
+    let out_link1_meta = fs::File::open(out_path.join("hardlink").join("link1"))
+        .unwrap()
+        .metadata()
+        .unwrap();
+    let out_link2_meta = fs::File::open(out_path.join("hardlink").join("link2"))
+        .unwrap()
+        .metadata()
+        .unwrap();
+
+    assert!(out_source_meta.nlink() > 1);
+    assert!(out_link1_meta.nlink() > 1);
+    assert!(out_link2_meta.nlink() > 1);
+
+    assert_eq!(out_source_meta.dev(), out_link1_meta.dev());
+    assert_eq!(out_link1_meta.dev(), out_link2_meta.dev());
+
+    assert_eq!(out_source_meta.ino(), out_link1_meta.ino());
+    assert_eq!(out_link1_meta.ino(), out_link2_meta.ino());
+}
