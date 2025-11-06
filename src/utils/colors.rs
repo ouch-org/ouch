@@ -2,12 +2,16 @@
 
 #![allow(dead_code)]
 
-use std::env;
+use std::{
+    env,
+    io::{self, IsTerminal},
+    ops::Not,
+};
 
 use once_cell::sync::Lazy;
 
 static DISABLE_COLORED_TEXT: Lazy<bool> = Lazy::new(|| {
-    env::var_os("NO_COLOR").is_some() || atty::isnt(atty::Stream::Stdout) || atty::isnt(atty::Stream::Stderr)
+    io::stdout().is_terminal().not() || io::stderr().is_terminal().not() || env::var_os("NO_COLOR").is_some()
 });
 
 macro_rules! color {
