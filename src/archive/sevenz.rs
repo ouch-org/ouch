@@ -25,7 +25,6 @@ pub fn compress_sevenz<W>(
     output_path: &Path,
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
-    quiet: bool,
 ) -> crate::Result<W>
 where
     W: Write + Seek,
@@ -57,9 +56,7 @@ where
             // little importance for most users, but would generate lots of
             // spoken text for users using screen readers, braille displays
             // and so on
-            if !quiet {
-                info!("Compressing '{}'", EscapedPathDisplay::new(path));
-            }
+            info!("Compressing '{}'", EscapedPathDisplay::new(path));
 
             let metadata = match path.metadata() {
                 Ok(metadata) => metadata,
@@ -98,7 +95,6 @@ pub fn decompress_sevenz<R>(
     reader: R,
     output_path: &Path,
     password: Option<&[u8]>,
-    quiet: bool,
 ) -> crate::Result<Unpacked>
 where
     R: Read + Seek,
@@ -115,16 +111,12 @@ where
         let file_path = output_path.join(entry.name());
 
         if entry.is_directory() {
-            if !quiet {
-                info!("File {} extracted to \"{}\"", entry.name(), file_path.display());
-            }
+            info!("File {} extracted to \"{}\"", entry.name(), file_path.display());
             if !path.exists() {
                 fs::create_dir_all(path)?;
             }
         } else {
-            if !quiet {
-                info!("extracted ({}) {:?}", Bytes::new(entry.size()), file_path.display(),);
-            }
+            info!("extracted ({}) {:?}", Bytes::new(entry.size()), file_path.display(),);
 
             if let Some(parent) = path.parent() {
                 if !parent.exists() {

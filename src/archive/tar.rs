@@ -26,7 +26,7 @@ use crate::{
 
 /// Unpacks the archive given by `archive` into the folder given by `into`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) -> crate::Result<Unpacked> {
+pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path) -> crate::Result<Unpacked> {
     let mut archive = tar::Archive::new(reader);
 
     let mut files_unpacked = 0;
@@ -84,19 +84,11 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path, quiet: bool) 
         // importance for most users, but would generate lots of
         // spoken text for users using screen readers, braille displays
         // and so on
-        if !quiet {
-            // info(format!(
-            //     "extracted ({}) {:?}",
-            //     Bytes::new(file.size()),
-            //     utils::strip_cur_dir(&output_folder.join(file.path()?)),
-            // ));
-
-            info!(
-                "extracted ({}) {:?}",
-                Bytes::new(file.size()),
-                utils::strip_cur_dir(&output_folder.join(file.path()?)),
-            );
-        }
+        info!(
+            "extracted ({}) {:?}",
+            Bytes::new(file.size()),
+            utils::strip_cur_dir(&output_folder.join(file.path()?)),
+        );
         files_unpacked += 1;
     }
 
@@ -141,7 +133,6 @@ pub fn build_archive_from_paths<W>(
     output_path: &Path,
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
-    quiet: bool,
     follow_symlinks: bool,
 ) -> crate::Result<W>
 where
@@ -175,9 +166,7 @@ where
             // little importance for most users, but would generate lots of
             // spoken text for users using screen readers, braille displays
             // and so on
-            if !quiet {
-                info!("Compressing '{}'", EscapedPathDisplay::new(path));
-            }
+            info!("Compressing '{}'", EscapedPathDisplay::new(path));
 
             let link_meta = path.symlink_metadata()?;
 

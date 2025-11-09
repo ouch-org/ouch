@@ -42,7 +42,6 @@ pub struct DecompressOptions<'a> {
     pub is_output_dir_provided: bool,
     pub is_smart_unpack: bool,
     pub question_policy: QuestionPolicy,
-    pub quiet: bool,
     pub password: Option<&'a [u8]>,
     pub remove: bool,
 }
@@ -82,7 +81,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             files_unpacked,
             read_only_directories: _,
         } = if let ControlFlow::Continue(files) = execute_decompression(
-            |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, options.password, options.quiet),
+            |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, options.password),
             options.output_dir,
             &options.output_file_path,
             options.question_policy,
@@ -173,7 +172,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
         }
         Tar => {
             if let ControlFlow::Continue(files) = execute_decompression(
-                |output_dir| crate::archive::tar::unpack_archive(reader, output_dir, options.quiet),
+                |output_dir| crate::archive::tar::unpack_archive(reader, output_dir),
                 options.output_dir,
                 &options.output_file_path,
                 options.question_policy,
@@ -207,7 +206,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
 
             if let ControlFlow::Continue(files) = execute_decompression(
                 |output_dir| {
-                    crate::archive::zip::unpack_archive(zip_archive, output_dir, options.password, options.quiet)
+                    crate::archive::zip::unpack_archive(zip_archive, output_dir, options.password)
                 },
                 options.output_dir,
                 &options.output_file_path,
@@ -226,7 +225,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 let mut temp_file = tempfile::NamedTempFile::new()?;
                 io::copy(&mut reader, &mut temp_file)?;
                 Box::new(move |output_dir| {
-                    crate::archive::rar::unpack_archive(temp_file.path(), output_dir, options.password, options.quiet)
+                    crate::archive::rar::unpack_archive(temp_file.path(), output_dir, options.password)
                 })
             } else {
                 Box::new(|output_dir| {
@@ -234,7 +233,6 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                         options.input_file_path,
                         output_dir,
                         options.password,
-                        options.quiet,
                     )
                 })
             };
@@ -281,7 +279,6 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                         io::Cursor::new(vec),
                         output_dir,
                         options.password,
-                        options.quiet,
                     )
                 },
                 options.output_dir,
