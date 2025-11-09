@@ -13,7 +13,7 @@ use fs_err as fs;
 pub use self::args::{CliArgs, Subcommand};
 use crate::{
     accessible::set_accessible,
-    utils::{is_path_stdin, FileVisibilityPolicy},
+    utils::{is_path_stdin, logger::set_log_display_level, FileVisibilityPolicy},
     QuestionPolicy,
 };
 
@@ -27,6 +27,7 @@ impl CliArgs {
         let mut args = Self::parse();
 
         set_accessible(args.accessible);
+        set_log_display_level(args.quiet);
 
         let (Subcommand::Compress { files, .. }
         | Subcommand::Decompress { files, .. }
