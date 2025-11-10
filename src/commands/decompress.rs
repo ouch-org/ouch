@@ -205,9 +205,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
 
             if let ControlFlow::Continue(files) = execute_decompression(
-                |output_dir| {
-                    crate::archive::zip::unpack_archive(zip_archive, output_dir, options.password)
-                },
+                |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, options.password),
                 options.output_dir,
                 &options.output_file_path,
                 options.question_policy,
@@ -229,11 +227,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 })
             } else {
                 Box::new(|output_dir| {
-                    crate::archive::rar::unpack_archive(
-                        options.input_file_path,
-                        output_dir,
-                        options.password,
-                    )
+                    crate::archive::rar::unpack_archive(options.input_file_path, output_dir, options.password)
                 })
             };
 
@@ -275,11 +269,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
 
             if let ControlFlow::Continue(files) = execute_decompression(
                 |output_dir| {
-                    crate::archive::sevenz::decompress_sevenz(
-                        io::Cursor::new(vec),
-                        output_dir,
-                        options.password,
-                    )
+                    crate::archive::sevenz::decompress_sevenz(io::Cursor::new(vec), output_dir, options.password)
                 },
                 options.output_dir,
                 &options.output_file_path,

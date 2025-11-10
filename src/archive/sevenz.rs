@@ -91,11 +91,7 @@ where
     Ok(bytes)
 }
 
-pub fn decompress_sevenz<R>(
-    reader: R,
-    output_path: &Path,
-    password: Option<&[u8]>,
-) -> crate::Result<Unpacked>
+pub fn decompress_sevenz<R>(reader: R, output_path: &Path, password: Option<&[u8]>) -> crate::Result<Unpacked>
 where
     R: Read + Seek,
 {

@@ -1,8 +1,8 @@
+use once_cell::sync::OnceCell;
 use std::{
     sync::{mpsc, Arc, Barrier, OnceLock},
     thread,
 };
-use once_cell::sync::OnceCell;
 
 pub use logger_thread::spawn_logger_thread;
 
@@ -40,11 +40,7 @@ fn should_display_log(level: &MessageLevel) -> bool {
 
 /// Set the value of the global [`LOG_DISPLAY_LEVEL`].
 pub fn set_log_display_level(quiet: bool) {
-    let level = if quiet {
-        MessageLevel::Quiet
-    } else {
-        MessageLevel::Info
-    };
+    let level = if quiet { MessageLevel::Quiet } else { MessageLevel::Info };
     if LOG_DISPLAY_LEVEL.get().is_none() {
         LOG_DISPLAY_LEVEL.set(level).unwrap();
     }
@@ -143,7 +139,7 @@ impl PrintMessage {
                     Some(format!("{}[WARNING]{} {}", *ORANGE, *RESET, self.contents))
                 }
             }
-            MessageLevel::Quiet => None
+            MessageLevel::Quiet => None,
         }
     }
 }
@@ -152,7 +148,7 @@ impl PrintMessage {
 enum MessageLevel {
     Info,
     Warning,
-    Quiet
+    Quiet,
 }
 
 mod logger_thread {
