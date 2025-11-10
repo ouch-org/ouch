@@ -1,10 +1,10 @@
-use once_cell::sync::OnceCell;
 use std::{
     sync::{mpsc, Arc, Barrier, OnceLock},
     thread,
 };
 
 pub use logger_thread::spawn_logger_thread;
+use once_cell::sync::OnceCell;
 
 use super::colors::{GREEN, ORANGE, RESET};
 use crate::accessible::is_running_in_accessible_mode;
