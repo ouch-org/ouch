@@ -24,7 +24,7 @@ clap = { version = "4.5.20", features = ["derive", "env"] }
 filetime_creation = "0.2"
 flate2 = { version = "1.0.30", default-features = false }
 fs-err = "2.11.0"
-gzp = { version = "2.0.0", default-features = false, features = [
+gzp = { version = "2.0.1", default-features = true, features = [
     "snappy_default",
 ] }
 ignore = "0.4.23"
