@@ -8,10 +8,9 @@ pub mod extension;
 pub mod list;
 pub mod utils;
 
-use std::{env, path::PathBuf};
+use std::{env, path::PathBuf, sync::LazyLock};
 
 use cli::CliArgs;
-use once_cell::sync::Lazy;
 
 use self::{
     error::{Error, Result},
@@ -25,7 +24,7 @@ use self::{
 const BUFFER_CAPACITY: usize = 1024 * 32;
 
 /// Current directory or empty directory
-static CURRENT_DIRECTORY: Lazy<PathBuf> = Lazy::new(|| env::current_dir().unwrap_or_default());
+static CURRENT_DIRECTORY: LazyLock<PathBuf> = LazyLock::new(|| env::current_dir().unwrap_or_default());
 
 /// The status code returned from `ouch` on error
 pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;

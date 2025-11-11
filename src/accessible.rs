@@ -31,10 +31,10 @@
 //! we can use our experience to later create guides or libraries for other
 //! developers.
 
-use once_cell::sync::OnceCell;
+use std::sync::OnceLock;
 
 /// Global flag for accessible mode.
-pub static ACCESSIBLE: OnceCell<bool> = OnceCell::new();
+pub static ACCESSIBLE: OnceLock<bool> = OnceLock::new();
 
 /// Check if `Ouch` is running in accessible mode.
 ///
