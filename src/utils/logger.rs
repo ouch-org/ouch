@@ -4,7 +4,6 @@ use std::{
 };
 
 pub use logger_thread::spawn_logger_thread;
-use once_cell::sync::OnceCell;
 
 use super::colors::{GREEN, ORANGE, RESET};
 use crate::accessible::is_running_in_accessible_mode;
@@ -31,7 +30,7 @@ macro_rules! warning {
 }
 
 /// Global value used to determine which logs to display.
-static LOG_DISPLAY_LEVEL: OnceCell<MessageLevel> = OnceCell::new();
+static LOG_DISPLAY_LEVEL: OnceLock<MessageLevel> = OnceLock::new();
 
 fn should_display_log(level: &MessageLevel) -> bool {
     let global_level = &LOG_DISPLAY_LEVEL.get().copied().unwrap_or(MessageLevel::Info);

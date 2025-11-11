@@ -1142,7 +1142,6 @@ dependencies = [
  "lzma-rust2",
  "memchr",
  "num_cpus",
- "once_cell",
  "parse-display",
  "pretty_assertions",
  "proptest",
