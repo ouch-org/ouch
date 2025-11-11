@@ -110,7 +110,6 @@ pub fn run(
                 formats,
                 output_file,
                 &output_path,
-                args.quiet,
                 follow_symlinks,
                 question_policy,
                 file_visibility_policy,
@@ -210,7 +209,6 @@ pub fn run(
                         output_file_path,
                         is_smart_unpack,
                         question_policy,
-                        quiet: args.quiet,
                         password: args.password.as_deref().map(|str| {
                             <[u8] as ByteSlice>::from_os_str(str).expect("convert password to bytes failed")
                         }),

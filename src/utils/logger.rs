@@ -4,6 +4,7 @@ use std::{
 };
 
 pub use logger_thread::spawn_logger_thread;
+use once_cell::sync::OnceCell;
 
 use super::colors::{GREEN, ORANGE, RESET};
 use crate::accessible::is_running_in_accessible_mode;
@@ -27,6 +28,22 @@ macro_rules! warning {
     ($($arg:tt)*) => {
         $crate::utils::logger::warning(format!($($arg)*))
     };
+}
+
+/// Global value used to determine which logs to display.
+static LOG_DISPLAY_LEVEL: OnceCell<MessageLevel> = OnceCell::new();
+
+fn should_display_log(level: &MessageLevel) -> bool {
+    let global_level = &LOG_DISPLAY_LEVEL.get().copied().unwrap_or(MessageLevel::Info);
+    level >= global_level
+}
+
+/// Set the value of the global [`LOG_DISPLAY_LEVEL`].
+pub fn set_log_display_level(quiet: bool) {
+    let level = if quiet { MessageLevel::Quiet } else { MessageLevel::Info };
+    if LOG_DISPLAY_LEVEL.get().is_none() {
+        LOG_DISPLAY_LEVEL.set(level).unwrap();
+    }
 }
 
 /// Asks logger to shutdown and waits till it flushes all pending messages.
@@ -101,16 +118,16 @@ struct PrintMessage {
 
 impl PrintMessage {
     fn to_formatted_message(&self) -> Option<String> {
+        if !is_running_in_accessible_mode() && !should_display_log(&self.level) {
+            return None;
+        }
+
         match self.level {
             MessageLevel::Info => {
-                if self.accessible {
-                    if is_running_in_accessible_mode() {
-                        Some(format!("{}Info:{} {}", *GREEN, *RESET, self.contents))
-                    } else {
-                        Some(format!("{}[INFO]{} {}", *GREEN, *RESET, self.contents))
-                    }
-                } else if !is_running_in_accessible_mode() {
+                if !is_running_in_accessible_mode() {
                     Some(format!("{}[INFO]{} {}", *GREEN, *RESET, self.contents))
+                } else if self.accessible {
+                    Some(format!("{}Info:{} {}", *GREEN, *RESET, self.contents))
                 } else {
                     None
                 }
@@ -122,14 +139,16 @@ impl PrintMessage {
                     Some(format!("{}[WARNING]{} {}", *ORANGE, *RESET, self.contents))
                 }
             }
+            MessageLevel::Quiet => None,
         }
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 enum MessageLevel {
     Info,
     Warning,
+    Quiet,
 }
 
 mod logger_thread {
