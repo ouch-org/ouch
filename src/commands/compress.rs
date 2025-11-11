@@ -32,7 +32,6 @@ pub fn compress_files(
     extensions: Vec<Extension>,
     output_file: fs::File,
     output_path: &Path,
-    quiet: bool,
     follow_symlinks: bool,
     question_policy: QuestionPolicy,
     file_visibility_policy: FileVisibilityPolicy,
@@ -145,7 +144,6 @@ pub fn compress_files(
                 output_path,
                 &mut writer,
                 file_visibility_policy,
-                quiet,
                 follow_symlinks,
             )?;
             writer.flush()?;
@@ -169,7 +167,6 @@ pub fn compress_files(
                 output_path,
                 &mut vec_buffer,
                 file_visibility_policy,
-                quiet,
                 follow_symlinks,
             )?;
             vec_buffer.rewind()?;
@@ -195,7 +192,7 @@ pub fn compress_files(
             }
 
             let mut vec_buffer = Cursor::new(vec![]);
-            archive::sevenz::compress_sevenz(&files, output_path, &mut vec_buffer, file_visibility_policy, quiet)?;
+            archive::sevenz::compress_sevenz(&files, output_path, &mut vec_buffer, file_visibility_policy)?;
             vec_buffer.rewind()?;
             io::copy(&mut vec_buffer, &mut writer)?;
         }
