@@ -25,21 +25,35 @@ Categories Used:
 - Merge folders in decompression [\#798](https://github.com/ouch-org/ouch/pull/798) ([tommady](https://github.com/tommady))
 - Add `--no-smart-unpack` flag to decompression command to disable smart unpack [\#809](https://github.com/ouch-org/ouch/pull/809) ([talis-fb](https://github.com/talis-fb))
 - Provide Nushell completions (packages still need to install them) [\#827](https://github.com/ouch-org/ouch/pull/827) ([FrancescElies](https://github.com/FrancescElies))
+- Add aliases for comic book archives [\#835](https://github.com/ouch-org/ouch/pull/835) ([md9753](https://github.com/md9753))
 - Support `.lz` decompression [\#838](https://github.com/ouch-org/ouch/pull/838) ([zzzsyyy](https://github.com/zzzsyyy))
 - Support `.lzma` decompression (and fix `.lzma` being a wrong alias for `.xz`) [\#838](https://github.com/ouch-org/ouch/pull/838) ([zzzsyyy](https://github.com/zzzsyyy))
+- Support `.lz` compression [\#867](https://github.com/ouch-org/ouch/pull/867) ([sorairolake](https://github.com/sorairolake))
+- Support `.lzma` compression [\#867](https://github.com/ouch-org/ouch/pull/867) ([sorairolake](https://github.com/sorairolake))
 
 ### Improvements
 
 - Give better error messages when archive extensions are invalid [\#817](https://github.com/ouch-org/ouch/pull/817) ([marcospb19](https://github.com/marcospb19))
+- Add aliases for `--password` flag (`--pass` and `--pw`) [\#847](https://github.com/ouch-org/ouch/pull/847) ([marcospb19](https://github.com/marcospb19))
+- Avoid loading entire 7z archive into memory when listing [\#860](https://github.com/ouch-org/ouch/pull/860) ([86xsk](https://github.com/86xsk))
+- Use `lzma-rust2` crate instead of `liblzma` crate [\#867](https://github.com/ouch-org/ouch/pull/867) ([sorairolake](https://github.com/sorairolake))
 
 ### Bug Fixes
 
 - Fix tar extraction count when --quiet [\#824](https://github.com/ouch-org/ouch/pull/824) ([marcospb19](https://github.com/marcospb19))
 - Fix 7z BadSignature error when compressing and then listing [\#819](https://github.com/ouch-org/ouch/pull/819) ([tommady](https://github.com/tommady))
+- Fix unpacking with merge flag failing without --dir flag [\#826](https://github.com/ouch-org/ouch/pull/826) ([tommady](https://github.com/tommady))
+- Handle broken symlinks in zip archives and normalize path separators [\#841](https://github.com/ouch-org/ouch/pull/841) ([zzzsyyy](https://github.com/zzzsyyy))
+- Fix folder softlink is not preserved after packing [\#850](https://github.com/ouch-org/ouch/pull/850) ([tommady](https://github.com/tommady))
+- Handle read-only directories in tar extraction [\#873](https://github.com/ouch-org/ouch/pull/873) ([vrmiguel](https://github.com/vrmiguel))
+- Fix tar hardlink is not preserved after decompressing or compressing [\#879](https://github.com/ouch-org/ouch/pull/879) ([tommady](https://github.com/tommady))
+- Fix enable gitignore flag should work without git [\#881](https://github.com/ouch-org/ouch/pull/881) ([tommady](https://github.com/tommady))
 
 ### Tweaks
 
 - Make `.bz3` opt-out [\#814](https://github.com/ouch-org/ouch/pull/814) ([amyspark](https://github.com/amyspark))
+- fix: adjust INFO color to green  [\#858](https://github.com/ouch-org/ouch/pull/858) ([etolbakov](https://github.com/etolbakov))
+- Bump zip crate to 6.0.0 [\#872](https://github.com/ouch-org/ouch/pull/872) ([vrmiguel](https://github.com/vrmiguel))
 - Add alias `--concurrency` to `--threads` flag (then swap alias with original) [\#848](https://github.com/ouch-org/ouch/pull/848) ([marcospb19](https://github.com/marcospb19))
 
 ## [0.6.1](https://github.com/ouch-org/ouch/compare/0.6.0...0.6.1)

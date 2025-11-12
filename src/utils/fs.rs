@@ -11,7 +11,8 @@ use fs_err as fs;
 use super::{question::FileConflitOperation, user_wants_to_overwrite};
 use crate::{
     extension::Extension,
-    utils::{logger::info_accessible, EscapedPathDisplay, QuestionAction},
+    info_accessible,
+    utils::{EscapedPathDisplay, QuestionAction},
     QuestionPolicy,
 };
 
@@ -99,7 +100,7 @@ pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
         fs::create_dir_all(path)?;
         // creating a directory is an important change to the file system we
         // should always inform the user about
-        info_accessible(format!("Directory {} created", EscapedPathDisplay::new(path)));
+        info_accessible!("Directory {} created", EscapedPathDisplay::new(path));
     }
     Ok(())
 }
@@ -208,4 +209,54 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
     } else {
         None
     }
+}
+
+/// Rename the src directory into the dst directory recursively
+pub fn rename_recursively(src: &Path, dst: &Path) -> crate::Result<()> {
+    if !src.exists() || !dst.exists() {
+        return Err(crate::Error::NotFound {
+            error_title: "source or destination directory does not exist".to_string(),
+        });
+    }
+
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+        if ty.is_dir() {
+            rename_recursively(entry.path().as_path(), dst.join(entry.file_name()).as_path())?;
+        } else {
+            fs::rename(entry.path(), dst.join(entry.file_name()).as_path())?;
+        }
+    }
+    Ok(())
+}
+
+#[inline]
+pub fn create_symlink(target: &Path, full_path: &Path) -> crate::Result<()> {
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(target, full_path)?;
+
+    // FIXME: how to detect whether the destination is a folder or a regular file?
+    // regular file should use fs::symlink_file
+    // folder should use fs::symlink_dir
+    #[cfg(windows)]
+    std::os::windows::fs::symlink_file(target, full_path)?;
+
+    Ok(())
+}
+
+#[cfg(unix)]
+#[inline]
+pub fn set_permission_mode(path: &Path, mode: u32) -> crate::Result<()> {
+    use std::{fs::Permissions, os::unix::fs::PermissionsExt};
+
+    fs::set_permissions(path, Permissions::from_mode(mode))?;
+
+    Ok(())
+}
+
+#[cfg(windows)]
+#[inline]
+pub fn set_permission_mode(path: &Path, mode: u32) -> crate::Result<()> {
+    Ok(())
 }

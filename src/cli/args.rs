@@ -30,11 +30,11 @@ pub struct CliArgs {
     pub hidden: bool,
 
     /// Silence output
-    #[arg(short = 'q', long, global = true)]
+    #[arg(short, long, global = true)]
     pub quiet: bool,
 
     /// Ignore files matched by git's ignore files
-    #[arg(short = 'g', long, global = true)]
+    #[arg(short, long, global = true)]
     pub gitignore: bool,
 
     /// Specify the format of the archive
@@ -42,7 +42,7 @@ pub struct CliArgs {
     pub format: Option<OsString>,
 
     /// Decompress or list with password
-    #[arg(short = 'p', long = "password", global = true)]
+    #[arg(short, long = "password", aliases = ["pass", "pw"], global = true)]
     pub password: Option<OsString>,
 
     /// Limit the amount of concurrent threads available

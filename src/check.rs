@@ -11,11 +11,9 @@ use std::{
 use crate::{
     error::FinalError,
     extension::{build_archive_file_suggestion, Extension},
-    utils::{
-        logger::{info_accessible, warning},
-        pretty_format_list_of_paths, try_infer_extension, user_wants_to_continue, EscapedPathDisplay,
-    },
-    QuestionAction, QuestionPolicy, Result,
+    info_accessible,
+    utils::{pretty_format_list_of_paths, try_infer_extension, user_wants_to_continue, EscapedPathDisplay},
+    warning, QuestionAction, QuestionPolicy, Result,
 };
 
 /// Check if the mime type matches the detected extensions.
@@ -35,10 +33,10 @@ pub fn check_mime_type(
         if let Some(detected_format) = try_infer_extension(path) {
             // Inferring the file extension can have unpredicted consequences (e.g. the user just
             // mistyped, ...) which we should always inform the user about.
-            warning(format!(
+            warning!(
                 "We detected a file named `{}`, do you want to decompress it?",
                 path.display(),
-            ));
+            );
 
             if user_wants_to_continue(path, question_policy, QuestionAction::Decompression)? {
                 formats.push(detected_format);
@@ -55,9 +53,7 @@ pub fn check_mime_type(
             .compression_formats
             .ends_with(detected_format.compression_formats)
         {
-            warning(format!(
-                "The file extension: `{outer_ext}` differ from the detected extension: `{detected_format}`"
-            ));
+            warning!("The file extension: `{outer_ext}` differ from the detected extension: `{detected_format}`");
 
             if !user_wants_to_continue(path, question_policy, QuestionAction::Decompression)? {
                 return Ok(ControlFlow::Break(()));
@@ -66,10 +62,10 @@ pub fn check_mime_type(
     } else {
         // NOTE: If this actually produces no false positives, we can upgrade it in the future
         // to a warning and ask the user if he wants to continue decompressing.
-        info_accessible(format!(
+        info_accessible!(
             "Failed to confirm the format of `{}` by sniffing the contents, file might be misnamed",
             path.display()
-        ));
+        );
     }
     Ok(ControlFlow::Continue(()))
 }

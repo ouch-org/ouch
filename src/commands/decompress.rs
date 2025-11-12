@@ -15,18 +15,24 @@ use crate::{
         CompressionFormat::{self, *},
         Extension,
     },
+    info, info_accessible,
     utils::{
-        self,
-        io::lock_and_flush_output_stdio,
-        is_path_stdin,
-        logger::{info, info_accessible},
-        nice_directory_display, user_wants_to_continue,
+        self, io::lock_and_flush_output_stdio, is_path_stdin, nice_directory_display, set_permission_mode,
+        user_wants_to_continue,
     },
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
 trait ReadSeek: Read + io::Seek {}
 impl<T: Read + io::Seek> ReadSeek for T {}
+
+pub type Mode = u32;
+pub type UnpackRes = crate::Result<Unpacked>;
+
+pub struct Unpacked {
+    pub files_unpacked: usize,
+    pub read_only_directories: Vec<(PathBuf, Mode)>,
+}
 
 pub struct DecompressOptions<'a> {
     pub input_file_path: &'a Path,
@@ -36,7 +42,6 @@ pub struct DecompressOptions<'a> {
     pub is_output_dir_provided: bool,
     pub is_smart_unpack: bool,
     pub question_policy: QuestionPolicy,
-    pub quiet: bool,
     pub password: Option<&'a [u8]>,
     pub remove: bool,
 }
@@ -72,8 +77,11 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             Box::new(fs::File::open(options.input_file_path)?)
         };
         let zip_archive = zip::ZipArchive::new(reader)?;
-        let files_unpacked = if let ControlFlow::Continue(files) = execute_decompression(
-            |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, options.password, options.quiet),
+        let Unpacked {
+            files_unpacked,
+            read_only_directories: _,
+        } = if let ControlFlow::Continue(files) = execute_decompression(
+            |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, options.password),
             options.output_dir,
             &options.output_file_path,
             options.question_policy,
@@ -89,18 +97,15 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
         // having a final status message is important especially in an accessibility context
         // as screen readers may not read a commands exit code, making it hard to reason
         // about whether the command succeeded without such a message
-        info_accessible(format!(
+        info_accessible!(
             "Successfully decompressed archive in {} ({} files)",
             nice_directory_display(options.output_dir),
             files_unpacked
-        ));
+        );
 
         if !input_is_stdin && options.remove {
             fs::remove_file(options.input_file_path)?;
-            info(format!(
-                "Removed input file {}",
-                nice_directory_display(options.input_file_path)
-            ));
+            info!("Removed input file {}", nice_directory_display(options.input_file_path));
         }
 
         return Ok(());
@@ -128,15 +133,9 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 Box::new(bzip3::read::Bz3Decoder::new(decoder)?)
             }
             Lz4 => Box::new(lz4_flex::frame::FrameDecoder::new(decoder)),
-            Lzma => Box::new(liblzma::read::XzDecoder::new_stream(
-                decoder,
-                liblzma::stream::Stream::new_lzma_decoder(u64::MAX).unwrap(),
-            )),
-            Xz => Box::new(liblzma::read::XzDecoder::new(decoder)),
-            Lzip => Box::new(liblzma::read::XzDecoder::new_stream(
-                decoder,
-                liblzma::stream::Stream::new_lzip_decoder(u64::MAX, 0).unwrap(),
-            )),
+            Lzma => Box::new(lzma_rust2::LzmaReader::new_mem_limit(decoder, u32::MAX, None)?),
+            Xz => Box::new(lzma_rust2::XzReader::new(decoder, true)),
+            Lzip => Box::new(lzma_rust2::LzipReader::new(decoder)?),
             Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
             Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
             Brotli => Box::new(brotli::Decompressor::new(decoder, BUFFER_CAPACITY)),
@@ -151,7 +150,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
         reader = chain_reader_decoder(format, reader)?;
     }
 
-    let files_unpacked = match first_extension {
+    let Unpacked { files_unpacked, .. } = match first_extension {
         Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {
             reader = chain_reader_decoder(&first_extension, reader)?;
 
@@ -166,11 +165,14 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
 
             io::copy(&mut reader, &mut writer)?;
 
-            1
+            Unpacked {
+                files_unpacked: 1,
+                read_only_directories: Vec::new(),
+            }
         }
         Tar => {
             if let ControlFlow::Continue(files) = execute_decompression(
-                |output_dir| crate::archive::tar::unpack_archive(reader, output_dir, options.quiet),
+                |output_dir| crate::archive::tar::unpack_archive(reader, output_dir),
                 options.output_dir,
                 &options.output_file_path,
                 options.question_policy,
@@ -203,9 +205,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
 
             if let ControlFlow::Continue(files) = execute_decompression(
-                |output_dir| {
-                    crate::archive::zip::unpack_archive(zip_archive, output_dir, options.password, options.quiet)
-                },
+                |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, options.password),
                 options.output_dir,
                 &options.output_file_path,
                 options.question_policy,
@@ -219,21 +219,15 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
         }
         #[cfg(feature = "unrar")]
         Rar => {
-            type UnpackResult = crate::Result<usize>;
-            let unpack_fn: Box<dyn FnOnce(&Path) -> UnpackResult> = if options.formats.len() > 1 || input_is_stdin {
+            let unpack_fn: Box<dyn FnOnce(&Path) -> UnpackRes> = if options.formats.len() > 1 || input_is_stdin {
                 let mut temp_file = tempfile::NamedTempFile::new()?;
                 io::copy(&mut reader, &mut temp_file)?;
                 Box::new(move |output_dir| {
-                    crate::archive::rar::unpack_archive(temp_file.path(), output_dir, options.password, options.quiet)
+                    crate::archive::rar::unpack_archive(temp_file.path(), output_dir, options.password)
                 })
             } else {
                 Box::new(|output_dir| {
-                    crate::archive::rar::unpack_archive(
-                        options.input_file_path,
-                        output_dir,
-                        options.password,
-                        options.quiet,
-                    )
+                    crate::archive::rar::unpack_archive(options.input_file_path, output_dir, options.password)
                 })
             };
 
@@ -275,12 +269,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
 
             if let ControlFlow::Continue(files) = execute_decompression(
                 |output_dir| {
-                    crate::archive::sevenz::decompress_sevenz(
-                        io::Cursor::new(vec),
-                        output_dir,
-                        options.password,
-                        options.quiet,
-                    )
+                    crate::archive::sevenz::decompress_sevenz(io::Cursor::new(vec), output_dir, options.password)
                 },
                 options.output_dir,
                 &options.output_file_path,
@@ -299,31 +288,28 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
     // having a final status message is important especially in an accessibility context
     // as screen readers may not read a commands exit code, making it hard to reason
     // about whether the command succeeded without such a message
-    info_accessible(format!(
+    info_accessible!(
         "Successfully decompressed archive in {}",
         nice_directory_display(options.output_dir)
-    ));
-    info_accessible(format!("Files unpacked: {files_unpacked}"));
+    );
+    info_accessible!("Files unpacked: {files_unpacked}");
 
     if !input_is_stdin && options.remove {
         fs::remove_file(options.input_file_path)?;
-        info(format!(
-            "Removed input file {}",
-            nice_directory_display(options.input_file_path)
-        ));
+        info!("Removed input file {}", nice_directory_display(options.input_file_path));
     }
 
     Ok(())
 }
 
 fn execute_decompression(
-    unpack_fn: impl FnOnce(&Path) -> crate::Result<usize>,
+    unpack_fn: impl FnOnce(&Path) -> crate::Result<Unpacked>,
     output_dir: &Path,
     output_file_path: &Path,
     question_policy: QuestionPolicy,
     is_output_dir_provided: bool,
     is_smart_unpack: bool,
-) -> crate::Result<ControlFlow<(), usize>> {
+) -> crate::Result<ControlFlow<(), Unpacked>> {
     if is_smart_unpack {
         return smart_unpack(unpack_fn, output_dir, output_file_path, question_policy);
     }
@@ -342,10 +328,10 @@ fn execute_decompression(
 /// - If `output_dir` does not exist OR is a empty directory, it will unpack there
 /// - If `output_dir` exist OR is a directory not empty, the user will be asked what to do
 fn unpack(
-    unpack_fn: impl FnOnce(&Path) -> crate::Result<usize>,
+    unpack_fn: impl FnOnce(&Path) -> crate::Result<Unpacked>,
     output_dir: &Path,
     question_policy: QuestionPolicy,
-) -> crate::Result<ControlFlow<(), usize>> {
+) -> crate::Result<ControlFlow<(), Unpacked>> {
     let is_valid_output_dir = !output_dir.exists() || (output_dir.is_dir() && output_dir.read_dir()?.next().is_none());
 
     let output_dir_cleaned = if is_valid_output_dir {
@@ -373,21 +359,24 @@ fn unpack(
 ///
 /// Note: This functions assumes that `output_dir` exists
 fn smart_unpack(
-    unpack_fn: impl FnOnce(&Path) -> crate::Result<usize>,
+    unpack_fn: impl FnOnce(&Path) -> crate::Result<Unpacked>,
     output_dir: &Path,
     output_file_path: &Path,
     question_policy: QuestionPolicy,
-) -> crate::Result<ControlFlow<(), usize>> {
+) -> crate::Result<ControlFlow<(), Unpacked>> {
     assert!(output_dir.exists());
     let temp_dir = tempfile::Builder::new().prefix("tmp-ouch-").tempdir_in(output_dir)?;
     let temp_dir_path = temp_dir.path();
 
-    info_accessible(format!(
+    info_accessible!(
         "Created temporary directory {} to hold decompressed elements",
         nice_directory_display(temp_dir_path)
-    ));
+    );
 
-    let files = unpack_fn(temp_dir_path)?;
+    let Unpacked {
+        files_unpacked,
+        read_only_directories,
+    } = unpack_fn(temp_dir_path)?;
 
     let root_contains_only_one_element = fs::read_dir(temp_dir_path)?.take(2).count() == 1;
 
@@ -413,12 +402,29 @@ fn smart_unpack(
     };
 
     // Rename the temporary directory to the archive name, which is output_file_path
-    fs::rename(&previous_path, &new_path)?;
-    info_accessible(format!(
+    if fs::rename(&previous_path, &new_path).is_err() {
+        utils::rename_recursively(&previous_path, &new_path)?;
+    };
+
+    if cfg!(unix) {
+        for (path, mode) in &read_only_directories {
+            let components = path.components();
+            let mut path = new_path.clone();
+            for component in components {
+                path.push(component);
+            }
+            set_permission_mode(&path, *mode)?;
+        }
+    }
+
+    info_accessible!(
         "Successfully moved \"{}\" to \"{}\"",
         nice_directory_display(&previous_path),
         nice_directory_display(&new_path),
-    ));
+    );
 
-    Ok(ControlFlow::Continue(files))
+    Ok(ControlFlow::Continue(Unpacked {
+        files_unpacked,
+        read_only_directories,
+    }))
 }

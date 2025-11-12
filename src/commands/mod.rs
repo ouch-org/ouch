@@ -8,6 +8,7 @@ use std::{ops::ControlFlow, path::PathBuf};
 
 use bstr::ByteSlice;
 use decompress::DecompressOptions;
+pub use decompress::Unpacked;
 use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use utils::colors;
 
@@ -17,11 +18,9 @@ use crate::{
     commands::{compress::compress_files, decompress::decompress_file, list::list_archive_contents},
     error::{Error, FinalError},
     extension::{self, parse_format_flag},
+    info_accessible,
     list::ListOptions,
-    utils::{
-        self, colors::*, is_path_stdin, logger::info_accessible, path_to_str, EscapedPathDisplay, FileVisibilityPolicy,
-        QuestionAction,
-    },
+    utils::{self, colors::*, is_path_stdin, path_to_str, EscapedPathDisplay, FileVisibilityPolicy, QuestionAction},
     CliArgs, QuestionPolicy,
 };
 
@@ -111,7 +110,6 @@ pub fn run(
                 formats,
                 output_file,
                 &output_path,
-                args.quiet,
                 follow_symlinks,
                 question_policy,
                 file_visibility_policy,
@@ -123,7 +121,7 @@ pub fn run(
                 // having a final status message is important especially in an accessibility context
                 // as screen readers may not read a commands exit code, making it hard to reason
                 // about whether the command succeeded without such a message
-                info_accessible(format!("Successfully compressed '{}'", path_to_str(&output_path)));
+                info_accessible!("Successfully compressed '{}'", path_to_str(&output_path));
             } else {
                 // If Ok(false) or Err() occurred, delete incomplete file at `output_path`
                 //
@@ -211,7 +209,6 @@ pub fn run(
                         output_file_path,
                         is_smart_unpack,
                         question_policy,
-                        quiet: args.quiet,
                         password: args.password.as_deref().map(|str| {
                             <[u8] as ByteSlice>::from_os_str(str).expect("convert password to bytes failed")
                         }),

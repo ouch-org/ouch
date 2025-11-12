@@ -32,7 +32,9 @@ enum DirectoryExtension {
     #[cfg(feature = "bzip3")]
     Tbz3,
     Tgz,
+    Tlz,
     Tlz4,
+    Tlzma,
     Tsz,
     Txz,
     Tzst,
@@ -48,7 +50,9 @@ enum FileExtension {
     #[cfg(feature = "bzip3")]
     Bz3,
     Gz,
+    Lz,
     Lz4,
+    Lzma,
     Sz,
     Xz,
     Zst,
@@ -685,7 +689,8 @@ fn symlink_pack_and_unpack(
     let root_path = temp_dir.path();
 
     let src_files_path = root_path.join("src_files");
-    fs::create_dir_all(&src_files_path)?;
+    let folder_path = src_files_path.join("folder");
+    fs::create_dir_all(&folder_path)?;
 
     let mut files_path = ["file1.txt", "file2.txt", "file3.txt", "file4.txt", "file5.txt"]
         .into_iter()
@@ -700,10 +705,15 @@ fn symlink_pack_and_unpack(
     fs::create_dir_all(&dest_files_path)?;
 
     let symlink_path = src_files_path.join(Path::new("symlink"));
+    let symlink_folder_path = src_files_path.join(Path::new("symlink_folder"));
     #[cfg(unix)]
     std::os::unix::fs::symlink(&files_path[0], &symlink_path)?;
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(&folder_path, &symlink_folder_path)?;
     #[cfg(windows)]
     std::os::windows::fs::symlink_file(&files_path[0], &symlink_path)?;
+    #[cfg(windows)]
+    std::os::windows::fs::symlink_dir(&folder_path, &symlink_folder_path)?;
 
     files_path.push(symlink_path);
 
@@ -724,11 +734,10 @@ fn symlink_pack_and_unpack(
         .assert()
         .success();
 
-    assert_same_directory(&src_files_path, &dest_files_path, false);
     // check the symlink stand still
     for f in dest_files_path.as_path().read_dir()? {
         let f = f?;
-        if f.file_name() == "symlink" {
+        if f.file_name() == "symlink" || f.file_name() == "symlink_folder" {
             assert!(f.file_type()?.is_symlink())
         }
     }
@@ -801,6 +810,56 @@ fn no_git_folder_after_decompression_with_gitignore_flag_active() {
     assert!(
         !decompressed_subdir.join(".git").exists(),
         ".git folder should not exist after decompression"
+    );
+}
+
+#[proptest(cases = 25)]
+fn enable_gitignore_flag_should_work_without_git(
+    ext: DirectoryExtension,
+    #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
+) {
+    let temp_dir = tempdir()?;
+    let root_path = temp_dir.path();
+    let source_path = root_path.join(format!("in_{}", merge_extensions(ext, &extra_extensions)));
+    fs::create_dir_all(&source_path)?;
+    let out_path = root_path.join(format!("out_{}", merge_extensions(ext, &extra_extensions)));
+    fs::create_dir_all(&out_path)?;
+
+    let mut gitignore_file = fs::File::create(source_path.join(".gitignore"))?;
+    gitignore_file.write_all(b"a")?;
+    let mut ignore_file = fs::File::create(source_path.join(".ignore"))?;
+    ignore_file.write_all(b"b")?;
+
+    fs::File::create(source_path.join("a"))?;
+    fs::File::create(source_path.join("b"))?;
+    fs::File::create(source_path.join("c"))?;
+
+    let archive = root_path.join(format!("archive.{}", merge_extensions(ext, &extra_extensions)));
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .arg("--gitignore")
+        .arg("--hidden")
+        .arg(&source_path)
+        .arg(&archive)
+        .assert()
+        .success();
+
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(archive)
+        .arg("-d")
+        .arg(&out_path)
+        .assert()
+        .success();
+
+    // only the file name 'c' exists
+    assert_eq!(
+        1,
+        out_path
+            .join(format!("in_{}", merge_extensions(ext, &extra_extensions)))
+            .as_path()
+            .read_dir()?
+            .count()
     );
 }
 
@@ -1080,10 +1139,73 @@ fn sevenz_list_should_not_failed() {
         .assert()
         .success();
 
-    crate::utils::cargo_bin()
+    let res = crate::utils::cargo_bin()
         .arg("list")
         .arg("--yes")
         .arg(&archive)
         .assert()
         .success();
+
+    assert!(res.get_output().stdout.find(b"README.md").is_some());
+}
+
+// TODO: for supporting windows hard link easier
+// we should wait for this issue
+// https://github.com/rust-lang/rust/issues/63010
+#[cfg(unix)]
+#[test]
+fn tar_hardlink_pack_and_unpack() {
+    use std::{fs::hard_link, os::unix::fs::MetadataExt};
+
+    let temp_dir = tempdir().unwrap();
+    let root_path = temp_dir.path();
+    let source_path = root_path.join("hardlink");
+    fs::create_dir_all(&source_path).unwrap();
+    let out_path = root_path.join("out");
+    fs::create_dir_all(&out_path).unwrap();
+
+    let source = fs::File::create(source_path.join("source")).unwrap();
+    let link1 = source_path.join("link1");
+    let link2 = source_path.join("link2");
+    hard_link(source.path(), link1.as_path()).unwrap();
+    hard_link(source.path(), link2.as_path()).unwrap();
+
+    let archive = root_path.join("archive.tar.gz");
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .arg(&source_path)
+        .arg(&archive)
+        .assert()
+        .success();
+
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(archive)
+        .arg("-d")
+        .arg(&out_path)
+        .assert()
+        .success();
+
+    let out_source_meta = fs::File::open(out_path.join("hardlink").join("source"))
+        .unwrap()
+        .metadata()
+        .unwrap();
+    let out_link1_meta = fs::File::open(out_path.join("hardlink").join("link1"))
+        .unwrap()
+        .metadata()
+        .unwrap();
+    let out_link2_meta = fs::File::open(out_path.join("hardlink").join("link2"))
+        .unwrap()
+        .metadata()
+        .unwrap();
+
+    assert!(out_source_meta.nlink() > 1);
+    assert!(out_link1_meta.nlink() > 1);
+    assert!(out_link2_meta.nlink() > 1);
+
+    assert_eq!(out_source_meta.dev(), out_link1_meta.dev());
+    assert_eq!(out_link1_meta.dev(), out_link2_meta.dev());
+
+    assert_eq!(out_source_meta.ino(), out_link1_meta.ino());
+    assert_eq!(out_link1_meta.ino(), out_link2_meta.ino());
 }

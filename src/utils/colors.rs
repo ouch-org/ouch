@@ -2,19 +2,22 @@
 
 #![allow(dead_code)]
 
-use std::env;
+use std::{
+    env,
+    io::{self, IsTerminal},
+    ops::Not,
+    sync::LazyLock,
+};
 
-use once_cell::sync::Lazy;
-
-static DISABLE_COLORED_TEXT: Lazy<bool> = Lazy::new(|| {
-    env::var_os("NO_COLOR").is_some() || atty::isnt(atty::Stream::Stdout) || atty::isnt(atty::Stream::Stderr)
+static DISABLE_COLORED_TEXT: LazyLock<bool> = LazyLock::new(|| {
+    io::stdout().is_terminal().not() || io::stderr().is_terminal().not() || env::var_os("NO_COLOR").is_some()
 });
 
 macro_rules! color {
     ($name:ident = $value:literal) => {
         #[cfg(target_family = "unix")]
         /// Inserts color onto text based on configuration
-        pub static $name: Lazy<&str> = Lazy::new(|| if *DISABLE_COLORED_TEXT { "" } else { $value });
+        pub static $name: LazyLock<&str> = LazyLock::new(|| if *DISABLE_COLORED_TEXT { "" } else { $value });
         #[cfg(not(target_family = "unix"))]
         pub static $name: &&str = &"";
     };

@@ -7,7 +7,7 @@ use CompressionFormat::*;
 
 use crate::{
     error::{Error, FinalError, Result},
-    utils::logger::warning,
+    warning,
 };
 
 pub const SUPPORTED_EXTENSIONS: &[&str] = &[
@@ -28,14 +28,16 @@ pub const SUPPORTED_EXTENSIONS: &[&str] = &[
     "br",
 ];
 
-pub const SUPPORTED_ALIASES: &[&str] = &["tgz", "tbz", "tlz4", "txz", "tlzma", "tsz", "tzst", "tlz"];
+pub const SUPPORTED_ALIASES: &[&str] = &[
+    "tgz", "tbz", "tlz4", "txz", "tzlma", "tsz", "tzst", "tlz", "cbt", "cbz", "cb7", "cbr",
+];
 
 #[cfg(not(feature = "unrar"))]
 pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, lz, sz, zst, 7z";
 #[cfg(feature = "unrar")]
 pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, lz, sz, zst, rar, 7z";
 
-pub const PRETTY_SUPPORTED_ALIASES: &str = "tgz, tbz, tlz4, txz, tlzma, tsz, tzst, tlz";
+pub const PRETTY_SUPPORTED_ALIASES: &str = "tgz, tbz, tlz4, txz, tlzma, tsz, tzst, tlz, cbt, cbz, cb7, cbr";
 
 /// A wrapper around `CompressionFormat` that allows combinations like `tgz`
 #[derive(Debug, Clone)]
@@ -94,15 +96,15 @@ pub enum CompressionFormat {
     Lzip,
     /// .sz
     Snappy,
-    /// tar, tgz, tbz, tbz2, tbz3, txz, tlz4, tlzma, tsz, tzst
+    /// tar, tgz, tbz, tbz2, tbz3, txz, tlz, tlz4, tlzma, tsz, tzst, cbt
     Tar,
     /// .zst
     Zstd,
-    /// .zip
+    /// .zip, .cbz
     Zip,
-    /// .rar
+    /// .rar, .cbr
     Rar,
-    /// .7z
+    /// .7z, .cb7
     SevenZip,
     /// .br
     Brotli,
@@ -121,7 +123,7 @@ impl CompressionFormat {
 fn to_extension(ext: &[u8]) -> Option<Extension> {
     Some(Extension::new(
         match ext {
-            b"tar" => &[Tar],
+            b"tar" | b"cbt" => &[Tar],
             b"tgz" => &[Tar, Gzip],
             b"tbz" | b"tbz2" => &[Tar, Bzip],
             b"tbz3" => &[Tar, Bzip3],
@@ -131,7 +133,7 @@ fn to_extension(ext: &[u8]) -> Option<Extension> {
             b"tlz" => &[Tar, Lzip],
             b"tsz" => &[Tar, Snappy],
             b"tzst" => &[Tar, Zstd],
-            b"zip" => &[Zip],
+            b"zip" | b"cbz" => &[Zip],
             b"bz" | b"bz2" => &[Bzip],
             b"bz3" => &[Bzip3],
             b"gz" => &[Gzip],
@@ -141,8 +143,8 @@ fn to_extension(ext: &[u8]) -> Option<Extension> {
             b"lz" => &[Lzip],
             b"sz" => &[Snappy],
             b"zst" => &[Zstd],
-            b"rar" => &[Rar],
-            b"7z" => &[SevenZip],
+            b"rar" | b"cbr" => &[Rar],
+            b"7z" | b"cb7" => &[SevenZip],
             b"br" => &[Brotli],
             _ => return None,
         },
@@ -229,9 +231,7 @@ pub fn separate_known_extensions_from_name(path: &Path) -> Result<(&Path, Vec<Ex
     if let Ok(name) = name.to_str() {
         let file_stem = name.trim_matches('.');
         if SUPPORTED_EXTENSIONS.contains(&file_stem) || SUPPORTED_ALIASES.contains(&file_stem) {
-            warning(format!(
-                "Received a file with name '{file_stem}', but {file_stem} was expected as the extension"
-            ));
+            warning!("Received a file with name '{file_stem}', but {file_stem} was expected as the extension");
         }
     }
 

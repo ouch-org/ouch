@@ -27,7 +27,7 @@ pub enum Error {
     /// NEEDS MORE CONTEXT
     AlreadyExists { error_title: String },
     /// From zip::result::ZipError::InvalidArchive
-    InvalidZipArchive(&'static str),
+    InvalidZipArchive(Cow<'static, str>),
     /// Detected from io::Error if .kind() is io::ErrorKind::PermissionDenied
     PermissionDenied { error_title: String },
     /// From zip::result::ZipError::UnsupportedArchive
@@ -147,21 +147,19 @@ impl FinalError {
 impl From<Error> for FinalError {
     fn from(err: Error) -> Self {
         match err {
-            Error::WalkdirError { reason } => FinalError::with_title(reason),
-            Error::NotFound { error_title } => FinalError::with_title(error_title).detail("File not found"),
-            Error::CompressingRootFolder => {
-                FinalError::with_title("It seems you're trying to compress the root folder.")
-                    .detail("This is unadvisable since ouch does compressions in-memory.")
-                    .hint("Use a more appropriate tool for this, such as rsync.")
-            }
-            Error::IoError { reason } => FinalError::with_title(reason),
-            Error::Lz4Error { reason } => FinalError::with_title(reason),
-            Error::AlreadyExists { error_title } => FinalError::with_title(error_title).detail("File already exists"),
-            Error::InvalidZipArchive(reason) => FinalError::with_title("Invalid zip archive").detail(reason),
-            Error::PermissionDenied { error_title } => FinalError::with_title(error_title).detail("Permission denied"),
-            Error::UnsupportedZipArchive(reason) => FinalError::with_title("Unsupported zip archive").detail(reason),
+            Error::WalkdirError { reason } => Self::with_title(reason),
+            Error::NotFound { error_title } => Self::with_title(error_title).detail("File not found"),
+            Error::CompressingRootFolder => Self::with_title("It seems you're trying to compress the root folder.")
+                .detail("This is unadvisable since ouch does compressions in-memory.")
+                .hint("Use a more appropriate tool for this, such as rsync."),
+            Error::IoError { reason } => Self::with_title(reason),
+            Error::Lz4Error { reason } => Self::with_title(reason),
+            Error::AlreadyExists { error_title } => Self::with_title(error_title).detail("File already exists"),
+            Error::InvalidZipArchive(reason) => Self::with_title("Invalid zip archive").detail(reason),
+            Error::PermissionDenied { error_title } => Self::with_title(error_title).detail("Permission denied"),
+            Error::UnsupportedZipArchive(reason) => Self::with_title("Unsupported zip archive").detail(reason),
             Error::InvalidFormatFlag { reason, text } => {
-                FinalError::with_title(format!("Failed to parse `--format {}`", os_str_to_str(&text)))
+                Self::with_title(format!("Failed to parse `--format {}`", os_str_to_str(&text)))
                     .detail(reason)
                     .hint_all_supported_formats()
                     .hint("")
@@ -171,11 +169,11 @@ impl From<Error> for FinalError {
                     .hint("  --format tar.gz")
             }
             Error::Custom { reason } => reason.clone(),
-            Error::SevenzipError { reason } => FinalError::with_title("7z error").detail(reason),
+            Error::SevenzipError { reason } => Self::with_title("7z error").detail(reason),
             Error::UnsupportedFormat { reason } => {
-                FinalError::with_title("Recognised but unsupported format").detail(reason.clone())
+                Self::with_title("Recognised but unsupported format").detail(reason.clone())
             }
-            Error::InvalidPassword { reason } => FinalError::with_title("Invalid password").detail(reason.clone()),
+            Error::InvalidPassword { reason } => Self::with_title("Invalid password").detail(reason.clone()),
         }
     }
 }
@@ -223,6 +221,12 @@ impl From<zip::result::ZipError> for Error {
                 reason: FinalError::with_title("Unexpected error in zip archive").detail("File not found"),
             },
             ZipError::UnsupportedArchive(filename) => Self::UnsupportedZipArchive(filename),
+            ZipError::InvalidPassword => Self::InvalidPassword {
+                reason: "The provided password is incorrect".to_string(),
+            },
+            _ => Self::Custom {
+                reason: FinalError::with_title("Unexpected error in zip archive").detail(err.to_string()),
+            },
         }
     }
 }

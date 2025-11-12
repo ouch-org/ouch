@@ -1,9 +1,11 @@
 use std::{
     io::{self, BufWriter, Cursor, Seek, Write},
+    num::NonZeroU64,
     path::{Path, PathBuf},
 };
 
 use fs_err as fs;
+use gzp::par::compress::{ParCompress, ParCompressBuilder};
 
 use super::warn_user_about_loading_sevenz_in_memory;
 use crate::{
@@ -30,7 +32,6 @@ pub fn compress_files(
     extensions: Vec<Extension>,
     output_file: fs::File,
     output_path: &Path,
-    quiet: bool,
     follow_symlinks: bool,
     question_policy: QuestionPolicy,
     file_visibility_policy: FileVisibilityPolicy,
@@ -44,15 +45,16 @@ pub fn compress_files(
     // Grab previous encoder and wrap it inside of a new one
     let chain_writer_encoder = |format: &_, encoder| -> crate::Result<_> {
         let encoder: Box<dyn Send + Write> = match format {
-            Gzip => Box::new(
+            Gzip => Box::new({
                 // by default, ParCompress uses a default compression level of 3
                 // instead of the regular default that flate2 uses
-                gzp::par::compress::ParCompress::<gzp::deflate::Gzip>::builder()
+                let parz: ParCompress<gzp::deflate::Gzip, _> = ParCompressBuilder::new()
                     .compression_level(
                         level.map_or_else(Default::default, |l| gzp::Compression::new((l as u32).clamp(0, 9))),
                     )
-                    .from_writer(encoder),
-            ),
+                    .from_writer(encoder);
+                parz
+            }),
             Bzip => Box::new(bzip2::write::BzEncoder::new(
                 encoder,
                 level.map_or_else(Default::default, |l| bzip2::Compression::new((l as u32).clamp(1, 9))),
@@ -69,26 +71,38 @@ pub fn compress_files(
             }
             Lz4 => Box::new(lz4_flex::frame::FrameEncoder::new(encoder).auto_finish()),
             Lzma => {
-                return Err(crate::Error::UnsupportedFormat {
-                    reason: "LZMA1 compression is not supported in ouch, use .xz instead.".to_string(),
-                })
+                let options = level.map_or_else(Default::default, |l| {
+                    lzma_rust2::LzmaOptions::with_preset((l as u32).clamp(0, 9))
+                });
+                let writer = lzma_rust2::LzmaWriter::new_use_header(encoder, &options, None)?;
+                Box::new(writer.auto_finish())
             }
-            Xz => Box::new(liblzma::write::XzEncoder::new(
-                encoder,
-                level.map_or(6, |l| (l as u32).clamp(0, 9)),
-            )),
+            Xz => {
+                let mut options = level.map_or_else(Default::default, |l| {
+                    lzma_rust2::XzOptions::with_preset((l as u32).clamp(0, 9))
+                });
+                let dict_size = options.lzma_options.dict_size as u64;
+                options.set_block_size(NonZeroU64::new(dict_size));
+                // Use up to 256 PHYSICAL cores for compression
+                let writer = lzma_rust2::XzWriterMt::new(encoder, options, num_cpus::get_physical() as u32)?;
+                Box::new(writer.auto_finish())
+            }
             Lzip => {
-                return Err(crate::Error::UnsupportedFormat {
-                    reason: "Lzip compression is not supported in ouch.".to_string(),
-                })
+                let options = level.map_or_else(Default::default, |l| {
+                    lzma_rust2::LzipOptions::with_preset((l as u32).clamp(0, 9))
+                });
+                let writer = lzma_rust2::LzipWriter::new(encoder, options);
+                Box::new(writer.auto_finish())
             }
-            Snappy => Box::new(
-                gzp::par::compress::ParCompress::<gzp::snap::Snap>::builder()
+            Snappy => Box::new({
+                let parz: ParCompress<gzp::snap::Snap, _> = ParCompressBuilder::new()
                     .compression_level(gzp::par::compress::Compression::new(
                         level.map_or_else(Default::default, |l| (l as u32).clamp(0, 9)),
                     ))
-                    .from_writer(encoder),
-            ),
+                    .from_writer(encoder);
+
+                parz
+            }),
             Zstd => {
                 let mut zstd_encoder = zstd::stream::write::Encoder::new(
                     encoder,
@@ -130,7 +144,6 @@ pub fn compress_files(
                 output_path,
                 &mut writer,
                 file_visibility_policy,
-                quiet,
                 follow_symlinks,
             )?;
             writer.flush()?;
@@ -154,7 +167,6 @@ pub fn compress_files(
                 output_path,
                 &mut vec_buffer,
                 file_visibility_policy,
-                quiet,
                 follow_symlinks,
             )?;
             vec_buffer.rewind()?;
@@ -180,7 +192,7 @@ pub fn compress_files(
             }
 
             let mut vec_buffer = Cursor::new(vec![]);
-            archive::sevenz::compress_sevenz(&files, output_path, &mut vec_buffer, file_visibility_policy, quiet)?;
+            archive::sevenz::compress_sevenz(&files, output_path, &mut vec_buffer, file_visibility_policy)?;
             vec_buffer.rewind()?;
             io::copy(&mut vec_buffer, &mut writer)?;
         }

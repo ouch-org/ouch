@@ -14,7 +14,7 @@ use crate::{
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
-/// File at input_file_path is opened for reading, example: "archive.tar.gz"
+/// File at archive_path is opened for reading, example: "archive.tar.gz"
 /// formats contains each format necessary for decompression, example: [Gz, Tar] (in decompression order)
 pub fn list_archive_contents(
     archive_path: &Path,
@@ -25,7 +25,7 @@ pub fn list_archive_contents(
 ) -> crate::Result<()> {
     let reader = fs::File::open(archive_path)?;
 
-    // Zip archives are special, because they require io::Seek, so it requires it's logic separated
+    // Zip archives are special, because they require io::Seek, so it requires its logic separated
     // from decoder chaining.
     //
     // This is the only case where we can read and unpack it directly, without having to do
@@ -57,15 +57,9 @@ pub fn list_archive_contents(
                     Box::new(bzip3::read::Bz3Decoder::new(decoder).unwrap())
                 }
                 Lz4 => Box::new(lz4_flex::frame::FrameDecoder::new(decoder)),
-                Lzma => Box::new(liblzma::read::XzDecoder::new_stream(
-                    decoder,
-                    liblzma::stream::Stream::new_lzma_decoder(u64::MAX).unwrap(),
-                )),
-                Xz => Box::new(liblzma::read::XzDecoder::new(decoder)),
-                Lzip => Box::new(liblzma::read::XzDecoder::new_stream(
-                    decoder,
-                    liblzma::stream::Stream::new_lzip_decoder(u64::MAX, 0).unwrap(),
-                )),
+                Lzma => Box::new(lzma_rust2::LzmaReader::new_mem_limit(decoder, u32::MAX, None)?),
+                Xz => Box::new(lzma_rust2::XzReader::new(decoder, true)),
+                Lzip => Box::new(lzma_rust2::LzipReader::new(decoder)?),
                 Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
                 Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
                 Brotli => Box::new(brotli::Decompressor::new(decoder, BUFFER_CAPACITY)),
@@ -128,12 +122,14 @@ pub fn list_archive_contents(
                 if !user_wants_to_continue(archive_path, question_policy, QuestionAction::Decompression)? {
                     return Ok(());
                 }
+                let mut vec = vec![];
+                io::copy(&mut reader, &mut vec)?;
+
+                Box::new(archive::sevenz::list_archive(io::Cursor::new(vec), password)?)
+            } else {
+                // If it's the only format, we can read the archive directly.
+                Box::new(archive::sevenz::list_archive(fs::File::open(archive_path)?, password)?)
             }
-
-            let mut vec = vec![];
-            io::copy(&mut reader, &mut vec)?;
-
-            Box::new(archive::sevenz::list_archive(io::Cursor::new(vec), password)?)
         }
         Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {
             unreachable!("Not an archive, should be validated before calling this function.");

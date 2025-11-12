@@ -1,12 +1,50 @@
 use std::{
+    fmt,
     sync::{mpsc, Arc, Barrier, OnceLock},
     thread,
 };
 
 pub use logger_thread::spawn_logger_thread;
 
-use super::colors::{ORANGE, RESET, YELLOW};
+use super::colors::{GREEN, ORANGE, RESET};
 use crate::accessible::is_running_in_accessible_mode;
+
+#[macro_export]
+macro_rules! info {
+    ($($arg:tt)*) => {
+        $crate::utils::logger::info(format!($($arg)*))
+    };
+}
+
+#[macro_export]
+macro_rules! info_accessible {
+    ($($arg:tt)*) => {
+        $crate::utils::logger::info_accessible(format!($($arg)*))
+    };
+}
+
+#[macro_export]
+macro_rules! warning {
+    ($($arg:tt)*) => {
+        $crate::utils::logger::warning(format!($($arg)*))
+    };
+}
+
+/// Global value used to determine which logs to display.
+static LOG_DISPLAY_LEVEL: OnceLock<MessageLevel> = OnceLock::new();
+
+fn should_display_log(level: &MessageLevel) -> bool {
+    let global_level = &LOG_DISPLAY_LEVEL.get().copied().unwrap_or(MessageLevel::Info);
+    level >= global_level
+}
+
+/// Set the value of the global [`LOG_DISPLAY_LEVEL`].
+pub fn set_log_display_level(quiet: bool) {
+    let level = if quiet { MessageLevel::Quiet } else { MessageLevel::Info };
+    if LOG_DISPLAY_LEVEL.get().is_none() {
+        LOG_DISPLAY_LEVEL.set(level).unwrap();
+    }
+}
 
 /// Asks logger to shutdown and waits till it flushes all pending messages.
 #[track_caller]
@@ -79,40 +117,62 @@ struct PrintMessage {
 }
 
 impl PrintMessage {
-    fn to_formatted_message(&self) -> Option<String> {
+    fn should_display(&self) -> bool {
+        if self.level == MessageLevel::Quiet {
+            return false;
+        }
+
+        if !should_display_log(&self.level) && !is_running_in_accessible_mode() {
+            return false;
+        }
+
+        if self.level == MessageLevel::Info {
+            return !is_running_in_accessible_mode() || self.accessible;
+        }
+
+        true
+    }
+}
+
+impl fmt::Display for PrintMessage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        debug_assert!(
+            self.should_display(),
+            "Display called on message that shouldn't be displayed"
+        );
+
         match self.level {
             MessageLevel::Info => {
-                if self.accessible {
-                    if is_running_in_accessible_mode() {
-                        Some(format!("{}Info:{} {}", *YELLOW, *RESET, self.contents))
-                    } else {
-                        Some(format!("{}[INFO]{} {}", *YELLOW, *RESET, self.contents))
-                    }
-                } else if !is_running_in_accessible_mode() {
-                    Some(format!("{}[INFO]{} {}", *YELLOW, *RESET, self.contents))
-                } else {
-                    None
+                if !is_running_in_accessible_mode() {
+                    write!(f, "{}[INFO]{} {}", *GREEN, *RESET, self.contents)?;
+                } else if self.accessible {
+                    write!(f, "{}Info:{} {}", *GREEN, *RESET, self.contents)?;
                 }
             }
             MessageLevel::Warning => {
                 if is_running_in_accessible_mode() {
-                    Some(format!("{}Warning:{} {}", *ORANGE, *RESET, self.contents))
+                    write!(f, "{}Warning:{} {}", *ORANGE, *RESET, self.contents)?;
                 } else {
-                    Some(format!("{}[WARNING]{} {}", *ORANGE, *RESET, self.contents))
+                    write!(f, "{}[WARNING]{} {}", *ORANGE, *RESET, self.contents)?;
                 }
             }
+            MessageLevel::Quiet => {}
         }
+
+        Ok(())
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 enum MessageLevel {
     Info,
     Warning,
+    Quiet,
 }
 
 mod logger_thread {
     use std::{
+        io::{self, Write},
         sync::{mpsc::RecvTimeoutError, Arc, Barrier},
         time::Duration,
     };
@@ -185,13 +245,13 @@ mod logger_thread {
     fn run_logger(log_receiver: LogReceiver) {
         const FLUSH_TIMEOUT: Duration = Duration::from_millis(200);
 
-        let mut buffer = Vec::<String>::with_capacity(16);
+        let mut writer = io::BufWriter::new(io::stderr());
 
         loop {
             let msg = match log_receiver.recv_timeout(FLUSH_TIMEOUT) {
                 Ok(msg) => msg,
                 Err(RecvTimeoutError::Timeout) => {
-                    flush_logs_to_stderr(&mut buffer);
+                    writer.flush().unwrap();
                     continue;
                 }
                 Err(RecvTimeoutError::Disconnected) => unreachable!("sender is static"),
@@ -200,32 +260,20 @@ mod logger_thread {
             match msg {
                 LoggerCommand::Print(msg) => {
                     // Append message to buffer
-                    if let Some(msg) = msg.to_formatted_message() {
-                        buffer.push(msg);
-                    }
-
-                    if buffer.len() == buffer.capacity() {
-                        flush_logs_to_stderr(&mut buffer);
+                    if msg.should_display() {
+                        writeln!(writer, "{msg}").unwrap();
                     }
                 }
                 LoggerCommand::Flush { finished_barrier } => {
-                    flush_logs_to_stderr(&mut buffer);
+                    writer.flush().unwrap();
                     finished_barrier.wait();
                 }
                 LoggerCommand::FlushAndShutdown { finished_barrier } => {
-                    flush_logs_to_stderr(&mut buffer);
+                    writer.flush().unwrap();
                     finished_barrier.wait();
                     return;
                 }
             }
-        }
-    }
-
-    fn flush_logs_to_stderr(buffer: &mut Vec<String>) {
-        if !buffer.is_empty() {
-            let text = buffer.join("\n");
-            eprintln!("{text}");
-            buffer.clear();
         }
     }
 }

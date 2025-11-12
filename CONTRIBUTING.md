@@ -39,11 +39,11 @@ We use snapshots to do UI testing and guarantee a consistent output, this way, y
 
 ```sh
 cargo test
-# Only run UI tests
-cargo test -- ui
+# Or, if you only want to run UI tests
+# cargo test -- ui
 ```
 
-- If some UI test failed, you should review it:
+- If some UI test failed, you should review them (requires `cargo install cargo-insta`):
 
 ```sh
 cargo insta review
