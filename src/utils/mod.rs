@@ -9,6 +9,7 @@ mod formatting;
 mod fs;
 pub mod io;
 pub mod logger;
+pub mod pool;
 mod question;
 
 pub use self::{

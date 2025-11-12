@@ -1,33 +1,50 @@
 use std::{
     fmt,
-    sync::{mpsc, Arc, Barrier, OnceLock},
+    sync::{mpsc, Arc, Barrier, LazyLock, OnceLock},
     thread,
 };
 
 pub use logger_thread::spawn_logger_thread;
 
+pub static STRING_POOL: LazyLock<Pool<String>> = LazyLock::new(|| Pool::from_vec(vec![String::with_capacity(128); 16]));
+
 use super::colors::{GREEN, ORANGE, RESET};
-use crate::accessible::is_running_in_accessible_mode;
+use crate::{
+    accessible::is_running_in_accessible_mode,
+    utils::pool::{Pool, Pooled},
+};
 
 #[macro_export]
 macro_rules! info {
-    ($($arg:tt)*) => {
-        $crate::utils::logger::info(format!($($arg)*))
-    };
+    ($($arg:tt)*) => {{
+        let mut pooled = $crate::utils::logger::STRING_POOL.take();
+        pooled.clear();
+        use std::fmt::Write;
+        let _ = write!(&mut *pooled, $($arg)*);
+        $crate::utils::logger::info(pooled)
+    }};
 }
 
 #[macro_export]
 macro_rules! info_accessible {
-    ($($arg:tt)*) => {
-        $crate::utils::logger::info_accessible(format!($($arg)*))
-    };
+    ($($arg:tt)*) => {{
+        let mut pooled = $crate::utils::logger::STRING_POOL.take();
+        pooled.clear();
+        use std::fmt::Write;
+        let _ = write!(&mut *pooled, $($arg)*);
+        $crate::utils::logger::info_accessible(pooled)
+    }};
 }
 
 #[macro_export]
 macro_rules! warning {
-    ($($arg:tt)*) => {
-        $crate::utils::logger::warning(format!($($arg)*))
-    };
+    ($($arg:tt)*) => {{
+        let mut pooled = $crate::utils::logger::STRING_POOL.take();
+        pooled.clear();
+        use std::fmt::Write;
+        let _ = write!(&mut *pooled, $($arg)*);
+        $crate::utils::logger::warning(pooled)
+    }};
 }
 
 /// Global value used to determine which logs to display.
@@ -66,7 +83,7 @@ pub fn flush_messages() {
 ///
 /// Read more about accessibility mode in `accessible.rs`.
 #[track_caller]
-pub fn info(contents: String) {
+pub fn info(contents: Pooled<String>) {
     info_with_accessibility(contents, false);
 }
 
@@ -77,12 +94,12 @@ pub fn info(contents: String) {
 ///
 /// Read more about accessibility mode in `accessible.rs`.
 #[track_caller]
-pub fn info_accessible(contents: String) {
+pub fn info_accessible(contents: Pooled<String>) {
     info_with_accessibility(contents, true);
 }
 
 #[track_caller]
-fn info_with_accessibility(contents: String, accessible: bool) {
+fn info_with_accessibility(contents: Pooled<String>, accessible: bool) {
     logger_thread::send_print_command(PrintMessage {
         contents,
         accessible,
@@ -91,7 +108,7 @@ fn info_with_accessibility(contents: String, accessible: bool) {
 }
 
 #[track_caller]
-pub fn warning(contents: String) {
+pub fn warning(contents: Pooled<String>) {
     logger_thread::send_print_command(PrintMessage {
         contents,
         // Warnings are important and unlikely to flood, so they should be displayed
@@ -111,7 +128,7 @@ enum LoggerCommand {
 /// See <https://github.com/ouch-org/ouch/issues/643>
 #[derive(Debug)]
 struct PrintMessage {
-    contents: String,
+    contents: Pooled<String>,
     accessible: bool,
     level: MessageLevel,
 }
@@ -144,16 +161,16 @@ impl fmt::Display for PrintMessage {
         match self.level {
             MessageLevel::Info => {
                 if !is_running_in_accessible_mode() {
-                    write!(f, "{}[INFO]{} {}", *GREEN, *RESET, self.contents)?;
+                    write!(f, "{}[INFO]{} {}", *GREEN, *RESET, &*self.contents)?;
                 } else if self.accessible {
-                    write!(f, "{}Info:{} {}", *GREEN, *RESET, self.contents)?;
+                    write!(f, "{}Info:{} {}", *GREEN, *RESET, &*self.contents)?;
                 }
             }
             MessageLevel::Warning => {
                 if is_running_in_accessible_mode() {
-                    write!(f, "{}Warning:{} {}", *ORANGE, *RESET, self.contents)?;
+                    write!(f, "{}Warning:{} {}", *ORANGE, *RESET, &*self.contents)?;
                 } else {
-                    write!(f, "{}[WARNING]{} {}", *ORANGE, *RESET, self.contents)?;
+                    write!(f, "{}[WARNING]{} {}", *ORANGE, *RESET, &*self.contents)?;
                 }
             }
             MessageLevel::Quiet => {}
@@ -238,6 +255,7 @@ mod logger_thread {
 
     pub fn spawn_logger_thread() {
         if let Some(log_receiver) = setup_channel() {
+            thread::spawn(move || STRING_POOL.take());
             thread::spawn(move || run_logger(log_receiver));
         }
     }
