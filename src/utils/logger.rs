@@ -1,4 +1,5 @@
 use std::{
+    fmt,
     sync::{mpsc, Arc, Barrier, OnceLock},
     thread,
 };
@@ -116,30 +117,40 @@ struct PrintMessage {
 }
 
 impl PrintMessage {
-    fn to_formatted_message(&self) -> Option<String> {
+    fn should_skip_display(&self) -> bool {
         if !is_running_in_accessible_mode() && !should_display_log(&self.level) {
-            return None;
+            return true;
         }
 
         match self.level {
+            MessageLevel::Quiet => true,
+            MessageLevel::Info => is_running_in_accessible_mode() && !self.accessible,
+            _ => false,
+        }
+    }
+}
+
+impl fmt::Display for PrintMessage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.level {
             MessageLevel::Info => {
                 if !is_running_in_accessible_mode() {
-                    Some(format!("{}[INFO]{} {}", *GREEN, *RESET, self.contents))
+                    write!(f, "{}[INFO]{} {}", *GREEN, *RESET, self.contents)?;
                 } else if self.accessible {
-                    Some(format!("{}Info:{} {}", *GREEN, *RESET, self.contents))
-                } else {
-                    None
+                    write!(f, "{}Info:{} {}", *GREEN, *RESET, self.contents)?;
                 }
             }
             MessageLevel::Warning => {
                 if is_running_in_accessible_mode() {
-                    Some(format!("{}Warning:{} {}", *ORANGE, *RESET, self.contents))
+                    write!(f, "{}Warning:{} {}", *ORANGE, *RESET, self.contents)?;
                 } else {
-                    Some(format!("{}[WARNING]{} {}", *ORANGE, *RESET, self.contents))
+                    write!(f, "{}[WARNING]{} {}", *ORANGE, *RESET, self.contents)?;
                 }
             }
-            MessageLevel::Quiet => None,
+            MessageLevel::Quiet => {}
         }
+
+        Ok(())
     }
 }
 
@@ -240,9 +251,8 @@ mod logger_thread {
             match msg {
                 LoggerCommand::Print(msg) => {
                     // Append message to buffer
-                    if let Some(msg) = msg.to_formatted_message() {
-                        writer.write_all(msg.as_bytes()).unwrap();
-                        writer.write_all(b"\n").unwrap();
+                    if !msg.should_skip_display() {
+                        writeln!(writer, "{msg}").unwrap();
                     }
                 }
                 LoggerCommand::Flush { finished_barrier } => {
