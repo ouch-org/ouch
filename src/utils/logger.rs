@@ -152,6 +152,7 @@ enum MessageLevel {
 
 mod logger_thread {
     use std::{
+        io::{self, Write},
         sync::{mpsc::RecvTimeoutError, Arc, Barrier},
         time::Duration,
     };
@@ -224,13 +225,13 @@ mod logger_thread {
     fn run_logger(log_receiver: LogReceiver) {
         const FLUSH_TIMEOUT: Duration = Duration::from_millis(200);
 
-        let mut buffer = Vec::<String>::with_capacity(16);
+        let mut writer = io::BufWriter::new(io::stderr());
 
         loop {
             let msg = match log_receiver.recv_timeout(FLUSH_TIMEOUT) {
                 Ok(msg) => msg,
                 Err(RecvTimeoutError::Timeout) => {
-                    flush_logs_to_stderr(&mut buffer);
+                    writer.flush().unwrap();
                     continue;
                 }
                 Err(RecvTimeoutError::Disconnected) => unreachable!("sender is static"),
@@ -240,31 +241,20 @@ mod logger_thread {
                 LoggerCommand::Print(msg) => {
                     // Append message to buffer
                     if let Some(msg) = msg.to_formatted_message() {
-                        buffer.push(msg);
-                    }
-
-                    if buffer.len() == buffer.capacity() {
-                        flush_logs_to_stderr(&mut buffer);
+                        writer.write_all(msg.as_bytes()).unwrap();
+                        writer.write_all(b"\n").unwrap();
                     }
                 }
                 LoggerCommand::Flush { finished_barrier } => {
-                    flush_logs_to_stderr(&mut buffer);
+                    writer.flush().unwrap();
                     finished_barrier.wait();
                 }
                 LoggerCommand::FlushAndShutdown { finished_barrier } => {
-                    flush_logs_to_stderr(&mut buffer);
+                    writer.flush().unwrap();
                     finished_barrier.wait();
                     return;
                 }
             }
-        }
-    }
-
-    fn flush_logs_to_stderr(buffer: &mut Vec<String>) {
-        if !buffer.is_empty() {
-            let text = buffer.join("\n");
-            eprintln!("{text}");
-            buffer.clear();
         }
     }
 }
