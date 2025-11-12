@@ -117,21 +117,30 @@ struct PrintMessage {
 }
 
 impl PrintMessage {
-    fn should_skip_display(&self) -> bool {
-        if !is_running_in_accessible_mode() && !should_display_log(&self.level) {
-            return true;
+    fn should_display(&self) -> bool {
+        if self.level == MessageLevel::Quiet {
+            return false;
         }
 
-        match self.level {
-            MessageLevel::Quiet => true,
-            MessageLevel::Info => is_running_in_accessible_mode() && !self.accessible,
-            _ => false,
+        if !should_display_log(&self.level) && !is_running_in_accessible_mode() {
+            return false;
         }
+
+        if self.level == MessageLevel::Info {
+            return !is_running_in_accessible_mode() || self.accessible;
+        }
+
+        true
     }
 }
 
 impl fmt::Display for PrintMessage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        debug_assert!(
+            self.should_display(),
+            "Display called on message that shouldn't be displayed"
+        );
+
         match self.level {
             MessageLevel::Info => {
                 if !is_running_in_accessible_mode() {
@@ -251,7 +260,7 @@ mod logger_thread {
             match msg {
                 LoggerCommand::Print(msg) => {
                     // Append message to buffer
-                    if !msg.should_skip_display() {
+                    if msg.should_display() {
                         writeln!(writer, "{msg}").unwrap();
                     }
                 }
