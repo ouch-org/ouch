@@ -1,4 +1,5 @@
 use std::{
+    fmt,
     sync::{mpsc, Arc, Barrier, OnceLock},
     thread,
 };
@@ -116,30 +117,49 @@ struct PrintMessage {
 }
 
 impl PrintMessage {
-    fn to_formatted_message(&self) -> Option<String> {
-        if !is_running_in_accessible_mode() && !should_display_log(&self.level) {
-            return None;
+    fn should_display(&self) -> bool {
+        if self.level == MessageLevel::Quiet {
+            return false;
         }
+
+        if !should_display_log(&self.level) && !is_running_in_accessible_mode() {
+            return false;
+        }
+
+        if self.level == MessageLevel::Info {
+            return !is_running_in_accessible_mode() || self.accessible;
+        }
+
+        true
+    }
+}
+
+impl fmt::Display for PrintMessage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        debug_assert!(
+            self.should_display(),
+            "Display called on message that shouldn't be displayed"
+        );
 
         match self.level {
             MessageLevel::Info => {
                 if !is_running_in_accessible_mode() {
-                    Some(format!("{}[INFO]{} {}", *GREEN, *RESET, self.contents))
+                    write!(f, "{}[INFO]{} {}", *GREEN, *RESET, self.contents)?;
                 } else if self.accessible {
-                    Some(format!("{}Info:{} {}", *GREEN, *RESET, self.contents))
-                } else {
-                    None
+                    write!(f, "{}Info:{} {}", *GREEN, *RESET, self.contents)?;
                 }
             }
             MessageLevel::Warning => {
                 if is_running_in_accessible_mode() {
-                    Some(format!("{}Warning:{} {}", *ORANGE, *RESET, self.contents))
+                    write!(f, "{}Warning:{} {}", *ORANGE, *RESET, self.contents)?;
                 } else {
-                    Some(format!("{}[WARNING]{} {}", *ORANGE, *RESET, self.contents))
+                    write!(f, "{}[WARNING]{} {}", *ORANGE, *RESET, self.contents)?;
                 }
             }
-            MessageLevel::Quiet => None,
+            MessageLevel::Quiet => {}
         }
+
+        Ok(())
     }
 }
 
@@ -152,6 +172,7 @@ enum MessageLevel {
 
 mod logger_thread {
     use std::{
+        io::{self, Write},
         sync::{mpsc::RecvTimeoutError, Arc, Barrier},
         time::Duration,
     };
@@ -224,13 +245,13 @@ mod logger_thread {
     fn run_logger(log_receiver: LogReceiver) {
         const FLUSH_TIMEOUT: Duration = Duration::from_millis(200);
 
-        let mut buffer = Vec::<String>::with_capacity(16);
+        let mut writer = io::BufWriter::new(io::stderr());
 
         loop {
             let msg = match log_receiver.recv_timeout(FLUSH_TIMEOUT) {
                 Ok(msg) => msg,
                 Err(RecvTimeoutError::Timeout) => {
-                    flush_logs_to_stderr(&mut buffer);
+                    writer.flush().unwrap();
                     continue;
                 }
                 Err(RecvTimeoutError::Disconnected) => unreachable!("sender is static"),
@@ -239,32 +260,20 @@ mod logger_thread {
             match msg {
                 LoggerCommand::Print(msg) => {
                     // Append message to buffer
-                    if let Some(msg) = msg.to_formatted_message() {
-                        buffer.push(msg);
-                    }
-
-                    if buffer.len() == buffer.capacity() {
-                        flush_logs_to_stderr(&mut buffer);
+                    if msg.should_display() {
+                        writeln!(writer, "{msg}").unwrap();
                     }
                 }
                 LoggerCommand::Flush { finished_barrier } => {
-                    flush_logs_to_stderr(&mut buffer);
+                    writer.flush().unwrap();
                     finished_barrier.wait();
                 }
                 LoggerCommand::FlushAndShutdown { finished_barrier } => {
-                    flush_logs_to_stderr(&mut buffer);
+                    writer.flush().unwrap();
                     finished_barrier.wait();
                     return;
                 }
             }
-        }
-    }
-
-    fn flush_logs_to_stderr(buffer: &mut Vec<String>) {
-        if !buffer.is_empty() {
-            let text = buffer.join("\n");
-            eprintln!("{text}");
-            buffer.clear();
         }
     }
 }
