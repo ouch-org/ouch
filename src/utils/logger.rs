@@ -172,7 +172,7 @@ enum MessageLevel {
 
 mod logger_thread {
     use std::{
-        io::{self, Write},
+        io::{stderr, Write},
         sync::{mpsc::RecvTimeoutError, Arc, Barrier},
         time::Duration,
     };
@@ -245,13 +245,13 @@ mod logger_thread {
     fn run_logger(log_receiver: LogReceiver) {
         const FLUSH_TIMEOUT: Duration = Duration::from_millis(200);
 
-        let mut writer = io::BufWriter::new(io::stderr());
+        let mut buffer = Vec::new();
 
         loop {
             let msg = match log_receiver.recv_timeout(FLUSH_TIMEOUT) {
                 Ok(msg) => msg,
                 Err(RecvTimeoutError::Timeout) => {
-                    writer.flush().unwrap();
+                    flush_logs_to_stderr(&mut buffer);
                     continue;
                 }
                 Err(RecvTimeoutError::Disconnected) => unreachable!("sender is static"),
@@ -261,19 +261,28 @@ mod logger_thread {
                 LoggerCommand::Print(msg) => {
                     // Append message to buffer
                     if msg.should_display() {
-                        writeln!(writer, "{msg}").unwrap();
+                        writeln!(buffer, "{msg}").unwrap();
                     }
                 }
                 LoggerCommand::Flush { finished_barrier } => {
-                    writer.flush().unwrap();
+                    flush_logs_to_stderr(&mut buffer);
                     finished_barrier.wait();
                 }
                 LoggerCommand::FlushAndShutdown { finished_barrier } => {
-                    writer.flush().unwrap();
+                    flush_logs_to_stderr(&mut buffer);
                     finished_barrier.wait();
                     return;
                 }
             }
+        }
+    }
+
+    fn flush_logs_to_stderr(buffer: &mut Vec<u8>) {
+        if !buffer.is_empty() {
+            if let Err(err) = stderr().write_all(buffer) {
+                panic!("Failed to write to STDERR: {err}");
+            }
+            buffer.clear();
         }
     }
 }
