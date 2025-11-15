@@ -172,7 +172,7 @@ enum MessageLevel {
 
 mod logger_thread {
     use std::{
-        io::{self, stderr, Write},
+        io::{stderr, Write},
         sync::{mpsc::RecvTimeoutError, Arc, Barrier},
         time::Duration,
     };
