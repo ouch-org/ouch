@@ -13,7 +13,7 @@ use fs_err as fs;
 pub use self::args::{CliArgs, Subcommand};
 use crate::{
     accessible::set_accessible,
-    utils::{is_path_stdin, logger::set_log_display_level, FileVisibilityPolicy},
+    utils::{is_path_stdin, logger::set_log_display_level, threads::set_thread_count, FileVisibilityPolicy},
     QuestionPolicy,
 };
 
@@ -28,6 +28,11 @@ impl CliArgs {
 
         set_accessible(args.accessible);
         set_log_display_level(args.quiet);
+
+        match args.threads {
+            Some(0) | None => {}
+            Some(threads) => set_thread_count(threads),
+        }
 
         let (Subcommand::Compress { files, .. }
         | Subcommand::Decompress { files, .. }
