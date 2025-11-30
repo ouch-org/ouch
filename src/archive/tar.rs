@@ -54,7 +54,7 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path) -> crate::Res
                 let full_link_path = output_folder.join(&link_path);
                 let full_target_path = output_folder.join(&target);
 
-                std::fs::hard_link(&full_target_path, &full_link_path)?;
+                fs::hard_link(&full_target_path, &full_link_path)?;
             }
             tar::EntryType::Regular => {
                 file.unpack_in(output_folder)?;
