@@ -44,6 +44,18 @@ ouch help <COMMAND>
 ouch <COMMAND> --help  # equivalent
 ```
 
+## Shell Completions
+
+You can generate shell completion scripts using the `--completions` flag:
+
+```sh
+# Generate bash completions
+ouch --completions bash
+
+# Generate zsh completions
+ouch --completions zsh
+```
+
 ## Decompressing
 
 Use the `decompress` subcommand, `ouch` will detect the extensions automatically.

@@ -1,11 +1,11 @@
 ---
 source: tests/ui.rs
+assertion_line: 176
 expression: "output_to_string(ouch!(\"-h\"))"
-snapshot_kind: text
 ---
 A command-line utility for easily compressing and decompressing files and directories.
 
-Usage: <OUCH_BIN> [OPTIONS] <COMMAND>
+Usage: <OUCH_BIN> [OPTIONS] [COMMAND]
 
 Commands:
   compress    Compress one or more files into one output file [aliases: c]
@@ -14,14 +14,15 @@ Commands:
   help        Print this message or the help of the given subcommand(s)
 
 Options:
-  -y, --yes                  Skip [Y/n] questions, default to yes
-  -n, --no                   Skip [Y/n] questions, default to no
-  -A, --accessible           Activate accessibility mode, reducing visual noise [env: ACCESSIBLE=]
-  -H, --hidden               Ignore hidden files
-  -q, --quiet                Silence output
-  -g, --gitignore            Ignore files matched by git's ignore files
-  -f, --format <FORMAT>      Specify the format of the archive
-  -p, --password <PASSWORD>  Decompress or list with password
-  -c, --threads <THREADS>    Concurrent working threads
-  -h, --help                 Print help (see more with '--help')
-  -V, --version              Print version
+  -y, --yes                        Skip [Y/n] questions, default to yes
+  -n, --no                         Skip [Y/n] questions, default to no
+  -A, --accessible                 Activate accessibility mode, reducing visual noise [env: ACCESSIBLE=]
+  -H, --hidden                     Ignore hidden files
+  -q, --quiet                      Silence output
+  -g, --gitignore                  Ignore files matched by git's ignore files
+  -f, --format <FORMAT>            Specify the format of the archive
+  -p, --password <PASSWORD>        Decompress or list with password
+  -c, --threads <THREADS>          Concurrent working threads
+      --completions <COMPLETIONS>  Generate shell completion scripts [possible values: bash, elvish, fish, powershell, zsh]
+  -h, --help                       Print help (see more with '--help')
+  -V, --version                    Print version
