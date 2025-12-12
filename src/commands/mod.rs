@@ -60,7 +60,7 @@ pub fn run(
             .unwrap();
     }
 
-    match args.cmd {
+    match args.cmd.unwrap() {
         Subcommand::Compress {
             files,
             output: output_path,
