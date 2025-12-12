@@ -10,6 +10,7 @@ mod fs;
 pub mod io;
 pub mod logger;
 mod question;
+pub mod threads;
 
 pub use self::{
     file_visibility::FileVisibilityPolicy,

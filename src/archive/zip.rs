@@ -34,7 +34,6 @@ pub fn unpack_archive<R>(
     mut archive: ZipArchive<R>,
     output_folder: &Path,
     password: Option<&[u8]>,
-    quiet: bool,
 ) -> crate::Result<Unpacked>
 where
     R: Read + Seek,
@@ -61,9 +60,7 @@ where
                 // importance for most users, but would generate lots of
                 // spoken text for users using screen readers, braille displays
                 // and so on
-                if !quiet {
-                    info!("File {} extracted to \"{}\"", idx, file_path.display());
-                }
+                info!("File {} extracted to \"{}\"", idx, file_path.display());
 
                 let mode = file.unix_mode();
                 let is_symlink = mode.is_some_and(|mode| mode & 0o170000 == 0o120000);
@@ -95,9 +92,7 @@ where
                     let mut target = String::new();
                     file.read_to_string(&mut target)?;
 
-                    if !quiet {
-                        info!("linking {} -> {}", file_path.display(), target);
-                    }
+                    info!("linking {} -> {}", file_path.display(), target);
 
                     create_symlink(Path::new(&target), file_path)?;
                 } else {
@@ -109,9 +104,7 @@ where
                 }
 
                 // same reason is in _is_dir: long, often not needed text
-                if !quiet {
-                    info!("extracted ({}) {:?}", Bytes::new(file.size()), file_path.display(),);
-                }
+                info!("extracted ({}) {:?}", Bytes::new(file.size()), file_path.display(),);
             }
         }
 
@@ -175,7 +168,6 @@ pub fn build_archive_from_paths<W>(
     output_path: &Path,
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
-    quiet: bool,
     follow_symlinks: bool,
 ) -> crate::Result<W>
 where
@@ -226,9 +218,7 @@ where
             // little importance for most users, but would generate lots of
             // spoken text for users using screen readers, braille displays
             // and so on
-            if !quiet {
-                info!("Compressing '{}'", EscapedPathDisplay::new(path));
-            }
+            info!("Compressing '{}'", EscapedPathDisplay::new(path));
 
             let metadata = match path.metadata() {
                 Ok(metadata) => metadata,

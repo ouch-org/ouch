@@ -12,7 +12,11 @@ use crate::{
     archive,
     commands::warn_user_about_loading_zip_in_memory,
     extension::{split_first_compression_format, CompressionFormat::*, Extension},
-    utils::{io::lock_and_flush_output_stdio, user_wants_to_continue, FileVisibilityPolicy},
+    utils::{
+        io::lock_and_flush_output_stdio,
+        threads::{logical_thread_count, physical_thread_count},
+        user_wants_to_continue, FileVisibilityPolicy,
+    },
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
@@ -32,7 +36,6 @@ pub fn compress_files(
     extensions: Vec<Extension>,
     output_file: fs::File,
     output_path: &Path,
-    quiet: bool,
     follow_symlinks: bool,
     question_policy: QuestionPolicy,
     file_visibility_policy: FileVisibilityPolicy,
@@ -53,6 +56,8 @@ pub fn compress_files(
                     .compression_level(
                         level.map_or_else(Default::default, |l| gzp::Compression::new((l as u32).clamp(0, 9))),
                     )
+                    .num_threads(logical_thread_count())
+                    .expect("gpz: num_threads must be greater than 0")
                     .from_writer(encoder);
                 parz
             }),
@@ -85,7 +90,7 @@ pub fn compress_files(
                 let dict_size = options.lzma_options.dict_size as u64;
                 options.set_block_size(NonZeroU64::new(dict_size));
                 // Use up to 256 PHYSICAL cores for compression
-                let writer = lzma_rust2::XzWriterMt::new(encoder, options, num_cpus::get_physical() as u32)?;
+                let writer = lzma_rust2::XzWriterMt::new(encoder, options, physical_thread_count() as u32)?;
                 Box::new(writer.auto_finish())
             }
             Lzip => {
@@ -100,6 +105,8 @@ pub fn compress_files(
                     .compression_level(gzp::par::compress::Compression::new(
                         level.map_or_else(Default::default, |l| (l as u32).clamp(0, 9)),
                     ))
+                    .num_threads(logical_thread_count())
+                    .expect("gpz: num_threads must be greater than 0")
                     .from_writer(encoder);
 
                 parz
@@ -112,7 +119,7 @@ pub fn compress_files(
                     }),
                 )?;
                 // Use all available PHYSICAL cores for compression
-                zstd_encoder.multithread(num_cpus::get_physical() as u32)?;
+                zstd_encoder.multithread(physical_thread_count() as u32)?;
                 Box::new(zstd_encoder.auto_finish())
             }
             Brotli => {
@@ -145,7 +152,6 @@ pub fn compress_files(
                 output_path,
                 &mut writer,
                 file_visibility_policy,
-                quiet,
                 follow_symlinks,
             )?;
             writer.flush()?;
@@ -169,7 +175,6 @@ pub fn compress_files(
                 output_path,
                 &mut vec_buffer,
                 file_visibility_policy,
-                quiet,
                 follow_symlinks,
             )?;
             vec_buffer.rewind()?;
@@ -195,7 +200,7 @@ pub fn compress_files(
             }
 
             let mut vec_buffer = Cursor::new(vec![]);
-            archive::sevenz::compress_sevenz(&files, output_path, &mut vec_buffer, file_visibility_policy, quiet)?;
+            archive::sevenz::compress_sevenz(&files, output_path, &mut vec_buffer, file_visibility_policy)?;
             vec_buffer.rewind()?;
             io::copy(&mut vec_buffer, &mut writer)?;
         }

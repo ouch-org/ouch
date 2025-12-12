@@ -649,6 +649,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bfe33edd8e85a12a67454e37f8c75e730830d83e313556ab9ebf9ee7fbeb3bfb"
 dependencies = [
  "crc32fast",
+ "libz-ng-sys",
  "libz-sys",
  "miniz_oxide",
 ]
@@ -748,15 +749,16 @@ dependencies = [
 
 [[package]]
 name = "gzp"
-version = "2.0.0"
+version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c35009b254f25c2960a5655c79a97baa4b44c6a7e3bdfcf7aeaffe707ce345ff"
+checksum = "355c63cde38919e6dfe222039e90ed032677bf47756e5ba02d0694044fb3bd09"
 dependencies = [
  "byteorder",
  "bytes",
  "core_affinity",
  "flate2",
  "flume",
+ "libdeflater",
  "libz-ng-sys",
  "libz-sys",
  "log",
@@ -938,6 +940,24 @@ name = "libc"
 version = "0.2.177"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2874a2af47a2325c2001a6e6fad9b16a53b802102b528163885171cf92b15976"
+
+[[package]]
+name = "libdeflate-sys"
+version = "1.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23bd6304ebf75390d8a99b88bdf2a266f62647838140cb64af8e6702f6e3fddc"
+dependencies = [
+ "cc",
+]
+
+[[package]]
+name = "libdeflater"
+version = "1.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d5d4880e6d634d3d029d65fa016038e788cc728a17b782684726fb34ee140caf"
+dependencies = [
+ "libdeflate-sys",
+]
 
 [[package]]
 name = "libloading"
@@ -1142,7 +1162,6 @@ dependencies = [
  "lzma-rust2",
  "memchr",
  "num_cpus",
- "once_cell",
  "parse-display",
  "pretty_assertions",
  "proptest",
