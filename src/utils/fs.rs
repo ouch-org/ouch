@@ -165,6 +165,10 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
     fn is_sevenz(buf: &[u8]) -> bool {
         buf.starts_with(&[0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C])
     }
+    fn is_ar(buf: &[u8]) -> bool {
+        // Unix ar archives start with "!<arch>\n"
+        buf.starts_with(b"!<arch>\n")
+    }
 
     let buf = {
         let mut buf = [0; 270];
@@ -206,6 +210,8 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
         Some(Extension::new(&[Rar], "rar"))
     } else if is_sevenz(&buf) {
         Some(Extension::new(&[SevenZip], "7z"))
+    } else if is_ar(&buf) {
+        Some(Extension::new(&[Ar], "a"))
     } else {
         None
     }

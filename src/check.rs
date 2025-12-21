@@ -120,6 +120,23 @@ pub fn check_archive_formats_position(formats: &[Extension], output_path: &Path)
     Ok(())
 }
 
+/// Check if trying to compress to a .deb file (not supported, requires dpkg tool and proper metadata).
+pub fn check_deb_compression(output_path: &Path) -> Result<()> {
+    if output_path
+        .extension()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("deb"))
+    {
+        let error = FinalError::with_title(format!(
+            "Cannot compress to '{}'.",
+            EscapedPathDisplay::new(output_path)
+        ))
+        .detail("Creating .deb packages is not supported, use 'dpkg-deb' instead.");
+
+        return Err(error.into());
+    }
+    Ok(())
+}
+
 /// Check if all provided files have formats to decompress.
 pub fn check_missing_formats_when_decompressing(files: &[PathBuf], formats: &[Vec<Extension>]) -> Result<()> {
     let files_with_broken_extension: Vec<&PathBuf> = files

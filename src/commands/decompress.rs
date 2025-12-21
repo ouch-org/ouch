@@ -139,7 +139,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
             Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
             Brotli => Box::new(brotli::Decompressor::new(decoder, BUFFER_CAPACITY)),
-            Tar | Zip | Rar | SevenZip => decoder,
+            Tar | Zip | Rar | SevenZip | Ar => decoder,
         };
         Ok(decoder)
     };
@@ -271,6 +271,20 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 |output_dir| {
                     crate::archive::sevenz::decompress_sevenz(io::Cursor::new(vec), output_dir, options.password)
                 },
+                options.output_dir,
+                &options.output_file_path,
+                options.question_policy,
+                options.is_output_dir_provided,
+                options.is_smart_unpack,
+            )? {
+                files
+            } else {
+                return Ok(());
+            }
+        }
+        Ar => {
+            if let ControlFlow::Continue(files) = execute_decompression(
+                |output_dir| crate::archive::ar::unpack_archive(reader, output_dir),
                 options.output_dir,
                 &options.output_file_path,
                 options.question_policy,
