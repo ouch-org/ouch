@@ -1,5 +1,6 @@
 //! Archive compression algorithms
 
+pub mod ar;
 #[cfg(not(feature = "bzip3"))]
 pub mod bzip3_stub;
 #[cfg(feature = "unrar")]
