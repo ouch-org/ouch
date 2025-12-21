@@ -205,12 +205,7 @@ pub fn compress_files(
             io::copy(&mut vec_buffer, &mut writer)?;
         }
         Ar => {
-            archive::ar::build_archive_from_paths(
-                &files,
-                output_path,
-                &mut writer,
-                file_visibility_policy,
-            )?;
+            archive::ar::build_archive_from_paths(&files, output_path, &mut writer, file_visibility_policy)?;
             writer.flush()?;
         }
     }

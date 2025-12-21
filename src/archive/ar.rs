@@ -21,17 +21,13 @@ use crate::{
 };
 
 /// Unpacks an ar archive into the given output folder
-pub fn unpack_archive(
-    reader: Box<dyn Read>,
-    output_folder: &Path,
-) -> crate::Result<Unpacked> {
+pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path) -> crate::Result<Unpacked> {
     let mut archive = ar::Archive::new(reader);
     let mut files_unpacked = 0;
 
     while let Some(entry_result) = archive.next_entry() {
         let mut entry = entry_result.map_err(|e| {
-            FinalError::with_title("Failed to read ar archive")
-                .detail(format!("Error reading ar entry: {e}"))
+            FinalError::with_title("Failed to read ar archive").detail(format!("Error reading ar entry: {e}"))
         })?;
 
         let identifier = String::from_utf8_lossy(entry.header().identifier())
@@ -70,9 +66,7 @@ pub fn unpack_archive(
 }
 
 /// List contents of an ar archive
-pub fn list_archive<R: Read + Send + 'static>(
-    reader: R,
-) -> impl Iterator<Item = crate::Result<FileInArchive>> {
+pub fn list_archive<R: Read + Send + 'static>(reader: R) -> impl Iterator<Item = crate::Result<FileInArchive>> {
     struct Files(Receiver<crate::Result<FileInArchive>>);
     impl Iterator for Files {
         type Item = crate::Result<FileInArchive>;
@@ -180,10 +174,12 @@ where
             // ar crate requires std::fs::File, so we get the inner file
             let mut std_file = file.into_parts().0;
 
-            builder.append_file(file_name.as_bytes(), &mut std_file).map_err(|err| {
-                FinalError::with_title("Could not create ar archive")
-                    .detail(format!("Error adding file '{}': {err}", path.display()))
-            })?;
+            builder
+                .append_file(file_name.as_bytes(), &mut std_file)
+                .map_err(|err| {
+                    FinalError::with_title("Could not create ar archive")
+                        .detail(format!("Error adding file '{}': {err}", path.display()))
+                })?;
         }
         env::set_current_dir(previous_location)?;
     }
