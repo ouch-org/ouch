@@ -287,8 +287,6 @@ Categories Used:
 - Implement command 'list' to show archive contents [\#129](https://github.com/ouch-org/ouch/pull/129) ([AntonHermann](https://github.com/AntonHermann))
 - Print number of unpacked files by [\#130](https://github.com/ouch-org/ouch/pull/130) ([boozec](https://github.com/boozec))
 
-**Disclaimer: _Our installation script does not support installing man pages and shell completions yet, but PRs are welcome!_**
-
 ### Bug Fixes
 
 - Empty folders are ignored in archive compression formats [\#41](https://github.com/ouch-org/ouch/issues/41) ([GabrielSimonetto](https://github.com/GabrielSimonetto))

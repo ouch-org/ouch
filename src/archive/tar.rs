@@ -185,8 +185,8 @@ where
                 continue;
             }
 
-            // TODO: for supporting windows hard link easier
-            // we should wait for this issue
+            // TODO: to better support Windows hard links,
+            // we should wait for this issue to be resolved:
             // https://github.com/rust-lang/rust/issues/63010
             #[cfg(unix)]
             if link_meta.nlink() > 1 && link_meta.is_file() {

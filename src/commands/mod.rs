@@ -156,9 +156,11 @@ pub fn run(
             if let Some(format) = args.format {
                 let format = parse_format_flag(&format)?;
                 for path in files.iter() {
-                    // TODO: use Error::Custom
-                    let file_name = path.file_name().ok_or_else(|| Error::NotFound {
-                        error_title: format!("{} does not have a file name", EscapedPathDisplay::new(path)),
+                    let file_name = path.file_name().ok_or_else(|| Error::Custom {
+                        reason: FinalError::with_title(format!(
+                            "{} does not have a file name",
+                            EscapedPathDisplay::new(path)
+                        )),
                     })?;
                     output_paths.push(file_name.as_ref());
                     formats.push(format.clone());
