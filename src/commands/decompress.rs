@@ -40,7 +40,6 @@ pub struct DecompressOptions<'a> {
     pub output_dir: &'a Path,
     pub output_file_path: PathBuf,
     pub is_output_dir_provided: bool,
-    pub is_smart_unpack: bool,
     pub question_policy: QuestionPolicy,
     pub password: Option<&'a [u8]>,
     pub remove: bool,
@@ -86,7 +85,6 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             &options.output_file_path,
             options.question_policy,
             options.is_output_dir_provided,
-            options.is_smart_unpack,
         )? {
             files
         } else {
@@ -177,7 +175,6 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 &options.output_file_path,
                 options.question_policy,
                 options.is_output_dir_provided,
-                options.is_smart_unpack,
             )? {
                 files
             } else {
@@ -210,7 +207,6 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 &options.output_file_path,
                 options.question_policy,
                 options.is_output_dir_provided,
-                options.is_smart_unpack,
             )? {
                 files
             } else {
@@ -237,7 +233,6 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 &options.output_file_path,
                 options.question_policy,
                 options.is_output_dir_provided,
-                options.is_smart_unpack,
             )? {
                 files
             } else {
@@ -275,7 +270,6 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 &options.output_file_path,
                 options.question_policy,
                 options.is_output_dir_provided,
-                options.is_smart_unpack,
             )? {
                 files
             } else {
@@ -308,19 +302,12 @@ fn execute_decompression(
     output_file_path: &Path,
     question_policy: QuestionPolicy,
     is_output_dir_provided: bool,
-    is_smart_unpack: bool,
 ) -> crate::Result<ControlFlow<(), Unpacked>> {
-    if is_smart_unpack {
-        return smart_unpack(unpack_fn, output_dir, output_file_path, question_policy);
-    }
-
-    let target_output_dir = if is_output_dir_provided {
-        output_dir
+    if is_output_dir_provided {
+        unpack(unpack_fn, output_dir, question_policy)
     } else {
-        output_file_path
-    };
-
-    unpack(unpack_fn, target_output_dir, question_policy)
+        smart_unpack(unpack_fn, output_dir, output_file_path, question_policy)
+    }
 }
 
 /// Unpacks an archive creating the output directory, this function will create the output_dir
