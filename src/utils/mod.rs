@@ -8,6 +8,7 @@ mod file_visibility;
 mod formatting;
 mod fs;
 pub mod io;
+pub use io::MultiFrameLz4Decoder;
 pub mod logger;
 mod question;
 pub mod threads;

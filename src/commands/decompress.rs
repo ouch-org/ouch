@@ -18,7 +18,7 @@ use crate::{
     info, info_accessible,
     utils::{
         self, io::lock_and_flush_output_stdio, is_path_stdin, nice_directory_display, set_permission_mode,
-        user_wants_to_continue,
+        user_wants_to_continue, MultiFrameLz4Decoder,
     },
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
@@ -121,8 +121,8 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
     // Grab previous decoder and wrap it inside of a new one
     let chain_reader_decoder = |format: &CompressionFormat, decoder: Box<dyn Read>| -> crate::Result<Box<dyn Read>> {
         let decoder: Box<dyn Read> = match format {
-            Gzip => Box::new(flate2::read::GzDecoder::new(decoder)),
-            Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
+            Gzip => Box::new(flate2::read::MultiGzDecoder::new(decoder)),
+            Bzip => Box::new(bzip2::read::MultiBzDecoder::new(decoder)),
             Bzip3 => {
                 #[cfg(not(feature = "bzip3"))]
                 return Err(archive::bzip3_stub::no_support());
@@ -130,7 +130,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 #[cfg(feature = "bzip3")]
                 Box::new(bzip3::read::Bz3Decoder::new(decoder)?)
             }
-            Lz4 => Box::new(lz4_flex::frame::FrameDecoder::new(decoder)),
+            Lz4 => Box::new(MultiFrameLz4Decoder::new(decoder)?),
             Lzma => Box::new(lzma_rust2::LzmaReader::new_mem_limit(decoder, u32::MAX, None)?),
             Xz => Box::new(lzma_rust2::XzReader::new(decoder, true)),
             Lzip => Box::new(lzma_rust2::LzipReader::new(decoder)?),
