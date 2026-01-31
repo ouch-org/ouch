@@ -315,7 +315,6 @@ fn execute_decompression(
 /// - If `output_dir` does not exist, it's valid and will be created
 /// - If `output_dir` exists AND is a directory, it's valid and will be used (even if non-empty)
 /// - If `output_dir` exists AND is a file, there is a conflict and will ask the user.
-
 fn unpack(
     unpack_fn: impl FnOnce(&Path) -> crate::Result<Unpacked>,
     output_dir: &Path,
