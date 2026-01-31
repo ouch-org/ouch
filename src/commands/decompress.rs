@@ -312,14 +312,16 @@ fn execute_decompression(
 
 /// Unpacks an archive creating the output directory, this function will create the output_dir
 /// directory or replace it if it already exists. The `output_dir` needs to be empty
-/// - If `output_dir` does not exist OR is a empty directory, it will unpack there
-/// - If `output_dir` exist OR is a directory not empty, the user will be asked what to do
+/// - If `output_dir` does not exist, it's valid and will be created
+/// - If `output_dir` exists AND is a directory, it's valid and will be used (even if non-empty)
+/// - If `output_dir` exists AND is a file, there is a conflict and will ask the user.
+
 fn unpack(
     unpack_fn: impl FnOnce(&Path) -> crate::Result<Unpacked>,
     output_dir: &Path,
     question_policy: QuestionPolicy,
 ) -> crate::Result<ControlFlow<(), Unpacked>> {
-    let is_valid_output_dir = !output_dir.exists() || (output_dir.is_dir() && output_dir.read_dir()?.next().is_none());
+    let is_valid_output_dir = !output_dir.exists() || output_dir.is_dir();
 
     let output_dir_cleaned = if is_valid_output_dir {
         output_dir.to_owned()
