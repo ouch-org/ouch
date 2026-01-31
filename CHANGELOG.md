@@ -51,6 +51,7 @@ Categories Used:
 - Handle read-only directories in tar extraction [\#873](https://github.com/ouch-org/ouch/pull/873) ([vrmiguel](https://github.com/vrmiguel))
 - Fix tar hardlink is not preserved after decompressing or compressing [\#879](https://github.com/ouch-org/ouch/pull/879) ([tommady](https://github.com/tommady))
 - Fix enable gitignore flag should work without git [\#881](https://github.com/ouch-org/ouch/pull/881) ([tommady](https://github.com/tommady))
+- Fix: Decompress no longer defaults to overwrite the destination directory, and deleting files inside. [\#900](https://github.com/ouch-org/ouch/pull/900) ([joshrandall8478](https://github.com/joshrandall8478))
 
 ### Tweaks
 
