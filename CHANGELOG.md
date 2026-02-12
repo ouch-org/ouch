@@ -58,6 +58,7 @@ Categories Used:
 - Adjust INFO color to green [\#858](https://github.com/ouch-org/ouch/pull/858) ([etolbakov](https://github.com/etolbakov))
 - Sevenz rust2 bump to 0.19.1 [\#875](https://github.com/ouch-org/ouch/pull/875) ([vrmiguel](https://github.com/vrmiguel))
 - Bump gzp from 0.11.3 to 2.0.0 [\#876](https://github.com/ouch-org/ouch/pull/876) ([vrmiguel](https://github.com/vrmiguel))
+- Rename output when input is stdin [\#903](https://github.com/ouch-org/ouch/pull/903) ([marcospb19](https://github.com/marcospb19))
 
 ## [0.6.1](https://github.com/ouch-org/ouch/compare/0.6.0...0.6.1)
 
