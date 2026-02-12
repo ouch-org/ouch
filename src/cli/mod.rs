@@ -7,7 +7,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use clap::Parser;
+use clap::{error::ErrorKind, CommandFactory, Parser};
+use clap_complete::generate;
 use fs_err as fs;
 
 pub use self::args::{CliArgs, Subcommand};
@@ -26,6 +27,19 @@ impl CliArgs {
     pub fn parse_and_validate_args() -> crate::Result<(Self, QuestionPolicy, FileVisibilityPolicy)> {
         let mut args = Self::parse();
 
+        if let Some(shell) = args.completions {
+            let mut cmd = Self::command();
+            let name = cmd.get_name().to_string();
+            generate(shell, &mut cmd, name, &mut io::stdout());
+            std::process::exit(0);
+        }
+
+        if args.cmd.is_none() {
+            let mut cmd = Self::command();
+            cmd.error(ErrorKind::MissingSubcommand, "A subcommand is required (compress, decompress, list)...")
+                .exit();
+        }
+
         set_accessible(args.accessible);
         set_log_display_level(args.quiet);
 
@@ -36,7 +50,7 @@ impl CliArgs {
 
         let (Subcommand::Compress { files, .. }
         | Subcommand::Decompress { files, .. }
-        | Subcommand::List { archives: files, .. }) = &mut args.cmd;
+        | Subcommand::List { archives: files, .. }) = args.cmd.as_mut().unwrap();
         *files = canonicalize_files(files)?;
 
         let skip_questions_positively = match (args.yes, args.no) {

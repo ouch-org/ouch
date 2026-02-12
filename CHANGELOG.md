@@ -29,6 +29,7 @@ Categories Used:
 - Support `.lzma` decompression (and fix `.lzma` being a wrong alias for `.xz`) [\#838](https://github.com/ouch-org/ouch/pull/838) ([zzzsyyy](https://github.com/zzzsyyy))
 - Support `.lz` compression [\#867](https://github.com/ouch-org/ouch/pull/867) ([sorairolake](https://github.com/sorairolake))
 - Support `.lzma` compression [\#867](https://github.com/ouch-org/ouch/pull/867) ([sorairolake](https://github.com/sorairolake))
+- Add `--completions` flag to generate shell completion scripts
 
 ### Improvements
 

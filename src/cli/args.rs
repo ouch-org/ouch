@@ -49,9 +49,13 @@ pub struct CliArgs {
     #[arg(short = 'c', long, global = true)]
     pub threads: Option<usize>,
 
+    /// Generate shell completion scripts
+    #[arg(long, exclusive = true, value_enum)]
+    pub completions: Option<clap_complete::Shell>,
+
     // Ouch and claps subcommands
     #[command(subcommand)]
-    pub cmd: Subcommand,
+    pub cmd: Option<Subcommand>,
 }
 
 #[derive(Parser, PartialEq, Eq, Debug)]
@@ -151,12 +155,13 @@ mod tests {
             // This is usually replaced in assertion tests
             password: None,
             threads: None,
-            cmd: Subcommand::Decompress {
+            cmd: Some(Subcommand::Decompress {
                 // Put a crazy value here so no test can assert it unintentionally
                 files: vec!["\x00\x11\x22".into()],
                 output_dir: None,
                 remove: false,
-            },
+            }),
+            completions: None,
         }
     }
 
@@ -165,33 +170,33 @@ mod tests {
         test!(
             "ouch decompress file.tar.gz",
             CliArgs {
-                cmd: Subcommand::Decompress {
+                cmd: Some(Subcommand::Decompress {
                     files: to_paths(["file.tar.gz"]),
                     output_dir: None,
                     remove: false,
-                },
+                }),
                 ..mock_cli_args()
             }
         );
         test!(
             "ouch d file.tar.gz",
             CliArgs {
-                cmd: Subcommand::Decompress {
+                cmd: Some(Subcommand::Decompress {
                     files: to_paths(["file.tar.gz"]),
                     output_dir: None,
                     remove: false,
-                },
+                }),
                 ..mock_cli_args()
             }
         );
         test!(
             "ouch d a b c",
             CliArgs {
-                cmd: Subcommand::Decompress {
+                cmd: Some(Subcommand::Decompress {
                     files: to_paths(["a", "b", "c"]),
                     output_dir: None,
                     remove: false,
-                },
+                }),
                 ..mock_cli_args()
             }
         );
@@ -199,42 +204,42 @@ mod tests {
         test!(
             "ouch compress file file.tar.gz",
             CliArgs {
-                cmd: Subcommand::Compress {
+                cmd: Some(Subcommand::Compress {
                     files: to_paths(["file"]),
                     output: PathBuf::from("file.tar.gz"),
                     level: None,
                     fast: false,
                     slow: false,
                     follow_symlinks: false,
-                },
+                }),
                 ..mock_cli_args()
             }
         );
         test!(
             "ouch compress a b c archive.tar.gz",
             CliArgs {
-                cmd: Subcommand::Compress {
+                cmd: Some(Subcommand::Compress {
                     files: to_paths(["a", "b", "c"]),
                     output: PathBuf::from("archive.tar.gz"),
                     level: None,
                     fast: false,
                     slow: false,
                     follow_symlinks: false,
-                },
+                }),
                 ..mock_cli_args()
             }
         );
         test!(
             "ouch compress a b c archive.tar.gz",
             CliArgs {
-                cmd: Subcommand::Compress {
+                cmd: Some(Subcommand::Compress {
                     files: to_paths(["a", "b", "c"]),
                     output: PathBuf::from("archive.tar.gz"),
                     level: None,
                     fast: false,
                     slow: false,
                     follow_symlinks: false,
-                },
+                }),
                 ..mock_cli_args()
             }
         );
@@ -252,19 +257,44 @@ mod tests {
             test!(
                 input,
                 CliArgs {
-                    cmd: Subcommand::Compress {
+                    cmd: Some(Subcommand::Compress {
                         files: to_paths(["a", "b", "c"]),
                         output: PathBuf::from("output"),
                         level: None,
                         fast: false,
                         slow: false,
                         follow_symlinks: false,
-                    },
+                    }),
                     format: Some("tar.gz".into()),
                     ..mock_cli_args()
                 }
             );
         }
+
+        test!(
+            "ouch --completions bash",
+            CliArgs {
+                completions: Some(clap_complete::Shell::Bash),
+                cmd: None,
+                ..mock_cli_args()
+            }
+        );
+        test!(
+            "ouch --completions zsh",
+            CliArgs {
+                completions: Some(clap_complete::Shell::Zsh),
+                cmd: None,
+                ..mock_cli_args()
+            }
+        );
+        test!(
+            "ouch --completions fish",
+            CliArgs {
+                completions: Some(clap_complete::Shell::Fish),
+                cmd: None,
+                ..mock_cli_args()
+            }
+        );
     }
 
     #[test]
