@@ -63,7 +63,7 @@ pub fn list_archive_contents(
                 Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
                 Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
                 Brotli => Box::new(brotli::Decompressor::new(decoder, BUFFER_CAPACITY)),
-                Tar | Zip | Rar | SevenZip => unreachable!("should be treated by caller"),
+                Tar | Zip | Rar | SevenZip | Ar => unreachable!("should be treated by caller"),
             };
             Ok(decoder)
         };
@@ -131,6 +131,7 @@ pub fn list_archive_contents(
                 Box::new(archive::sevenz::list_archive(fs::File::open(archive_path)?, password)?)
             }
         }
+        Ar => Box::new(archive::ar::list_archive(reader)),
         Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {
             unreachable!("Not an archive, should be validated before calling this function.");
         }

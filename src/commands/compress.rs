@@ -128,7 +128,7 @@ pub fn compress_files(
                 let win_size = 22; // default to 2^22 = 4 MiB window size
                 Box::new(brotli::CompressorWriter::new(encoder, BUFFER_CAPACITY, level, win_size))
             }
-            Tar | Zip | Rar | SevenZip => unreachable!(),
+            Tar | Zip | Rar | SevenZip | Ar => unreachable!(),
         };
         Ok(encoder)
     };
@@ -203,6 +203,10 @@ pub fn compress_files(
             archive::sevenz::compress_sevenz(&files, output_path, &mut vec_buffer, file_visibility_policy)?;
             vec_buffer.rewind()?;
             io::copy(&mut vec_buffer, &mut writer)?;
+        }
+        Ar => {
+            archive::ar::build_archive_from_paths(&files, output_path, &mut writer, file_visibility_policy)?;
+            writer.flush()?;
         }
     }
 

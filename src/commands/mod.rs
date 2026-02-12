@@ -90,6 +90,7 @@ pub fn run(
                 formats_from_flag.as_ref(),
             )?;
             check::check_archive_formats_position(&formats, &output_path)?;
+            check::check_deb_compression(&output_path)?;
 
             let output_file =
                 match utils::ask_to_create_file(&output_path, question_policy, QuestionAction::Compression)? {

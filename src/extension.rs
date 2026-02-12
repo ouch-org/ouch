@@ -26,6 +26,8 @@ pub const SUPPORTED_EXTENSIONS: &[&str] = &[
     "rar",
     "7z",
     "br",
+    "a",
+    "deb",
 ];
 
 pub const SUPPORTED_ALIASES: &[&str] = &[
@@ -33,9 +35,9 @@ pub const SUPPORTED_ALIASES: &[&str] = &[
 ];
 
 #[cfg(not(feature = "unrar"))]
-pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, lz, sz, zst, 7z";
+pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, lz, sz, zst, 7z, a, deb";
 #[cfg(feature = "unrar")]
-pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, lz, sz, zst, rar, 7z";
+pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, lz, sz, zst, rar, 7z, a, deb";
 
 pub const PRETTY_SUPPORTED_ALIASES: &str = "tgz, tbz, tlz4, txz, tlzma, tsz, tzst, tlz, cbt, cbz, cb7, cbr";
 
@@ -108,13 +110,15 @@ pub enum CompressionFormat {
     SevenZip,
     /// .br
     Brotli,
+    /// .a, .deb (Unix ar archives)
+    Ar,
 }
 
 impl CompressionFormat {
     pub fn archive_format(&self) -> bool {
         // Keep this match without a wildcard `_` so we never forget to update it
         match self {
-            Tar | Zip | Rar | SevenZip => true,
+            Tar | Zip | Rar | SevenZip | Ar => true,
             Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli | Gzip => false,
         }
     }
@@ -146,6 +150,7 @@ fn to_extension(ext: &[u8]) -> Option<Extension> {
             b"rar" | b"cbr" => &[Rar],
             b"7z" | b"cb7" => &[SevenZip],
             b"br" => &[Brotli],
+            b"a" | b"deb" => &[Ar],
             _ => return None,
         },
         ext.to_str_lossy(),
