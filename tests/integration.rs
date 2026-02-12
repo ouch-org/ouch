@@ -197,9 +197,9 @@ fn single_file_stdin(
 
     match ext {
         Extension::Directory(_) => {}
-        // We don't know the original filename, so we create a file named stdin-output
+        // Ouch writes to `ouch-output` when the input is stdin
         // Change the top-level "before" directory to match
-        Extension::File(_) => fs::rename(before_file, before_file.with_file_name("stdin-output")).unwrap(),
+        Extension::File(_) => fs::rename(before_file, before_file.with_file_name("ouch-output")).unwrap(),
     };
 
     assert_same_directory(before, after, false);
