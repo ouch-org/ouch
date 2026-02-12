@@ -148,7 +148,6 @@ pub fn run(
             files,
             output_dir,
             remove,
-            no_smart_unpack,
         } => {
             let mut output_paths = vec![];
             let mut formats = vec![];
@@ -156,9 +155,11 @@ pub fn run(
             if let Some(format) = args.format {
                 let format = parse_format_flag(&format)?;
                 for path in files.iter() {
-                    // TODO: use Error::Custom
-                    let file_name = path.file_name().ok_or_else(|| Error::NotFound {
-                        error_title: format!("{} does not have a file name", EscapedPathDisplay::new(path)),
+                    let file_name = path.file_name().ok_or_else(|| Error::Custom {
+                        reason: FinalError::with_title(format!(
+                            "{} does not have a file name",
+                            EscapedPathDisplay::new(path)
+                        )),
                     })?;
                     output_paths.push(file_name.as_ref());
                     formats.push(format.clone());
@@ -178,11 +179,9 @@ pub fn run(
 
             check::check_missing_formats_when_decompressing(&files, &formats)?;
 
-            let is_output_dir_provided = output_dir.is_some();
-            let is_smart_unpack = !is_output_dir_provided && !no_smart_unpack;
-
             // The directory that will contain the output files
             // We default to the current directory if the user didn't specify an output directory with --dir
+            let is_output_dir_provided = output_dir.is_some();
             let output_dir = if let Some(dir) = output_dir {
                 utils::create_dir_if_non_existent(&dir)?;
                 dir
@@ -204,10 +203,9 @@ pub fn run(
                     decompress_file(DecompressOptions {
                         input_file_path: input_path,
                         formats,
-                        is_output_dir_provided,
                         output_dir: &output_dir,
                         output_file_path,
-                        is_smart_unpack,
+                        is_output_dir_provided,
                         question_policy,
                         password: args.password.as_deref().map(|str| {
                             <[u8] as ByteSlice>::from_os_str(str).expect("convert password to bytes failed")

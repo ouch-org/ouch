@@ -16,12 +16,12 @@ use crate::{
     warning, QuestionAction, QuestionPolicy, Result,
 };
 
-/// Check if the mime type matches the detected extensions.
+/// Check if the file signature matches the detected extensions.
 ///
-/// In case the file doesn't has any extensions, try to infer the format.
+/// In case the file doesn't have any extensions, try to infer the format.
 ///
-/// TODO: maybe the name of this should be "magic numbers" or "file signature",
-/// and not MIME.
+/// Note: This function uses magic numbers (file signatures) for detection,
+/// not actual MIME types.
 pub fn check_mime_type(
     path: &Path,
     formats: &mut Vec<Extension>,

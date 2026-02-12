@@ -23,7 +23,6 @@ Categories Used:
 ### New Features
 
 - Merge folders in decompression [\#798](https://github.com/ouch-org/ouch/pull/798) ([tommady](https://github.com/tommady))
-- Add `--no-smart-unpack` flag to decompression command to disable smart unpack [\#809](https://github.com/ouch-org/ouch/pull/809) ([talis-fb](https://github.com/talis-fb))
 - Provide Nushell completions (packages still need to install them) [\#827](https://github.com/ouch-org/ouch/pull/827) ([FrancescElies](https://github.com/FrancescElies))
 - Add aliases for comic book archives [\#835](https://github.com/ouch-org/ouch/pull/835) ([md9753](https://github.com/md9753))
 - Support `.lz` decompression [\#838](https://github.com/ouch-org/ouch/pull/838) ([zzzsyyy](https://github.com/zzzsyyy))
@@ -287,8 +286,6 @@ Categories Used:
 - Shell completions & man page [\#122](https://github.com/ouch-org/ouch/pull/122) ([figsoda](https://github.com/figsoda))
 - Implement command 'list' to show archive contents [\#129](https://github.com/ouch-org/ouch/pull/129) ([AntonHermann](https://github.com/AntonHermann))
 - Print number of unpacked files by [\#130](https://github.com/ouch-org/ouch/pull/130) ([boozec](https://github.com/boozec))
-
-**Disclaimer: _Our installation script does not support installing man pages and shell completions yet, but PRs are welcome!_**
 
 ### Bug Fixes
 

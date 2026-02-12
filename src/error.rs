@@ -40,7 +40,7 @@ pub enum Error {
     Custom { reason: FinalError },
     /// Invalid format passed to `--format`
     InvalidFormatFlag { text: OsString, reason: String },
-    /// From sevenz_rust::Error
+    /// From sevenz_rust2::Error
     SevenzipError { reason: String },
     /// Recognised but unsupported format
     // currently only RAR when built without the `unrar` feature
