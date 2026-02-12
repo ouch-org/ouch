@@ -1,11 +1,8 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable user-facing changes to Ouch should be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-_This changelog was created after v0.3.1. As a result, there may be slight inaccuracies with prior versions._
+This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Categories Used:
 
@@ -22,85 +19,85 @@ Categories Used:
 
 ### New Features
 
-- Merge folders in decompression [\#798](https://github.com/ouch-org/ouch/pull/798) ([tommady](https://github.com/tommady))
-- Provide Nushell completions (packages still need to install them) [\#827](https://github.com/ouch-org/ouch/pull/827) ([FrancescElies](https://github.com/FrancescElies))
-- Add aliases for comic book archives [\#835](https://github.com/ouch-org/ouch/pull/835) ([md9753](https://github.com/md9753))
-- Support `.lz` decompression [\#838](https://github.com/ouch-org/ouch/pull/838) ([zzzsyyy](https://github.com/zzzsyyy))
-- Support `.lzma` decompression (and fix `.lzma` being a wrong alias for `.xz`) [\#838](https://github.com/ouch-org/ouch/pull/838) ([zzzsyyy](https://github.com/zzzsyyy))
-- Support `.lz` compression [\#867](https://github.com/ouch-org/ouch/pull/867) ([sorairolake](https://github.com/sorairolake))
-- Support `.lzma` compression [\#867](https://github.com/ouch-org/ouch/pull/867) ([sorairolake](https://github.com/sorairolake))
+- Merge folders in decompression (https://github.com/ouch-org/ouch/pull/798)
+- Provide Nushell completions (packages still need to install them) (https://github.com/ouch-org/ouch/pull/827)
+- Add aliases for comic book archives (https://github.com/ouch-org/ouch/pull/835)
+- Support `.lz` decompression (https://github.com/ouch-org/ouch/pull/838)
+- Support `.lzma` decompression (and fix `.lzma` being a wrong alias for `.xz`) (https://github.com/ouch-org/ouch/pull/838)
+- Support `.lz` compression (https://github.com/ouch-org/ouch/pull/867)
+- Support `.lzma` compression (https://github.com/ouch-org/ouch/pull/867)
 
 ### Improvements
 
-- Give better error messages when archive extensions are invalid [\#817](https://github.com/ouch-org/ouch/pull/817) ([marcospb19](https://github.com/marcospb19))
-- Improve misleading error message [\#818](https://github.com/ouch-org/ouch/pull/818) ([marcospb19](https://github.com/marcospb19))
-- Add aliases for `--password` flag (`--pass` and `--pw`) [\#847](https://github.com/ouch-org/ouch/pull/847) ([marcospb19](https://github.com/marcospb19))
-- Avoid loading entire 7z archive into memory when listing [\#860](https://github.com/ouch-org/ouch/pull/860) ([86xsk](https://github.com/86xsk))
-- Use `lzma-rust2` crate instead of `liblzma` crate [\#867](https://github.com/ouch-org/ouch/pull/867) ([sorairolake](https://github.com/sorairolake))
-- Add `info!`, `info_accessible!` and `warning!` macros [\#874](https://github.com/ouch-org/ouch/pull/874) ([vrmiguel](https://github.com/vrmiguel))
-- Handle --quiet logic in logger [\#885](https://github.com/ouch-org/ouch/pull/885) ([Ada-Armstrong](https://github.com/Ada-Armstrong))
-- Refactor/simplify logger [\#888](https://github.com/ouch-org/ouch/pull/888) ([vrmiguel](https://github.com/vrmiguel))
+- Give better error messages when archive extensions are invalid (https://github.com/ouch-org/ouch/pull/817)
+- Improve misleading error message (https://github.com/ouch-org/ouch/pull/818)
+- Add aliases for `--password` flag (`--pass` and `--pw`) (https://github.com/ouch-org/ouch/pull/847)
+- Avoid loading entire 7z archive into memory when listing (https://github.com/ouch-org/ouch/pull/860)
+- Use `lzma-rust2` crate instead of `liblzma` crate (https://github.com/ouch-org/ouch/pull/867)
+- Add `info!`, `info_accessible!` and `warning!` macros (https://github.com/ouch-org/ouch/pull/874)
+- Handle --quiet logic in logger (https://github.com/ouch-org/ouch/pull/885)
+- Refactor/simplify logger (https://github.com/ouch-org/ouch/pull/888)
 
 ### Bug Fixes
 
-- Fix 7z BadSignature error when compressing and then listing [\#819](https://github.com/ouch-org/ouch/pull/819) ([tommady](https://github.com/tommady))
-- Fix tar extraction count when --quiet [\#824](https://github.com/ouch-org/ouch/pull/824) ([marcospb19](https://github.com/marcospb19))
-- Fix unpacking with merge flag failing without --dir flag [\#826](https://github.com/ouch-org/ouch/pull/826) ([tommady](https://github.com/tommady))
-- Handle broken symlinks in zip archives and normalize path separators [\#841](https://github.com/ouch-org/ouch/pull/841) ([zzzsyyy](https://github.com/zzzsyyy))
-- Fix folder softlink is not preserved after packing [\#850](https://github.com/ouch-org/ouch/pull/850) ([tommady](https://github.com/tommady))
-- Handle read-only directories in tar extraction [\#873](https://github.com/ouch-org/ouch/pull/873) ([vrmiguel](https://github.com/vrmiguel))
-- Fix tar hardlink is not preserved after decompressing or compressing [\#879](https://github.com/ouch-org/ouch/pull/879) ([tommady](https://github.com/tommady))
-- Fix enable gitignore flag should work without git [\#881](https://github.com/ouch-org/ouch/pull/881) ([tommady](https://github.com/tommady))
+- Fix 7z BadSignature error when compressing and then listing (https://github.com/ouch-org/ouch/pull/819)
+- Fix tar extraction count when --quiet (https://github.com/ouch-org/ouch/pull/824)
+- Fix unpacking with merge flag failing without --dir flag (https://github.com/ouch-org/ouch/pull/826)
+- Handle broken symlinks in zip archives and normalize path separators (https://github.com/ouch-org/ouch/pull/841)
+- Fix folder softlink is not preserved after packing (https://github.com/ouch-org/ouch/pull/850)
+- Handle read-only directories in tar extraction (https://github.com/ouch-org/ouch/pull/873)
+- Fix tar hardlink is not preserved after decompressing or compressing (https://github.com/ouch-org/ouch/pull/879)
+- Fix enable gitignore flag should work without git (https://github.com/ouch-org/ouch/pull/881)
 
 ### Tweaks
 
-- Make `.bz3` opt-out [\#814](https://github.com/ouch-org/ouch/pull/814) ([amyspark](https://github.com/amyspark))
-- Adjust INFO color to green [\#858](https://github.com/ouch-org/ouch/pull/858) ([etolbakov](https://github.com/etolbakov))
-- Sevenz rust2 bump to 0.19.1 [\#875](https://github.com/ouch-org/ouch/pull/875) ([vrmiguel](https://github.com/vrmiguel))
-- Bump gzp from 0.11.3 to 2.0.0 [\#876](https://github.com/ouch-org/ouch/pull/876) ([vrmiguel](https://github.com/vrmiguel))
-- Rename output when input is stdin [\#903](https://github.com/ouch-org/ouch/pull/903) ([marcospb19](https://github.com/marcospb19))
+- Make `.bz3` opt-out (https://github.com/ouch-org/ouch/pull/814)
+- Adjust INFO color to green (https://github.com/ouch-org/ouch/pull/858)
+- Sevenz rust2 bump to 0.19.1 (https://github.com/ouch-org/ouch/pull/875)
+- Bump gzp from 0.11.3 to 2.0.0 (https://github.com/ouch-org/ouch/pull/876)
+- Rename output when input is stdin (https://github.com/ouch-org/ouch/pull/903)
 
 ## [0.6.1](https://github.com/ouch-org/ouch/compare/0.6.0...0.6.1)
 
-- Fix .zip crash when file mode isn't present [\#804](https://github.com/ouch-org/ouch/pull/804) ([marcospb19](https://github.com/marcospb19))
+- Fix .zip crash when file mode isn't present (https://github.com/ouch-org/ouch/pull/804)
 
 ## [0.6.0](https://github.com/ouch-org/ouch/compare/0.5.1...0.6.0)
 
 ### New Features
 
-- Add multithreading support for `zstd` compression [\#689](https://github.com/ouch-org/ouch/pull/689) ([nalabrie](https://github.com/nalabrie))
-- Add `bzip3` support [\#522](https://github.com/ouch-org/ouch/pull/522) ([freijon](https://github.com/freijon))
-- Add `--remove` flag for decompression subcommand to remove files after successful decompression [\#757](https://github.com/ouch-org/ouch/pull/757) ([ttys3](https://github.com/ttys3))
-- Add `br` (Brotli) support [\#765](https://github.com/ouch-org/ouch/pull/765) ([killercup](https://github.com/killercup))
-- Add rename option in overwrite menu [\#779](https://github.com/ouch-org/ouch/pull/779) ([talis-fb](https://github.com/talis-fb))
-- Store symlinks by default and add `--follow-symlinks` to store the target files [\#789](https://github.com/ouch-org/ouch/pull/789) ([tommady](https://github.com/tommady))
+- Add multithreading support for `zstd` compression (https://github.com/ouch-org/ouch/pull/689)
+- Add `bzip3` support (https://github.com/ouch-org/ouch/pull/522)
+- Add `--remove` flag for decompression subcommand to remove files after successful decompression (https://github.com/ouch-org/ouch/pull/757)
+- Add `br` (Brotli) support (https://github.com/ouch-org/ouch/pull/765)
+- Add rename option in overwrite menu (https://github.com/ouch-org/ouch/pull/779)
+- Store symlinks by default and add `--follow-symlinks` to store the target files (https://github.com/ouch-org/ouch/pull/789)
 
 ### Bug Fixes
 
-- Fix output corrupted on parallel decompression [\#642](https://github.com/ouch-org/ouch/pull/642) ([AntoniosBarotsis](https://github.com/AntoniosBarotsis))
+- Fix output corrupted on parallel decompression (https://github.com/ouch-org/ouch/pull/642)
 
 ### Tweaks
 
-- CI refactor [\#578](https://github.com/ouch-org/ouch/pull/578) ([cyqsimon](https://github.com/cyqsimon))
-- Use a prefix `tmp-ouch-` for temporary decompression path name to avoid conflicts [\#725](https://github.com/ouch-org/ouch/pull/725) ([valoq](https://github.com/valoq)) & [\#788](https://github.com/ouch-org/ouch/pull/788) ([talis-fb](https://github.com/talis-fb))
-- Ignore `.git/` when `-g/--gitignore` is set [\#507](https://github.com/ouch-org/ouch/pull/507) ([talis-fb](https://github.com/talis-fb))
-- Run clippy for tests too [\#738](https://github.com/ouch-org/ouch/pull/738) ([marcospb19](https://github.com/marcospb19))
-- Sevenz-rust is unmaintained, switch to sevenz-rust2 [\#796](https://github.com/ouch-org/ouch/pull/796) ([tommady](https://github.com/tommady))
+- CI refactor (https://github.com/ouch-org/ouch/pull/578)
+- Use a prefix `tmp-ouch-` for temporary decompression path name to avoid conflicts (https://github.com/ouch-org/ouch/pull/725 and https://github.com/ouch-org/ouch/pull/788)
+- Ignore `.git/` when `-g/--gitignore` is set (https://github.com/ouch-org/ouch/pull/507)
+- Run clippy for tests too (https://github.com/ouch-org/ouch/pull/738)
+- Sevenz-rust is unmaintained, switch to sevenz-rust2 (https://github.com/ouch-org/ouch/pull/796)
 
 ### Improvements
 
-- Fix logging IO bottleneck [\#642](https://github.com/ouch-org/ouch/pull/642) ([AntoniosBarotsis](https://github.com/AntoniosBarotsis))
-- Support decompression over stdin [\#692](https://github.com/ouch-org/ouch/pull/692) ([rcorre](https://github.com/rcorre))
-- Make `--format` more forgiving with the formatting of the provided format [\#519](https://github.com/ouch-org/ouch/pull/519) ([marcospb19](https://github.com/marcospb19))
-- Use buffered writer for list output [\#764](https://github.com/ouch-org/ouch/pull/764) ([killercup](https://github.com/killercup))
-- Disable smart unpack when `--dir` flag is provided in decompress command [\#782](https://github.com/ouch-org/ouch/pull/782) ([talis-fb](https://github.com/talis-fb))
-- Align file sizes at left for each extracted file to make output clearer [\#792](https://github.com/ouch-org/ouch/pull/792) ([talis-fb](https://github.com/talis-fb))
+- Fix logging IO bottleneck (https://github.com/ouch-org/ouch/pull/642)
+- Support decompression over stdin (https://github.com/ouch-org/ouch/pull/692)
+- Make `--format` more forgiving with the formatting of the provided format (https://github.com/ouch-org/ouch/pull/519)
+- Use buffered writer for list output (https://github.com/ouch-org/ouch/pull/764)
+- Disable smart unpack when `--dir` flag is provided in decompress command (https://github.com/ouch-org/ouch/pull/782)
+- Align file sizes at left for each extracted file to make output clearer (https://github.com/ouch-org/ouch/pull/792)
 
 ## [0.5.1](https://github.com/ouch-org/ouch/compare/0.5.0...0.5.1)
 
 ### Improvements
 
-- Explicitly declare feature flags `use_zlib` & `use_zstd_thin` [\#564](https://github.com/ouch-org/ouch/pull/564) ([cyqsimon](https://github.com/cyqsimon))
+- Explicitly declare feature flags `use_zlib` & `use_zstd_thin` (https://github.com/ouch-org/ouch/pull/564)
 
 ### Tweaks
 
@@ -110,164 +107,157 @@ Categories Used:
 
 ### New Features
 
-- Add support for listing and decompressing `.rar` archives [\#529](https://github.com/ouch-org/ouch/pull/529) ([lmkra](https://github.com/lmkra))
-- Add support for 7z [\#555](https://github.com/ouch-org/ouch/pull/555) ([Flat](https://github.com/flat) & [MisileLab](https://github.com/MisileLab))
+- Add support for listing and decompressing `.rar` archives (https://github.com/ouch-org/ouch/pull/529)
+- Add support for 7z (https://github.com/ouch-org/ouch/pull/555) ([Flat](https://github.com/flat))
 
 ### Bug Fixes
 
-- Fix mime type detection [\#529](https://github.com/ouch-org/ouch/pull/529) ([lmkra](https://github.com/lmkra))
-- Fix size unit inconsistency [\#502](https://github.com/ouch-org/ouch/pull/502) ([marcospb19](https://github.com/marcospb19))
+- Fix mime type detection (https://github.com/ouch-org/ouch/pull/529)
+- Fix size unit inconsistency (https://github.com/ouch-org/ouch/pull/502)
 
 ### Improvements
 
-- Hint completions generator to expand file paths [\#508](https://github.com/ouch-org/ouch/pull/508) ([marcospb19](https://github.com/marcospb19))
+- Hint completions generator to expand file paths (https://github.com/ouch-org/ouch/pull/508)
 
 ## [0.4.2](https://github.com/ouch-org/ouch/compare/0.4.1...0.4.2)
 
 ### New Features
 
 - Add flags to configure the compression level
-  - `--level` to precisely set the compression level [\#372](https://github.com/ouch-org/ouch/pull/372) ([xgdgsc](https://github.com/xgdgsc))
-  - `--fast` and `--slow` [\#374](https://github.com/ouch-org/ouch/pull/374) ([figsoda](https://github.com/figsoda))
-- Add `--format` option [\#341](https://github.com/ouch-org/ouch/pull/341) ([figsoda](https://github.com/figsoda))
+  - `--level` to precisely set the compression level (https://github.com/ouch-org/ouch/pull/372)
+  - `--fast` and `--slow` (https://github.com/ouch-org/ouch/pull/374)
+- Add `--format` option (https://github.com/ouch-org/ouch/pull/341)
 
 ### Improvements
 
-- Multi-threaded compression for gzip and snappy using gzp [\#348](https://github.com/ouch-org/ouch/pull/348) ([figsoda](https://github.com/figsoda))
-- Add `ls` as an alternative alias for listing [\#360](https://github.com/ouch-org/ouch/pull/360) ([orhun](https://github.com/orhun))
+- Multi-threaded compression for gzip and snappy using gzp (https://github.com/ouch-org/ouch/pull/348)
+- Add `ls` as an alternative alias for listing (https://github.com/ouch-org/ouch/pull/360)
 
 ### Bug Fixes
 
-- Fix decompression of zip archives with files larger than 4GB [\#354](https://github.com/ouch-org/ouch/pull/354) ([figsoda](https://github.com/figsoda))
-- Fix handling of unknown extensions during decompression [\#355](https://github.com/ouch-org/ouch/pull/355) ([figsoda](https://github.com/figsoda))
-- Remove remaining mentions of `.lz` that refers to the LZMA format [\#344](https://github.com/ouch-org/ouch/pull/344) ([marcospb19](https://github.com/marcospb19))
-- Handle Zip when modification times are missing [\#433](https://github.com/ouch-org/ouch/pull/433) ([marcospb19](https://github.com/marcospb19))
+- Fix decompression of zip archives with files larger than 4GB (https://github.com/ouch-org/ouch/pull/354)
+- Fix handling of unknown extensions during decompression (https://github.com/ouch-org/ouch/pull/355)
+- Remove remaining mentions of `.lz` that refers to the LZMA format (https://github.com/ouch-org/ouch/pull/344)
+- Handle Zip when modification times are missing (https://github.com/ouch-org/ouch/pull/433)
 
 ## [0.4.1](https://github.com/ouch-org/ouch/compare/0.4.0...0.4.1)
 
 ### New Features
 
-- Add cli option to (de)compress quietly [\#325](https://github.com/ouch-org/ouch/pull/325) ([a-moreira](https://github.com/a-moreira))
+- Add cli option to (de)compress quietly (https://github.com/ouch-org/ouch/pull/325)
 
 ### Improvements
 
-- Allow ouch to decompress archive into existing folder [\#321](https://github.com/ouch-org/ouch/pull/321) ([a-moreira](https://github.com/a-moreira))
-- Accept inserting subcommand-independent flags in any position [\#329](https://github.com/ouch-org/ouch/pull/329) ([marcospb19](https://github.com/marcospb19))
-- Improve extension parsing logic [\#330](https://github.com/ouch-org/ouch/pull/330) ([figsoda](https://github.com/figsoda))
-- Slight refactor when ensuring archive-only inputs [\#331](https://github.com/ouch-org/ouch/pull/331) ([vrmiguel](https://github.com/vrmiguel))
-- Use BStr to display possibly non-UTF8 byte sequences[\#332](https://github.com/ouch-org/ouch/pull/332) ([vrmiguel](https://github.com/vrmiguel))
-- Use ubyte instead of humansize #333 [\#333](https://github.com/ouch-org/ouch/pull/333) ([vrmiguel](https://github.com/vrmiguel))
-- Stop keeping track of the names of unpacked files [\#334](https://github.com/ouch-org/ouch/pull/334) ([vrmiguel](https://github.com/vrmiguel))
-- Clean up [\#335](https://github.com/ouch-org/ouch/pull/335) ([figsoda](https://github.com/figsoda))
+- Allow ouch to decompress archive into existing folder (https://github.com/ouch-org/ouch/pull/321)
+- Accept inserting subcommand-independent flags in any position (https://github.com/ouch-org/ouch/pull/329)
+- Improve extension parsing logic (https://github.com/ouch-org/ouch/pull/330)
+- Slight refactor when ensuring archive-only inputs (https://github.com/ouch-org/ouch/pull/331)
+- Use BStr to display possibly non-UTF8 byte sequences (https://github.com/ouch-org/ouch/pull/332)
+- Use ubyte instead of humansize (https://github.com/ouch-org/ouch/pull/333)
+- Stop keeping track of the names of unpacked files (https://github.com/ouch-org/ouch/pull/334)
+- Clean up (https://github.com/ouch-org/ouch/pull/335)
 
 ### Bug fixes
 
-- Stop incorrectly asking to remove the parent dir [\#321](https://github.com/ouch-org/ouch/pull/321) ([a-moreira](https://github.com/a-moreira))
+- Stop incorrectly asking to remove the parent dir (https://github.com/ouch-org/ouch/pull/321)
 
 ### Tweaks
 
-- Add scoop install instructions to readme [\#323](https://github.com/ouch-org/ouch/pull/323) ([rasa](https://github.com/rasa))
+- Add scoop install instructions to readme (https://github.com/ouch-org/ouch/pull/323)
 
 ## [0.4.0](https://github.com/ouch-org/ouch/compare/0.3.1...0.4.0) (2022-11-20)
 
 ### New Features
 
-- Add release-helper.sh to make github releases easier [\#146](https://github.com/ouch-org/ouch/pull/146) ([marcospb19](https://github.com/marcospb19))
-- Add support for lz4 [\#150](https://github.com/ouch-org/ouch/pull/150) ([figsoda](https://github.com/figsoda))
-- add supported formats to help message [\#189](https://github.com/ouch-org/ouch/pull/189) ([figsoda](https://github.com/figsoda))
-- add link to github to help message [\#191](https://github.com/ouch-org/ouch/pull/191) ([figsoda](https://github.com/figsoda))
-- Update to Rust 2021 edition [\#192](https://github.com/ouch-org/ouch/pull/192) ([marcospb19](https://github.com/marcospb19))
-- Implement accessibility mode [\#197](https://github.com/ouch-org/ouch/pull/197) ([AntonHermann](https://github.com/AntonHermann))
-- Add heuristics to decompressing archives [\#209](https://github.com/ouch-org/ouch/pull/209) ([sigmaSd](https://github.com/sigmaSd))
-- Add progress bar to compressing/decompressing [\#210](https://github.com/ouch-org/ouch/pull/210) ([sigmaSd](https://github.com/sigmaSd))
-- Support snappy format [\#215](https://github.com/ouch-org/ouch/pull/215) ([figsoda](https://github.com/figsoda))
-- Allow ignoring hidden files and files matched by .gitignore files [\#245](https://github.com/ouch-org/ouch/pull/245) ([vrmiguel](https://github.com/vrmiguel))
-- Automatically generate man pages with clap_mangen [\#273](https://github.com/ouch-org/ouch/pull/273) ([figsoda](https://github.com/figsoda))
-- Set last modified time during zip compression [\#279](https://github.com/ouch-org/ouch/pull/279) ([figsoda](https://github.com/figsoda))
+- Add release-helper.sh to make github releases easier (https://github.com/ouch-org/ouch/pull/146)
+- Add support for lz4 (https://github.com/ouch-org/ouch/pull/150)
+- add supported formats to help message (https://github.com/ouch-org/ouch/pull/189)
+- add link to github to help message (https://github.com/ouch-org/ouch/pull/191)
+- Update to Rust 2021 edition (https://github.com/ouch-org/ouch/pull/192)
+- Implement accessibility mode (https://github.com/ouch-org/ouch/pull/197)
+- Add heuristics to decompressing archives (https://github.com/ouch-org/ouch/pull/209)
+- Add progress bar to compressing/decompressing (https://github.com/ouch-org/ouch/pull/210)
+- Support snappy format (https://github.com/ouch-org/ouch/pull/215)
+- Allow ignoring hidden files and files matched by .gitignore files (https://github.com/ouch-org/ouch/pull/245)
+- Automatically generate man pages with clap_mangen (https://github.com/ouch-org/ouch/pull/273)
+- Set last modified time during zip compression (https://github.com/ouch-org/ouch/pull/279)
 
 ### Bug Fixes
 
-- Perform exhaustive matching on error variants [\#147](https://github.com/ouch-org/ouch/pull/147) ([marcospb19](https://github.com/marcospb19))
-- Fix short flag for the --dir flag [\#149](https://github.com/ouch-org/ouch/pull/149) ([marcospb19](https://github.com/marcospb19))
-- Rewrite tests [\#163](https://github.com/ouch-org/ouch/pull/163) ([figsoda](https://github.com/figsoda))
-- switch from lz4_flex to lzzzz, enable lz4 tests [\#173](https://github.com/ouch-org/ouch/pull/173) ([figsoda](https://github.com/figsoda))
-- Fix error message panic when cannot list non-archive files [\#182](https://github.com/ouch-org/ouch/pull/182) ([marcospb19](https://github.com/marcospb19))
-- Fix not overwriting files/dirs when trying to create a dir [\#190](https://github.com/ouch-org/ouch/pull/190) ([SpyrosRoum](https://github.com/SpyrosRoum))
-- Skip compressing file if its the same file as the output [\#193](https://github.com/ouch-org/ouch/pull/193) ([sigmaSd](https://github.com/sigmaSd))
-- Fix warnings in doc comments [\#196](https://github.com/ouch-org/ouch/pull/196) ([AntonHermann](https://github.com/AntonHermann))
-- Remove Lzip because its incorrect, and improve extension comparison [\#198](https://github.com/ouch-org/ouch/pull/198) ([sigmaSd](https://github.com/sigmaSd))
-- Fix error with format infer [\#205](https://github.com/ouch-org/ouch/pull/205) ([marcospb19](https://github.com/marcospb19))
-- Truncate long messages in the progress bar [\#214](https://github.com/ouch-org/ouch/pull/214) ([sigmaSd](https://github.com/sigmaSd))
-- Fix zip memory warnings [\#217](https://github.com/ouch-org/ouch/pull/217) ([Crypto-Spartan](https://github.com/Crypto-Spartan))
-- Fix the hint suggestion for compressing multiple files [\#219](https://github.com/ouch-org/ouch/pull/219) ([Crypto-Spartan](https://github.com/Crypto-Spartan))
-- Simple eprintln fixes [\#226](https://github.com/ouch-org/ouch/pull/226) ([Crypto-Spartan](https://github.com/Crypto-Spartan))
-- Actually use relative paths when extracting [\#229](https://github.com/ouch-org/ouch/pull/229) ([sigmaSd](https://github.com/sigmaSd))
-- Mark directories when compressing to zip regardless of their contents [\#230](https://github.com/ouch-org/ouch/pull/230) ([sigmaSd](https://github.com/sigmaSd))
-- Recover last modified time when unpacking zip archives [\#250](https://github.com/ouch-org/ouch/pull/250) ([vrmiguel](https://github.com/vrmiguel))
-- Remove single quotes from clap doc comments [\#251](https://github.com/ouch-org/ouch/pull/251) ([jcgruenhage](https://github.com/jcgruenhage))
-- Fix incorrect warnings for decompression [\#270](https://github.com/ouch-org/ouch/pull/270) ([figsoda](https://github.com/figsoda))
-- Fix infinite compression if output file is inside the input folder [\#288](https://github.com/ouch-org/ouch/pull/288) ([figsoda](https://github.com/figsoda))
-- Fix not overwriting a folder when compressing [\#295](https://github.com/ouch-org/ouch/pull/295) ([marcospb19](https://github.com/marcospb19))
-- Check for EOF when asking questions [\#311](https://github.com/ouch-org/ouch/pull/311) ([marcospb19](https://github.com/marcospb19))
+- Perform exhaustive matching on error variants (https://github.com/ouch-org/ouch/pull/147)
+- Fix short flag for the --dir flag (https://github.com/ouch-org/ouch/pull/149)
+- Rewrite tests (https://github.com/ouch-org/ouch/pull/163)
+- switch from lz4_flex to lzzzz, enable lz4 tests (https://github.com/ouch-org/ouch/pull/173)
+- Fix error message panic when cannot list non-archive files (https://github.com/ouch-org/ouch/pull/182)
+- Fix not overwriting files/dirs when trying to create a dir (https://github.com/ouch-org/ouch/pull/190)
+- Skip compressing file if its the same file as the output (https://github.com/ouch-org/ouch/pull/193)
+- Fix warnings in doc comments (https://github.com/ouch-org/ouch/pull/196)
+- Remove Lzip because its incorrect, and improve extension comparison (https://github.com/ouch-org/ouch/pull/198)
+- Fix error with format infer (https://github.com/ouch-org/ouch/pull/205)
+- Truncate long messages in the progress bar (https://github.com/ouch-org/ouch/pull/214)
+- Fix zip memory warnings (https://github.com/ouch-org/ouch/pull/217)
+- Fix the hint suggestion for compressing multiple files (https://github.com/ouch-org/ouch/pull/219)
+- Simple eprintln fixes (https://github.com/ouch-org/ouch/pull/226)
+- Actually use relative paths when extracting (https://github.com/ouch-org/ouch/pull/229)
+- Mark directories when compressing to zip regardless of their contents (https://github.com/ouch-org/ouch/pull/230)
+- Recover last modified time when unpacking zip archives (https://github.com/ouch-org/ouch/pull/250)
+- Remove single quotes from clap doc comments (https://github.com/ouch-org/ouch/pull/251)
+- Fix incorrect warnings for decompression (https://github.com/ouch-org/ouch/pull/270)
+- Fix infinite compression if output file is inside the input folder (https://github.com/ouch-org/ouch/pull/288)
+- Fix not overwriting a folder when compressing (https://github.com/ouch-org/ouch/pull/295)
+- Check for EOF when asking questions (https://github.com/ouch-org/ouch/pull/311)
 
 ### Improvements
 
-- Infer file extension when decompressing [\#154](https://github.com/ouch-org/ouch/pull/154) ([sigmaSd](https://github.com/sigmaSd))
-- Extension: Use hardcoded slices instead of `Vecs` when creating an `Extension` [\#155](https://github.com/ouch-org/ouch/pull/155) ([vrmiguel](https://github.com/vrmiguel))
-- Avoid allocating in `nice_directory_display` when possible, make `Extension` non-exhaustive [\#156](https://github.com/ouch-org/ouch/pull/156) ([vrmiguel](https://github.com/vrmiguel))
-- Optimize `strip_cur_dir` [\#167](https://github.com/ouch-org/ouch/pull/167) ([vrmiguel](https://github.com/vrmiguel))
-- Improve zip errors when paths are not utf8 valid [\#181](https://github.com/ouch-org/ouch/pull/181) ([marcospb19](https://github.com/marcospb19))
-- Simplify/optimize several file inferring functions [\#204](https://github.com/ouch-org/ouch/pull/204) ([vrmiguel](https://github.com/vrmiguel))
-- List command: print file immediately after it is processed [\#225](https://github.com/ouch-org/ouch/pull/225) ([sigmaSd](https://github.com/sigmaSd))
-- Use `Cow<'static, str>` in `FinalError` [\#246](https://github.com/ouch-org/ouch/pull/246) ([vrmiguel](https://github.com/vrmiguel))
-- Don't allocate when possible in `to_utf`, `nice_directory_display` [\#249](https://github.com/ouch-org/ouch/pull/249) ([vrmiguel](https://github.com/vrmiguel))
-- Allow overriding the completions output directory [\#251]](https://github.com/ouch-org/ouch/pull/251) ([jcgruenhage](https://github.com/jcgruenhage))
-- Use Lazy to optimize env::current_dir repeated call [\#261]](https://github.com/ouch-org/ouch/pull/261) ([marcospb19](https://github.com/marcospb19))
-- Apply clippy lints and simplify smart_unpack [\#267](https://github.com/ouch-org/ouch/pull/267) ([figsoda](https://github.com/figsoda))
-- Respect file permissions when compressing zip files [\#271](https://github.com/ouch-org/ouch/pull/271) ([figsoda](https://github.com/figsoda))
-- Apply clippy lints [\#273](https://github.com/ouch-org/ouch/pull/273) ([figsoda](https://github.com/figsoda))
-- Warn user if file extension is passed as file name [\#277](https://github.com/ouch-org/ouch/pull/277) ([marcospb19](https://github.com/marcospb19))
-- Check for errors when setting the last modified time [\#278](https://github.com/ouch-org/ouch/pull/278) ([marcospb19](https://github.com/marcospb19))
-- Use to the humansize crate for formatting human-readable file sizes [\#281](https://github.com/ouch-org/ouch/pull/281) ([figsoda](https://github.com/figsoda))
-- Reactivate CI targets for ARM Linux and Windows MinGW [\#289](https://github.com/ouch-org/ouch/pull/289) ([figsoda](https://github.com/figsoda))
-- Improve error message when compressing folder with single-file formats [\#303](https://github.com/ouch-org/ouch/pull/303) ([marcospb19](https://github.com/marcospb19))
+- Infer file extension when decompressing (https://github.com/ouch-org/ouch/pull/154)
+- Extension: Use hardcoded slices instead of `Vecs` when creating an `Extension` (https://github.com/ouch-org/ouch/pull/155)
+- Avoid allocating in `nice_directory_display` when possible, make `Extension` non-exhaustive (https://github.com/ouch-org/ouch/pull/156)
+- Optimize `strip_cur_dir` (https://github.com/ouch-org/ouch/pull/167)
+- Improve zip errors when paths are not utf8 valid (https://github.com/ouch-org/ouch/pull/181)
+- Simplify/optimize several file inferring functions (https://github.com/ouch-org/ouch/pull/204)
+- List command: print file immediately after it is processed (https://github.com/ouch-org/ouch/pull/225)
+- Use `Cow<'static, str>` in `FinalError` (https://github.com/ouch-org/ouch/pull/246)
+- Don't allocate when possible in `to_utf`, `nice_directory_display` (https://github.com/ouch-org/ouch/pull/249)
+- Allow overriding the completions output directory (https://github.com/ouch-org/ouch/pull/251)
+- Use Lazy to optimize env::current_dir repeated call (https://github.com/ouch-org/ouch/pull/261)
+- Apply clippy lints and simplify smart_unpack (https://github.com/ouch-org/ouch/pull/267)
+- Respect file permissions when compressing zip files (https://github.com/ouch-org/ouch/pull/271)
+- Apply clippy lints (https://github.com/ouch-org/ouch/pull/273)
+- Warn user if file extension is passed as file name (https://github.com/ouch-org/ouch/pull/277)
+- Check for errors when setting the last modified time (https://github.com/ouch-org/ouch/pull/278)
+- Use to the humansize crate for formatting human-readable file sizes (https://github.com/ouch-org/ouch/pull/281)
+- Reactivate CI targets for ARM Linux and Windows MinGW (https://github.com/ouch-org/ouch/pull/289)
+- Improve error message when compressing folder with single-file formats (https://github.com/ouch-org/ouch/pull/303)
 
 ### Tweaks
 
-- Updating rustfmt [\#144](https://github.com/ouch-org/ouch/pull/144) ([marcospb19](https://github.com/marcospb19))
-- Remove import comments [\#162](https://github.com/ouch-org/ouch/pull/162) ([marcospb19](https://github.com/marcospb19))
-- Refactor utils into a module [\#166](https://github.com/ouch-org/ouch/pull/166) ([vrmiguel](https://github.com/vrmiguel))
-- README update [\#161](https://github.com/ouch-org/ouch/pull/161) & [\#175](https://github.com/ouch-org/ouch/pull/175) ([marcospb19](https://github.com/marcospb19))
-- Fix typo [\#153](https://github.com/ouch-org/ouch/pull/153) ([figsoda](https://github.com/figsoda)) & [\#176](https://github.com/ouch-org/ouch/pull/176) ([marcospb19](https://github.com/marcospb19))
-- Organizing utils [\#179](https://github.com/ouch-org/ouch/pull/179) ([marcospb19](https://github.com/marcospb19))
-- Update issue templates [\#186](https://github.com/ouch-org/ouch/pull/186) ([marcospb19](https://github.com/marcospb19))
-- put compression backends behind features, clean up Cargo.toml [\#187](https://github.com/ouch-org/ouch/pull/187) ([figsoda](https://github.com/figsoda))
-- remove trailing blank lines in error messages [\#188](https://github.com/ouch-org/ouch/pull/188) ([figsoda](https://github.com/figsoda))
-- Improve/fix issue & question templates [\#199](https://github.com/ouch-org/ouch/pull/199) & [\#200](https://github.com/ouch-org/ouch/pull/200) ([figsoda](https://github.com/figsoda))
-- Simplify decompress function [\#206](https://github.com/ouch-org/ouch/pull/206) ([sigmaSd](https://github.com/sigmaSd))
-- Add redundant check for --yes and --no flags conflict [\#221](https://github.com/ouch-org/ouch/pull/221) ([marcospb19](https://github.com/marcospb19))
-- Ignore broken symlinks when compressing [\#224](https://github.com/ouch-org/ouch/pull/224) ([sigmaSd](https://github.com/sigmaSd))
-- Remove redundant user_wants_to_continue function [\#227](https://github.com/ouch-org/ouch/pull/227) ([Crypto-Spartan](https://github.com/Crypto-Spartan))
-- Fix missing \#\[must_use\] attribute on a method returning `Self` [\#243](https://github.com/ouch-org/ouch/pull/243) ([vrmiguel](https://github.com/vrmiguel))
-- Update dependencies [\#253](https://github.com/ouch-org/ouch/pull/253) ([Crypto-Spartan](https://github.com/Crypto-Spartan))
-- Update dependencies [\#257](https://github.com/ouch-org/ouch/pull/257) ([Artturin](https://github.com/Artturin))
-- Add pull request template [\#263](https://github.com/ouch-org/ouch/pull/263) ([figsoda](https://github.com/figsoda))
-- Clean up the description for the `-d/--dir` argument to `decompress` [\#264](https://github.com/ouch-org/ouch/pull/264) ([hivehand](https://github.com/hivehand))
-- Show subcommand aliases on --help [\#275](https://github.com/ouch-org/ouch/pull/275) ([marcospb19](https://github.com/marcospb19))
-- Update dependencies [\#276](https://github.com/ouch-org/ouch/pull/276) ([figsoda](https://github.com/figsoda))
-- Rewrite progress module [\#280](https://github.com/ouch-org/ouch/pull/280) ([figsoda](https://github.com/figsoda))
-- Create scripts for benchmarking ouch [\#280](https://github.com/ouch-org/ouch/pull/280) ([figsoda](https://github.com/figsoda))
+- Updating rustfmt (https://github.com/ouch-org/ouch/pull/144)
+- Remove import comments (https://github.com/ouch-org/ouch/pull/162)
+- Refactor utils into a module (https://github.com/ouch-org/ouch/pull/166)
+- README update (https://github.com/ouch-org/ouch/pull/161 and https://github.com/ouch-org/ouch/pull/175)
+- Organizing utils (https://github.com/ouch-org/ouch/pull/179)
+- Update issue templates (https://github.com/ouch-org/ouch/pull/186)
+- put compression backends behind features, clean up Cargo.toml (https://github.com/ouch-org/ouch/pull/187)
+- remove trailing blank lines in error messages (https://github.com/ouch-org/ouch/pull/188)
+- Improve/fix issue & question templates (https://github.com/ouch-org/ouch/pull/199 and https://github.com/ouch-org/ouch/pull/200)
+- Simplify decompress function (https://github.com/ouch-org/ouch/pull/206)
+- Add redundant check for --yes and --no flags conflict (https://github.com/ouch-org/ouch/pull/221)
+- Ignore broken symlinks when compressing (https://github.com/ouch-org/ouch/pull/224)
+- Remove redundant user_wants_to_continue function (https://github.com/ouch-org/ouch/pull/227)
+- Fix missing `#[must_use]` attribute on a method returning `Self` (https://github.com/ouch-org/ouch/pull/243)
+- Update dependencies (https://github.com/ouch-org/ouch/pull/253)
+- Update dependencies (https://github.com/ouch-org/ouch/pull/257)
+- Add pull request template (https://github.com/ouch-org/ouch/pull/263)
+- Clean up the description for the `-d/--dir` argument to `decompress` (https://github.com/ouch-org/ouch/pull/264)
+- Show subcommand aliases on --help (https://github.com/ouch-org/ouch/pull/275)
+- Update dependencies (https://github.com/ouch-org/ouch/pull/276)
+- Rewrite progress module (https://github.com/ouch-org/ouch/pull/280)
+- Create scripts for benchmarking ouch (https://github.com/ouch-org/ouch/pull/280)
 
 ### Regression
 
-- Remove automatic detection for partial compression [\#286](https://github.com/ouch-org/ouch/pull/286) ([marcospb19](https://github.com/marcospb19))
-- Remove progress feature [\#300](https://github.com/ouch-org/ouch/pull/300) ([figsoda](https://github.com/figsoda))
-
-### New Contributors
-
-- [@sigmaSd](https://github.com/sigmaSd) made their first contribution in [\#154](https://github.com/ouch-org/ouch/pull/154)
-- [@Crypto-Spartan](https://github.com/Crypto-Spartan) made their first contribution in [\#217](https://github.com/ouch-org/ouch/pull/217)
-- [@Artturin](https://github.com/Artturin) made their first contribution in [\#257](https://github.com/ouch-org/ouch/pull/257)
+- Remove automatic detection for partial compression (https://github.com/ouch-org/ouch/pull/286)
+- Remove progress feature (https://github.com/ouch-org/ouch/pull/300)
 
 ## [0.3.1](https://github.com/ouch-org/ouch/compare/0.3.0...0.3.1) (2021-11-02)
 
@@ -279,152 +269,109 @@ Categories Used:
 
 ### New Features
 
-- Properly detect if we are compressing a partially compressed file [\#54](https://github.com/ouch-org/ouch/issues/54) & [\#91](https://github.com/ouch-org/ouch/pull/91) ([SpyrosRoum](https://github.com/SpyrosRoum))
-- Support `.tgz` [\#47](https://github.com/ouch-org/ouch/issues/47) & [\#85](https://github.com/ouch-org/ouch/pull/85) ([figsoda](https://github.com/figsoda))
-- Add support for short tar archive extensions [\#101](https://github.com/ouch-org/ouch/issues/101) ([dnaka91](https://github.com/dnaka91))
-- Migrate from `oof` to `clap` for argument parsing [\#105](https://github.com/ouch-org/ouch/issues/105) & [\#108](https://github.com/ouch-org/ouch/pull/108) ([SpyrosRoum](https://github.com/SpyrosRoum))
-- Shell completions & man page [\#122](https://github.com/ouch-org/ouch/pull/122) ([figsoda](https://github.com/figsoda))
-- Implement command 'list' to show archive contents [\#129](https://github.com/ouch-org/ouch/pull/129) ([AntonHermann](https://github.com/AntonHermann))
-- Print number of unpacked files by [\#130](https://github.com/ouch-org/ouch/pull/130) ([boozec](https://github.com/boozec))
+- Properly detect if we are compressing a partially compressed file (https://github.com/ouch-org/ouch/pull/91)
+- Support `.tgz` (https://github.com/ouch-org/ouch/pull/85)
+- Add support for short tar archive extensions (https://github.com/ouch-org/ouch/issues/101)
+- Migrate from `oof` to `clap` for argument parsing (https://github.com/ouch-org/ouch/pull/108)
+- Shell completions & man page (https://github.com/ouch-org/ouch/pull/122)
+- Implement command 'list' to show archive contents (https://github.com/ouch-org/ouch/pull/129)
+- Print number of unpacked files by (https://github.com/ouch-org/ouch/pull/130)
 
 ### Bug Fixes
 
-- Empty folders are ignored in archive compression formats [\#41](https://github.com/ouch-org/ouch/issues/41) ([GabrielSimonetto](https://github.com/GabrielSimonetto))
-- fix macOS executable paths [\#69](https://github.com/ouch-org/ouch/pull/69) ([vrmiguel](https://github.com/vrmiguel))
-- Print the format type when the format is in an incorrect position [\#84](https://github.com/ouch-org/ouch/pull/84) ([boozec](https://github.com/boozec))
-- Compressing a single file to a single format that's not `tar` or `zip` panics [\#87](https://github.com/ouch-org/ouch/issues/87) & [\#89](https://github.com/ouch-org/ouch/pull/89) ([marcospb19](https://github.com/marcospb19))
-- Compression flag `--output` not working with single file compression [\#90](https://github.com/ouch-org/ouch/issues/90) & [\#93](https://github.com/ouch-org/ouch/pull/93) ([figsoda](https://github.com/figsoda))
-- Fix NO_COLOR issues, remove some dead code [\#66](https://github.com/ouch-org/ouch/issues/66), [\#62](https://github.com/ouch-org/ouch/issues/62), & [\#95](https://github.com/ouch-org/ouch/pull/95) ([figsoda](https://github.com/figsoda))
-- Add proper error message when using conflicting flags \(e.g. `--yes --no`\) [\#55](https://github.com/ouch-org/ouch/issues/55) & [\#99](https://github.com/ouch-org/ouch/pull/99) ([SpyrosRoum](https://github.com/SpyrosRoum))
-- Fix wrong archive format detection patterns [\#125](https://github.com/ouch-org/ouch/pull/125) ([SpyrosRoum](https://github.com/SpyrosRoum))
-- Decompressing file without extension gives bad error message [\#137](https://github.com/ouch-org/ouch/issues/137) ([marcospb19](https://github.com/marcospb19))
-- Fix decompression overwriting files without asking and failing on directories [\#141](https://github.com/ouch-org/ouch/pull/141) ([SpyrosRoum](https://github.com/SpyrosRoum))
+- Empty folders are ignored in archive compression formats (https://github.com/ouch-org/ouch/issues/41)
+- fix macOS executable paths (https://github.com/ouch-org/ouch/pull/69)
+- Print the format type when the format is in an incorrect position (https://github.com/ouch-org/ouch/pull/84)
+- Compressing a single file to a single format that's not `tar` or `zip` panics (https://github.com/ouch-org/ouch/pull/89)
+- Compression flag `--output` not working with single file compression (https://github.com/ouch-org/ouch/pull/93)
+- Fix NO_COLOR issues, remove some dead code (https://github.com/ouch-org/ouch/pull/95)
+- Add proper error message when using conflicting flags (e.g., `--yes --no`) (https://github.com/ouch-org/ouch/pull/99)
+- Fix wrong archive format detection patterns (https://github.com/ouch-org/ouch/pull/125)
+- Decompressing file without extension gives bad error message (https://github.com/ouch-org/ouch/issues/137)
+- Fix decompression overwriting files without asking and failing on directories (https://github.com/ouch-org/ouch/pull/141)
 
 ### Improvements
 
-- Add tests to check the resulting compressed files through MIME types [\#72](https://github.com/ouch-org/ouch/issues/72) & [\#74](https://github.com/ouch-org/ouch/pull/74) ([vrmiguel](https://github.com/vrmiguel))
-- Add proper error message when adding several files to a non-archive format such as bzip or gzip [\#78](https://github.com/ouch-org/ouch/issues/78) & [\#79](https://github.com/ouch-org/ouch/pull/79) ([vrmiguel](https://github.com/vrmiguel))
-- Apply clippy lints and small refactors [\#86](https://github.com/ouch-org/ouch/pull/86) ([figsoda](https://github.com/figsoda))
-- Use `fs-err` crate instead of `std::fs` [\#56](https://github.com/ouch-org/ouch/issues/56) & [\#94](https://github.com/ouch-org/ouch/pull/94) ([GabrielSimonetto](https://github.com/GabrielSimonetto))
-- Change FinalError builder pattern to take and give ownership of self [\#97](https://github.com/ouch-org/ouch/issues/97) ([SpyrosRoum](https://github.com/SpyrosRoum))
-- Omit "./" at the start of the path [\#109](https://github.com/ouch-org/ouch/pull/109) & [\#116](https://github.com/ouch-org/ouch/pull/116) ([exoego](https://github.com/exoego))
-- Introduce new enum for policy on how to handle y/n questions [\#124](https://github.com/ouch-org/ouch/issues/124) ([AntonHermann](https://github.com/AntonHermann))
-- Add missing docs [\#128](https://github.com/ouch-org/ouch/pull/128) ([GabrielSimonetto](https://github.com/GabrielSimonetto))
-- CI: Check the format with Github Action [\#126](https://github.com/ouch-org/ouch/pull/126) ([boozec](https://github.com/boozec))
-- CI: Rewrite [\#135](https://github.com/ouch-org/ouch/pull/135) ([figsoda](https://github.com/figsoda))
-- Improving error messages and removing dead error treatment code [\#140](https://github.com/ouch-org/ouch/pull/140) ([marcospb19](https://github.com/marcospb19))
+- Add tests to check the resulting compressed files through MIME types (https://github.com/ouch-org/ouch/pull/74)
+- Add proper error message when adding several files to a non-archive format such as bzip or gzip (https://github.com/ouch-org/ouch/pull/79)
+- Apply clippy lints and small refactors (https://github.com/ouch-org/ouch/pull/86)
+- Use `fs-err` crate instead of `std::fs` (https://github.com/ouch-org/ouch/pull/94)
+- Change FinalError builder pattern to take and give ownership of self (https://github.com/ouch-org/ouch/issues/97)
+- Omit "./" at the start of the path (https://github.com/ouch-org/ouch/pull/109 and https://github.com/ouch-org/ouch/pull/116)
+- Introduce new enum for policy on how to handle y/n questions (https://github.com/ouch-org/ouch/issues/124)
+- Add missing docs (https://github.com/ouch-org/ouch/pull/128)
+- CI: Check the format with Github Action (https://github.com/ouch-org/ouch/pull/126)
+- CI: Rewrite (https://github.com/ouch-org/ouch/pull/135)
+- Improving error messages and removing dead error treatment code (https://github.com/ouch-org/ouch/pull/140)
 
 ### Tweaks
 
-- CI: don't upload unused artifacts [\#75](https://github.com/ouch-org/ouch/pull/75) ([marcospb19](https://github.com/marcospb19))
-- Compression info lines should use the \[INFO\] formatting like when decompressing [\#76](https://github.com/ouch-org/ouch/issues/76) ([vrmiguel](https://github.com/vrmiguel))
-- CI: bump VM's Ubuntu version to 20 [\#81](https://github.com/ouch-org/ouch/pull/81) ([vrmiguel](https://github.com/vrmiguel))
-- CI: stop building for ARM and Windows MinGW [\#82](https://github.com/ouch-org/ouch/pull/82) ([vrmiguel](https://github.com/vrmiguel))
-- Updating Cargo.lock to newer dependencies [\#92](https://github.com/ouch-org/ouch/pull/92) ([marcospb19](https://github.com/marcospb19))
-- Create CONTRIBUTING.md [\#98](https://github.com/ouch-org/ouch/pull/98) ([marcospb19](https://github.com/marcospb19))
-- Minor cleanups and refactors [\#100](https://github.com/ouch-org/ouch/pull/100) ([figsoda](https://github.com/figsoda))
-- Readme revision [\#102](https://github.com/ouch-org/ouch/pull/102) ([marcospb19](https://github.com/marcospb19))
-- Fix README small markdown error [\#104](https://github.com/ouch-org/ouch/pull/104) ([marcospb19](https://github.com/marcospb19))
-- Escaping pipes in installation commands [\#106](https://github.com/ouch-org/ouch/pull/106) ([marcospb19](https://github.com/marcospb19))
-- Add 'Packaging Status' badge to README / note about installing on NixOS [\#107](https://github.com/ouch-org/ouch/issues/107) ([figsoda](https://github.com/figsoda))
-- Change decompress command INFO messages [\#117](https://github.com/ouch-org/ouch/pull/117) & [\#119](https://github.com/ouch-org/ouch/pull/119) ([exoego](https://github.com/exoego))
-- Change decompress flag `--output` to `--dir` [\#118](https://github.com/ouch-org/ouch/pull/118) ([khubo](https://github.com/khubo))
-- Updating CONTRIBUTING.md [\#132](https://github.com/ouch-org/ouch/pull/132) ([marcospb19](https://github.com/marcospb19))
-- Remove tar combinations from compression format [\#133](https://github.com/ouch-org/ouch/pull/133) ([SpyrosRoum](https://github.com/SpyrosRoum))
-- Simplify cli canonicalize implementation [\#139](https://github.com/ouch-org/ouch/pull/139) ([marcospb19](https://github.com/marcospb19))
-
-### New Contributors
-
-- [@figsoda](https://github.com/figsoda) made their first contribution in #86
-- [@boozec](https://github.com/boozec) made their first contribution in #84
-- [@SpyrosRoum](https://github.com/SpyrosRoum) made their first contribution in #97
-- [@dnaka91](https://github.com/dnaka91) made their first contribution in #101
-- [@exoego](https://github.com/exoego) made their first contribution in #109
-- [@AntonHermann](https://github.com/AntonHermann) made their first contribution in #124
-- [@khubo](https://github.com/khubo) made their first contribution in #118
+- CI: don't upload unused artifacts (https://github.com/ouch-org/ouch/pull/75)
+- Compression info lines should use the \[INFO\] formatting like when decompressing (https://github.com/ouch-org/ouch/issues/76)
+- CI: bump VM's Ubuntu version to 20 (https://github.com/ouch-org/ouch/pull/81)
+- CI: stop building for ARM and Windows MinGW (https://github.com/ouch-org/ouch/pull/82)
+- Updating Cargo.lock to newer dependencies (https://github.com/ouch-org/ouch/pull/92)
+- Create CONTRIBUTING.md (https://github.com/ouch-org/ouch/pull/98)
+- Minor cleanups and refactors (https://github.com/ouch-org/ouch/pull/100)
+- Readme revision (https://github.com/ouch-org/ouch/pull/102)
+- Fix README small markdown error (https://github.com/ouch-org/ouch/pull/104)
+- Escaping pipes in installation commands (https://github.com/ouch-org/ouch/pull/106)
+- Add 'Packaging Status' badge to README / note about installing on NixOS (https://github.com/ouch-org/ouch/issues/107)
+- Change decompress command INFO messages (https://github.com/ouch-org/ouch/pull/117 and https://github.com/ouch-org/ouch/pull/119)
+- Change decompress flag `--output` to `--dir` (https://github.com/ouch-org/ouch/pull/118)
+- Updating CONTRIBUTING.md (https://github.com/ouch-org/ouch/pull/132)
+- Remove tar combinations from compression format (https://github.com/ouch-org/ouch/pull/133)
+- Simplify cli canonicalize implementation (https://github.com/ouch-org/ouch/pull/139)
 
 ## [0.2.0](https://github.com/ouch-org/ouch/compare/0.1.6...0.2.0) (2021-10-06)
 
 ### New Features
 
-- Add Cargo lock file [\#46](https://github.com/ouch-org/ouch/pull/46) ([psibi](https://github.com/psibi))
-- Allow compression of empty folders [\#57](https://github.com/ouch-org/ouch/pull/57) ([GabrielSimonetto](https://github.com/GabrielSimonetto))
-- Make decompress command explicit [\#61](https://github.com/ouch-org/ouch/pull/61) ([GabrielSimonetto](https://github.com/GabrielSimonetto))
-- Add support for Zstd [\#64](https://github.com/ouch-org/ouch/pull/64) ([vrmiguel](https://github.com/vrmiguel))
+- Add Cargo lock file (https://github.com/ouch-org/ouch/pull/46)
+- Allow compression of empty folders (https://github.com/ouch-org/ouch/pull/57)
+- Make decompress command explicit (https://github.com/ouch-org/ouch/pull/61)
+- Add support for Zstd (https://github.com/ouch-org/ouch/pull/64)
 
 ### Bug Fixes
 
-- Fix download script, download from new linux urls [\#40](https://github.com/ouch-org/ouch/issues/40)
+- Fix download script, download from new linux urls (https://github.com/ouch-org/ouch/issues/40)
 
 ### Improvements
 
-- Don't use colors when `stdout` or `stderr` are being redirected [\#60](https://github.com/ouch-org/ouch/pull/60) ([vrmiguel](https://github.com/vrmiguel))
-- Making an error message for running decompress without arguments [\#63](https://github.com/ouch-org/ouch/issues/63)
-- Increasing read and writer buffers capacity [\#65](https://github.com/ouch-org/ouch/pull/65) ([marcospb19](https://github.com/marcospb19))
-
-### New Contributors
-
-- [@psibi](https://github.com/psibi) made their first contribution in [\#46](https://github.com/ouch-org/ouch/pull/46)
-- [@GabrielSimonetto](https://github.com/GabrielSimonetto) made their first contribution in [\#57](https://github.com/ouch-org/ouch/pull/57)
+- Don't use colors when `stdout` or `stderr` are being redirected (https://github.com/ouch-org/ouch/pull/60)
+- Making an error message for running decompress without arguments (https://github.com/ouch-org/ouch/issues/63)
+- Increasing read and writer buffers capacity (https://github.com/ouch-org/ouch/pull/65)
 
 ## [0.1.6](https://github.com/ouch-org/ouch/compare/0.1.5...0.1.6) (2021-09-17)
 
 ### New Features
 
-- Extension detection method supports more than 2 format suffixes. [\#28](https://github.com/ouch-org/ouch/issues/28)
-- Change Display implementation of crate::Error to an more structured FinalUserError [\#39](https://github.com/ouch-org/ouch/pull/39) ([marcospb19](https://github.com/marcospb19))
-- Actions: new targets: Linux ARM64 \(glibc\), x86-64 \(musl\), Windows \(MinGW\) [\#43](https://github.com/ouch-org/ouch/pull/43) ([vrmiguel](https://github.com/vrmiguel))
+- Extension detection method supports more than 2 format suffixes (https://github.com/ouch-org/ouch/issues/28)
+- Change Display implementation of crate::Error to an more structured FinalUserError (https://github.com/ouch-org/ouch/pull/39)
+- Actions: new targets: Linux ARM64 (glibc), x86-64 (musl), Windows (MinGW) (https://github.com/ouch-org/ouch/pull/43)
 
 ### Improvements
 
-- Further testing to oof cli [\#38](https://github.com/ouch-org/ouch/pull/38) ([demfabris](https://github.com/demfabris))
-- Reuse Confirmation struct when checking for overwrite permission [\#42](https://github.com/ouch-org/ouch/pull/42) ([vrmiguel](https://github.com/vrmiguel))
+- Further testing to oof cli (https://github.com/ouch-org/ouch/pull/38)
+- Reuse Confirmation struct when checking for overwrite permission (https://github.com/ouch-org/ouch/pull/42)
 
 ## [0.1.5](https://github.com/ouch-org/ouch/compare/0.1.5-rc...0.1.5) (2021-05-27)
 
 ### New Features
 
-- Add support for dot-dot \(`..`\) in output file/directory [\#4](https://github.com/ouch-org/ouch/issues/4)
-- Add install.sh script [\#37](https://github.com/ouch-org/ouch/issues/37)
-- Add checking for typos on the compression subcommand [\#21](https://github.com/ouch-org/ouch/pull/21) ([vrmiguel](https://github.com/vrmiguel))
+- Add support for dot-dot (`..`) in output file/directory (https://github.com/ouch-org/ouch/issues/4)
+- Add install.sh script (https://github.com/ouch-org/ouch/issues/37)
+- Add checking for typos on the compression subcommand (https://github.com/ouch-org/ouch/pull/21)
 
 ### Bug Fixes
 
-- Fix the -n, --no flag usage and add an alias for the compress subcommand [\#22](https://github.com/ouch-org/ouch/pull/22) ([vrmiguel](https://github.com/vrmiguel))
+- Fix the -n, --no flag usage and add an alias for the compress subcommand (https://github.com/ouch-org/ouch/pull/22)
 
 ### Improvements
 
-- Added compression and decompression tests for each current supported format [\#24](https://github.com/ouch-org/ouch/pull/24) ([marcospb19](https://github.com/marcospb19))
-- Add tests to oof [\#27](https://github.com/ouch-org/ouch/pull/27) ([demfabris](https://github.com/demfabris))
+- Added compression and decompression tests for each current supported format (https://github.com/ouch-org/ouch/pull/24)
+- Add tests to oof (https://github.com/ouch-org/ouch/pull/27)
 
 ### Tweaks
 
-- Switch panics to errors [\#21](https://github.com/ouch-org/ouch/pull/21) ([vrmiguel](https://github.com/vrmiguel))
-
-### New Contributors
-
-- [@demfabris](https://github.com/demfabris) made their first contribution in [\#27](https://github.com/ouch-org/ouch/pull/27)
-
-## [0.1.5-rc](https://github.com/ouch-org/ouch/compare/0.1.4...0.1.5-rc) (2021-04-07)
-
-### New Features
-
-- Better error messages ([vrmiguel](https://github.com/vrmiguel))
-- New `--help` message [df1bc87](https://github.com/ouch-org/ouch/commit/df1bc879cbfc91286f0570e944df113b28b638db) ([marcospb19](https://github.com/marcospb19))
-- Create subproject `oof`, a thin argparsing lib [\#12](https://github.com/ouch-org/ouch/pull/12) ([marcospb19](https://github.com/marcospb19))
-- Pretty-printing for bytes [\#17](https://github.com/ouch-org/ouch/pull/17) ([vrmiguel](https://github.com/vrmiguel))
-- Verify inputs when decompressing [\#18](https://github.com/ouch-org/ouch/pull/18) ([vrmiguel](https://github.com/vrmiguel))
-- CI: use MUSL when compiling for Linux [8e6804](https://github.com/ouch-org/ouch/commit/8e680402a929986796c9418605b2d84314fd2684) ([vrmiguel](https://github.com/vrmiguel))
-- CI: build and test for Linux ARMv7 [\#19](https://github.com/ouch-org/ouch/pull/19) ([vrmiguel](https://github.com/vrmiguel))
-
-### Bug Fixes
-
-- Argparsing: problems with the `-o, --output` flag [\#13](https://github.com/ouch-org/ouch/issues/13) ([marcospb19](https://github.com/marcospb19))
-- Short flags not receiving values [\#15](https://github.com/ouch-org/ouch/pull/15) ([vrmiguel](https://github.com/vrmiguel))
-
-## [0.1.4](https://github.com/ouch-org/ouch/compare/08489b028c8e85176bf5d55576f75c1817df9019...0.1.4) (2021-03-29)
-
-### New Features
-
-- confirmation dialogs for file overwriting [\#2](https://github.com/ouch-org/ouch/pull/2) ([vrmiguel](https://github.com/vrmiguel))
-- `-y, --yes` and `-n, --no` flags for automatic answering of confirmation dialogs [\#7](https://github.com/ouch-org/ouch/issues/7) ([vrmiguel](https://github.com/vrmiguel))
+- Switch panics to errors (https://github.com/ouch-org/ouch/pull/21)
