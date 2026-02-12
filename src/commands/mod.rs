@@ -196,7 +196,7 @@ pub fn run(
                 .try_for_each(|((input_path, formats), file_name)| {
                     // Path used by single file format archives
                     let output_file_path = if is_path_stdin(file_name) {
-                        output_dir.join("stdin-output")
+                        output_dir.join("ouch-output")
                     } else {
                         output_dir.join(file_name)
                     };
