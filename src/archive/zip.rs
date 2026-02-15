@@ -30,15 +30,12 @@ use crate::{
 
 /// Unpacks the archive given by `archive` into the folder given by `output_folder`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive<R>(
-    mut archive: ZipArchive<R>,
-    output_folder: &Path,
-    password: Option<&[u8]>,
-) -> crate::Result<Unpacked>
+pub fn unpack_archive<R>(reader: R, output_folder: &Path, password: Option<&[u8]>) -> crate::Result<Unpacked>
 where
     R: Read + Seek,
 {
     let mut unpacked_files = 0;
+    let mut archive = ZipArchive::new(reader)?;
 
     for idx in 0..archive.len() {
         let mut file = match password {

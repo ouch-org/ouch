@@ -14,3 +14,6 @@ pub fn lock_and_flush_output_stdio() -> io::Result<StdioOutputLocks> {
 
     Ok((stdout, stderr))
 }
+
+pub trait ReadSeek: io::Read + io::Seek {}
+impl<T> ReadSeek for T where T: io::Read + io::Seek {}

@@ -6,8 +6,6 @@ use std::{
 
 use fs_err as fs;
 
-#[cfg(not(feature = "bzip3"))]
-use crate::archive;
 use crate::{
     commands::{warn_user_about_loading_sevenz_in_memory, warn_user_about_loading_zip_in_memory},
     extension::{
@@ -17,14 +15,12 @@ use crate::{
     },
     info, info_accessible,
     utils::{
-        self, io::lock_and_flush_output_stdio, is_path_stdin, nice_directory_display, set_permission_mode,
-        user_wants_to_continue,
+        self,
+        io::{lock_and_flush_output_stdio, ReadSeek},
+        is_path_stdin, nice_directory_display, set_permission_mode, user_wants_to_continue,
     },
-    QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
+    QuestionAction, QuestionPolicy, Result, BUFFER_CAPACITY,
 };
-
-trait ReadSeek: Read + io::Seek {}
-impl<T: Read + io::Seek> ReadSeek for T {}
 
 pub type Mode = u32;
 pub type UnpackRes = crate::Result<Unpacked>;
@@ -35,9 +31,12 @@ pub struct Unpacked {
 }
 
 pub struct DecompressOptions<'a> {
+    /// Example: "archive.tar.gz"
     pub input_file_path: &'a Path,
+    /// Example: [Gz, Tar] (notice it's ordered in decompression order)
     pub formats: Vec<Extension>,
     pub output_dir: &'a Path,
+    /// Used when extracting single file formats and not archive formats
     pub output_file_path: PathBuf,
     pub is_output_dir_provided: bool,
     pub question_policy: QuestionPolicy,
@@ -45,78 +44,12 @@ pub struct DecompressOptions<'a> {
     pub remove: bool,
 }
 
-/// Decompress a file
-///
-/// File at input_file_path is opened for reading, example: "archive.tar.gz"
-/// formats contains each format necessary for decompression, example: [Gz, Tar] (in decompression order)
-/// output_dir it's where the file will be decompressed to, this function assumes that the directory exists
-/// output_file_path is only used when extracting single file formats, not archive formats like .tar or .zip
+/// Decompress (or unpack) a compressed (or packed) file.
 pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
-    assert!(options.output_dir.exists());
+    assert!(options.output_dir.try_exists()?);
+
     let input_is_stdin = is_path_stdin(options.input_file_path);
-
-    // Zip archives are special, because they require io::Seek, so it requires it's logic separated
-    // from decoder chaining.
-    //
-    // This is the only case where we can read and unpack it directly, without having to do
-    // in-memory decompression/copying first.
-    //
-    // Any other Zip decompression done can take up the whole RAM and freeze ouch.
-    if let [Extension {
-        compression_formats: [Zip],
-        ..
-    }] = options.formats.as_slice()
-    {
-        let mut vec = vec![];
-        let reader: Box<dyn ReadSeek> = if input_is_stdin {
-            warn_user_about_loading_zip_in_memory();
-            io::copy(&mut io::stdin(), &mut vec)?;
-            Box::new(io::Cursor::new(vec))
-        } else {
-            Box::new(fs::File::open(options.input_file_path)?)
-        };
-        let zip_archive = zip::ZipArchive::new(reader)?;
-        let Unpacked {
-            files_unpacked,
-            read_only_directories: _,
-        } = if let ControlFlow::Continue(files) = execute_decompression(
-            |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, options.password),
-            options.output_dir,
-            &options.output_file_path,
-            options.question_policy,
-            options.is_output_dir_provided,
-        )? {
-            files
-        } else {
-            return Ok(());
-        };
-
-        // this is only printed once, so it doesn't result in much text. On the other hand,
-        // having a final status message is important especially in an accessibility context
-        // as screen readers may not read a commands exit code, making it hard to reason
-        // about whether the command succeeded without such a message
-        info_accessible!(
-            "Successfully decompressed archive in {} ({} files)",
-            nice_directory_display(options.output_dir),
-            files_unpacked
-        );
-
-        if !input_is_stdin && options.remove {
-            fs::remove_file(options.input_file_path)?;
-            info!("Removed input file {}", nice_directory_display(options.input_file_path));
-        }
-
-        return Ok(());
-    }
-
-    // Will be used in decoder chaining
-    let reader: Box<dyn Read> = if input_is_stdin {
-        Box::new(io::stdin())
-    } else {
-        Box::new(fs::File::open(options.input_file_path)?)
-    };
-    let reader = BufReader::with_capacity(BUFFER_CAPACITY, reader);
-    let mut reader: Box<dyn Read> = Box::new(reader);
+    let (first_extension, extensions) = split_first_compression_format(&options.formats);
 
     // Grab previous decoder and wrap it inside of a new one
     let chain_reader_decoder = |format: &CompressionFormat, decoder: Box<dyn Read>| -> crate::Result<Box<dyn Read>> {
@@ -125,8 +58,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
             Bzip3 => {
                 #[cfg(not(feature = "bzip3"))]
-                return Err(archive::bzip3_stub::no_support());
-
+                return Err(crate::archive::bzip3_stub::no_support());
                 #[cfg(feature = "bzip3")]
                 Box::new(bzip3::read::Bz3Decoder::new(decoder)?)
             }
@@ -137,20 +69,32 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
             Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
             Brotli => Box::new(brotli::Decompressor::new(decoder, BUFFER_CAPACITY)),
-            Tar | Zip | Rar | SevenZip => decoder,
+            Tar | Zip | Rar | SevenZip => unreachable!(),
         };
         Ok(decoder)
     };
 
-    let (first_extension, extensions) = split_first_compression_format(&options.formats);
+    let create_decoder_up_to_first_extension = || -> Result<Box<dyn Read>> {
+        let mut reader: Box<dyn Read> = if input_is_stdin {
+            Box::new(io::stdin())
+        } else {
+            Box::new(BufReader::with_capacity(
+                BUFFER_CAPACITY,
+                fs::File::open(options.input_file_path)?,
+            ))
+        };
 
-    for format in extensions.iter().rev() {
-        reader = chain_reader_decoder(format, reader)?;
-    }
+        for format in extensions.iter().rev() {
+            reader = chain_reader_decoder(format, reader)?;
+        }
+
+        Ok(reader)
+    };
 
     let Unpacked { files_unpacked, .. } = match first_extension {
         Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {
-            reader = chain_reader_decoder(&first_extension, reader)?;
+            let reader = create_decoder_up_to_first_extension()?;
+            let mut reader = chain_reader_decoder(&first_extension, reader)?;
 
             let mut writer = match utils::ask_to_create_file(
                 &options.output_file_path,
@@ -170,7 +114,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
         }
         Tar => {
             if let ControlFlow::Continue(files) = execute_decompression(
-                |output_dir| crate::archive::tar::unpack_archive(reader, output_dir),
+                |output_dir| crate::archive::tar::unpack_archive(create_decoder_up_to_first_extension()?, output_dir),
                 options.output_dir,
                 &options.output_file_path,
                 options.question_policy,
@@ -181,13 +125,27 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 return Ok(());
             }
         }
-        Zip => {
-            if options.formats.len() > 1 {
-                // Locking necessary to guarantee that warning and question
-                // messages stay adjacent
-                let _locks = lock_and_flush_output_stdio();
+        Zip | SevenZip => {
+            let unpack_fn = match first_extension {
+                Zip => crate::archive::zip::unpack_archive,
+                SevenZip => crate::archive::sevenz::decompress_sevenz,
+                _ => unreachable!(),
+            };
 
-                warn_user_about_loading_zip_in_memory();
+            let should_load_everything_into_memory = input_is_stdin || !extensions.is_empty();
+
+            // due to `io::Seek` being required by `Zip` and `SevenZip`, we might have to
+            // copy all contents into a Vec to pass an `io::Cursor` (impls Seek)
+            let reader: Box<dyn ReadSeek> = if should_load_everything_into_memory {
+                let memory_warning_fn = match first_extension {
+                    Zip => warn_user_about_loading_zip_in_memory,
+                    SevenZip => warn_user_about_loading_sevenz_in_memory,
+                    _ => unreachable!(),
+                };
+
+                // Make thread own locks to keep output messages adjacent
+                let locks = lock_and_flush_output_stdio();
+                memory_warning_fn();
                 if !user_wants_to_continue(
                     options.input_file_path,
                     options.question_policy,
@@ -195,14 +153,20 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 )? {
                     return Ok(());
                 }
-            }
+                drop(locks);
 
-            let mut vec = vec![];
-            io::copy(&mut reader, &mut vec)?;
-            let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
+                let mut vec = vec![];
+                io::copy(&mut create_decoder_up_to_first_extension()?, &mut vec)?;
+                Box::new(io::Cursor::new(vec))
+            } else {
+                Box::new(BufReader::with_capacity(
+                    BUFFER_CAPACITY,
+                    fs::File::open(options.input_file_path)?,
+                ))
+            };
 
             if let ControlFlow::Continue(files) = execute_decompression(
-                |output_dir| crate::archive::zip::unpack_archive(zip_archive, output_dir, options.password),
+                |output_dir| unpack_fn(reader, output_dir, options.password),
                 options.output_dir,
                 &options.output_file_path,
                 options.question_policy,
@@ -217,7 +181,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
         Rar => {
             let unpack_fn: Box<dyn FnOnce(&Path) -> UnpackRes> = if options.formats.len() > 1 || input_is_stdin {
                 let mut temp_file = tempfile::NamedTempFile::new()?;
-                io::copy(&mut reader, &mut temp_file)?;
+                io::copy(&mut create_decoder_up_to_first_extension()?, &mut temp_file)?;
                 Box::new(move |output_dir| {
                     crate::archive::rar::unpack_archive(temp_file.path(), output_dir, options.password)
                 })
@@ -242,39 +206,6 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
         #[cfg(not(feature = "unrar"))]
         Rar => {
             return Err(crate::archive::rar_stub::no_support());
-        }
-        SevenZip => {
-            if options.formats.len() > 1 {
-                // Locking necessary to guarantee that warning and question
-                // messages stay adjacent
-                let _locks = lock_and_flush_output_stdio();
-
-                warn_user_about_loading_sevenz_in_memory();
-                if !user_wants_to_continue(
-                    options.input_file_path,
-                    options.question_policy,
-                    QuestionAction::Decompression,
-                )? {
-                    return Ok(());
-                }
-            }
-
-            let mut vec = vec![];
-            io::copy(&mut reader, &mut vec)?;
-
-            if let ControlFlow::Continue(files) = execute_decompression(
-                |output_dir| {
-                    crate::archive::sevenz::decompress_sevenz(io::Cursor::new(vec), output_dir, options.password)
-                },
-                options.output_dir,
-                &options.output_file_path,
-                options.question_policy,
-                options.is_output_dir_provided,
-            )? {
-                files
-            } else {
-                return Ok(());
-            }
         }
     };
 

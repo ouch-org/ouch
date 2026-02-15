@@ -158,8 +158,7 @@ pub fn compress_files(
         }
         Zip => {
             if !formats.is_empty() {
-                // Locking necessary to guarantee that warning and question
-                // messages stay adjacent
+                // Make thread own locks to keep output messages adjacent
                 let _locks = lock_and_flush_output_stdio();
 
                 warn_user_about_loading_zip_in_memory();
@@ -189,8 +188,7 @@ pub fn compress_files(
         }
         SevenZip => {
             if !formats.is_empty() {
-                // Locking necessary to guarantee that warning and question
-                // messages stay adjacent
+                // Make thread own locks to keep output messages adjacent
                 let _locks = lock_and_flush_output_stdio();
 
                 warn_user_about_loading_sevenz_in_memory();
