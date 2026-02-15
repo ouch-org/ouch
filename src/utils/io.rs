@@ -21,7 +21,7 @@ pub fn lock_and_flush_output_stdio() -> io::Result<StdioOutputLocks> {
 pub fn is_stdin_dev_null() -> io::Result<bool> {
     use std::os::unix::fs::MetadataExt;
 
-    let stdin = fs::metadata("/proc/self/fd/0")?;
+    let stdin = fs::metadata("/dev/stdin")?;
     let null = fs::metadata("/dev/null")?;
     Ok(stdin.dev() == null.dev() && stdin.ino() == null.ino())
 }
