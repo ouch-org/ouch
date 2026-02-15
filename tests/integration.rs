@@ -373,50 +373,6 @@ fn multiple_files_with_conflict_and_choice_to_rename_with_already_a_renamed(
     assert_same_directory(src_files_path, dest_files_path_renamed.join("src_files"), false);
 }
 
-#[proptest(cases = 25)]
-fn multiple_files_with_disabled_smart_unpack_by_dir(
-    ext: DirectoryExtension,
-    #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
-) {
-    let temp_dir = tempdir().unwrap();
-    let root_path = temp_dir.path();
-
-    let src_files_path = root_path.join("src_files");
-    fs::create_dir_all(&src_files_path).unwrap();
-
-    let files_path = ["file1.txt", "file2.txt", "file3.txt", "file4.txt", "file5.txt"]
-        .into_iter()
-        .map(|f| src_files_path.join(f))
-        .inspect(|path| {
-            let mut file = fs::File::create(path).unwrap();
-            file.write_all("Some content".as_bytes()).unwrap();
-        })
-        .collect::<Vec<_>>();
-
-    let dest_files_path = root_path.join("dest_files");
-    fs::create_dir_all(&dest_files_path).unwrap();
-
-    let archive = &root_path.join(format!("archive.{}", merge_extensions(ext, &extra_extensions)));
-
-    crate::utils::cargo_bin()
-        .arg("compress")
-        .args(files_path)
-        .arg(archive)
-        .assert()
-        .success();
-
-    crate::utils::cargo_bin()
-        .arg("decompress")
-        .arg(archive)
-        .arg("-d")
-        .arg(&dest_files_path)
-        .write_stdin("r")
-        .assert()
-        .success();
-
-    assert_same_directory(src_files_path, dest_files_path, false);
-}
-
 #[cfg(feature = "unrar")]
 #[test]
 fn unpack_rar() -> Result<(), Box<dyn std::error::Error>> {

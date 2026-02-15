@@ -31,8 +31,6 @@ pub fn check_mime_type(
         // File with no extension
         // Try to detect it automatically and prompt the user about it
         if let Some(detected_format) = try_infer_extension(path) {
-            // Inferring the file extension can have unpredicted consequences (e.g. the user just
-            // mistyped, ...) which we should always inform the user about.
             warning!(
                 "We detected a file named `{}`, do you want to decompress it?",
                 path.display(),

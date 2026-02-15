@@ -116,10 +116,6 @@ pub fn run(
             );
 
             if let Ok(true) = compress_result {
-                // this is only printed once, so it doesn't result in much text. On the other hand,
-                // having a final status message is important especially in an accessibility context
-                // as screen readers may not read a commands exit code, making it hard to reason
-                // about whether the command succeeded without such a message
                 info_accessible!("Successfully compressed '{}'", path_to_str(&output_path));
             } else {
                 // If Ok(false) or Err() occurred, delete incomplete file at `output_path`
@@ -180,7 +176,6 @@ pub fn run(
 
             // The directory that will contain the output files
             // We default to the current directory if the user didn't specify an output directory with --dir
-            let is_output_dir_provided = output_dir.is_some();
             let output_dir = if let Some(dir) = output_dir {
                 utils::create_dir_if_non_existent(&dir)?;
                 dir
@@ -204,7 +199,6 @@ pub fn run(
                         formats,
                         output_dir: &output_dir,
                         output_file_path,
-                        is_output_dir_provided,
                         question_policy,
                         password: args.password.as_deref().map(|str| {
                             <[u8] as ByteSlice>::from_os_str(str).expect("convert password to bytes failed")
