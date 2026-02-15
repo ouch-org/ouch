@@ -14,7 +14,12 @@ use fs_err as fs;
 use crate::{
     accessible::is_running_in_accessible_mode,
     error::{Error, FinalError, Result},
-    utils::{self, colors, formatting::path_to_str, io::lock_and_flush_output_stdio, strip_cur_dir},
+    utils::{
+        self, colors,
+        formatting::path_to_str,
+        io::{is_stdin_dev_null, lock_and_flush_output_stdio},
+        strip_cur_dir,
+    },
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -185,9 +190,9 @@ impl<'a, T: Default> ChoicePrompt<'a, T> {
     pub fn ask(mut self) -> crate::Result<T> {
         let message = self.prompt;
 
-        if atty::is(atty::Stream::Stdin) {
+        if is_stdin_dev_null()? {
             eprintln!("{message}");
-            eprintln!("Pass --yes to proceed");
+            eprintln!("Stdin is null, can't read user input (bypass with --yes, but be careful)");
             return Ok(T::default());
         }
 
@@ -281,9 +286,9 @@ impl<'a> Confirmation<'a> {
             (Some(placeholder), Some(subs)) => Cow::Owned(self.prompt.replace(placeholder, subs)),
         };
 
-        if atty::is(atty::Stream::Stdin) {
+        if is_stdin_dev_null()? {
             eprintln!("{message}");
-            eprintln!("Pass --yes to proceed");
+            eprintln!("Stdin is null, can't read user input (bypass with --yes, but be careful)");
             return Ok(false);
         }
 
