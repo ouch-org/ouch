@@ -15,7 +15,6 @@ categories = ["command-line-utilities", "compression", "encoding"]
 description = "A command-line utility for easily compressing and decompressing files and directories."
 
 [dependencies]
-atty = "0.2.14"
 brotli = "7.0.0"
 bstr = { version = "1.10.0", default-features = false, features = ["std"] }
 bytesize = "1.3.0"
