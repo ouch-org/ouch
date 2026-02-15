@@ -5,7 +5,7 @@ expression: stdout_lines
 {
     "",
     "[INFO] Files unpacked: 4",
-    "[INFO] Successfully decompressed archive in <TMP_DIR>/outputs",
+    "[INFO] Successfully decompressed archive to <TMP_DIR>/outputs",
     "[INFO] extracted (  0.00   B) \"outputs/inputs\"",
     "[INFO] extracted (  0.00   B) \"outputs/inputs/input\"",
     "[INFO] extracted (  0.00   B) \"outputs/inputs/input2\"",
