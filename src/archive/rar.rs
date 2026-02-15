@@ -5,7 +5,6 @@ use std::path::Path;
 use unrar::Archive;
 
 use crate::{
-    commands::Unpacked,
     error::{Error, Result},
     info,
     list::FileInArchive,
@@ -14,14 +13,14 @@ use crate::{
 
 /// Unpacks the archive given by `archive_path` into the folder given by `output_folder`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive(archive_path: &Path, output_folder: &Path, password: Option<&[u8]>) -> crate::Result<Unpacked> {
+pub fn unpack_archive(archive_path: &Path, output_folder: &Path, password: Option<&[u8]>) -> crate::Result<usize> {
     let archive = match password {
         Some(password) => Archive::with_password(archive_path, password),
         None => Archive::new(archive_path),
     };
 
     let mut archive = archive.open_for_processing()?;
-    let mut unpacked = 0;
+    let mut files_unpacked = 0;
 
     while let Some(header) = archive.read_header()? {
         let entry = header.entry();
@@ -31,17 +30,14 @@ pub fn unpack_archive(archive_path: &Path, output_folder: &Path, password: Optio
                 Bytes::new(entry.unpacked_size),
                 entry.filename.display(),
             );
-            unpacked += 1;
+            files_unpacked += 1;
             header.extract_with_base(output_folder)?
         } else {
             header.skip()?
         };
     }
 
-    Ok(Unpacked {
-        files_unpacked: unpacked,
-        read_only_directories: Vec::new(),
-    })
+    Ok(files_unpacked)
 }
 
 /// List contents of `archive_path`, returning a vector of archive entries

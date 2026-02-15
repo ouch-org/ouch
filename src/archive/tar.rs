@@ -16,7 +16,6 @@ use fs_err::{self as fs};
 use same_file::Handle;
 
 use crate::{
-    commands::Unpacked,
     error::FinalError,
     info,
     list::FileInArchive,
@@ -26,11 +25,11 @@ use crate::{
 
 /// Unpacks the archive given by `archive` into the folder given by `into`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> crate::Result<Unpacked> {
+pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> crate::Result<usize> {
     let mut archive = tar::Archive::new(reader);
 
     let mut files_unpacked = 0;
-    let mut read_only_directories = Vec::new();
+    let mut read_only_dirs_and_modes = Vec::new();
 
     for file in archive.entries()? {
         let mut file = file?;
@@ -66,24 +65,18 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> crate::Result<
                 file.unpack_in(output_folder)?;
 
                 if cfg!(unix) && is_writeable.not() {
-                    // We just unpacked a read-only directory
-                    // If any following entries are inside it (very likely), this would fail
-                    //
-                    // To get around that, we'll set this to writeable, then revert once finished
+                    // We unpacked a read-only directory, make it writeable so that we can
+                    // create the files inside of it, by the end, restore the original mode
                     let original_path = file.path()?.to_path_buf();
                     let unpacked = output_folder.join(&original_path);
                     set_permission_mode(&unpacked, original_mode | 0o200)?;
 
-                    read_only_directories.push((original_path, original_mode));
+                    read_only_dirs_and_modes.push((original_path, original_mode));
                 }
             }
             _ => continue,
         }
 
-        // This is printed for every file in the archive and has little
-        // importance for most users, but would generate lots of
-        // spoken text for users using screen readers, braille displays
-        // and so on
         info!(
             "extracted ({}) {:?}",
             Bytes::new(file.size()),
@@ -92,10 +85,14 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> crate::Result<
         files_unpacked += 1;
     }
 
-    Ok(Unpacked {
-        files_unpacked,
-        read_only_directories,
-    })
+    // Restore original mode for read-only dirs we made writeable
+    if cfg!(unix) {
+        for (path, mode) in &read_only_dirs_and_modes {
+            set_permission_mode(path, *mode)?;
+        }
+    }
+
+    Ok(files_unpacked)
 }
 
 /// List contents of `archive`, returning a vector of archive entries
@@ -162,10 +159,6 @@ where
                 }
             }
 
-            // This is printed for every file in `input_filenames` and has
-            // little importance for most users, but would generate lots of
-            // spoken text for users using screen readers, braille displays
-            // and so on
             info!("Compressing '{}'", EscapedPathDisplay::new(path));
 
             let link_meta = path.symlink_metadata()?;

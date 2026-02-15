@@ -95,3 +95,6 @@ opt-level = 2
 incremental = true
 codegen-units = 32
 strip = false
+
+[lints.clippy]
+type_complexity = "allow"

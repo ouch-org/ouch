@@ -8,7 +8,6 @@ use std::{ops::ControlFlow, path::PathBuf};
 
 use bstr::ByteSlice;
 use decompress::DecompressOptions;
-pub use decompress::Unpacked;
 use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use utils::colors;
 
