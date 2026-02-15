@@ -26,7 +26,7 @@ use crate::{
 
 /// Unpacks the archive given by `archive` into the folder given by `into`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path) -> crate::Result<Unpacked> {
+pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> crate::Result<Unpacked> {
     let mut archive = tar::Archive::new(reader);
 
     let mut files_unpacked = 0;

@@ -82,8 +82,7 @@ pub fn list_archive_contents(
         Tar => Box::new(crate::archive::tar::list_archive(tar::Archive::new(reader))),
         Zip => {
             if formats.len() > 1 {
-                // Locking necessary to guarantee that warning and question
-                // messages stay adjacent
+                // Make thread own locks to keep output messages adjacent
                 let _locks = lock_and_flush_output_stdio();
 
                 warn_user_about_loading_zip_in_memory();
@@ -114,14 +113,14 @@ pub fn list_archive_contents(
         }
         SevenZip => {
             if formats.len() > 1 {
-                // Locking necessary to guarantee that warning and question
-                // messages stay adjacent
-                let _locks = lock_and_flush_output_stdio();
-
+                // Make thread own locks to keep output messages adjacent
+                let locks = lock_and_flush_output_stdio();
                 warn_user_about_loading_zip_in_memory();
                 if !user_wants_to_continue(archive_path, question_policy, QuestionAction::Decompression)? {
                     return Ok(());
                 }
+                drop(locks);
+
                 let mut vec = vec![];
                 io::copy(&mut reader, &mut vec)?;
 
