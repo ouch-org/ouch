@@ -4,42 +4,13 @@
 //! stdin interaction helpers.
 
 pub mod colors;
+pub mod io;
+pub mod logger;
+pub mod threads;
+
+pub use self::{file_visibility::*, formatting::*, fs::*, question::*, utf8::*};
 mod file_visibility;
 mod formatting;
 mod fs;
-pub mod io;
-pub mod logger;
 mod question;
-pub mod threads;
-
-pub use self::{
-    file_visibility::FileVisibilityPolicy,
-    formatting::{
-        nice_directory_display, os_str_to_str, path_to_str, pretty_format_list_of_paths, strip_cur_dir, Bytes,
-        EscapedPathDisplay,
-    },
-    fs::{
-        cd_into_same_dir_as, create_dir_if_non_existent, create_symlink, is_path_stdin, remove_file_or_dir,
-        rename_for_available_filename, rename_recursively, resolve_path_conflict, set_permission_mode,
-        try_infer_extension,
-    },
-    question::{
-        create_file_or_prompt_on_conflict, user_wants_to_continue, user_wants_to_overwrite, FileConflitOperation,
-        QuestionAction, QuestionPolicy,
-    },
-    utf8::{get_invalid_utf8_paths, is_invalid_utf8},
-};
-
-mod utf8 {
-    use std::{ffi::OsStr, path::PathBuf};
-
-    /// Check, without allocating, if os_str can be converted into &str
-    pub fn is_invalid_utf8(os_str: impl AsRef<OsStr>) -> bool {
-        os_str.as_ref().to_str().is_none()
-    }
-
-    /// Filter out list of paths that are not utf8 valid
-    pub fn get_invalid_utf8_paths(paths: &[PathBuf]) -> Vec<&PathBuf> {
-        paths.iter().filter(|path| is_invalid_utf8(path)).collect()
-    }
-}
+mod utf8;
