@@ -113,7 +113,7 @@ Categories Used:
 ### New Features
 
 - Add support for listing and decompressing `.rar` archives (https://github.com/ouch-org/ouch/pull/529)
-- Add support for 7z (https://github.com/ouch-org/ouch/pull/555) ([Flat](https://github.com/flat))
+- Add support for 7z (https://github.com/ouch-org/ouch/pull/555)
 
 ### Bug Fixes
 
@@ -162,7 +162,7 @@ Categories Used:
 - Stop keeping track of the names of unpacked files (https://github.com/ouch-org/ouch/pull/334)
 - Clean up (https://github.com/ouch-org/ouch/pull/335)
 
-### Bug fixes
+### Bug Fixes
 
 - Stop incorrectly asking to remove the parent dir (https://github.com/ouch-org/ouch/pull/321)
 
@@ -176,8 +176,8 @@ Categories Used:
 
 - Add release-helper.sh to make github releases easier (https://github.com/ouch-org/ouch/pull/146)
 - Add support for lz4 (https://github.com/ouch-org/ouch/pull/150)
-- add supported formats to help message (https://github.com/ouch-org/ouch/pull/189)
-- add link to github to help message (https://github.com/ouch-org/ouch/pull/191)
+- Add supported formats to help message (https://github.com/ouch-org/ouch/pull/189)
+- Add link to github to help message (https://github.com/ouch-org/ouch/pull/191)
 - Update to Rust 2021 edition (https://github.com/ouch-org/ouch/pull/192)
 - Implement accessibility mode (https://github.com/ouch-org/ouch/pull/197)
 - Add heuristics to decompressing archives (https://github.com/ouch-org/ouch/pull/209)
@@ -192,10 +192,10 @@ Categories Used:
 - Perform exhaustive matching on error variants (https://github.com/ouch-org/ouch/pull/147)
 - Fix short flag for the --dir flag (https://github.com/ouch-org/ouch/pull/149)
 - Rewrite tests (https://github.com/ouch-org/ouch/pull/163)
-- switch from lz4_flex to lzzzz, enable lz4 tests (https://github.com/ouch-org/ouch/pull/173)
+- Switch from lz4_flex to lzzzz, enable lz4 tests (https://github.com/ouch-org/ouch/pull/173)
 - Fix error message panic when cannot list non-archive files (https://github.com/ouch-org/ouch/pull/182)
 - Fix not overwriting files/dirs when trying to create a dir (https://github.com/ouch-org/ouch/pull/190)
-- Skip compressing file if its the same file as the output (https://github.com/ouch-org/ouch/pull/193)
+- Skip compressing file if it's the same file as the output (https://github.com/ouch-org/ouch/pull/193)
 - Fix warnings in doc comments (https://github.com/ouch-org/ouch/pull/196)
 - Remove Lzip because its incorrect, and improve extension comparison (https://github.com/ouch-org/ouch/pull/198)
 - Fix error with format infer (https://github.com/ouch-org/ouch/pull/205)
@@ -230,7 +230,7 @@ Categories Used:
 - Apply clippy lints (https://github.com/ouch-org/ouch/pull/273)
 - Warn user if file extension is passed as file name (https://github.com/ouch-org/ouch/pull/277)
 - Check for errors when setting the last modified time (https://github.com/ouch-org/ouch/pull/278)
-- Use to the humansize crate for formatting human-readable file sizes (https://github.com/ouch-org/ouch/pull/281)
+- Use the humansize crate for formatting human-readable file sizes (https://github.com/ouch-org/ouch/pull/281)
 - Reactivate CI targets for ARM Linux and Windows MinGW (https://github.com/ouch-org/ouch/pull/289)
 - Improve error message when compressing folder with single-file formats (https://github.com/ouch-org/ouch/pull/303)
 
@@ -285,7 +285,7 @@ Categories Used:
 ### Bug Fixes
 
 - Empty folders are ignored in archive compression formats (https://github.com/ouch-org/ouch/issues/41)
-- fix macOS executable paths (https://github.com/ouch-org/ouch/pull/69)
+- Fix macOS executable paths (https://github.com/ouch-org/ouch/pull/69)
 - Print the format type when the format is in an incorrect position (https://github.com/ouch-org/ouch/pull/84)
 - Compressing a single file to a single format that's not `tar` or `zip` panics (https://github.com/ouch-org/ouch/pull/89)
 - Compression flag `--output` not working with single file compression (https://github.com/ouch-org/ouch/pull/93)
@@ -352,7 +352,7 @@ Categories Used:
 ### New Features
 
 - Extension detection method supports more than 2 format suffixes (https://github.com/ouch-org/ouch/issues/28)
-- Change Display implementation of crate::Error to an more structured FinalUserError (https://github.com/ouch-org/ouch/pull/39)
+- Change Display implementation of crate::Error to a more structured FinalUserError (https://github.com/ouch-org/ouch/pull/39)
 - Actions: new targets: Linux ARM64 (glibc), x86-64 (musl), Windows (MinGW) (https://github.com/ouch-org/ouch/pull/43)
 
 ### Improvements
