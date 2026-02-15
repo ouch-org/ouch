@@ -90,11 +90,14 @@ pub fn run(
             )?;
             check::check_archive_formats_position(&formats, &output_path)?;
 
-            let output_file =
-                match utils::ask_to_create_file(&output_path, question_policy, QuestionAction::Compression)? {
-                    Some(writer) => writer,
-                    None => return Ok(()),
-                };
+            let (output_file, output_path) = match utils::create_file_or_prompt_on_conflict(
+                &output_path,
+                question_policy,
+                QuestionAction::Compression,
+            )? {
+                Some(writer) => writer,
+                None => return Ok(()),
+            };
 
             let level = if fast {
                 Some(1) // Lowest level of compression
@@ -194,6 +197,7 @@ pub fn run(
                     } else {
                         output_dir.join(file_name)
                     };
+
                     decompress_file(DecompressOptions {
                         input_file_path: input_path,
                         formats,

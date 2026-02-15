@@ -35,6 +35,11 @@ pub struct DecompressOptions<'a> {
     pub remove: bool,
 }
 
+enum DecompressionSummary {
+    Archive { files_unpacked: usize },
+    NonArchive { path: PathBuf },
+}
+
 /// Decompress (or unpack) a compressed (or packed) file.
 pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
     assert!(options.output_dir.try_exists()?);
@@ -87,7 +92,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             let reader = create_decoder_up_to_first_extension()?;
             let mut reader = chain_reader_decoder(&first_extension, reader)?;
 
-            let mut writer = match utils::ask_to_create_file(
+            let (mut writer, final_path) = match utils::create_file_or_prompt_on_conflict(
                 &options.output_file_path,
                 options.question_policy,
                 QuestionAction::Decompression,
@@ -97,7 +102,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             };
 
             io::copy(&mut reader, &mut writer)?;
-            ControlFlow::Continue(1)
+            ControlFlow::Continue(DecompressionSummary::NonArchive { path: final_path })
         }
         Tar => unpack_archive(
             |output_dir| crate::archive::tar::unpack_archive(create_decoder_up_to_first_extension()?, output_dir),
@@ -172,15 +177,26 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
         }
     };
 
-    let ControlFlow::Continue(files_unpacked) = control_flow else {
+    let ControlFlow::Continue(decompression_summary) = control_flow else {
         return Ok(());
     };
 
-    info_accessible!(
-        "Successfully decompressed archive in {}",
-        nice_directory_display(options.output_dir)
-    );
-    info_accessible!("Files unpacked: {files_unpacked}");
+    match decompression_summary {
+        DecompressionSummary::Archive { files_unpacked } => {
+            info_accessible!(
+                "Successfully decompressed archive to {}",
+                nice_directory_display(options.output_dir)
+            );
+            info_accessible!("Files unpacked: {files_unpacked}");
+        }
+        DecompressionSummary::NonArchive { path } => {
+            if input_is_stdin {
+                info_accessible!("STDIN decompressed to {path:?}");
+            } else {
+                info_accessible!("File {:?} decompressed to {:?}", options.input_file_path, path);
+            }
+        }
+    }
 
     if !input_is_stdin && options.remove {
         fs::remove_file(options.input_file_path)?;
@@ -198,7 +214,7 @@ fn unpack_archive(
     unpack_fn: impl FnOnce(&Path) -> crate::Result<usize>,
     output_dir: &Path,
     question_policy: QuestionPolicy,
-) -> crate::Result<ControlFlow<(), usize>> {
+) -> crate::Result<ControlFlow<(), DecompressionSummary>> {
     let is_valid_output_dir = !output_dir.exists() || (output_dir.is_dir() && output_dir.read_dir()?.next().is_none());
 
     let output_dir_cleaned = if is_valid_output_dir {
@@ -214,7 +230,7 @@ fn unpack_archive(
         fs::create_dir(&output_dir_cleaned)?;
     }
 
-    let files = unpack_fn(&output_dir_cleaned)?;
+    let files_unpacked = unpack_fn(&output_dir_cleaned)?;
 
-    Ok(ControlFlow::Continue(files))
+    Ok(ControlFlow::Continue(DecompressionSummary::Archive { files_unpacked }))
 }
