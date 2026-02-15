@@ -19,7 +19,10 @@ use crate::{
     extension::{self, parse_format_flag},
     info_accessible,
     list::ListOptions,
-    utils::{self, colors::*, is_path_stdin, path_to_str, EscapedPathDisplay, FileVisibilityPolicy, QuestionAction},
+    utils::{
+        self, colors::*, file_size, is_path_stdin, path_to_str, Bytes, EscapedPathDisplay, FileVisibilityPolicy,
+        QuestionAction,
+    },
     CliArgs, QuestionPolicy,
 };
 
@@ -119,6 +122,7 @@ pub fn run(
             );
 
             if let Ok(true) = compress_result {
+                info_accessible!("Output file size: {}", Bytes::new(file_size(&output_path)?));
                 info_accessible!("Successfully compressed '{}'", path_to_str(&output_path));
             } else {
                 // If Ok(false) or Err() occurred, delete incomplete file at `output_path`

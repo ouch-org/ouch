@@ -91,7 +91,7 @@ pub fn nice_directory_display(path: &Path) -> Cow<'_, str> {
     }
 }
 
-/// Struct useful to printing bytes as kB, MB, GB, etc.
+/// Pretty `fmt::Display` impl for printing bytes as kB, MB, GB, etc.
 pub struct Bytes(f64);
 
 impl Bytes {

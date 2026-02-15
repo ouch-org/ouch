@@ -59,6 +59,10 @@ pub fn remove_file_or_dir(path: &Path) -> crate::Result<()> {
     Ok(())
 }
 
+pub fn file_size(path: &Path) -> crate::Result<u64> {
+    Ok(fs::metadata(path)?.len())
+}
+
 /// Create a new path renaming the "filename" from &Path for a available name in the same directory
 pub fn rename_for_available_filename(path: &Path) -> PathBuf {
     let mut renamed_path = rename_or_increment_filename(path);

@@ -86,11 +86,11 @@ where
     Ok(bytes)
 }
 
-pub fn decompress_sevenz<R>(reader: R, output_path: &Path, password: Option<&[u8]>) -> crate::Result<usize>
+pub fn decompress_sevenz<R>(reader: R, output_path: &Path, password: Option<&[u8]>) -> crate::Result<u64>
 where
     R: Read + Seek,
 {
-    let mut files_unpacked: usize = 0;
+    let mut files_unpacked = 0;
 
     let entry_extract_fn = |entry: &ArchiveEntry, reader: &mut dyn Read, path: &PathBuf| {
         files_unpacked += 1;

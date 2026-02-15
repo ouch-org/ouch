@@ -12,10 +12,12 @@ use crate::{
     archive,
     commands::warn_user_about_loading_zip_in_memory,
     extension::{split_first_compression_format, CompressionFormat::*, Extension},
+    info_accessible,
     utils::{
+        file_size,
         io::lock_and_flush_output_stdio,
         threads::{logical_thread_count, physical_thread_count},
-        user_wants_to_continue, FileVisibilityPolicy,
+        user_wants_to_continue, Bytes, FileVisibilityPolicy,
     },
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
@@ -107,7 +109,6 @@ pub fn compress_files(
                     .num_threads(logical_thread_count())
                     .expect("gpz: num_threads must be greater than 0")
                     .from_writer(encoder);
-
                 parz
             }),
             Zstd => {
@@ -142,8 +143,8 @@ pub fn compress_files(
         Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {
             writer = chain_writer_encoder(&first_format, writer)?;
             let mut reader = fs::File::open(&files[0])?;
-
             io::copy(&mut reader, &mut writer)?;
+            info_accessible!("Input file size: {}", Bytes::new(file_size(&files[0])?));
         }
         Tar => {
             archive::tar::build_archive_from_paths(
