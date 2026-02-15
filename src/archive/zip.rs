@@ -17,7 +17,6 @@ use time::OffsetDateTime;
 use zip::{self, read::ZipFile, DateTime, ZipArchive};
 
 use crate::{
-    commands::Unpacked,
     error::FinalError,
     info, info_accessible,
     list::FileInArchive,
@@ -30,11 +29,11 @@ use crate::{
 
 /// Unpacks the archive given by `archive` into the folder given by `output_folder`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive<R>(reader: R, output_folder: &Path, password: Option<&[u8]>) -> crate::Result<Unpacked>
+pub fn unpack_archive<R>(reader: R, output_folder: &Path, password: Option<&[u8]>) -> crate::Result<usize>
 where
     R: Read + Seek,
 {
-    let mut unpacked_files = 0;
+    let mut files_unpacked = 0;
     let mut archive = ZipArchive::new(reader)?;
 
     for idx in 0..archive.len() {
@@ -53,10 +52,6 @@ where
 
         match file.name().ends_with('/') {
             _is_dir @ true => {
-                // This is printed for every file in the archive and has little
-                // importance for most users, but would generate lots of
-                // spoken text for users using screen readers, braille displays
-                // and so on
                 info!("File {} extracted to \"{}\"", idx, file_path.display());
 
                 let mode = file.unix_mode();
@@ -105,13 +100,10 @@ where
             }
         }
 
-        unpacked_files += 1;
+        files_unpacked += 1;
     }
 
-    Ok(Unpacked {
-        files_unpacked: unpacked_files,
-        read_only_directories: Vec::new(),
-    })
+    Ok(files_unpacked)
 }
 
 /// List contents of `archive`, returning a vector of archive entries
@@ -211,10 +203,6 @@ where
                 }
             }
 
-            // This is printed for every file in `input_filenames` and has
-            // little importance for most users, but would generate lots of
-            // spoken text for users using screen readers, braille displays
-            // and so on
             info!("Compressing '{}'", EscapedPathDisplay::new(path));
 
             let metadata = match path.metadata() {

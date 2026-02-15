@@ -12,7 +12,6 @@ use same_file::Handle;
 use sevenz_rust2::ArchiveEntry;
 
 use crate::{
-    commands::Unpacked,
     error::{Error, FinalError, Result},
     info,
     list::FileInArchive,
@@ -52,10 +51,6 @@ where
                 }
             }
 
-            // This is printed for every file in `input_filenames` and has
-            // little importance for most users, but would generate lots of
-            // spoken text for users using screen readers, braille displays
-            // and so on
             info!("Compressing '{}'", EscapedPathDisplay::new(path));
 
             let metadata = match path.metadata() {
@@ -91,14 +86,14 @@ where
     Ok(bytes)
 }
 
-pub fn decompress_sevenz<R>(reader: R, output_path: &Path, password: Option<&[u8]>) -> crate::Result<Unpacked>
+pub fn decompress_sevenz<R>(reader: R, output_path: &Path, password: Option<&[u8]>) -> crate::Result<usize>
 where
     R: Read + Seek,
 {
-    let mut count: usize = 0;
+    let mut files_unpacked: usize = 0;
 
     let entry_extract_fn = |entry: &ArchiveEntry, reader: &mut dyn Read, path: &PathBuf| {
-        count += 1;
+        files_unpacked += 1;
         // Manually handle writing all files from 7z archive, due to library exluding empty files
         use std::io::BufWriter;
 
@@ -148,10 +143,7 @@ where
         None => sevenz_rust2::decompress_with_extract_fn(reader, output_path, entry_extract_fn)?,
     }
 
-    Ok(Unpacked {
-        files_unpacked: count,
-        read_only_directories: Vec::new(),
-    })
+    Ok(files_unpacked)
 }
 
 /// List contents of `archive_path`, returning a vector of archive entries
