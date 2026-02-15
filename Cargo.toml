@@ -15,6 +15,7 @@ categories = ["command-line-utilities", "compression", "encoding"]
 description = "A command-line utility for easily compressing and decompressing files and directories."
 
 [dependencies]
+atty = "0.2.14"
 brotli = "7.0.0"
 bstr = { version = "1.10.0", default-features = false, features = ["std"] }
 bytesize = "1.3.0"
@@ -78,7 +79,6 @@ test-strategy = "0.4.0"
 default = ["unrar", "use_zlib", "use_zstd_thin", "bzip3"]
 use_zlib = ["flate2/zlib", "gzp/deflate_zlib", "zip/deflate-flate2-zlib"]
 use_zstd_thin = ["zstd/thin"]
-allow_piped_choice = []
 
 # For generating binaries for releases
 [profile.release]

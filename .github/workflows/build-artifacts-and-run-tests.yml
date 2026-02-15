@@ -104,7 +104,7 @@ jobs:
         id: concat-features
         shell: bash
         run: |
-          FEATURES=(allow_piped_choice)
+          FEATURES=()
           if [[ "${{ matrix.feature-unrar }}" == true ]]; then FEATURES+=(unrar); fi
           if [[ "${{ matrix.feature-use-zlib }}" == true ]]; then FEATURES+=(use_zlib); fi
           if [[ "${{ matrix.feature-use-zstd-thin }}" == true ]]; then FEATURES+=(use_zstd_thin); fi

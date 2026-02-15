@@ -5,7 +5,7 @@
 
 use std::{
     borrow::Cow,
-    io::{stdin, BufRead, IsTerminal},
+    io::{self, stdin, BufRead},
     path::Path,
 };
 
@@ -104,7 +104,7 @@ pub fn ask_to_create_file(
 ) -> Result<Option<fs::File>> {
     match fs::OpenOptions::new().write(true).create_new(true).open(path) {
         Ok(w) => Ok(Some(w)),
-        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
+        Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
             let action = match question_policy {
                 QuestionPolicy::AlwaysYes => FileConflitOperation::Overwrite,
                 QuestionPolicy::AlwaysNo => FileConflitOperation::Cancel,
@@ -185,8 +185,7 @@ impl<'a, T: Default> ChoicePrompt<'a, T> {
     pub fn ask(mut self) -> crate::Result<T> {
         let message = self.prompt;
 
-        #[cfg(not(feature = "allow_piped_choice"))]
-        if !stdin().is_terminal() {
+        if atty::is(atty::Stream::Stdin) {
             eprintln!("{message}");
             eprintln!("Pass --yes to proceed");
             return Ok(T::default());
@@ -282,8 +281,7 @@ impl<'a> Confirmation<'a> {
             (Some(placeholder), Some(subs)) => Cow::Owned(self.prompt.replace(placeholder, subs)),
         };
 
-        #[cfg(not(feature = "allow_piped_choice"))]
-        if !stdin().is_terminal() {
+        if atty::is(atty::Stream::Stdin) {
             eprintln!("{message}");
             eprintln!("Pass --yes to proceed");
             return Ok(false);
