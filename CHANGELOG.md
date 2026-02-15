@@ -11,13 +11,13 @@ Categories Used:
 - Improvements - general enhancements
 - Tweaks - anything that doesn't fit into other categories, small typo fixes, most CI stuff,
   meta changes (e.g. README updates), etc.
-- Regression - removal of a feature (that might be readded, or reworked in the future)
+- Removals - removal of a feature (and most likely a breaking change)
 
 **Bullet points in chronological order by PR**
 
 ## [Unreleased](https://github.com/ouch-org/ouch/compare/0.6.1...HEAD)
 
-### Breaking Changes
+### Removals
 
 - Remove archive auto-flattening on decompression (formerly known as "smart unpack") (https://github.com/ouch-org/ouch/pull/907)
 
@@ -259,7 +259,7 @@ Categories Used:
 - Rewrite progress module (https://github.com/ouch-org/ouch/pull/280)
 - Create scripts for benchmarking ouch (https://github.com/ouch-org/ouch/pull/280)
 
-### Regression
+### Removals
 
 - Remove automatic detection for partial compression (https://github.com/ouch-org/ouch/pull/286)
 - Remove progress feature (https://github.com/ouch-org/ouch/pull/300)
