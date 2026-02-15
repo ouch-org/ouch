@@ -40,7 +40,8 @@ fn redact_paths(text: &str, dir: &Path) -> String {
     let dir_name = dir.file_name().and_then(OsStr::to_str).unwrap();
 
     // this regex should be good as long as the path does not contain whitespace characters
-    let re = Regex::new(&format!(r"\S*[/\\]{dir_name}[/\\]")).unwrap();
+    let slashes = "(/|\\(\\)?)";
+    let re = Regex::new(&format!(r"\S*{slashes}{dir_name}{slashes}")).unwrap();
     re.replace_all(text, "<TMP_DIR>/").into()
 }
 
