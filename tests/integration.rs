@@ -97,7 +97,6 @@ fn create_random_files(dir: impl Into<PathBuf>, depth: u8, rng: &mut SmallRng) {
 }
 
 /// Create n random files on directory dir
-#[cfg_attr(not(feature = "allow_piped_choice"), allow(dead_code))]
 fn create_n_random_files(n: usize, dir: impl Into<PathBuf>, rng: &mut SmallRng) {
     let dir: &PathBuf = &dir.into();
 
@@ -300,7 +299,6 @@ fn multiple_files_with_conflict_and_choice_to_not_overwrite(
     assert_same_directory(after, after_backup, false);
 }
 
-#[cfg(feature = "allow_piped_choice")]
 #[proptest(cases = 25)]
 fn multiple_files_with_conflict_and_choice_to_rename(
     ext: DirectoryExtension,
@@ -318,7 +316,7 @@ fn multiple_files_with_conflict_and_choice_to_rename(
     fs::create_dir_all(&dest_files_path).unwrap();
     create_n_random_files(5, &dest_files_path, &mut SmallRng::from_entropy());
 
-    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(ext, &extra_extensions)));
     ouch!("-A", "c", &src_files_path, archive);
 
     let dest_files_path_renamed = &root_path.join("dest_files_1");
@@ -336,7 +334,6 @@ fn multiple_files_with_conflict_and_choice_to_rename(
     assert_same_directory(src_files_path, dest_files_path_renamed.join("src_files"), false);
 }
 
-#[cfg(feature = "allow_piped_choice")]
 #[proptest(cases = 25)]
 fn multiple_files_with_conflict_and_choice_to_rename_with_already_a_renamed(
     ext: DirectoryExtension,
@@ -358,7 +355,7 @@ fn multiple_files_with_conflict_and_choice_to_rename_with_already_a_renamed(
     fs::create_dir_all(&dest_files_path_1).unwrap();
     create_n_random_files(5, &dest_files_path_1, &mut SmallRng::from_entropy());
 
-    let archive = &root_path.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(ext, &extra_extensions)));
     ouch!("-A", "c", &src_files_path, archive);
 
     let dest_files_path_renamed = &root_path.join("dest_files_2");
@@ -668,7 +665,6 @@ fn enable_gitignore_flag_should_work_without_git(
     );
 }
 
-#[cfg(feature = "allow_piped_choice")]
 #[proptest(cases = 25)]
 fn unpack_multiple_sources_into_the_same_destination_with_merge(
     ext: DirectoryExtension,
@@ -677,13 +673,13 @@ fn unpack_multiple_sources_into_the_same_destination_with_merge(
     let temp_dir = tempdir()?;
     let root_path = temp_dir.path();
     let source_path = root_path
-        .join(format!("example_{}", merge_extensions(&ext, &extra_extensions)))
+        .join(format!("example_{}", merge_extensions(ext, &extra_extensions)))
         .join("sub_a")
         .join("sub_b")
         .join("sub_c");
 
     fs::create_dir_all(&source_path)?;
-    let archive = root_path.join(format!("archive.{}", merge_extensions(&ext, &extra_extensions)));
+    let archive = root_path.join(format!("archive.{}", merge_extensions(ext, &extra_extensions)));
     crate::utils::cargo_bin()
         .arg("compress")
         .args([
@@ -697,7 +693,7 @@ fn unpack_multiple_sources_into_the_same_destination_with_merge(
 
     fs::remove_dir_all(&source_path)?;
     fs::create_dir_all(&source_path)?;
-    let archive1 = root_path.join(format!("archive1.{}", merge_extensions(&ext, &extra_extensions)));
+    let archive1 = root_path.join(format!("archive1.{}", merge_extensions(ext, &extra_extensions)));
     crate::utils::cargo_bin()
         .arg("compress")
         .args([
@@ -709,7 +705,7 @@ fn unpack_multiple_sources_into_the_same_destination_with_merge(
         .assert()
         .success();
 
-    let out_path = root_path.join(format!("out_{}", merge_extensions(&ext, &extra_extensions)));
+    let out_path = root_path.join(format!("out_{}", merge_extensions(ext, &extra_extensions)));
     fs::create_dir_all(&out_path)?;
 
     crate::utils::cargo_bin()
