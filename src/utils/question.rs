@@ -6,7 +6,7 @@
 use std::{
     borrow::Cow,
     io::{self, stdin, BufRead},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 use fs_err as fs;
@@ -68,12 +68,15 @@ pub fn user_wants_to_overwrite(
     match question_policy {
         QuestionPolicy::AlwaysYes => Ok(Op::Overwrite),
         QuestionPolicy::AlwaysNo => Ok(Op::Cancel),
-        QuestionPolicy::Ask => ask_file_conflict_operation(path, question_action),
+        QuestionPolicy::Ask => prompt_user_for_file_conflict_resolution(path, question_action),
     }
 }
 
 /// Ask the user if they want to overwrite or rename the &Path
-pub fn ask_file_conflict_operation(path: &Path, question_action: QuestionAction) -> Result<FileConflitOperation> {
+pub fn prompt_user_for_file_conflict_resolution(
+    path: &Path,
+    question_action: QuestionAction,
+) -> Result<FileConflitOperation> {
     use FileConflitOperation as Op;
 
     let path = path_to_str(strip_cur_dir(path));
@@ -101,36 +104,46 @@ pub fn ask_file_conflict_operation(path: &Path, question_action: QuestionAction)
 }
 
 /// Create the file if it doesn't exist and if it does then ask to overwrite it.
+///
 /// If the user doesn't want to overwrite then we return [`Ok(None)`]
-pub fn ask_to_create_file(
+///
+/// Returns the new file name in case the user asked to rename the file to avoid
+/// the conflict.
+pub fn create_file_or_prompt_on_conflict(
     path: &Path,
     question_policy: QuestionPolicy,
     question_action: QuestionAction,
-) -> Result<Option<fs::File>> {
-    match fs::OpenOptions::new().write(true).create_new(true).open(path) {
-        Ok(w) => Ok(Some(w)),
-        Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
-            let action = match question_policy {
-                QuestionPolicy::AlwaysYes => FileConflitOperation::Overwrite,
-                QuestionPolicy::AlwaysNo => FileConflitOperation::Cancel,
-                QuestionPolicy::Ask => ask_file_conflict_operation(path, question_action)?,
-            };
+) -> Result<Option<(fs::File, PathBuf)>> {
+    let path = path.to_owned();
 
-            match action {
-                FileConflitOperation::Merge => Ok(Some(fs::File::create(path)?)),
-                FileConflitOperation::Overwrite => {
-                    utils::remove_file_or_dir(path)?;
-                    Ok(Some(fs::File::create(path)?))
-                }
-                FileConflitOperation::Cancel => Ok(None),
-                FileConflitOperation::Rename => {
-                    let renamed_file_path = utils::rename_for_available_filename(path);
-                    Ok(Some(fs::File::create(renamed_file_path)?))
-                }
-            }
+    match fs::OpenOptions::new().write(true).create_new(true).open(&path) {
+        Ok(file) => return Ok(Some((file, path))),
+        Err(e) if e.kind() != io::ErrorKind::AlreadyExists => return Err(Error::from(e)),
+
+        Err(_file_already_exists) => {
+            // Keep going, will prompt user to solve conflicts
         }
-        Err(e) => Err(Error::from(e)),
     }
+
+    // Question policy override prompting
+    let action = match question_policy {
+        QuestionPolicy::AlwaysYes => FileConflitOperation::Overwrite,
+        QuestionPolicy::AlwaysNo => FileConflitOperation::Cancel,
+        QuestionPolicy::Ask => prompt_user_for_file_conflict_resolution(&path, question_action)?,
+    };
+
+    let path_to_create_file = match action {
+        FileConflitOperation::Cancel => return Ok(None),
+        FileConflitOperation::Merge => path,
+        FileConflitOperation::Overwrite => {
+            utils::remove_file_or_dir(&path)?;
+            path
+        }
+        FileConflitOperation::Rename => utils::rename_for_available_filename(&path),
+    };
+
+    let file = fs::File::create(&path_to_create_file)?;
+    Ok(Some((file, path_to_create_file)))
 }
 
 /// Check if QuestionPolicy flags were set, otherwise, ask the user if they want to continue.

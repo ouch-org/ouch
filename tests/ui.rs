@@ -7,7 +7,7 @@ mod utils;
 
 use std::{ffi::OsStr, io, path::Path, process::Output};
 
-use insta::assert_snapshot as ui;
+use insta::{assert_snapshot as ui, Settings};
 use regex::Regex;
 
 use crate::utils::create_files_in;
@@ -40,12 +40,32 @@ fn redact_paths(text: &str, dir: &Path) -> String {
     let dir_name = dir.file_name().and_then(OsStr::to_str).unwrap();
 
     // this regex should be good as long as the path does not contain whitespace characters
-    let re = Regex::new(&format!(r"\S*[/\\]{dir_name}[/\\]")).unwrap();
+    let slashes = r"(/|\\(\\)?)";
+    let re = Regex::new(&format!(r"\S*{slashes}{dir_name}{slashes}")).unwrap();
     re.replace_all(text, "<TMP_DIR>/").into()
 }
 
 fn output_to_string(output: Output) -> String {
     String::from_utf8(output.stdout).unwrap() + std::str::from_utf8(&output.stderr).unwrap()
+}
+
+/// Filter necessary for redactions/transformations, so the snapshot matches even
+/// if the output has some randomness
+fn insta_filter_settings() -> insta::Settings {
+    let mut settings = Settings::new();
+    // Sizes can change slightly between runs.
+    settings.add_filter(r"\s+\b[[:xdigit:]]+\.[[:xdigit:]]+ (  |ki|Mi|Gi|Ti)B\b", " [SIZE]");
+    // .exe shows up for Windows but not for Linux
+    settings.add_filter(r"(Usage:.*\b)ouch(\.exe)?\b", "${1}[OUCH_BIN]");
+    // Windows paths use `\` instead of `/`
+    // TODO: the `(\\)?` is  bandaid fix for "\\\\" in windows
+    //
+    // If we want paths not to have duplicated `\\` we have to replace all {:?} debug
+    // placeholders with a wrapper function that'll handle windows properly
+    //
+    // Or, succumb to path.display() formatting!
+    settings.add_filter(r"\\(\\)?", "/");
+    settings
 }
 
 #[test]
@@ -138,7 +158,9 @@ fn ui_test_ok_decompress() {
     create_files_in(dir, &["input"]);
     run_ouch("ouch compress input output.zst", dir);
 
-    ui!(run_ouch("ouch decompress output.zst", dir));
+    insta_filter_settings().bind(|| {
+        ui!(run_ouch("ouch decompress output.zst", dir));
+    });
 }
 
 #[cfg(target_os = "linux")]

@@ -30,7 +30,6 @@ use crate::{
 /// # Return value
 /// - Returns `Ok(true)` if compressed all files normally.
 /// - Returns `Ok(false)` if user opted to abort compression mid-way.
-#[allow(clippy::too_many_arguments)]
 pub fn compress_files(
     files: Vec<PathBuf>,
     extensions: Vec<Extension>,

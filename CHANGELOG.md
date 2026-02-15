@@ -53,6 +53,7 @@ Categories Used:
 - Fix tar hardlink is not preserved after decompressing or compressing (https://github.com/ouch-org/ouch/pull/879)
 - Fix enable gitignore flag should work without git (https://github.com/ouch-org/ouch/pull/881)
 - Fix .7z always being fully loaded to memory (https://github.com/ouch-org/ouch/pull/905)
+- Fix reporting wrong path when file is renamed (https://github.com/ouch-org/ouch/pull/913)
 
 ### Tweaks
 
