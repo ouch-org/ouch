@@ -17,6 +17,10 @@ Categories Used:
 
 ## [Unreleased](https://github.com/ouch-org/ouch/compare/0.6.1...HEAD)
 
+### Breaking Changes
+
+- Remove archive auto-flattening on decompression (formerly known as "smart unpack") (https://github.com/ouch-org/ouch/pull/907)
+
 ### New Features
 
 - Merge folders in decompression (https://github.com/ouch-org/ouch/pull/798)
