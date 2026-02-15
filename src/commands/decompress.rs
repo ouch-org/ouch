@@ -30,7 +30,6 @@ pub struct DecompressOptions<'a> {
     pub output_dir: &'a Path,
     /// Used when extracting single file formats and not archive formats
     pub output_file_path: PathBuf,
-    pub is_output_dir_provided: bool,
     pub question_policy: QuestionPolicy,
     pub password: Option<&'a [u8]>,
     pub remove: bool,
@@ -98,15 +97,12 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             };
 
             io::copy(&mut reader, &mut writer)?;
-
             ControlFlow::Continue(1)
         }
-        Tar => execute_decompression(
+        Tar => unpack_archive(
             |output_dir| crate::archive::tar::unpack_archive(create_decoder_up_to_first_extension()?, output_dir),
             options.output_dir,
-            &options.output_file_path,
             options.question_policy,
-            options.is_output_dir_provided,
         )?,
         Zip | SevenZip => {
             let unpack_fn = match first_extension {
@@ -148,12 +144,10 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 ))
             };
 
-            execute_decompression(
+            unpack_archive(
                 |output_dir| unpack_fn(reader, output_dir, options.password),
                 options.output_dir,
-                &options.output_file_path,
                 options.question_policy,
-                options.is_output_dir_provided,
             )?
         }
         #[cfg(feature = "unrar")]
@@ -170,13 +164,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 })
             };
 
-            execute_decompression(
-                unpack_fn,
-                options.output_dir,
-                &options.output_file_path,
-                options.question_policy,
-                options.is_output_dir_provided,
-            )?
+            unpack_archive(unpack_fn, options.output_dir, options.question_policy)?
         }
         #[cfg(not(feature = "unrar"))]
         Rar => {
@@ -188,10 +176,6 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
         return Ok(());
     };
 
-    // this is only printed once, so it doesn't result in much text. On the other hand,
-    // having a final status message is important especially in an accessibility context
-    // as screen readers may not read a commands exit code, making it hard to reason
-    // about whether the command succeeded without such a message
     info_accessible!(
         "Successfully decompressed archive in {}",
         nice_directory_display(options.output_dir)
@@ -206,25 +190,11 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
     Ok(())
 }
 
-fn execute_decompression(
-    unpack_fn: impl FnOnce(&Path) -> crate::Result<usize>,
-    output_dir: &Path,
-    output_file_path: &Path,
-    question_policy: QuestionPolicy,
-    is_output_dir_provided: bool,
-) -> crate::Result<ControlFlow<(), usize>> {
-    if is_output_dir_provided {
-        unpack(unpack_fn, output_dir, question_policy)
-    } else {
-        smart_unpack(unpack_fn, output_dir, output_file_path, question_policy)
-    }
-}
-
 /// Unpacks an archive creating the output directory, this function will create the output_dir
 /// directory or replace it if it already exists. The `output_dir` needs to be empty
 /// - If `output_dir` does not exist OR is a empty directory, it will unpack there
 /// - If `output_dir` exist OR is a directory not empty, the user will be asked what to do
-fn unpack(
+fn unpack_archive(
     unpack_fn: impl FnOnce(&Path) -> crate::Result<usize>,
     output_dir: &Path,
     question_policy: QuestionPolicy,
@@ -247,64 +217,4 @@ fn unpack(
     let files = unpack_fn(&output_dir_cleaned)?;
 
     Ok(ControlFlow::Continue(files))
-}
-
-/// Unpacks an archive with some heuristics
-/// - If the archive contains only one file, it will be extracted to the `output_dir`
-/// - If the archive contains multiple files, it will be extracted to a subdirectory of the
-///   output_dir named after the archive (given by `output_file_path`)
-///
-/// Note: This functions assumes that `output_dir` exists
-fn smart_unpack(
-    unpack_fn: impl FnOnce(&Path) -> crate::Result<usize>,
-    output_dir: &Path,
-    output_file_path: &Path,
-    question_policy: QuestionPolicy,
-) -> crate::Result<ControlFlow<(), usize>> {
-    assert!(output_dir.exists());
-    let temp_dir = tempfile::Builder::new().prefix("tmp-ouch-").tempdir_in(output_dir)?;
-    let temp_dir_path = temp_dir.path();
-
-    info_accessible!(
-        "Created temporary directory {} to hold decompressed elements",
-        nice_directory_display(temp_dir_path)
-    );
-
-    let files_unpacked = unpack_fn(temp_dir_path)?;
-
-    let root_contains_only_one_element = fs::read_dir(temp_dir_path)?.take(2).count() == 1;
-
-    let (previous_path, mut new_path) = if root_contains_only_one_element {
-        // Only one file in the root directory, so we can just move it to the output directory
-        let file = fs::read_dir(temp_dir_path)?.next().expect("item exists")?;
-        let file_path = file.path();
-        let file_name = file_path
-            .file_name()
-            .expect("Should be safe because paths in archives should not end with '..'");
-        let correct_path = output_dir.join(file_name);
-
-        (file_path, correct_path)
-    } else {
-        (temp_dir_path.to_owned(), output_file_path.to_owned())
-    };
-
-    // Before moving, need to check if a file with the same name already exists
-    // If it does, need to ask the user what to do
-    new_path = match utils::resolve_path_conflict(&new_path, question_policy, QuestionAction::Decompression)? {
-        Some(path) => path,
-        None => return Ok(ControlFlow::Break(())),
-    };
-
-    // Rename the temporary directory to the archive name, which is output_file_path
-    if fs::rename(&previous_path, &new_path).is_err() {
-        utils::rename_recursively(&previous_path, &new_path)?;
-    };
-
-    info_accessible!(
-        "Successfully moved \"{}\" to \"{}\"",
-        nice_directory_display(&previous_path),
-        nice_directory_display(&new_path),
-    );
-
-    Ok(ControlFlow::Continue(files_unpacked))
 }

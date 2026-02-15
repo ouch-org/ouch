@@ -98,8 +98,6 @@ pub fn rename_or_increment_filename(path: &Path) -> PathBuf {
 pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
     if !path.exists() {
         fs::create_dir_all(path)?;
-        // creating a directory is an important change to the file system we
-        // should always inform the user about
         info_accessible!("Directory {} created", EscapedPathDisplay::new(path));
     }
     Ok(())
