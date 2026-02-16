@@ -4,7 +4,7 @@ mod compress;
 mod decompress;
 mod list;
 
-use std::{env, ops::ControlFlow};
+use std::ops::ControlFlow;
 
 use bstr::ByteSlice;
 use decompress::DecompressOptions;
@@ -23,7 +23,7 @@ use crate::{
         self, canonicalize, colors::*, file_size, is_path_stdin, path_to_str, Bytes, EscapedPathDisplay,
         FileVisibilityPolicy, QuestionAction,
     },
-    CliArgs, QuestionPolicy,
+    CliArgs, QuestionPolicy, INITIAL_CURRENT_DIR,
 };
 
 /// Warn the user that (de)compressing this .zip archive might freeze their system.
@@ -189,7 +189,7 @@ pub fn run(
                 // Led to bugs when output_dir was a symlink
                 canonicalize(&dir)?
             } else {
-                env::current_dir()?
+                INITIAL_CURRENT_DIR.clone()
             };
 
             files
