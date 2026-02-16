@@ -37,13 +37,14 @@ fn run_ouch(argv: &str, dir: &Path) -> String {
 
 /// Remove random tempdir paths from snapshots to make them deterministic.
 fn redact_paths(text: &str, dir: &Path) -> String {
-    let dir_name = dir.file_name().and_then(OsStr::to_str).unwrap();
+    text.to_owned()
+    // let dir_name = dir.file_name().and_then(OsStr::to_str).unwrap();
 
-    // this regex should be good as long as the path does not contain whitespace characters
-    // Use [^\s"]* instead of \S* to avoid matching quote characters
-    let slashes = r"(/|\\(\\)?)";
-    let re = Regex::new(&format!(r#"[^\s"]*{slashes}{dir_name}{slashes}"#)).unwrap();
-    re.replace_all(text, "<TMP_DIR>/").into()
+    // // this regex should be good as long as the path does not contain whitespace characters
+    // // Use [^\s"]* instead of \S* to avoid matching quote characters
+    // let slashes = r"(/|\\(\\)?)";
+    // let re = Regex::new(&format!(r#"[^\s"]*{slashes}{dir_name}{slashes}"#)).unwrap();
+    // re.replace_all(text, "<TMP_DIR>/").into()
 }
 
 fn output_to_string(output: Output) -> String {
