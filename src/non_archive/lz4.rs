@@ -19,7 +19,7 @@ impl MultiFrameLz4Decoder {
         // LZ4 frame magic number (little-endian)
         const LZ4_MAGIC: [u8; 4] = [0x04, 0x22, 0x4D, 0x18];
 
-        loop {
+        for frame_index in 0..u32::MAX {
             let pos = cursor.position() as usize;
             let remaining = cursor.get_ref().len() - pos;
 
@@ -30,7 +30,7 @@ impl MultiFrameLz4Decoder {
             if remaining < 4 {
                 return Err(io::Error::new(
                     io::ErrorKind::UnexpectedEof,
-                    "Incomplete LZ4 frame header",
+                    format!("Incomplete LZ4 frame header (frame index: {})", frame_index),
                 ));
             }
 
@@ -39,7 +39,7 @@ impl MultiFrameLz4Decoder {
             if slice != LZ4_MAGIC {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
-                    "Invalid LZ4 frame magic number",
+                    format!("Invalid LZ4 frame magic number (frame index: {})", frame_index),
                 ));
             }
 
