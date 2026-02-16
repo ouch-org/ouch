@@ -42,6 +42,7 @@ Categories Used:
 - Handle --quiet logic in logger (https://github.com/ouch-org/ouch/pull/885)
 - Refactor/simplify logger (https://github.com/ouch-org/ouch/pull/888)
 - Print input and output file sizes (https://github.com/ouch-org/ouch/pull/914)
+- Make path printing concise and consistent (https://github.com/ouch-org/ouch/pull/916)
 
 ### Bug Fixes
 

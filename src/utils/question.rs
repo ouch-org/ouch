@@ -16,9 +16,8 @@ use crate::{
     error::{Error, FinalError, Result},
     utils::{
         self, colors,
-        formatting::path_to_str,
+        formatting::PathFmt,
         io::{is_stdin_dev_null, lock_and_flush_output_stdio},
-        strip_cur_dir,
     },
 };
 
@@ -79,10 +78,9 @@ pub fn prompt_user_for_file_conflict_resolution(
 ) -> Result<FileConflitOperation> {
     use FileConflitOperation as Op;
 
-    let path = path_to_str(strip_cur_dir(path));
     match question_action {
         QuestionAction::Compression => ChoicePrompt::new(
-            format!("Do you want to overwrite {path}?"),
+            format!("Do you want to overwrite {:?}?", PathFmt(path)),
             [
                 ("yes", Op::Overwrite, *colors::GREEN),
                 ("no", Op::Cancel, *colors::RED),
@@ -91,7 +89,7 @@ pub fn prompt_user_for_file_conflict_resolution(
         )
         .ask(),
         QuestionAction::Decompression => ChoicePrompt::new(
-            format!("Do you want to overwrite {path}?"),
+            format!("Do you want to overwrite {:?}?", PathFmt(path)),
             [
                 ("yes", Op::Overwrite, *colors::GREEN),
                 ("no", Op::Cancel, *colors::RED),
@@ -160,7 +158,7 @@ pub fn user_wants_to_continue(
                 QuestionAction::Compression => "compress",
                 QuestionAction::Decompression => "decompress",
             };
-            let path = path_to_str(strip_cur_dir(path));
+            let path = format!("{:?}", PathFmt(path));
             let path = Some(&*path);
             let placeholder = Some("FILE");
             Confirmation::new(&format!("Do you want to {action} 'FILE'?"), placeholder).ask(path)

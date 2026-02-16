@@ -19,7 +19,7 @@ use crate::{
     error::FinalError,
     info,
     list::FileInArchive,
-    utils::{self, create_symlink, set_permission_mode, Bytes, EscapedPathDisplay, FileVisibilityPolicy},
+    utils::{self, create_symlink, set_permission_mode, BytesFmt, FileVisibilityPolicy, PathFmt},
     warning,
 };
 
@@ -79,8 +79,8 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> crate::Result<
 
         info!(
             "extracted ({}) {:?}",
-            Bytes::new(file.size()),
-            utils::strip_cur_dir(&output_folder.join(file.path()?)),
+            BytesFmt(file.size()),
+            PathFmt(&output_folder.join(file.path()?)),
         );
         files_unpacked += 1;
     }
@@ -153,13 +153,13 @@ where
             // If the output_path is the same as the input file, warn the user and skip the input (in order to avoid compression recursion)
             if let Ok(handle) = &output_handle {
                 if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
-                    warning!("Cannot compress `{}` into itself, skipping", output_path.display());
+                    warning!("Cannot compress {:?} into itself, skipping", PathFmt(output_path));
 
                     continue;
                 }
             }
 
-            info!("Compressing '{}'", EscapedPathDisplay::new(path));
+            info!("Compressing {:?}", PathFmt(path));
 
             let link_meta = path.symlink_metadata()?;
 
@@ -173,7 +173,7 @@ where
                 builder.append_link(&mut header, path, &target_path).map_err(|err| {
                     FinalError::with_title("Could not create archive")
                         .detail("Unexpected error while trying to read link")
-                        .detail(format!("Error: {err}."))
+                        .detail(format!("Error: {err}"))
                 })?;
                 continue;
             }
@@ -192,11 +192,8 @@ where
                         header.set_size(0);
 
                         builder.append_link(&mut header, path, target_path).map_err(|err| {
-                            FinalError::with_title("Could not create archive").detail(format!(
-                                "Error appending hard link '{}': {}",
-                                path.display(),
-                                err
-                            ))
+                            FinalError::with_title("Could not create archive")
+                                .detail(format!("Error appending hard link {:?}: {err}", PathFmt(path)))
                         })?;
                     }
                     None => {
@@ -226,7 +223,7 @@ where
             builder.append_file(path, file.file_mut()).map_err(|err| {
                 FinalError::with_title("Could not create archive")
                     .detail("Unexpected error while trying to read file")
-                    .detail(format!("Error: {err}."))
+                    .detail(format!("Error: {err}"))
             })?;
         }
         env::set_current_dir(previous_location)?;

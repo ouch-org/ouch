@@ -4,4 +4,4 @@ expression: "run_ouch(\"ouch compress input output.gz\", dir)"
 ---
 [INFO] Input file size: [SIZE]
 [INFO] Output file size: [SIZE]
-[INFO] Successfully compressed to 'output.gz'
+[INFO] Successfully compressed to "output.gz"

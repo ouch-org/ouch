@@ -59,13 +59,7 @@ fn insta_filter_settings() -> insta::Settings {
     // .exe shows up for Windows but not for Linux
     settings.add_filter(r"(Usage:.*\b)ouch(\.exe)?\b", "${1}[OUCH_BIN]");
     // Windows paths use `\` instead of `/`
-    // TODO: the `(\\)?` is  bandaid fix for "\\\\" in windows
-    //
-    // If we want paths not to have duplicated `\\` we have to replace all {:?} debug
-    // placeholders with a wrapper function that'll handle windows properly
-    //
-    // Or, succumb to path.display() formatting!
-    settings.add_filter(r"\\(\\)?", "/");
+    settings.add_filter(r"\\", "/");
     settings
 }
 

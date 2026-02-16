@@ -3,11 +3,11 @@ source: tests/ui.rs
 expression: "run_ouch(\"ouch decompress b.unknown\", dir)"
 ---
 [ERROR] Cannot decompress files
- - Files with unsupported extensions: <TMP_DIR>/b.unknown
+ - Files with unsupported extensions: "b.unknown"
  - Decompression formats are detected automatically from file extension
 
 hint: Supported extensions are: tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, lz, sz, zst, 7z
 hint: Supported aliases are: tgz, tbz, tlz4, txz, tlzma, tsz, tzst, tlz, cbt, cbz, cb7, cbr
 hint: 
 hint: Alternatively, you can pass an extension to the '--format' flag:
-hint:   ouch decompress <TMP_DIR>/b.unknown --format tar.gz
+hint:   ouch decompress b.unknown --format tar.gz

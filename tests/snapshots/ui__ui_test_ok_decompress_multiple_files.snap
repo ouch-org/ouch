@@ -3,7 +3,7 @@ source: tests/ui.rs
 expression: "lines.join(\"\\n\")"
 ---
 [INFO] Files unpacked: 4
-[INFO] Successfully decompressed archive to <TMP_DIR>/output
+[INFO] Successfully decompressed archive to "output"
 [INFO] extracted ( [SIZE]) "output/input"
 [INFO] extracted ( [SIZE]) "output/input/input"
 [INFO] extracted ( [SIZE]) "output/input/input2"

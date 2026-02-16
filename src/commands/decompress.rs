@@ -17,7 +17,7 @@ use crate::{
     utils::{
         self, file_size,
         io::{lock_and_flush_output_stdio, ReadSeek},
-        is_path_stdin, nice_directory_display, user_wants_to_continue, Bytes,
+        is_path_stdin, user_wants_to_continue, BytesFmt, PathFmt,
     },
     QuestionAction, QuestionPolicy, Result, BUFFER_CAPACITY,
 };
@@ -185,26 +185,27 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
 
     match decompression_summary {
         DecompressionSummary::Archive { files_unpacked } => {
-            info_accessible!(
-                "Successfully decompressed archive to {}",
-                nice_directory_display(options.output_dir)
-            );
+            info_accessible!("Successfully decompressed archive to {:?}", PathFmt(options.output_dir));
             info_accessible!("Files unpacked: {files_unpacked}");
         }
         DecompressionSummary::NonArchive { output_path } => {
             if input_is_stdin {
-                info_accessible!("STDIN decompressed to {output_path:?}");
+                info_accessible!("STDIN decompressed to {:?}", PathFmt(&output_path));
             } else {
-                info_accessible!("File {:?} decompressed to {:?}", options.input_file_path, output_path);
-                info_accessible!("Input file size: {}", Bytes::new(file_size(options.input_file_path)?));
+                info_accessible!(
+                    "File {:?} decompressed to {:?}",
+                    PathFmt(options.input_file_path),
+                    PathFmt(&output_path),
+                );
+                info_accessible!("Input file size: {}", BytesFmt(file_size(options.input_file_path)?));
             }
-            info_accessible!("Output file size: {}", Bytes::new(file_size(&output_path)?));
+            info_accessible!("Output file size: {}", BytesFmt(file_size(&output_path)?));
         }
     }
 
     if !input_is_stdin && options.remove {
         fs::remove_file(options.input_file_path)?;
-        info!("Removed input file {}", nice_directory_display(options.input_file_path));
+        info!("Removed input file {:?}", PathFmt(options.input_file_path));
     }
 
     Ok(())

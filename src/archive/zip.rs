@@ -21,8 +21,8 @@ use crate::{
     info, info_accessible,
     list::FileInArchive,
     utils::{
-        cd_into_same_dir_as, create_symlink, get_invalid_utf8_paths, pretty_format_list_of_paths, strip_cur_dir, Bytes,
-        EscapedPathDisplay, FileVisibilityPolicy,
+        cd_into_same_dir_as, create_symlink, get_invalid_utf8_paths, pretty_format_list_of_paths, strip_cur_dir,
+        BytesFmt, FileVisibilityPolicy, PathFmt,
     },
     warning,
 };
@@ -52,7 +52,7 @@ where
 
         match file.name().ends_with('/') {
             _is_dir @ true => {
-                info!("File {} extracted to \"{}\"", idx, file_path.display());
+                info!("File {} extracted to {:?}", idx, PathFmt(&file_path));
 
                 let mode = file.unix_mode();
                 let is_symlink = mode.is_some_and(|mode| mode & 0o170000 == 0o120000);
@@ -84,7 +84,7 @@ where
                     let mut target = String::new();
                     file.read_to_string(&mut target)?;
 
-                    info!("linking {} -> {}", file_path.display(), target);
+                    info!("linking {:?} -> \"{}\"", PathFmt(file_path), target);
 
                     create_symlink(Path::new(&target), file_path)?;
                 } else {
@@ -96,7 +96,7 @@ where
                 }
 
                 // same reason is in _is_dir: long, often not needed text
-                info!("extracted ({}) {:?}", Bytes::new(file.size()), file_path.display(),);
+                info!("extracted ({}) {:?}", BytesFmt(file.size()), PathFmt(file_path));
             }
         }
 
@@ -179,7 +179,7 @@ where
             .detail("Zip archives require files to have valid UTF-8 paths")
             .detail(format!(
                 "Files with invalid paths: {}",
-                pretty_format_list_of_paths(&invalid_unicode_filenames)
+                pretty_format_list_of_paths(&invalid_unicode_filenames),
             ));
 
         return Err(error.into());
@@ -199,11 +199,11 @@ where
             // If the output_path is the same as the input file, warn the user and skip the input (in order to avoid compression recursion)
             if let Ok(handle) = &output_handle {
                 if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
-                    warning!("Cannot compress `{}` into itself, skipping", output_path.display());
+                    warning!("Cannot compress {:?} into itself, skipping", PathFmt(output_path));
                 }
             }
 
-            info!("Compressing '{}'", EscapedPathDisplay::new(path));
+            info!("Compressing {:?}", PathFmt(path));
 
             let metadata = match path.metadata() {
                 Ok(metadata) => metadata,
@@ -219,19 +219,20 @@ where
             #[cfg(unix)]
             let mode = metadata.permissions().mode();
 
-            let entry_name = path.to_str().ok_or_else(|| {
-                FinalError::with_title("Zip requires that all directories names are valid UTF-8")
-                    .detail(format!("File at '{path:?}' has a non-UTF-8 name"))
-            })?;
+            fn zip_non_utf8_error<'a>(path: &'a Path) -> impl Fn() -> FinalError + 'a {
+                || {
+                    FinalError::with_title("Zip requires that all paths are valid UTF-8")
+                        .detail(format!("File {:?} has a non-UTF-8 path", PathFmt(path)))
+                }
+            }
+
+            let entry_name = path.to_str().ok_or_else(zip_non_utf8_error(path))?;
             // ZIP format requires forward slashes as path separators, regardless of platform
             let entry_name = entry_name.replace(std::path::MAIN_SEPARATOR, "/");
 
             if !follow_symlinks && path.symlink_metadata()?.is_symlink() {
                 let target_path = path.read_link()?;
-                let target_name = target_path.to_str().ok_or_else(|| {
-                    FinalError::with_title("Zip requires that all directories names are valid UTF-8")
-                        .detail(format!("File at '{target_path:?}' has a non-UTF-8 name"))
-                })?;
+                let target_name = target_path.to_str().ok_or_else(zip_non_utf8_error(&target_path))?;
                 // ZIP format requires forward slashes as path separators, regardless of platform
                 let target_name = target_name.replace(std::path::MAIN_SEPARATOR, "/");
 

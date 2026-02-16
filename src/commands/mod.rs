@@ -20,8 +20,8 @@ use crate::{
     info_accessible,
     list::ListOptions,
     utils::{
-        self, canonicalize, colors::*, file_size, is_path_stdin, path_to_str, Bytes, EscapedPathDisplay,
-        FileVisibilityPolicy, QuestionAction,
+        self, canonicalize, colors::*, file_size, is_path_stdin, BytesFmt, FileVisibilityPolicy, PathFmt,
+        QuestionAction,
     },
     CliArgs, QuestionPolicy, INITIAL_CURRENT_DIR,
 };
@@ -122,8 +122,8 @@ pub fn run(
             );
 
             if let Ok(true) = compress_result {
-                info_accessible!("Output file size: {}", Bytes::new(file_size(&output_path)?));
-                info_accessible!("Successfully compressed to '{}'", path_to_str(&output_path));
+                info_accessible!("Output file size: {}", BytesFmt(file_size(&output_path)?));
+                info_accessible!("Successfully compressed to {:?}", PathFmt(&output_path));
             } else {
                 // If Ok(false) or Err() occurred, delete incomplete file at `output_path`
                 //
@@ -131,10 +131,7 @@ pub fn run(
                 // out that we left a possibly CORRUPTED file at `output_path`
                 if utils::remove_file_or_dir(&output_path).is_err() {
                     eprintln!("{red}FATAL ERROR:\n", red = *colors::RED);
-                    eprintln!(
-                        "  Ouch failed to delete the file '{}'.",
-                        EscapedPathDisplay::new(&output_path)
-                    );
+                    eprintln!("  Ouch failed to delete the file {:?}", PathFmt(&output_path));
                     eprintln!("  Please delete it manually.");
                     eprintln!("  This file is corrupted if compression didn't finished.");
 
@@ -158,10 +155,7 @@ pub fn run(
                 let format = parse_format_flag(&format)?;
                 for path in files.iter() {
                     let file_name = path.file_name().ok_or_else(|| Error::Custom {
-                        reason: FinalError::with_title(format!(
-                            "{} does not have a file name",
-                            EscapedPathDisplay::new(path)
-                        )),
+                        reason: FinalError::with_title(format!("{:?} does not have a file name", PathFmt(path))),
                     })?;
                     output_paths.push(file_name.as_ref());
                     formats.push(format.clone());

@@ -15,7 +15,7 @@ use crate::{
     error::{Error, FinalError, Result},
     info,
     list::FileInArchive,
-    utils::{cd_into_same_dir_as, Bytes, EscapedPathDisplay, FileVisibilityPolicy},
+    utils::{cd_into_same_dir_as, BytesFmt, FileVisibilityPolicy, PathFmt},
     warning,
 };
 
@@ -45,13 +45,13 @@ where
             // If the output_path is the same as the input file, warn the user and skip the input (in order to avoid compression recursion)
             if let Ok(handle) = &output_handle {
                 if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
-                    warning!("Cannot compress `{}` into itself, skipping", output_path.display());
+                    warning!("Cannot compress {:?} into itself, skipping", PathFmt(output_path));
 
                     continue;
                 }
             }
 
-            info!("Compressing '{}'", EscapedPathDisplay::new(path));
+            info!("Compressing {:?}", PathFmt(path));
 
             let metadata = match path.metadata() {
                 Ok(metadata) => metadata,
@@ -66,7 +66,7 @@ where
 
             let entry_name = path.to_str().ok_or_else(|| {
                 FinalError::with_title("7z requires that all entry names are valid UTF-8")
-                    .detail(format!("File at '{path:?}' has a non-UTF-8 name"))
+                    .detail(format!("File {:?} has a non-UTF-8 name", PathFmt(path)))
             })?;
 
             let entry = sevenz_rust2::ArchiveEntry::from_path(path, entry_name.to_owned());
@@ -102,12 +102,12 @@ where
         let file_path = output_path.join(entry.name());
 
         if entry.is_directory() {
-            info!("File {} extracted to \"{}\"", entry.name(), file_path.display());
+            info!("File {} extracted to {:?}", entry.name(), PathFmt(&file_path));
             if !path.exists() {
                 fs::create_dir_all(path)?;
             }
         } else {
-            info!("extracted ({}) {:?}", Bytes::new(entry.size()), file_path.display(),);
+            info!("extracted ({}) {:?}", BytesFmt(entry.size()), PathFmt(&file_path));
 
             if let Some(parent) = path.parent() {
                 if !parent.exists() {

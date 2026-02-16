@@ -1,44 +1,12 @@
-use std::{borrow::Cow, cmp, ffi::OsStr, fmt::Display, path::Path};
+use std::{
+    borrow::Cow,
+    cmp,
+    ffi::OsStr,
+    fmt::{self, Write as _},
+    path::{Path, PathBuf},
+};
 
 use crate::INITIAL_CURRENT_DIR;
-
-/// Converts invalid UTF-8 bytes to the Unicode replacement codepoint (�) in its Display implementation.
-pub struct EscapedPathDisplay<'a> {
-    path: &'a Path,
-}
-
-impl<'a> EscapedPathDisplay<'a> {
-    pub fn new(path: &'a Path) -> Self {
-        Self { path }
-    }
-}
-
-#[cfg(unix)]
-impl Display for EscapedPathDisplay<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use std::os::unix::prelude::OsStrExt;
-
-        let bstr = bstr::BStr::new(self.path.as_os_str().as_bytes());
-
-        write!(f, "{bstr}")
-    }
-}
-
-#[cfg(windows)]
-impl Display for EscapedPathDisplay<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use std::{char, fmt::Write, os::windows::prelude::OsStrExt};
-
-        let utf16 = self.path.as_os_str().encode_wide();
-        let chars = char::decode_utf16(utf16).map(|decoded| decoded.unwrap_or(char::REPLACEMENT_CHARACTER));
-
-        for char in chars {
-            f.write_char(char)?;
-        }
-
-        Ok(())
-    }
-}
 
 /// Converts an OsStr to utf8 with custom formatting.
 ///
@@ -68,14 +36,12 @@ pub fn strip_cur_dir(source_path: &Path) -> &Path {
 ///
 /// Panics if the slice is empty.
 pub fn pretty_format_list_of_paths(paths: &[impl AsRef<Path>]) -> String {
-    let mut iter = paths.iter().map(AsRef::as_ref);
-
-    let first_path = iter.next().unwrap();
-    let mut string = path_to_str(first_path).into_owned();
-
-    for path in iter {
-        string += ", ";
-        string += &path_to_str(path);
+    let mut string = String::new();
+    for (i, path) in paths.iter().enumerate() {
+        if i != 0 {
+            string += ", ";
+        }
+        write!(string, "{:?}", PathFmt(path.as_ref())).expect("Couldn't write to a string");
     }
     string
 }
@@ -89,21 +55,67 @@ pub fn nice_directory_display(path: &Path) -> Cow<'_, str> {
     }
 }
 
-/// Pretty `fmt::Display` impl for printing bytes as kB, MB, GB, etc.
-pub struct Bytes(f64);
+/// Strips an ascii prefix from the path (similar to `<&str>::strip_prefix`).
+///
+/// # Panics:
+///
+/// - Panics if prefix is not valid ASCII (to ensure safety).
+pub fn strip_path_ascii_prefix<'a>(path: Cow<'a, Path>, ascii_prefix: &str) -> Cow<'a, Path> {
+    assert!(ascii_prefix.is_ascii());
+    let prefix_slice = ascii_prefix.as_bytes();
+    let path_slice = path.as_os_str().as_encoded_bytes();
 
-impl Bytes {
-    const UNIT_PREFIXES: [&'static str; 6] = ["", "ki", "Mi", "Gi", "Ti", "Pi"];
-
-    /// Create a new Bytes.
-    pub fn new(bytes: u64) -> Self {
-        Self(bytes as f64)
+    if let Some(stripped) = path_slice.strip_prefix(prefix_slice) {
+        // Encoding Safety:
+        //   this function returns a format that is guaranteed to be a superset
+        //   of UTF-8, it might be WTF-8 encoding surrogates in UTF-8-like ways,
+        //   it's impossible for us to break surrogate pairs or character
+        //   boundaries if we slice an ASCII prefix, ASCII characters in WTF-8
+        //   and UTF-8 look exactly just like in plain ASCII encoding
+        let str = unsafe { OsStr::from_encoded_bytes_unchecked(stripped) };
+        Cow::from(PathBuf::from(str))
+    } else {
+        path
     }
 }
 
-impl std::fmt::Display for Bytes {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let num = self.0;
+pub struct PathFmt<'a>(pub &'a Path);
+
+/// Path::display but strip some prefixes that are just noise.
+impl<'a> fmt::Display for PathFmt<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let path = self.0;
+        let path = strip_path_ascii_prefix(Cow::Borrowed(path), "./");
+        let path = path.as_ref();
+
+        let path = path.strip_prefix(&*INITIAL_CURRENT_DIR).unwrap_or(path);
+        let path = if path.as_os_str().is_empty() {
+            Path::new(".")
+        } else {
+            path
+        };
+
+        write!(f, "{}", path.display())
+    }
+}
+
+/// Same as Display, but surrounded by "".
+impl<'a> fmt::Debug for PathFmt<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "\"{}\"", self)
+    }
+}
+
+/// Pretty `fmt::Display` impl for printing bytes as kB, MB, GB, etc.
+pub struct BytesFmt(pub u64);
+
+impl BytesFmt {
+    const UNIT_PREFIXES: [&'static str; 6] = ["", "ki", "Mi", "Gi", "Ti", "Pi"];
+}
+
+impl fmt::Display for BytesFmt {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let num = self.0 as f64;
 
         debug_assert!(num >= 0.0);
         if num < 1_f64 {
@@ -129,7 +141,7 @@ mod tests {
     #[test]
     fn test_pretty_bytes_formatting() {
         fn format_bytes(bytes: u64) -> String {
-            format!("{}", Bytes::new(bytes))
+            format!("{}", BytesFmt(bytes))
         }
         let b = 1;
         let kb = b * 1000;

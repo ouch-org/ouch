@@ -40,7 +40,9 @@ We use snapshots to do UI testing and guarantee a consistent output, this way, y
 ```sh
 cargo test
 # Or, if you only want to run UI tests
-# cargo test -- ui
+cargo test -- ui
+# Sometimes, you might have to run UI tests with different feature flags
+cargo test --no-default-features -- ui
 ```
 
 - If some UI test failed, you should review them (requires `cargo install cargo-insta`):
