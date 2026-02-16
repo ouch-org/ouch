@@ -2,6 +2,7 @@
 
 use std::{
     env,
+    ffi::OsStr,
     io::Read,
     path::{Path, PathBuf},
 };
@@ -13,7 +14,7 @@ use crate::{
     extension::Extension,
     info_accessible,
     utils::{EscapedPathDisplay, QuestionAction},
-    QuestionPolicy,
+    QuestionPolicy, Result,
 };
 
 pub fn is_path_stdin(path: &Path) -> bool {
@@ -57,6 +58,10 @@ pub fn remove_file_or_dir(path: &Path) -> crate::Result<()> {
         fs::remove_file(path)?;
     }
     Ok(())
+}
+
+pub fn file_size(path: &Path) -> crate::Result<u64> {
+    Ok(fs::metadata(path)?.len())
 }
 
 /// Create a new path renaming the "filename" from &Path for a available name in the same directory
@@ -255,6 +260,32 @@ pub fn set_permission_mode(path: &Path, mode: u32) -> crate::Result<()> {
 
 #[cfg(windows)]
 #[inline]
-pub fn set_permission_mode(path: &Path, mode: u32) -> crate::Result<()> {
+pub fn set_permission_mode(_path: &Path, _mode: u32) -> crate::Result<()> {
     Ok(())
+}
+
+/// Canonicalize a path.
+///
+/// On Windows, it strips the `\\?\` extended path prefix that fs::canonicalize
+/// adds that would break `strip_prefix` calls involving this path.
+pub fn canonicalize(path: impl AsRef<Path>) -> Result<PathBuf> {
+    let canonicalized = fs::canonicalize(path.as_ref())?;
+
+    if !cfg!(windows) {
+        return Ok(canonicalized);
+    }
+
+    let encoded_prefix = OsStr::new(r"\\?\").as_encoded_bytes();
+    let path_slice = canonicalized.as_os_str().as_encoded_bytes();
+
+    if path_slice.starts_with(encoded_prefix) {
+        let without_prefix = &path_slice[encoded_prefix.len()..];
+        // Encoding Safety:
+        //   if you remove `r"\\?\"` from a Windows path you're still left
+        //   with a valid Windows path, since `\` is a character boundary
+        let str = unsafe { OsStr::from_encoded_bytes_unchecked(without_prefix) };
+        Ok(PathBuf::from(str))
+    } else {
+        Ok(canonicalized)
+    }
 }

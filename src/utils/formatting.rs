@@ -1,6 +1,6 @@
 use std::{borrow::Cow, cmp, ffi::OsStr, fmt::Display, path::Path};
 
-use crate::CURRENT_DIRECTORY;
+use crate::INITIAL_CURRENT_DIR;
 
 /// Converts invalid UTF-8 bytes to the Unicode replacement codepoint (�) in its Display implementation.
 pub struct EscapedPathDisplay<'a> {
@@ -61,9 +61,7 @@ pub fn os_str_to_str(os_str: &OsStr) -> Cow<'_, str> {
 /// Removes the current dir from the beginning of a path as it's redundant information,
 /// useful for presentation sake.
 pub fn strip_cur_dir(source_path: &Path) -> &Path {
-    let current_dir = &*CURRENT_DIRECTORY;
-
-    source_path.strip_prefix(current_dir).unwrap_or(source_path)
+    source_path.strip_prefix(&*INITIAL_CURRENT_DIR).unwrap_or(source_path)
 }
 
 /// Converts a slice of `AsRef<OsStr>` to comma separated String
@@ -91,7 +89,7 @@ pub fn nice_directory_display(path: &Path) -> Cow<'_, str> {
     }
 }
 
-/// Struct useful to printing bytes as kB, MB, GB, etc.
+/// Pretty `fmt::Display` impl for printing bytes as kB, MB, GB, etc.
 pub struct Bytes(f64);
 
 impl Bytes {

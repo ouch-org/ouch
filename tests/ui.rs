@@ -40,8 +40,9 @@ fn redact_paths(text: &str, dir: &Path) -> String {
     let dir_name = dir.file_name().and_then(OsStr::to_str).unwrap();
 
     // this regex should be good as long as the path does not contain whitespace characters
+    // Use [^\s"]* instead of \S* to avoid matching quote characters
     let slashes = r"(/|\\(\\)?)";
-    let re = Regex::new(&format!(r"\S*{slashes}{dir_name}{slashes}")).unwrap();
+    let re = Regex::new(&format!(r#"[^\s"]*{slashes}{dir_name}{slashes}"#)).unwrap();
     re.replace_all(text, "<TMP_DIR>/").into()
 }
 
@@ -128,15 +129,10 @@ fn ui_test_ok_format_flag() {
     // prepare
     create_files_in(dir, &["input"]);
 
-    let snapshot = concat_snapshot_filename_rar_feature("ui_test_ok_format_flag");
-    ui!(
-        format!("{snapshot}-1"),
-        run_ouch("ouch compress input output1 --format tar.gz", dir),
-    );
-    ui!(
-        format!("{snapshot}-2"),
-        run_ouch("ouch compress input output2 --format .tar.gz", dir),
-    );
+    insta_filter_settings().bind(|| {
+        ui!(run_ouch("ouch compress input output1 --format tar.gz", dir),);
+        ui!(run_ouch("ouch compress input output2 --format .tar.gz", dir),);
+    });
 }
 
 #[test]
@@ -146,8 +142,10 @@ fn ui_test_ok_compress() {
     // prepare
     create_files_in(dir, &["input"]);
 
-    ui!(run_ouch("ouch compress input output.zip", dir));
-    ui!(run_ouch("ouch compress input output.gz", dir));
+    insta_filter_settings().bind(|| {
+        ui!(run_ouch("ouch compress input output.zip", dir));
+        ui!(run_ouch("ouch compress input output.gz", dir));
+    });
 }
 
 #[test]
@@ -163,37 +161,36 @@ fn ui_test_ok_decompress() {
     });
 }
 
-#[cfg(target_os = "linux")]
 #[test]
 fn ui_test_ok_decompress_multiple_files() {
-    use std::collections::BTreeSet;
-
     let (_dropper, dir) = testdir().unwrap();
 
-    let inputs_dir = dir.join("inputs");
+    let inputs_dir = dir.join("input");
     std::fs::create_dir(&inputs_dir).unwrap();
 
-    let outputs_dir = dir.join("outputs");
-    std::fs::create_dir(&outputs_dir).unwrap();
+    let output_dir = dir.join("output");
+    std::fs::create_dir(&output_dir).unwrap();
 
     // prepare
     create_files_in(&inputs_dir, &["input", "input2", "input3"]);
 
-    let compress_command = format!("ouch compress {} output.tar.zst", inputs_dir.to_str().unwrap());
+    let compress_command = format!("ouch compress {} output.tar.zst", inputs_dir.display());
     run_ouch(&compress_command, dir);
 
-    let decompress_command = format!("ouch decompress output.tar.zst --dir {}", outputs_dir.to_str().unwrap());
-    let stdout = run_ouch(&decompress_command, dir);
-    let stdout_lines = stdout.split('\n').collect::<BTreeSet<_>>();
-    insta::assert_debug_snapshot!(stdout_lines);
+    let decompress_command = format!("ouch decompress output.tar.zst --dir {}", output_dir.display());
+
+    insta_filter_settings().bind(|| {
+        let stdout = run_ouch(&decompress_command, dir);
+
+        let mut lines: Vec<_> = stdout.lines().collect();
+        lines.sort();
+        ui!(lines.join("\n"));
+    });
 }
 
 #[test]
 fn ui_test_usage_help_flag() {
-    insta::with_settings!({filters => vec![
-        // binary name is `ouch.exe` on Windows and `ouch` on everywhere else
-        (r"(Usage:.*\b)ouch(\.exe)?\b", "${1}<OUCH_BIN>"),
-    ]}, {
+    insta_filter_settings().bind(|| {
         ui!(output_to_string(ouch!("--help")));
         ui!(output_to_string(ouch!("-h")));
     });

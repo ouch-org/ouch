@@ -15,9 +15,9 @@ use crate::{
     },
     info, info_accessible,
     utils::{
-        self,
+        self, file_size,
         io::{lock_and_flush_output_stdio, ReadSeek},
-        is_path_stdin, nice_directory_display, user_wants_to_continue,
+        is_path_stdin, nice_directory_display, user_wants_to_continue, Bytes,
     },
     QuestionAction, QuestionPolicy, Result, BUFFER_CAPACITY,
 };
@@ -36,8 +36,8 @@ pub struct DecompressOptions<'a> {
 }
 
 enum DecompressionSummary {
-    Archive { files_unpacked: usize },
-    NonArchive { path: PathBuf },
+    Archive { files_unpacked: u64 },
+    NonArchive { output_path: PathBuf },
 }
 
 /// Decompress (or unpack) a compressed (or packed) file.
@@ -92,7 +92,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             let reader = create_decoder_up_to_first_extension()?;
             let mut reader = chain_reader_decoder(&first_extension, reader)?;
 
-            let (mut writer, final_path) = match utils::create_file_or_prompt_on_conflict(
+            let (mut writer, final_output_path) = match utils::create_file_or_prompt_on_conflict(
                 &options.output_file_path,
                 options.question_policy,
                 QuestionAction::Decompression,
@@ -102,7 +102,9 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             };
 
             io::copy(&mut reader, &mut writer)?;
-            ControlFlow::Continue(DecompressionSummary::NonArchive { path: final_path })
+            ControlFlow::Continue(DecompressionSummary::NonArchive {
+                output_path: final_output_path,
+            })
         }
         Tar => unpack_archive(
             |output_dir| crate::archive::tar::unpack_archive(create_decoder_up_to_first_extension()?, output_dir),
@@ -157,7 +159,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
         }
         #[cfg(feature = "unrar")]
         Rar => {
-            let unpack_fn: Box<dyn FnOnce(&Path) -> Result<usize>> = if options.formats.len() > 1 || input_is_stdin {
+            let unpack_fn: Box<dyn FnOnce(&Path) -> Result<u64>> = if options.formats.len() > 1 || input_is_stdin {
                 let mut temp_file = tempfile::NamedTempFile::new()?;
                 io::copy(&mut create_decoder_up_to_first_extension()?, &mut temp_file)?;
                 Box::new(move |output_dir| {
@@ -189,12 +191,14 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             );
             info_accessible!("Files unpacked: {files_unpacked}");
         }
-        DecompressionSummary::NonArchive { path } => {
+        DecompressionSummary::NonArchive { output_path } => {
             if input_is_stdin {
-                info_accessible!("STDIN decompressed to {path:?}");
+                info_accessible!("STDIN decompressed to {output_path:?}");
             } else {
-                info_accessible!("File {:?} decompressed to {:?}", options.input_file_path, path);
+                info_accessible!("File {:?} decompressed to {:?}", options.input_file_path, output_path);
+                info_accessible!("Input file size: {}", Bytes::new(file_size(options.input_file_path)?));
             }
+            info_accessible!("Output file size: {}", Bytes::new(file_size(&output_path)?));
         }
     }
 
@@ -211,7 +215,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
 /// - If `output_dir` does not exist OR is a empty directory, it will unpack there
 /// - If `output_dir` exist OR is a directory not empty, the user will be asked what to do
 fn unpack_archive(
-    unpack_fn: impl FnOnce(&Path) -> crate::Result<usize>,
+    unpack_fn: impl FnOnce(&Path) -> crate::Result<u64>,
     output_dir: &Path,
     question_policy: QuestionPolicy,
 ) -> crate::Result<ControlFlow<(), DecompressionSummary>> {

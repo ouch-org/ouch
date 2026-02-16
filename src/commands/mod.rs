@@ -4,7 +4,7 @@ mod compress;
 mod decompress;
 mod list;
 
-use std::{ops::ControlFlow, path::PathBuf};
+use std::ops::ControlFlow;
 
 use bstr::ByteSlice;
 use decompress::DecompressOptions;
@@ -19,8 +19,11 @@ use crate::{
     extension::{self, parse_format_flag},
     info_accessible,
     list::ListOptions,
-    utils::{self, colors::*, is_path_stdin, path_to_str, EscapedPathDisplay, FileVisibilityPolicy, QuestionAction},
-    CliArgs, QuestionPolicy,
+    utils::{
+        self, canonicalize, colors::*, file_size, is_path_stdin, path_to_str, Bytes, EscapedPathDisplay,
+        FileVisibilityPolicy, QuestionAction,
+    },
+    CliArgs, QuestionPolicy, INITIAL_CURRENT_DIR,
 };
 
 /// Warn the user that (de)compressing this .zip archive might freeze their system.
@@ -119,7 +122,8 @@ pub fn run(
             );
 
             if let Ok(true) = compress_result {
-                info_accessible!("Successfully compressed '{}'", path_to_str(&output_path));
+                info_accessible!("Output file size: {}", Bytes::new(file_size(&output_path)?));
+                info_accessible!("Successfully compressed to '{}'", path_to_str(&output_path));
             } else {
                 // If Ok(false) or Err() occurred, delete incomplete file at `output_path`
                 //
@@ -181,9 +185,11 @@ pub fn run(
             // We default to the current directory if the user didn't specify an output directory with --dir
             let output_dir = if let Some(dir) = output_dir {
                 utils::create_dir_if_non_existent(&dir)?;
-                dir
+                // If not canonicalized, strip_prefix won't work and logs will break
+                // Led to bugs when output_dir was a symlink
+                canonicalize(&dir)?
             } else {
-                PathBuf::from(".")
+                INITIAL_CURRENT_DIR.clone()
             };
 
             files
