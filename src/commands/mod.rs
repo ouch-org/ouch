@@ -4,7 +4,7 @@ mod compress;
 mod decompress;
 mod list;
 
-use std::{ops::ControlFlow, path::PathBuf};
+use std::ops::ControlFlow;
 
 use bstr::ByteSlice;
 use decompress::DecompressOptions;
@@ -185,9 +185,11 @@ pub fn run(
             // We default to the current directory if the user didn't specify an output directory with --dir
             let output_dir = if let Some(dir) = output_dir {
                 utils::create_dir_if_non_existent(&dir)?;
-                dir
+                // If not canonicalized, strip_prefix won't work and logs will break
+                // Led to bugs when output_dir was a symlink
+                std::fs::canonicalize(&dir)?
             } else {
-                PathBuf::from(".")
+                std::env::current_dir()?
             };
 
             files

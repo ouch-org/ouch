@@ -32,7 +32,7 @@ fn run_ouch(argv: &str, dir: &Path) -> String {
             )
         });
 
-    redact_paths(dbg!(&output_to_string(output)), dbg!(dir))
+    redact_paths(&output_to_string(output), dir)
 }
 
 /// Remove random tempdir paths from snapshots to make them deterministic.
@@ -40,9 +40,9 @@ fn redact_paths(text: &str, dir: &Path) -> String {
     let dir_name = dir.file_name().and_then(OsStr::to_str).unwrap();
 
     // this regex should be good as long as the path does not contain whitespace characters
+    // Use [^\s"]* instead of \S* to avoid matching quote characters
     let slashes = r"(/|\\(\\)?)";
-    dbg!(text);
-    let re = Regex::new(&format!(r"\S*{slashes}{dir_name}{slashes}")).unwrap();
+    let re = Regex::new(&format!(r#"[^\s"]*{slashes}{dir_name}{slashes}"#)).unwrap();
     re.replace_all(text, "<TMP_DIR>/").into()
 }
 
@@ -165,11 +165,11 @@ fn ui_test_ok_decompress() {
 fn ui_test_ok_decompress_multiple_files() {
     let (_dropper, dir) = testdir().unwrap();
 
-    let inputs_dir = dir.join("inputs");
+    let inputs_dir = dir.join("input");
     std::fs::create_dir(&inputs_dir).unwrap();
 
-    let outputs_dir = dir.join("outputs");
-    std::fs::create_dir(&outputs_dir).unwrap();
+    let output_dir = dir.join("output");
+    std::fs::create_dir(&output_dir).unwrap();
 
     // prepare
     create_files_in(&inputs_dir, &["input", "input2", "input3"]);
@@ -177,10 +177,11 @@ fn ui_test_ok_decompress_multiple_files() {
     let compress_command = format!("ouch compress {} output.tar.zst", inputs_dir.display());
     run_ouch(&compress_command, dir);
 
-    let decompress_command = format!("ouch decompress output.tar.zst --dir {}", outputs_dir.display());
+    let decompress_command = format!("ouch decompress output.tar.zst --dir {}", output_dir.display());
 
     insta_filter_settings().bind(|| {
         let stdout = run_ouch(&decompress_command, dir);
+
         let mut lines: Vec<_> = stdout.lines().collect();
         lines.sort();
         ui!(lines.join("\n"));
