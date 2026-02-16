@@ -89,7 +89,7 @@ pub fn run(
                 &formats,
                 &output_path,
                 &files,
-                formats_from_flag.as_ref(),
+                formats_from_flag.as_deref(),
             )?;
             check::check_archive_formats_position(&formats, &output_path)?;
 
