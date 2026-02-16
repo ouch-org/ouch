@@ -39,7 +39,7 @@ pub struct CliArgs {
 
     /// Specify the format of the archive
     #[arg(short, long, global = true)]
-    pub format: Option<OsString>,
+    pub format: Option<String>,
 
     /// Decompress or list with password
     #[arg(short, long = "password", aliases = ["pass", "pw"], global = true)]

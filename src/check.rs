@@ -3,7 +3,6 @@
 #![warn(missing_docs)]
 
 use std::{
-    ffi::OsString,
     ops::ControlFlow,
     path::{Path, PathBuf},
 };
@@ -192,7 +191,7 @@ pub fn check_invalid_compression_with_non_archive_format(
     formats: &[Extension],
     output_path: &Path,
     files: &[PathBuf],
-    formats_from_flag: Option<&OsString>,
+    formats_from_flag: Option<&str>,
 ) -> Result<()> {
     let first_format = check_first_format_when_compressing(formats, output_path)?;
 
@@ -212,7 +211,6 @@ pub fn check_invalid_compression_with_non_archive_format(
     };
 
     let (from_hint, to_hint) = if let Some(formats) = formats_from_flag {
-        let formats = formats.to_string_lossy();
         (
             format!("From: --format {formats}"),
             format!("To:   --format tar.{formats}"),
