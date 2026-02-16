@@ -2,7 +2,7 @@ use std::{
     borrow::Cow,
     cmp,
     ffi::OsStr,
-    fmt::{self},
+    fmt::{self, Write as _},
     path::{Path, PathBuf},
 };
 
@@ -36,14 +36,12 @@ pub fn strip_cur_dir(source_path: &Path) -> &Path {
 ///
 /// Panics if the slice is empty.
 pub fn pretty_format_list_of_paths(paths: &[impl AsRef<Path>]) -> String {
-    let mut iter = paths.iter().map(AsRef::as_ref);
-
-    let first_path = iter.next().unwrap();
-    let mut string = path_to_str(first_path).into_owned();
-
-    for path in iter {
-        string += ", ";
-        string += &path_to_str(path);
+    let mut string = String::new();
+    for (i, path) in paths.iter().enumerate() {
+        if i != 0 {
+            string += ", ";
+        }
+        write!(string, "{:?}", PathFmt(path.as_ref())).expect("Couldn't write to a string");
     }
     string
 }

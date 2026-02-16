@@ -3,7 +3,7 @@ source: tests/ui.rs
 expression: "run_ouch(\"ouch decompress a\", dir)"
 ---
 [ERROR] Cannot decompress files
- - Files with missing extensions: <TMP_DIR>/a
+ - Files with missing extensions: "a"
  - Decompression formats are detected automatically from file extension
 
 hint: Supported extensions are: tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, lz, sz, zst, 7z
