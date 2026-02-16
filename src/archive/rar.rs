@@ -27,7 +27,7 @@ pub fn unpack_archive(archive_path: &Path, output_folder: &Path, password: Optio
         archive = if entry.is_file() {
             info!(
                 "extracted ({}) {}",
-                BytesFmt::new(entry.unpacked_size),
+                BytesFmt(entry.unpacked_size),
                 entry.filename.display(),
             );
             files_unpacked += 1;

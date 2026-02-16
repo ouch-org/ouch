@@ -122,7 +122,7 @@ pub fn run(
             );
 
             if let Ok(true) = compress_result {
-                info_accessible!("Output file size: {}", BytesFmt::new(file_size(&output_path)?));
+                info_accessible!("Output file size: {}", BytesFmt(file_size(&output_path)?));
                 info_accessible!("Successfully compressed to '{}'", path_to_str(&output_path));
             } else {
                 // If Ok(false) or Err() occurred, delete incomplete file at `output_path`

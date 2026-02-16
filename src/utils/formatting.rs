@@ -90,20 +90,15 @@ pub fn nice_directory_display(path: &Path) -> Cow<'_, str> {
 }
 
 /// Pretty `fmt::Display` impl for printing bytes as kB, MB, GB, etc.
-pub struct BytesFmt(f64);
+pub struct BytesFmt(pub u64);
 
 impl BytesFmt {
     const UNIT_PREFIXES: [&'static str; 6] = ["", "ki", "Mi", "Gi", "Ti", "Pi"];
-
-    /// Create a new Bytes.
-    pub fn new(bytes: u64) -> Self {
-        Self(bytes as f64)
-    }
 }
 
 impl std::fmt::Display for BytesFmt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let num = self.0;
+        let num = self.0 as f64;
 
         debug_assert!(num >= 0.0);
         if num < 1_f64 {
@@ -129,7 +124,7 @@ mod tests {
     #[test]
     fn test_pretty_bytes_formatting() {
         fn format_bytes(bytes: u64) -> String {
-            format!("{}", BytesFmt::new(bytes))
+            format!("{}", BytesFmt(bytes))
         }
         let b = 1;
         let kb = b * 1000;

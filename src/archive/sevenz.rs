@@ -107,7 +107,7 @@ where
                 fs::create_dir_all(path)?;
             }
         } else {
-            info!("extracted ({}) {:?}", BytesFmt::new(entry.size()), file_path.display(),);
+            info!("extracted ({}) {:?}", BytesFmt(entry.size()), file_path.display(),);
 
             if let Some(parent) = path.parent() {
                 if !parent.exists() {

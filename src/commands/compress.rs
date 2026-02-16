@@ -144,7 +144,7 @@ pub fn compress_files(
             writer = chain_writer_encoder(&first_format, writer)?;
             let mut reader = fs::File::open(&files[0])?;
             io::copy(&mut reader, &mut writer)?;
-            info_accessible!("Input file size: {}", BytesFmt::new(file_size(&files[0])?));
+            info_accessible!("Input file size: {}", BytesFmt(file_size(&files[0])?));
         }
         Tar => {
             archive::tar::build_archive_from_paths(

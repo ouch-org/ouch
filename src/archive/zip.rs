@@ -96,7 +96,7 @@ where
                 }
 
                 // same reason is in _is_dir: long, often not needed text
-                info!("extracted ({}) {:?}", BytesFmt::new(file.size()), file_path.display(),);
+                info!("extracted ({}) {:?}", BytesFmt(file.size()), file_path.display(),);
             }
         }
 

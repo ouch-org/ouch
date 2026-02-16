@@ -196,9 +196,9 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
                 info_accessible!("STDIN decompressed to {output_path:?}");
             } else {
                 info_accessible!("File {:?} decompressed to {:?}", options.input_file_path, output_path);
-                info_accessible!("Input file size: {}", BytesFmt::new(file_size(options.input_file_path)?));
+                info_accessible!("Input file size: {}", BytesFmt(file_size(options.input_file_path)?));
             }
-            info_accessible!("Output file size: {}", BytesFmt::new(file_size(&output_path)?));
+            info_accessible!("Output file size: {}", BytesFmt(file_size(&output_path)?));
         }
     }
 

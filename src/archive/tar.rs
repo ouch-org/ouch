@@ -79,7 +79,7 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> crate::Result<
 
         info!(
             "extracted ({}) {:?}",
-            BytesFmt::new(file.size()),
+            BytesFmt(file.size()),
             utils::strip_cur_dir(&output_folder.join(file.path()?)),
         );
         files_unpacked += 1;
