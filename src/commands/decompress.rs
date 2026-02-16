@@ -14,6 +14,7 @@ use crate::{
         Extension,
     },
     info, info_accessible,
+    non_archive::lz4::MultiFrameLz4Decoder,
     utils::{
         self, file_size,
         io::{lock_and_flush_output_stdio, ReadSeek},

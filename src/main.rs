@@ -6,6 +6,7 @@ pub mod commands;
 pub mod error;
 pub mod extension;
 pub mod list;
+pub mod non_archive;
 pub mod utils;
 
 use std::{env, path::PathBuf, sync::LazyLock};

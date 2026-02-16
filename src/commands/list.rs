@@ -10,7 +10,8 @@ use crate::{
     commands::warn_user_about_loading_zip_in_memory,
     extension::CompressionFormat::{self, *},
     list::{self, FileInArchive, ListOptions},
-    utils::{io::lock_and_flush_output_stdio, user_wants_to_continue, MultiFrameLz4Decoder},
+    non_archive::lz4::MultiFrameLz4Decoder,
+    utils::{io::lock_and_flush_output_stdio, user_wants_to_continue},
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
