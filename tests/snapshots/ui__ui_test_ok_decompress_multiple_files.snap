@@ -1,13 +1,10 @@
 ---
 source: tests/ui.rs
-expression: stdout_lines
+expression: "lines.join(\"\\n\")"
 ---
-{
-    "",
-    "[INFO] Files unpacked: 4",
-    "[INFO] Successfully decompressed archive to <TMP_DIR>/outputs",
-    "[INFO] extracted (  0.00   B) \"outputs/inputs\"",
-    "[INFO] extracted (  0.00   B) \"outputs/inputs/input\"",
-    "[INFO] extracted (  0.00   B) \"outputs/inputs/input2\"",
-    "[INFO] extracted (  0.00   B) \"outputs/inputs/input3\"",
-}
+[INFO] Files unpacked: 4
+[INFO] Successfully decompressed archive to <TMP_DIR>/outputs
+[INFO] extracted ( [SIZE]) "outputs/inputs"
+[INFO] extracted ( [SIZE]) "outputs/inputs/input"
+[INFO] extracted ( [SIZE]) "outputs/inputs/input2"
+[INFO] extracted ( [SIZE]) "outputs/inputs/input3"
