@@ -32,7 +32,7 @@ fn run_ouch(argv: &str, dir: &Path) -> String {
             )
         });
 
-    redact_paths(&output_to_string(output), dir)
+    redact_paths(dbg!(&output_to_string(output)), dbg!(dir))
 }
 
 /// Remove random tempdir paths from snapshots to make them deterministic.
@@ -41,6 +41,7 @@ fn redact_paths(text: &str, dir: &Path) -> String {
 
     // this regex should be good as long as the path does not contain whitespace characters
     let slashes = r"(/|\\(\\)?)";
+    dbg!(text);
     let re = Regex::new(&format!(r"\S*{slashes}{dir_name}{slashes}")).unwrap();
     re.replace_all(text, "<TMP_DIR>/").into()
 }
