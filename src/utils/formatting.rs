@@ -63,7 +63,19 @@ pub fn os_str_to_str(os_str: &OsStr) -> Cow<'_, str> {
 pub fn strip_cur_dir(source_path: &Path) -> &Path {
     let current_dir = &*CURRENT_DIRECTORY;
 
-    source_path.strip_prefix(current_dir).unwrap_or(source_path)
+    let new = source_path.strip_prefix(current_dir).unwrap_or(source_path);
+
+    if new != source_path {
+        eprintln!("\nFAILED to strip cur dir");
+        eprintln!("{source_path:?}");
+        eprintln!("{current_dir:?}");
+    } else {
+        eprintln!("\nok, did strip cur dir");
+        eprintln!("{source_path:?}");
+        eprintln!("{current_dir:?}");
+    }
+
+    new
 }
 
 /// Converts a slice of `AsRef<OsStr>` to comma separated String
