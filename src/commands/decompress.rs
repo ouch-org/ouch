@@ -54,7 +54,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
             Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
             Bzip3 => {
                 #[cfg(not(feature = "bzip3"))]
-                return Err(crate::archive::bzip3_stub::no_support());
+                return Err(crate::Error::bzip3_no_support());
                 #[cfg(feature = "bzip3")]
                 Box::new(bzip3::read::Bz3Decoder::new(decoder)?)
             }
@@ -175,7 +175,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
         }
         #[cfg(not(feature = "unrar"))]
         Rar => {
-            return Err(crate::archive::rar_stub::no_support());
+            return Err(crate::Error::rar_no_support());
         }
     };
 

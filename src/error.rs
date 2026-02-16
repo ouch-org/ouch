@@ -47,6 +47,22 @@ pub enum Error {
     InvalidPassword { reason: String },
 }
 
+impl Error {
+    /// RAR support is disabled for this build.
+    pub fn rar_no_support() -> Self {
+        Self::UnsupportedFormat {
+            reason: "RAR support is disabled for this build, possibly due to licensing restrictions.".into(),
+        }
+    }
+
+    /// BZip3 support is disabled for this build.
+    pub fn bzip3_no_support() -> Self {
+        Self::UnsupportedFormat {
+            reason: "BZip3 support is disabled for this build, possibly due to missing bindgen-cli dependency.".into(),
+        }
+    }
+}
+
 /// Alias to std's Result with ouch's Error
 pub type Result<T> = std::result::Result<T, Error>;
 

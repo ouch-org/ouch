@@ -51,7 +51,7 @@ pub fn list_archive_contents(
                 Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
                 Bzip3 => {
                     #[cfg(not(feature = "bzip3"))]
-                    return Err(archive::bzip3_stub::no_support());
+                    return Err(crate::Error::bzip3_no_support());
 
                     #[cfg(feature = "bzip3")]
                     Box::new(bzip3::read::Bz3Decoder::new(decoder).unwrap())
@@ -109,7 +109,7 @@ pub fn list_archive_contents(
         }
         #[cfg(not(feature = "unrar"))]
         Rar => {
-            return Err(crate::archive::rar_stub::no_support());
+            return Err(crate::Error::rar_no_support());
         }
         SevenZip => {
             if formats.len() > 1 {
