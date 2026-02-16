@@ -4,10 +4,11 @@ mod compress;
 mod decompress;
 mod list;
 
-use std::ops::ControlFlow;
+use std::{env, ops::ControlFlow};
 
 use bstr::ByteSlice;
 use decompress::DecompressOptions;
+use fs_err as fs;
 use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use utils::colors;
 
@@ -187,9 +188,9 @@ pub fn run(
                 utils::create_dir_if_non_existent(&dir)?;
                 // If not canonicalized, strip_prefix won't work and logs will break
                 // Led to bugs when output_dir was a symlink
-                std::fs::canonicalize(&dir)?
+                fs::canonicalize(&dir)?
             } else {
-                std::env::current_dir()?
+                env::current_dir()?
             };
 
             files
