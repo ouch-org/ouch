@@ -68,7 +68,7 @@ pub fn compress_files(
             )),
             Bzip3 => {
                 #[cfg(not(feature = "bzip3"))]
-                return Err(archive::bzip3_stub::no_support());
+                return Err(crate::Error::bzip3_no_support());
 
                 #[cfg(feature = "bzip3")]
                 Box::new(
@@ -184,7 +184,7 @@ pub fn compress_files(
             return Err(archive::rar::no_compression());
 
             #[cfg(not(feature = "unrar"))]
-            return Err(archive::rar_stub::no_support());
+            return Err(crate::Error::rar_no_support());
         }
         SevenZip => {
             if !formats.is_empty() {
