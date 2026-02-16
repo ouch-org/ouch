@@ -119,6 +119,25 @@ pub fn strip_path_ascii_prefix<'a>(path: Cow<'a, Path>, ascii_prefix: &str) -> C
     }
 }
 
+pub struct PathFmt<'a>(pub &'a Path);
+
+impl<'a> fmt::Display for PathFmt<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let path = self.0;
+        let path = strip_path_ascii_prefix(Cow::Borrowed(path), "./");
+        let path = path.as_ref();
+
+        let path = path.strip_prefix(&*INITIAL_CURRENT_DIR).unwrap_or(path);
+        let path = if path.as_os_str().is_empty() {
+            Path::new(".")
+        } else {
+            path
+        };
+
+        write!(f, "\"{}\"", path.display())
+    }
+}
+
 /// Pretty `fmt::Display` impl for printing bytes as kB, MB, GB, etc.
 pub struct BytesFmt(pub u64);
 
