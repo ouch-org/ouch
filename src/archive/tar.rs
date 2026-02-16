@@ -19,7 +19,7 @@ use crate::{
     error::FinalError,
     info,
     list::FileInArchive,
-    utils::{self, create_symlink, set_permission_mode, Bytes, EscapedPathDisplay, FileVisibilityPolicy},
+    utils::{self, create_symlink, set_permission_mode, BytesFmt, EscapedPathDisplay, FileVisibilityPolicy},
     warning,
 };
 
@@ -79,7 +79,7 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> crate::Result<
 
         info!(
             "extracted ({}) {:?}",
-            Bytes::new(file.size()),
+            BytesFmt::new(file.size()),
             utils::strip_cur_dir(&output_folder.join(file.path()?)),
         );
         files_unpacked += 1;

@@ -21,8 +21,8 @@ use crate::{
     info, info_accessible,
     list::FileInArchive,
     utils::{
-        cd_into_same_dir_as, create_symlink, get_invalid_utf8_paths, pretty_format_list_of_paths, strip_cur_dir, Bytes,
-        EscapedPathDisplay, FileVisibilityPolicy,
+        cd_into_same_dir_as, create_symlink, get_invalid_utf8_paths, pretty_format_list_of_paths, strip_cur_dir,
+        BytesFmt, EscapedPathDisplay, FileVisibilityPolicy,
     },
     warning,
 };
@@ -96,7 +96,7 @@ where
                 }
 
                 // same reason is in _is_dir: long, often not needed text
-                info!("extracted ({}) {:?}", Bytes::new(file.size()), file_path.display(),);
+                info!("extracted ({}) {:?}", BytesFmt::new(file.size()), file_path.display(),);
             }
         }
 

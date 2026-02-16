@@ -15,7 +15,7 @@ use crate::{
     error::{Error, FinalError, Result},
     info,
     list::FileInArchive,
-    utils::{cd_into_same_dir_as, Bytes, EscapedPathDisplay, FileVisibilityPolicy},
+    utils::{cd_into_same_dir_as, BytesFmt, EscapedPathDisplay, FileVisibilityPolicy},
     warning,
 };
 
@@ -107,7 +107,7 @@ where
                 fs::create_dir_all(path)?;
             }
         } else {
-            info!("extracted ({}) {:?}", Bytes::new(entry.size()), file_path.display(),);
+            info!("extracted ({}) {:?}", BytesFmt::new(entry.size()), file_path.display(),);
 
             if let Some(parent) = path.parent() {
                 if !parent.exists() {
