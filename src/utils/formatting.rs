@@ -3,7 +3,7 @@ use std::{
     cmp,
     ffi::OsStr,
     fmt::{self, Display},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 use crate::INITIAL_CURRENT_DIR;
@@ -95,28 +95,29 @@ pub fn nice_directory_display(path: &Path) -> Cow<'_, str> {
     }
 }
 
-// pub struct PathFmt<'a>(pub &'a Path);
+/// Strips an ascii prefix from the path (similar to `<&str>::strip_prefix`).
+///
+/// # Panics:
+///
+/// - Panics if prefix is not valid ASCII (to ensure safety).
+pub fn strip_path_ascii_prefix<'a>(path: Cow<'a, Path>, ascii_prefix: &str) -> Cow<'a, Path> {
+    assert!(ascii_prefix.is_ascii());
+    let prefix_slice = ascii_prefix.as_bytes();
+    let path_slice = path.as_os_str().as_encoded_bytes();
 
-// impl<'a> fmt::Display for PathFmt<'a> {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         let num = self.0;
-
-//         debug_assert!(num >= 0.0);
-//         if num < 1_f64 {
-//             return write!(f, "{num:>6.2}   B");
-//         }
-
-//         let delimiter = 1000_f64;
-//         let exponent = cmp::min((num.ln() / 6.90775).floor() as i32, 4);
-
-//         write!(
-//             f,
-//             "{:>6.2} {:>2}B",
-//             num / delimiter.powi(exponent),
-//             Self::UNIT_PREFIXES[exponent as usize],
-//         )
-//     }
-// }
+    if let Some(stripped) = path_slice.strip_prefix(prefix_slice) {
+        // Encoding Safety:
+        //   this function returns a format that is guaranteed to be a superset
+        //   of UTF-8, it might be WTF-8 encoding surrogates in UTF-8-like ways,
+        //   it's impossible for us to break surrogate pairs or character
+        //   boundaries if we slice an ASCII prefix, ASCII characters in WTF-8
+        //   and UTF-8 look exactly just like in plain ASCII encoding
+        let str = unsafe { OsStr::from_encoded_bytes_unchecked(stripped) };
+        Cow::from(PathBuf::from(str))
+    } else {
+        path
+    }
+}
 
 /// Pretty `fmt::Display` impl for printing bytes as kB, MB, GB, etc.
 pub struct BytesFmt(pub u64);

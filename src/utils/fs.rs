@@ -1,8 +1,8 @@
 //! Filesystem utility functions.
 
 use std::{
+    borrow::Cow,
     env,
-    ffi::OsStr,
     io::Read,
     path::{Path, PathBuf},
 };
@@ -13,7 +13,7 @@ use super::{question::FileConflitOperation, user_wants_to_overwrite};
 use crate::{
     extension::Extension,
     info_accessible,
-    utils::{EscapedPathDisplay, QuestionAction},
+    utils::{strip_path_ascii_prefix, EscapedPathDisplay, QuestionAction},
     QuestionPolicy, Result,
 };
 
@@ -271,21 +271,9 @@ pub fn set_permission_mode(_path: &Path, _mode: u32) -> crate::Result<()> {
 pub fn canonicalize(path: impl AsRef<Path>) -> Result<PathBuf> {
     let canonicalized = fs::canonicalize(path.as_ref())?;
 
-    if !cfg!(windows) {
-        return Ok(canonicalized);
-    }
-
-    let encoded_prefix = OsStr::new(r"\\?\").as_encoded_bytes();
-    let path_slice = canonicalized.as_os_str().as_encoded_bytes();
-
-    if path_slice.starts_with(encoded_prefix) {
-        let without_prefix = &path_slice[encoded_prefix.len()..];
-        // Encoding Safety:
-        //   if you remove `r"\\?\"` from a Windows path you're still left
-        //   with a valid Windows path, since `\` is a character boundary
-        let str = unsafe { OsStr::from_encoded_bytes_unchecked(without_prefix) };
-        Ok(PathBuf::from(str))
+    Ok(if cfg!(windows) {
+        strip_path_ascii_prefix(Cow::Owned(canonicalized), r"\\?\").into_owned()
     } else {
-        Ok(canonicalized)
-    }
+        canonicalized
+    })
 }
