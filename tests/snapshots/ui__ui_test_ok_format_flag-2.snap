@@ -2,6 +2,6 @@
 source: tests/ui.rs
 expression: "run_ouch(\"ouch compress input output2 --format .tar.gz\", dir)"
 ---
-[INFO] Compressing 'input'
+[INFO] Compressing "input"
 [INFO] Output file size: [SIZE]
-[INFO] Successfully compressed to 'output2'
+[INFO] Successfully compressed to "output2"

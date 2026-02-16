@@ -7,6 +7,7 @@ use CompressionFormat::*;
 
 use crate::{
     error::{Error, FinalError, Result},
+    utils::PathFmt,
     warning,
 };
 
@@ -212,8 +213,10 @@ pub fn separate_known_extensions_from_name(path: &Path) -> Result<(&Path, Vec<Ex
 
                 if misplaced_extension.compression_formats == extensions[0].compression_formats {
                     error = error.detail(format!(
-                        "File: '{path:?}' contains '.{}' and '.{}'",
-                        misplaced_extension.display_text, extensions[0].display_text,
+                        "File: {:?} contains '.{}' and '.{}'",
+                        PathFmt(path),
+                        misplaced_extension.display_text,
+                        extensions[0].display_text,
                     ));
                 }
 

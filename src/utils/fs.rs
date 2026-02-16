@@ -13,7 +13,7 @@ use super::{question::FileConflitOperation, user_wants_to_overwrite};
 use crate::{
     extension::Extension,
     info_accessible,
-    utils::{strip_path_ascii_prefix, EscapedPathDisplay, QuestionAction},
+    utils::{strip_path_ascii_prefix, PathFmt, QuestionAction},
     QuestionPolicy, Result,
 };
 
@@ -103,7 +103,7 @@ pub fn rename_or_increment_filename(path: &Path) -> PathBuf {
 pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
     if !path.exists() {
         fs::create_dir_all(path)?;
-        info_accessible!("Directory {} created", EscapedPathDisplay::new(path));
+        info_accessible!("Directory {:?} created", PathFmt(path));
     }
     Ok(())
 }
