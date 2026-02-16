@@ -8,7 +8,6 @@ use std::{env, ops::ControlFlow};
 
 use bstr::ByteSlice;
 use decompress::DecompressOptions;
-use fs_err as fs;
 use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use utils::colors;
 
@@ -21,8 +20,8 @@ use crate::{
     info_accessible,
     list::ListOptions,
     utils::{
-        self, colors::*, file_size, is_path_stdin, path_to_str, Bytes, EscapedPathDisplay, FileVisibilityPolicy,
-        QuestionAction,
+        self, canonicalize, colors::*, file_size, is_path_stdin, path_to_str, Bytes, EscapedPathDisplay,
+        FileVisibilityPolicy, QuestionAction,
     },
     CliArgs, QuestionPolicy,
 };
@@ -188,7 +187,7 @@ pub fn run(
                 utils::create_dir_if_non_existent(&dir)?;
                 // If not canonicalized, strip_prefix won't work and logs will break
                 // Led to bugs when output_dir was a symlink
-                fs::canonicalize(&dir)?
+                canonicalize(&dir)?
             } else {
                 env::current_dir()?
             };

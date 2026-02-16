@@ -2,19 +2,17 @@
 
 mod args;
 
-use std::{
-    io,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 use clap::Parser;
-use fs_err as fs;
 
 pub use self::args::{CliArgs, Subcommand};
 use crate::{
     accessible::set_accessible,
-    utils::{is_path_stdin, logger::set_log_display_level, threads::set_thread_count, FileVisibilityPolicy},
-    QuestionPolicy,
+    utils::{
+        canonicalize, is_path_stdin, logger::set_log_display_level, threads::set_thread_count, FileVisibilityPolicy,
+    },
+    QuestionPolicy, Result,
 };
 
 impl CliArgs {
@@ -56,14 +54,14 @@ impl CliArgs {
     }
 }
 
-fn canonicalize_files(files: &[impl AsRef<Path>]) -> io::Result<Vec<PathBuf>> {
+fn canonicalize_files(files: &[impl AsRef<Path>]) -> Result<Vec<PathBuf>> {
     files
         .iter()
         .map(|f| {
             if is_path_stdin(f.as_ref()) || f.as_ref().is_symlink() {
                 Ok(f.as_ref().to_path_buf())
             } else {
-                fs::canonicalize(f)
+                canonicalize(f)
             }
         })
         .collect()
