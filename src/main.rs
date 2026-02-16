@@ -23,8 +23,18 @@ use self::{
 // Used in BufReader and BufWriter to perform less syscalls
 const BUFFER_CAPACITY: usize = 1024 * 32;
 
-/// Current directory or empty directory
-static CURRENT_DIRECTORY: LazyLock<PathBuf> = LazyLock::new(|| env::current_dir().unwrap_or_default());
+/// Current directory, canonicalized for consistent path comparisons across platforms
+static CURRENT_DIRECTORY: LazyLock<PathBuf> = LazyLock::new(|| {
+    let Ok(dir) = env::current_dir() else {
+        panic!("can't read current directory");
+    };
+
+    let Ok(dir) = utils::canonicalize(&dir) else {
+        panic!("can't canonicalize current directory");
+    };
+
+    dir
+});
 
 /// The status code returned from `ouch` on error
 pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;

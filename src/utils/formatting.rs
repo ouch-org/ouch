@@ -61,21 +61,7 @@ pub fn os_str_to_str(os_str: &OsStr) -> Cow<'_, str> {
 /// Removes the current dir from the beginning of a path as it's redundant information,
 /// useful for presentation sake.
 pub fn strip_cur_dir(source_path: &Path) -> &Path {
-    let current_dir = &*CURRENT_DIRECTORY;
-
-    let new = source_path.strip_prefix(current_dir).unwrap_or(source_path);
-
-    if new != source_path {
-        eprintln!("\nFAILED to strip cur dir");
-        eprintln!("{source_path:?}");
-        eprintln!("{current_dir:?}");
-    } else {
-        eprintln!("\nok, did strip cur dir");
-        eprintln!("{source_path:?}");
-        eprintln!("{current_dir:?}");
-    }
-
-    new
+    source_path.strip_prefix(&*CURRENT_DIRECTORY).unwrap_or(source_path)
 }
 
 /// Converts a slice of `AsRef<OsStr>` to comma separated String
