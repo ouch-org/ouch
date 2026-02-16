@@ -1,4 +1,10 @@
-use std::{borrow::Cow, cmp, ffi::OsStr, fmt::Display, path::Path};
+use std::{
+    borrow::Cow,
+    cmp,
+    ffi::OsStr,
+    fmt::{self, Display},
+    path::Path,
+};
 
 use crate::INITIAL_CURRENT_DIR;
 
@@ -89,6 +95,29 @@ pub fn nice_directory_display(path: &Path) -> Cow<'_, str> {
     }
 }
 
+// pub struct PathFmt<'a>(pub &'a Path);
+
+// impl<'a> fmt::Display for PathFmt<'a> {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         let num = self.0;
+
+//         debug_assert!(num >= 0.0);
+//         if num < 1_f64 {
+//             return write!(f, "{num:>6.2}   B");
+//         }
+
+//         let delimiter = 1000_f64;
+//         let exponent = cmp::min((num.ln() / 6.90775).floor() as i32, 4);
+
+//         write!(
+//             f,
+//             "{:>6.2} {:>2}B",
+//             num / delimiter.powi(exponent),
+//             Self::UNIT_PREFIXES[exponent as usize],
+//         )
+//     }
+// }
+
 /// Pretty `fmt::Display` impl for printing bytes as kB, MB, GB, etc.
 pub struct BytesFmt(pub u64);
 
@@ -96,8 +125,8 @@ impl BytesFmt {
     const UNIT_PREFIXES: [&'static str; 6] = ["", "ki", "Mi", "Gi", "Ti", "Pi"];
 }
 
-impl std::fmt::Display for BytesFmt {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for BytesFmt {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let num = self.0 as f64;
 
         debug_assert!(num >= 0.0);
