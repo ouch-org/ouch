@@ -966,3 +966,28 @@ fn tar_hardlink_pack_and_unpack() {
     assert_eq!(out_source_meta.ino(), out_link1_meta.ino());
     assert_eq!(out_link1_meta.ino(), out_link2_meta.ino());
 }
+
+#[test]
+fn compress_with_rename_conflict() {
+    let temp_dir = tempdir().unwrap();
+    let root_path = temp_dir.path();
+
+    let file_path = root_path.join("file.txt");
+    fs::write(&file_path, "content").unwrap();
+
+    let archive = root_path.join("archive.tar.gz");
+
+    for _ in 0..3 {
+        crate::utils::cargo_bin()
+            .arg("compress")
+            .arg(&file_path)
+            .arg(&archive)
+            .write_stdin("r\n")
+            .assert()
+            .success();
+    }
+
+    assert!(root_path.join("archive.tar.gz").exists());
+    assert!(root_path.join("archive_1.tar.gz").exists());
+    assert!(root_path.join("archive_2.tar.gz").exists());
+}

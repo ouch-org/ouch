@@ -40,10 +40,7 @@ pub fn resolve_path_conflict(
                 remove_file_or_dir(path)?;
                 Ok(Some(path.to_path_buf()))
             }
-            FileConflitOperation::Rename => {
-                let renamed_path = rename_for_available_filename(path);
-                Ok(Some(renamed_path))
-            }
+            FileConflitOperation::Rename => Ok(Some(find_available_filename_by_renaming(path))),
             FileConflitOperation::Merge => Ok(Some(path.to_path_buf())),
         }
     } else {
@@ -64,39 +61,36 @@ pub fn file_size(path: &Path) -> crate::Result<u64> {
     Ok(fs::metadata(path)?.len())
 }
 
-/// Create a new path renaming the "filename" from &Path for a available name in the same directory
-pub fn rename_for_available_filename(path: &Path) -> PathBuf {
-    let mut renamed_path = rename_or_increment_filename(path);
-    while renamed_path.exists() {
-        renamed_path = rename_or_increment_filename(&renamed_path);
+/// Say you want to write to `archive.tar.gz` but that already exists.
+///
+/// So the user chooses to `rename` to avoid the conflict (keep both files).
+///
+/// In this scenario, this function will return `archive_1.tar.gz`, subsequent
+/// calls will keep incrementing the number:
+///
+/// - archive_1.tar.gz
+/// - archive_2.tar.gz
+/// - archive_3.tar.gz
+pub fn find_available_filename_by_renaming(path: &Path) -> PathBuf {
+    fn create_path_with_given_index(path: &Path, i: usize) -> PathBuf {
+        let parent = path.parent().unwrap_or_else(|| Path::new(""));
+        let file_name = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
+
+        let new_filename = match file_name.split_once('.') {
+            Some((stem, extension)) if !stem.is_empty() => format!("{stem}_{i}.{extension}"),
+            _ => format!("{file_name}_{i}"),
+        };
+
+        parent.join(new_filename)
     }
-    renamed_path
-}
 
-/// Create a new path renaming the "filename" from &Path to `filename_1`
-/// if its name already ends with `_` and some number, then it increments the number
-/// Example:
-/// - `file.txt` -> `file_1.txt`
-/// - `file_1.txt` -> `file_2.txt`
-pub fn rename_or_increment_filename(path: &Path) -> PathBuf {
-    let parent = path.parent().unwrap_or_else(|| Path::new(""));
-    let filename = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
-    let extension = path.extension().and_then(|s| s.to_str()).unwrap_or("");
-
-    let new_filename = match filename.rsplit_once('_') {
-        Some((base, number_str)) if number_str.chars().all(char::is_numeric) => {
-            let number = number_str.parse::<u32>().unwrap_or(0);
-            format!("{}_{}", base, number + 1)
+    for i in 1.. {
+        let renamed_path = create_path_with_given_index(path, i);
+        if !renamed_path.exists() {
+            return renamed_path;
         }
-        _ => format!("{filename}_1"),
-    };
-
-    let mut new_path = parent.join(new_filename);
-    if !extension.is_empty() {
-        new_path.set_extension(extension);
     }
-
-    new_path
+    unreachable!()
 }
 
 /// Creates a directory at the path, if there is nothing there.
