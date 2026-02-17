@@ -3,11 +3,6 @@ name: Run tests for all combinations
 on:
   schedule:
     - cron: "0 0 1,15 * *" # biweekly
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - "**/*.md"
 
 jobs:
   run-tests-for-all-combinations:
