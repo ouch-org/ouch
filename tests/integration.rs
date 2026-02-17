@@ -1075,7 +1075,7 @@ fn decompress_with_unknown_extension_should_detect_format_and_ask(
         .arg(&unknown_path)
         .arg("--dir")
         .arg(&output_dir)
-        .write_stdin("y\ny\n")
+        .write_stdin("y\n")
         .assert()
         .success();
 

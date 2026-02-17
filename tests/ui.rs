@@ -229,7 +229,7 @@ fn ui_test_decompress_with_unknown_extension_shows_output_path() {
     let output = utils::cargo_bin()
         .args(["decompress", "file.unknown", "--dir", "output"])
         .current_dir(dir)
-        .write_stdin("y\ny\n")
+        .write_stdin("y\n")
         .output()
         .unwrap();
 
