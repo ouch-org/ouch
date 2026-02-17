@@ -30,6 +30,7 @@ Categories Used:
 - Support `.lzma` decompression (and fix `.lzma` being a wrong alias for `.xz`) (https://github.com/ouch-org/ouch/pull/838)
 - Support `.lz` compression (https://github.com/ouch-org/ouch/pull/867)
 - Support `.lzma` compression (https://github.com/ouch-org/ouch/pull/867)
+- Support decompression of concatenated `.gz`, `.bz2`, and `.lz4` (https://github.com/ouch-org/ouch/pull/898)
 
 ### Improvements
 

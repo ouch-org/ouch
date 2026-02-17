@@ -5,17 +5,19 @@
 #[macro_use]
 mod utils;
 
-use std::{ffi::OsStr, io, path::Path, process::Output};
+use std::{ffi::OsStr, path::Path, process::Output};
 
-use insta::{assert_snapshot as ui, Settings};
+use insta::Settings;
 use regex::Regex;
 
-use crate::utils::create_files_in;
+use crate::utils::{create_files_in, testdir};
 
-fn testdir() -> io::Result<(tempfile::TempDir, &'static Path)> {
-    let dir = tempfile::tempdir()?;
-    let path = dir.path().to_path_buf().into_boxed_path();
-    Ok((dir, Box::leak(path)))
+macro_rules! ui {
+    ($($t:tt)*) => {
+        insta_filter_settings().bind(|| {
+            insta::assert_snapshot!($($t)*);
+        })
+    };
 }
 
 fn run_ouch(argv: &str, dir: &Path) -> String {
@@ -133,10 +135,8 @@ fn ui_test_ok_format_flag() {
     // prepare
     create_files_in(dir, &["input"]);
 
-    insta_filter_settings().bind(|| {
-        ui!(run_ouch("ouch compress input output1 --format tar.gz", dir),);
-        ui!(run_ouch("ouch compress input output2 --format .tar.gz", dir),);
-    });
+    ui!(run_ouch("ouch compress input output1 --format tar.gz", dir));
+    ui!(run_ouch("ouch compress input output2 --format .tar.gz", dir));
 }
 
 #[test]
@@ -146,10 +146,8 @@ fn ui_test_ok_compress() {
     // prepare
     create_files_in(dir, &["input"]);
 
-    insta_filter_settings().bind(|| {
-        ui!(run_ouch("ouch compress input output.zip", dir));
-        ui!(run_ouch("ouch compress input output.gz", dir));
-    });
+    ui!(run_ouch("ouch compress input output.zip", dir));
+    ui!(run_ouch("ouch compress input output.gz", dir));
 }
 
 #[test]
@@ -160,9 +158,7 @@ fn ui_test_ok_decompress() {
     create_files_in(dir, &["input"]);
     run_ouch("ouch compress input output.zst", dir);
 
-    insta_filter_settings().bind(|| {
-        ui!(run_ouch("ouch decompress output.zst", dir));
-    });
+    ui!(run_ouch("ouch decompress output.zst", dir));
 }
 
 #[test]
@@ -183,21 +179,17 @@ fn ui_test_ok_decompress_multiple_files() {
 
     let decompress_command = format!("ouch decompress output.tar.zst --dir {}", output_dir.display());
 
-    insta_filter_settings().bind(|| {
-        let stdout = run_ouch(&decompress_command, dir);
+    let stdout = run_ouch(&decompress_command, dir);
 
-        let mut lines: Vec<_> = stdout.lines().collect();
-        lines.sort();
-        ui!(lines.join("\n"));
-    });
+    let mut lines: Vec<_> = stdout.lines().collect();
+    lines.sort();
+    ui!(lines.join("\n"));
 }
 
 #[test]
 fn ui_test_usage_help_flag() {
-    insta_filter_settings().bind(|| {
-        ui!(output_to_string(ouch!("--help")));
-        ui!(output_to_string(ouch!("-h")));
-    });
+    ui!(output_to_string(ouch!("--help")));
+    ui!(output_to_string(ouch!("-h")));
 }
 
 /// Concatenates `with_rar` or `without_rar` if the feature is toggled or not.
@@ -233,9 +225,7 @@ fn ui_test_decompress_with_unknown_extension_shows_output_path() {
         .output()
         .unwrap();
 
-    insta_filter_settings().bind(|| {
-        ui!(redact_paths(&output_to_string(output), dir));
-    });
+    ui!(redact_paths(&output_to_string(output), dir));
 }
 
 #[test]
