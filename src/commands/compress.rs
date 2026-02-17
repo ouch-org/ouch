@@ -147,7 +147,7 @@ pub fn compress_files(
             info_accessible!("Input file size: {}", BytesFmt(file_size(&files[0])?));
         }
         Tar => {
-            archive::tar::build_archive_from_paths(
+            archive::tar::build_archive(
                 &files,
                 output_path,
                 &mut writer,
@@ -169,7 +169,7 @@ pub fn compress_files(
 
             let mut vec_buffer = Cursor::new(vec![]);
 
-            archive::zip::build_archive_from_paths(
+            archive::zip::build_archive(
                 &files,
                 output_path,
                 &mut vec_buffer,
@@ -198,7 +198,7 @@ pub fn compress_files(
             }
 
             let mut vec_buffer = Cursor::new(vec![]);
-            archive::sevenz::compress_sevenz(&files, output_path, &mut vec_buffer, file_visibility_policy)?;
+            archive::sevenz::build_archive(&files, output_path, &mut vec_buffer, file_visibility_policy)?;
             vec_buffer.rewind()?;
             io::copy(&mut vec_buffer, &mut writer)?;
         }

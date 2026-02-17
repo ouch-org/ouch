@@ -93,7 +93,7 @@ pub enum Subcommand {
         #[arg(required = true, num_args = 1.., value_hint = ValueHint::FilePath)]
         files: Vec<PathBuf>,
 
-        /// Place results in a directory other than the current one
+        /// Decompress inside OUTPUT_DIR instead of current directory
         #[arg(short = 'd', long = "dir", value_hint = ValueHint::FilePath)]
         output_dir: Option<PathBuf>,
 

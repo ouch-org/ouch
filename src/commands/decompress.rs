@@ -115,7 +115,7 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
         Zip | SevenZip => {
             let unpack_fn = match first_extension {
                 Zip => crate::archive::zip::unpack_archive,
-                SevenZip => crate::archive::sevenz::decompress_sevenz,
+                SevenZip => crate::archive::sevenz::unpack_archive,
                 _ => unreachable!(),
             };
 

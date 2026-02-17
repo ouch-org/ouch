@@ -125,7 +125,7 @@ pub fn list_archive(
 }
 
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.
-pub fn build_archive_from_paths<W>(
+pub fn build_archive<W>(
     input_filenames: &[PathBuf],
     output_path: &Path,
     writer: W,
