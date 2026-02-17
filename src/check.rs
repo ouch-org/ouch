@@ -17,11 +17,8 @@ use crate::{
 
 /// Check if the file signature matches the detected extensions.
 ///
-/// In case the file doesn't have any extensions, try to infer the format.
-///
-/// Note: This function uses magic numbers (file signatures) for detection,
-/// not actual MIME types.
-pub fn check_mime_type(
+/// If the path didn't have any extensions, try to infer the format from signature.
+pub fn check_file_signature(
     path: &Path,
     formats: &mut Vec<Extension>,
     question_policy: QuestionPolicy,
@@ -31,7 +28,7 @@ pub fn check_mime_type(
         // Try to detect it automatically and prompt the user about it
         if let Some(detected_format) = try_infer_extension(path) {
             warning!(
-                "We detected a file named {:?}, do you want to decompress it?",
+                "The file {:?} has no extension, but it was detected as `{detected_format}`.",
                 PathFmt(path),
             );
 
@@ -50,7 +47,7 @@ pub fn check_mime_type(
             .compression_formats
             .ends_with(detected_format.compression_formats)
         {
-            warning!("The file extension: `{outer_ext}` differ from the detected extension: `{detected_format}`");
+            warning!("The file extension: `{outer_ext}` differs from the detected extension: `{detected_format}`");
 
             if !user_wants_to_continue(path, question_policy, QuestionAction::Decompression)? {
                 return Ok(ControlFlow::Break(()));
@@ -148,7 +145,7 @@ pub fn check_missing_formats_when_decompressing(files: &[PathBuf], formats: &[Ve
         ));
     }
 
-    error = error.detail("Decompression formats are detected automatically from file extension");
+    error = error.detail("Decompression formats are detected automatically from file extension and signature");
     error = error.hint_all_supported_formats();
 
     // If there's exactly one file, give a suggestion to use `--format`
@@ -166,7 +163,7 @@ pub fn check_missing_formats_when_decompressing(files: &[PathBuf], formats: &[Ve
 pub fn check_first_format_when_compressing<'a>(formats: &'a [Extension], output_path: &Path) -> Result<&'a Extension> {
     formats.first().ok_or_else(|| {
         FinalError::with_title(format!("Cannot compress to {:?}", PathFmt(output_path)))
-            .detail("You shall supply the compression format")
+            .detail("You must supply the compression format")
             .hint("Try adding supported extensions (see --help):")
             .hint(format!("  ouch compress <FILES>... {}.tar.gz", PathFmt(output_path)))
             .hint(format!("  ouch compress <FILES>... {}.zip", PathFmt(output_path)))
@@ -230,8 +227,10 @@ pub fn check_invalid_compression_with_non_archive_format(
         .detail(format!(
             "The compression format '{first_format}' does not accept multiple files.",
         ))
-        .detail("Formats that bundle files into an archive are tar and zip.")
-        .hint(format!("Try inserting 'tar.' or 'zip.' before '{first_format}'."))
+        .detail("Formats that bundle files into an archive are tar, zip and 7z.")
+        .hint(format!(
+            "Try inserting 'tar.', 'zip.' or '7z.' before '{first_format}'."
+        ))
         .hint(from_hint)
         .hint(to_hint);
 

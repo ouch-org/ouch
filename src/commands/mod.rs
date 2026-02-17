@@ -164,7 +164,9 @@ pub fn run(
                 for path in files.iter() {
                     let (pathbase, mut file_formats) = extension::separate_known_extensions_from_name(path)?;
 
-                    if let ControlFlow::Break(_) = check::check_mime_type(path, &mut file_formats, question_policy)? {
+                    if let ControlFlow::Break(_) =
+                        check::check_file_signature(path, &mut file_formats, question_policy)?
+                    {
                         return Ok(());
                     }
 
@@ -223,7 +225,9 @@ pub fn run(
                 for path in files.iter() {
                     let mut file_formats = extension::extensions_from_path(path)?;
 
-                    if let ControlFlow::Break(_) = check::check_mime_type(path, &mut file_formats, question_policy)? {
+                    if let ControlFlow::Break(_) =
+                        check::check_file_signature(path, &mut file_formats, question_policy)?
+                    {
                         return Ok(());
                     }
 
