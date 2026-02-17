@@ -11,7 +11,7 @@ use crate::{
     error::FinalError,
     extension::{build_archive_file_suggestion, Extension},
     info_accessible,
-    utils::{pretty_format_list_of_paths, try_infer_extension, user_wants_to_continue, PathFmt},
+    utils::{pretty_format_list_of_paths, try_infer_format, user_wants_to_continue, PathFmt},
     warning, QuestionAction, QuestionPolicy, Result,
 };
 
@@ -20,47 +20,57 @@ use crate::{
 /// If the path didn't have any extensions, try to infer the format from signature.
 pub fn check_file_signature(
     path: &Path,
-    formats: &mut Vec<Extension>,
+    extensions: &mut Vec<Extension>,
     question_policy: QuestionPolicy,
 ) -> Result<ControlFlow<()>> {
-    if formats.is_empty() {
-        // File with no extension
-        // Try to detect it automatically and prompt the user about it
-        if let Some(detected_format) = try_infer_extension(path) {
-            warning!(
-                "The file {:?} has no extension, but it was detected as `{detected_format}`.",
+    let detected_format = try_infer_format(path);
+    let outer_format_from_path = extensions
+        .last()
+        .and_then(|extension| extension.compression_formats.last())
+        .copied();
+
+    match (detected_format, outer_format_from_path) {
+        (None, None) => {
+            // Do nothing, so these cases will be reported at `check::check_missing_formats_when_decompressing` together
+        }
+        (None, Some(_from_path)) => {
+            // TODO: promote to a warning and ask the user to proceed
+            info_accessible!(
+                "Failed to confirm the format of {:?} by sniffing the contents, file might be misnamed",
                 PathFmt(path),
             );
-
-            if user_wants_to_continue(path, question_policy, QuestionAction::Decompression)? {
-                formats.push(detected_format);
-            } else {
-                return Ok(ControlFlow::Break(()));
-            }
         }
-    } else if let Some(detected_format) = try_infer_extension(path) {
-        // File ending with extension
-        // Try to detect the extension and warn the user if it differs from the written one
+        (Some(detected), None) => {
+            warning!(
+                "No recognized extensions in {:?}. Proceeding with `{}` that was detected from the file signature.",
+                PathFmt(path),
+                detected.as_str(),
+            );
 
-        let outer_ext = formats.iter().next_back().unwrap();
-        if !outer_ext
-            .compression_formats
-            .ends_with(detected_format.compression_formats)
-        {
-            warning!("The file extension: `{outer_ext}` differs from the detected extension: `{detected_format}`");
-
+            // TODO: change question to: "do you want to proceed regardless of that"?
             if !user_wants_to_continue(path, question_policy, QuestionAction::Decompression)? {
                 return Ok(ControlFlow::Break(()));
             }
+            *extensions = vec![Extension::from_format(detected)];
         }
-    } else {
-        // NOTE: If this actually produces no false positives, we can upgrade it in the future
-        // to a warning and ask the user if he wants to continue decompressing.
-        info_accessible!(
-            "Failed to confirm the format of {:?} by sniffing the contents, file might be misnamed",
-            PathFmt(path),
-        );
+        (Some(detected), Some(from_path)) => {
+            if from_path != detected {
+                let error = FinalError::with_title(format!("Format mismatch for {:?}", PathFmt(path)))
+                    .detail(format!(
+                        "File extension suggests `{}`, but file signature indicates `{}`",
+                        from_path.as_str(),
+                        detected.as_str(),
+                    ))
+                    .hint(format!(
+                        "Use the `--format {}` flag to specify the correct format",
+                        detected.as_str()
+                    ));
+
+                return Err(error.into());
+            }
+        }
     }
+
     Ok(ControlFlow::Continue(()))
 }
 

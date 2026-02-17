@@ -70,7 +70,7 @@ pub fn list_archive_contents(
 
     let mut misplaced_archive_format = None;
     for &format in formats.iter().skip(1).rev() {
-        if format.archive_format() {
+        if format.is_archive_format() {
             misplaced_archive_format = Some(format);
             break;
         }

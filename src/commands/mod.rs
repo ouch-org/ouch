@@ -148,8 +148,8 @@ pub fn run(
             output_dir,
             remove,
         } => {
-            let mut output_paths = vec![];
-            let mut formats = vec![];
+            let mut files_output_paths: Vec<_> = vec![];
+            let mut files_extensions: Vec<Vec<_>> = vec![];
 
             if let Some(format) = args.format {
                 let format = parse_format_flag(&format)?;
@@ -157,25 +157,24 @@ pub fn run(
                     let file_name = path.file_name().ok_or_else(|| Error::Custom {
                         reason: FinalError::with_title(format!("{:?} does not have a file name", PathFmt(path))),
                     })?;
-                    output_paths.push(file_name.as_ref());
-                    formats.push(format.clone());
+                    files_output_paths.push(file_name.as_ref());
+                    files_extensions.push(format.clone());
                 }
             } else {
                 for path in files.iter() {
-                    let (pathbase, mut file_formats) = extension::separate_known_extensions_from_name(path)?;
+                    let (pathbase, mut extensions) = extension::separate_known_extensions_from_name(path)?;
 
-                    if let ControlFlow::Break(_) =
-                        check::check_file_signature(path, &mut file_formats, question_policy)?
+                    if let ControlFlow::Break(_) = check::check_file_signature(path, &mut extensions, question_policy)?
                     {
                         return Ok(());
                     }
 
-                    output_paths.push(pathbase);
-                    formats.push(file_formats);
+                    files_output_paths.push(pathbase);
+                    files_extensions.push(extensions);
                 }
             }
 
-            check::check_missing_formats_when_decompressing(&files, &formats)?;
+            check::check_missing_formats_when_decompressing(&files, &files_extensions)?;
 
             // The directory that will contain the output files
             // We default to the current directory if the user didn't specify an output directory with --dir
@@ -190,8 +189,8 @@ pub fn run(
 
             files
                 .par_iter()
-                .zip(formats)
-                .zip(output_paths)
+                .zip(files_extensions)
+                .zip(files_output_paths)
                 .try_for_each(|((input_path, formats), file_name)| {
                     // Path used by single file format archives
                     let output_file_path = if is_path_stdin(file_name) {
@@ -210,6 +209,13 @@ pub fn run(
                             <[u8] as ByteSlice>::from_os_str(str).expect("convert password to bytes failed")
                         }),
                         remove,
+                    })
+                    .map_err(|err| match err {
+                        Error::IoError { reason } => Error::Custom {
+                            reason: FinalError::with_title(format!("Failed to decompress {}", PathFmt(input_path)))
+                                .detail(reason),
+                        },
+                        other => other,
                     })
                 })
         }

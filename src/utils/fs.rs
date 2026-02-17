@@ -11,7 +11,7 @@ use fs_err as fs;
 
 use super::{question::FileConflitOperation, user_wants_to_overwrite};
 use crate::{
-    extension::Extension,
+    extension::CompressionFormat,
     info_accessible,
     utils::{strip_path_ascii_prefix, PathFmt, QuestionAction},
     QuestionPolicy, Result,
@@ -115,7 +115,7 @@ pub fn cd_into_same_dir_as(filename: &Path) -> crate::Result<PathBuf> {
 
 /// Try to detect the file extension by looking for known magic strings
 /// Source: <https://en.wikipedia.org/wiki/List_of_file_signatures>
-pub fn try_infer_extension(path: &Path) -> Option<Extension> {
+pub fn try_infer_format(path: &Path) -> Option<CompressionFormat> {
     fn is_zip(buf: &[u8]) -> bool {
         buf.len() >= 3
             && buf[..=1] == [0x50, 0x4B]
@@ -176,33 +176,32 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
         buf
     };
 
-    use crate::extension::CompressionFormat::*;
     if is_zip(&buf) {
-        Some(Extension::new(&[Zip], "zip"))
+        Some(CompressionFormat::Zip)
     } else if is_tar(&buf) {
-        Some(Extension::new(&[Tar], "tar"))
+        Some(CompressionFormat::Tar)
     } else if is_gz(&buf) {
-        Some(Extension::new(&[Gzip], "gz"))
+        Some(CompressionFormat::Gzip)
     } else if is_bz2(&buf) {
-        Some(Extension::new(&[Bzip], "bz2"))
+        Some(CompressionFormat::Bzip)
     } else if is_bz3(&buf) {
-        Some(Extension::new(&[Bzip3], "bz3"))
+        Some(CompressionFormat::Bzip3)
     } else if is_lzma(&buf) {
-        Some(Extension::new(&[Lzma], "lzma"))
+        Some(CompressionFormat::Lzma)
     } else if is_xz(&buf) {
-        Some(Extension::new(&[Xz], "xz"))
+        Some(CompressionFormat::Xz)
     } else if is_lzip(&buf) {
-        Some(Extension::new(&[Lzip], "lzip"))
+        Some(CompressionFormat::Lzip)
     } else if is_lz4(&buf) {
-        Some(Extension::new(&[Lz4], "lz4"))
+        Some(CompressionFormat::Lz4)
     } else if is_sz(&buf) {
-        Some(Extension::new(&[Snappy], "sz"))
+        Some(CompressionFormat::Snappy)
     } else if is_zst(&buf) {
-        Some(Extension::new(&[Zstd], "zst"))
+        Some(CompressionFormat::Zstd)
     } else if is_rar(&buf) {
-        Some(Extension::new(&[Rar], "rar"))
+        Some(CompressionFormat::Rar)
     } else if is_sevenz(&buf) {
-        Some(Extension::new(&[SevenZip], "7z"))
+        Some(CompressionFormat::SevenZip)
     } else {
         None
     }

@@ -991,3 +991,39 @@ fn compress_with_rename_conflict() {
     assert!(root_path.join("archive_1.tar.gz").exists());
     assert!(root_path.join("archive_2.tar.gz").exists());
 }
+
+#[test]
+fn decompress_with_mismatched_extension_should_use_detected_format() {
+    let temp_dir = tempdir().unwrap();
+    let test_dir = temp_dir.path();
+
+    let original_file = test_dir.join("input.txt");
+    fs::write(&original_file, "Hello, world!").unwrap();
+
+    let gzip_archive = test_dir.join("archive.gz");
+    let misnamed_archive = test_dir.join("archive.zst");
+
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .arg(&original_file)
+        .arg(&gzip_archive)
+        .assert()
+        .success();
+
+    // Rename the .gz file to have a .zst extension (wrong extension)
+    fs::rename(&gzip_archive, &misnamed_archive).unwrap();
+
+    let output = crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(misnamed_archive)
+        .arg("--dir")
+        .arg(test_dir)
+        .assert()
+        .failure()
+        .get_output()
+        .clone();
+
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("Format mismatch"), "Expected format mismatch error");
+    assert!(stderr.contains("--format"), "Expected hint about --format flag");
+}
