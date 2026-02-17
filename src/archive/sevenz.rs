@@ -2,7 +2,7 @@
 
 use std::{
     env,
-    io::{self, Read, Seek, Write},
+    io::{self, BufWriter, Read, Seek, Write},
     path::{Path, PathBuf},
 };
 
@@ -13,56 +13,55 @@ use same_file::Handle;
 use sevenz_rust2::ArchiveEntry;
 
 use crate::{
-    error::{Error, FinalError, Result},
+    error::{Error, FinalError},
     info,
     list::FileInArchive,
     utils::{
         cd_into_same_dir_as, ensure_parent_dir_exists, is_broken_symlink_error, is_same_file_as_output, BytesFmt,
         FileVisibilityPolicy, PathFmt,
     },
-    warning,
+    warning, Result,
 };
 
-pub fn unpack_archive<R>(reader: R, output_path: &Path, password: Option<&[u8]>) -> crate::Result<u64>
+pub fn unpack_archive<R>(reader: R, output_path: &Path, password: Option<&[u8]>) -> Result<u64>
 where
     R: Read + Seek,
 {
     let mut files_unpacked = 0;
 
-    let entry_extract_fn = |entry: &ArchiveEntry, reader: &mut dyn Read, path: &PathBuf| {
-        files_unpacked += 1;
-        // Manually handle writing all files from 7z archive, due to library exluding empty files
-        use std::io::BufWriter;
+    let entry_extract_fn =
+        |entry: &ArchiveEntry, reader: &mut dyn Read, path: &PathBuf| -> Result<bool, sevenz_rust2::Error> {
+            // Manually handle writing all files from 7z archive (the library defaults ignore empty files)
 
-        use filetime_creation as ft;
+            let file_path = output_path.join(entry.name());
 
-        let file_path = output_path.join(entry.name());
+            if entry.is_directory() {
+                info!("File {} extracted to {:?}", entry.name(), PathFmt(&file_path));
+                if !path.fs_err_try_exists()? {
+                    fs::create_dir_all(path)?;
+                }
+            } else {
+                info!("extracted ({}) {:?}", BytesFmt(entry.size()), PathFmt(&file_path));
 
-        if entry.is_directory() {
-            info!("File {} extracted to {:?}", entry.name(), PathFmt(&file_path));
-            if !path.fs_err_try_exists()? {
-                fs::create_dir_all(path)?;
+                ensure_parent_dir_exists(path)?;
+
+                let file = fs::File::create(path)?;
+                let mut writer = BufWriter::new(file);
+                io::copy(reader, &mut writer)?;
+
+                use filetime_creation as ft;
+                ft::set_file_handle_times(
+                    writer.get_ref().file(),
+                    Some(ft::FileTime::from_system_time(entry.access_date().into())),
+                    Some(ft::FileTime::from_system_time(entry.last_modified_date().into())),
+                    Some(ft::FileTime::from_system_time(entry.creation_date().into())),
+                )
+                .unwrap_or_default();
             }
-        } else {
-            info!("extracted ({}) {:?}", BytesFmt(entry.size()), PathFmt(&file_path));
 
-            ensure_parent_dir_exists(path)?;
-
-            let file = fs::File::create(path)?;
-            let mut writer = BufWriter::new(file);
-            io::copy(reader, &mut writer)?;
-
-            ft::set_file_handle_times(
-                writer.get_ref().file(),
-                Some(ft::FileTime::from_system_time(entry.access_date().into())),
-                Some(ft::FileTime::from_system_time(entry.last_modified_date().into())),
-                Some(ft::FileTime::from_system_time(entry.creation_date().into())),
-            )
-            .unwrap_or_default();
-        }
-
-        Ok(true)
-    };
+            files_unpacked += 1;
+            Ok(true) // Always proceed
+        };
 
     match password {
         Some(password) => sevenz_rust2::decompress_with_extract_fn_and_password(
@@ -80,7 +79,7 @@ where
 }
 
 /// List contents of `archive_path`, returning a vector of archive entries
-pub fn list_archive<R>(reader: R, password: Option<&[u8]>) -> Result<impl Iterator<Item = crate::Result<FileInArchive>>>
+pub fn list_archive<R>(reader: R, password: Option<&[u8]>) -> Result<impl Iterator<Item = Result<FileInArchive>>>
 where
     R: Read + Seek,
 {
@@ -122,7 +121,7 @@ pub fn build_archive<W>(
     output_path: &Path,
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
-) -> crate::Result<W>
+) -> Result<W>
 where
     W: Write + Seek,
 {

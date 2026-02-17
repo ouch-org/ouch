@@ -23,12 +23,12 @@ use crate::{
         self, create_symlink, is_broken_symlink_error, is_same_file_as_output, set_permission_mode, BytesFmt,
         FileVisibilityPolicy, PathFmt,
     },
-    warning,
+    warning, Result,
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `into`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> crate::Result<u64> {
+pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> Result<u64> {
     let mut archive = tar::Archive::new(reader);
 
     let mut files_unpacked = 0;
@@ -101,7 +101,7 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> crate::Result<
 /// List contents of `archive`, returning a vector of archive entries
 pub fn list_archive(
     mut archive: tar::Archive<impl Read + Send + 'static>,
-) -> impl Iterator<Item = crate::Result<FileInArchive>> {
+) -> impl Iterator<Item = Result<FileInArchive>> {
     let (tx, rx) = mpsc::channel();
     thread::spawn(move || {
         for file in archive.entries().expect("entries is only used once") {
@@ -125,7 +125,7 @@ pub fn build_archive<W>(
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
     follow_symlinks: bool,
-) -> crate::Result<W>
+) -> Result<W>
 where
     W: Write,
 {

@@ -42,14 +42,14 @@ enum DecompressionSummary {
 }
 
 /// Decompress (or unpack) a compressed (or packed) file.
-pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
+pub fn decompress_file(options: DecompressOptions) -> Result<()> {
     assert!(options.output_dir.fs_err_try_exists()?);
 
     let input_is_stdin = is_path_stdin(options.input_file_path);
     let (first_extension, extensions) = split_first_compression_format(&options.formats);
 
     // Grab previous decoder and wrap it inside of a new one
-    let chain_reader_decoder = |format: &CompressionFormat, decoder: Box<dyn Read>| -> crate::Result<Box<dyn Read>> {
+    let chain_reader_decoder = |format: &CompressionFormat, decoder: Box<dyn Read>| -> Result<Box<dyn Read>> {
         let decoder: Box<dyn Read> = match format {
             Gzip => Box::new(flate2::read::MultiGzDecoder::new(decoder)),
             Bzip => Box::new(bzip2::read::MultiBzDecoder::new(decoder)),
@@ -217,10 +217,10 @@ pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
 /// - If `output_dir` does not exist OR is a empty directory, it will unpack there
 /// - If `output_dir` exist OR is a directory not empty, the user will be asked what to do
 fn unpack_archive(
-    unpack_fn: impl FnOnce(&Path) -> crate::Result<u64>,
+    unpack_fn: impl FnOnce(&Path) -> Result<u64>,
     output_dir: &Path,
     question_policy: QuestionPolicy,
-) -> crate::Result<ControlFlow<(), DecompressionSummary>> {
+) -> Result<ControlFlow<(), DecompressionSummary>> {
     let is_valid_output_dir =
         !output_dir.fs_err_try_exists()? || (output_dir.is_dir() && output_dir.read_dir()?.next().is_none());
 

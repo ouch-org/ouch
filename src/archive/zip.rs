@@ -24,12 +24,12 @@ use crate::{
         cd_into_same_dir_as, create_symlink, ensure_parent_dir_exists, get_invalid_utf8_paths, is_broken_symlink_error,
         is_same_file_as_output, pretty_format_list_of_paths, strip_cur_dir, BytesFmt, FileVisibilityPolicy, PathFmt,
     },
-    warning,
+    warning, Result,
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `output_folder`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive<R>(reader: R, output_folder: &Path, password: Option<&[u8]>) -> crate::Result<u64>
+pub fn unpack_archive<R>(reader: R, output_folder: &Path, password: Option<&[u8]>) -> Result<u64>
 where
     R: Read + Seek,
 {
@@ -106,7 +106,7 @@ where
 pub fn list_archive<R>(
     mut archive: ZipArchive<R>,
     password: Option<&[u8]>,
-) -> impl Iterator<Item = crate::Result<FileInArchive>>
+) -> impl Iterator<Item = Result<FileInArchive>>
 where
     R: Read + Seek + Send + 'static,
 {
@@ -145,7 +145,7 @@ pub fn build_archive<W>(
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
     follow_symlinks: bool,
-) -> crate::Result<W>
+) -> Result<W>
 where
     W: Write + Seek,
 {
@@ -279,7 +279,7 @@ fn get_last_modified_time(file: &fs::File) -> DateTime {
         .unwrap_or_default()
 }
 
-fn set_last_modified_time<R: Read>(zip_file: &ZipFile<'_, R>, path: &Path) -> crate::Result<()> {
+fn set_last_modified_time<R: Read>(zip_file: &ZipFile<'_, R>, path: &Path) -> Result<()> {
     // Extract modification time from zip file and convert to FileTime
     let file_time = zip_file
         .last_modified()
@@ -298,7 +298,7 @@ fn set_last_modified_time<R: Read>(zip_file: &ZipFile<'_, R>, path: &Path) -> cr
 }
 
 #[cfg(unix)]
-fn unix_set_permissions<R: Read>(file_path: &Path, file: &ZipFile<'_, R>) -> crate::Result<()> {
+fn unix_set_permissions<R: Read>(file_path: &Path, file: &ZipFile<'_, R>) -> Result<()> {
     use std::fs::Permissions;
 
     if let Some(mode) = file.unix_mode() {

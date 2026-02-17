@@ -8,7 +8,7 @@ use std::{
 };
 
 use self::tree::Tree;
-use crate::{accessible::is_running_in_accessible_mode, utils::PathFmt};
+use crate::{accessible::is_running_in_accessible_mode, utils::PathFmt, Result};
 
 /// Options controlling how archive contents should be listed
 #[derive(Debug, Clone, Copy)]
@@ -27,21 +27,21 @@ pub struct FileInArchive {
     pub is_dir: bool,
 }
 
-/// An iterator wrapper around an `mpsc::Receiver<crate::Result<FileInArchive>>`.
+/// An iterator wrapper around an `mpsc::Receiver<Result<FileInArchive>>`.
 ///
 /// This is used by archive listing functions that spawn a background thread
 /// to iterate over archive entries.
-pub struct FileInArchiveIterator(mpsc::Receiver<crate::Result<FileInArchive>>);
+pub struct FileInArchiveIterator(mpsc::Receiver<Result<FileInArchive>>);
 
 impl FileInArchiveIterator {
     /// Create a new iterator from a receiver.
-    pub fn new(receiver: mpsc::Receiver<crate::Result<FileInArchive>>) -> Self {
+    pub fn new(receiver: mpsc::Receiver<Result<FileInArchive>>) -> Self {
         Self(receiver)
     }
 }
 
 impl Iterator for FileInArchiveIterator {
-    type Item = crate::Result<FileInArchive>;
+    type Item = Result<FileInArchive>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.recv().ok()
@@ -52,14 +52,14 @@ impl Iterator for FileInArchiveIterator {
 /// Returns an Error, if one of the files can't be read
 pub fn list_files(
     archive: &Path,
-    files: impl IntoIterator<Item = crate::Result<FileInArchive>>,
+    files: impl IntoIterator<Item = Result<FileInArchive>>,
     list_options: ListOptions,
-) -> crate::Result<()> {
+) -> Result<()> {
     let mut out = BufWriter::new(stdout().lock());
     let _ = writeln!(out, "Archive: {:?}", PathFmt(archive));
 
     if list_options.tree {
-        let tree = files.into_iter().collect::<crate::Result<Tree>>()?;
+        let tree = files.into_iter().collect::<Result<Tree>>()?;
         tree.print(&mut out);
     } else {
         for file in files {

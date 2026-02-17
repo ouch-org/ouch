@@ -61,7 +61,7 @@ pub fn user_wants_to_overwrite(
     path: &Path,
     question_policy: QuestionPolicy,
     question_action: QuestionAction,
-) -> crate::Result<FileConflitOperation> {
+) -> Result<FileConflitOperation> {
     use FileConflitOperation as Op;
 
     match question_policy {
@@ -149,7 +149,7 @@ pub fn user_wants_to_continue(
     path: &Path,
     question_policy: QuestionPolicy,
     question_action: QuestionAction,
-) -> crate::Result<bool> {
+) -> Result<bool> {
     match question_policy {
         QuestionPolicy::AlwaysYes => Ok(true),
         QuestionPolicy::AlwaysNo => Ok(false),
@@ -198,7 +198,7 @@ impl<'a, T: Default> ChoicePrompt<'a, T> {
 
     /// Creates user message and receives a input to be compared with choises "label"
     /// and returning the real value of the choise selected
-    pub fn ask(mut self) -> crate::Result<T> {
+    pub fn ask(mut self) -> Result<T> {
         let message = self.prompt;
 
         if is_stdin_dev_null()? {
@@ -290,7 +290,7 @@ impl<'a> Confirmation<'a> {
     }
 
     /// Creates user message and receives a boolean input to be used on the program
-    pub fn ask(&self, substitute: Option<&'a str>) -> crate::Result<bool> {
+    pub fn ask(&self, substitute: Option<&'a str>) -> Result<bool> {
         let message = match (self.placeholder, substitute) {
             (None, _) => Cow::Borrowed(self.prompt),
             (Some(_), None) => unreachable!("dev error, should be reported, we checked this won't happen"),

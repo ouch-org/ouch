@@ -21,7 +21,7 @@ use crate::{
         self, canonicalize, colors::*, file_size, is_path_stdin, BytesFmt, FileVisibilityPolicy, PathFmt,
         QuestionAction,
     },
-    CliArgs, QuestionPolicy, INITIAL_CURRENT_DIR,
+    CliArgs, QuestionPolicy, Result, INITIAL_CURRENT_DIR,
 };
 
 /// Warn the user that (de)compressing this .zip archive might freeze their system.
@@ -48,11 +48,7 @@ fn warn_user_about_loading_sevenz_in_memory() {
 /// to assume everything is OK.
 ///
 /// There are a lot of custom errors to give enough error description and explanation.
-pub fn run(
-    args: CliArgs,
-    question_policy: QuestionPolicy,
-    file_visibility_policy: FileVisibilityPolicy,
-) -> crate::Result<()> {
+pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_policy: FileVisibilityPolicy) -> Result<()> {
     if let Some(threads) = args.threads {
         rayon::ThreadPoolBuilder::new()
             .num_threads(threads)

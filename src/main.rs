@@ -13,12 +13,10 @@ use std::{env, path::PathBuf, sync::LazyLock};
 
 use cli::CliArgs;
 
-use self::{
-    error::{Error, Result},
-    utils::{
-        logger::{shutdown_logger_and_wait, spawn_logger_thread},
-        QuestionAction, QuestionPolicy,
-    },
+pub use self::error::{Error, FinalError, Result};
+use self::utils::{
+    logger::{shutdown_logger_and_wait, spawn_logger_thread},
+    QuestionAction, QuestionPolicy,
 };
 
 const BUFFER_CAPACITY: usize = 1024 * 32;

@@ -13,7 +13,7 @@ use crate::{
 
 /// Unpacks the archive given by `archive_path` into the folder given by `output_folder`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive(archive_path: &Path, output_folder: &Path, password: Option<&[u8]>) -> crate::Result<u64> {
+pub fn unpack_archive(archive_path: &Path, output_folder: &Path, password: Option<&[u8]>) -> Result<u64> {
     let archive = match password {
         Some(password) => Archive::with_password(archive_path, password),
         None => Archive::new(archive_path),

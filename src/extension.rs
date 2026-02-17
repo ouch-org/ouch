@@ -188,7 +188,7 @@ fn split_extension_at_end(name: &[u8]) -> Option<(&[u8], Extension)> {
     Some((new_name, ext))
 }
 
-pub fn parse_format_flag(text: &str) -> crate::Result<Vec<Extension>> {
+pub fn parse_format_flag(text: &str) -> Result<Vec<Extension>> {
     let extensions: Vec<Extension> = text
         .split('.')
         .filter(|extension| !extension.is_empty())
@@ -198,7 +198,7 @@ pub fn parse_format_flag(text: &str) -> crate::Result<Vec<Extension>> {
                 reason: format!("Unsupported extension '{extension}'"),
             })
         })
-        .collect::<crate::Result<_>>()?;
+        .collect::<Result<_>>()?;
 
     if extensions.is_empty() {
         return Err(Error::InvalidFormatFlag {
