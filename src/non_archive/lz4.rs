@@ -2,12 +2,12 @@ use std::io::{self, Read};
 
 use lz4_flex::frame::FrameDecoder;
 
-struct PrependReader<R> {
+struct EofCheckReader<R> {
     prefix: Option<u8>,
     inner: R,
 }
 
-impl<R: Read> Read for PrependReader<R> {
+impl<R: Read> Read for EofCheckReader<R> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         if let Some(slot) = buf.first_mut() {
             if let Some(byte) = self.prefix.take() {
@@ -21,13 +21,16 @@ impl<R: Read> Read for PrependReader<R> {
 
 /// Wrapper that handles concatenated lz4 frames (the standard FrameDecoder only reads one).
 pub struct MultiFrameLz4Decoder<R: Read> {
-    decoder: Option<FrameDecoder<PrependReader<R>>>,
+    decoder: Option<FrameDecoder<EofCheckReader<R>>>,
 }
 
 impl<R: Read> MultiFrameLz4Decoder<R> {
     pub fn new(reader: R) -> Self {
         Self {
-            decoder: Some(FrameDecoder::new(PrependReader { prefix: None, inner: reader })),
+            decoder: Some(FrameDecoder::new(EofCheckReader {
+                prefix: None,
+                inner: reader,
+            })),
         }
     }
 }
@@ -51,7 +54,7 @@ impl<R: Read> Read for MultiFrameLz4Decoder<R> {
                 return Ok(0);
             }
 
-            self.decoder = Some(FrameDecoder::new(PrependReader {
+            self.decoder = Some(FrameDecoder::new(EofCheckReader {
                 prefix: Some(peek[0]),
                 inner,
             }));
