@@ -4,15 +4,13 @@ mod compress;
 mod decompress;
 mod list;
 
-use std::ops::ControlFlow;
-
 use bstr::ByteSlice;
 use decompress::DecompressOptions;
 use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use utils::colors;
 
 use crate::{
-    check,
+    check::{self, CheckFileSignatureControlFlow},
     cli::Subcommand,
     commands::{compress::compress_files, decompress::decompress_file, list::list_archive_contents},
     error::{Error, FinalError},
@@ -157,19 +155,27 @@ pub fn run(
                     let file_name = path.file_name().ok_or_else(|| Error::Custom {
                         reason: FinalError::with_title(format!("{:?} does not have a file name", PathFmt(path))),
                     })?;
-                    files_output_paths.push(file_name.as_ref());
+                    files_output_paths.push(file_name.into());
                     files_extensions.push(format.clone());
                 }
             } else {
                 for path in files.iter() {
-                    let (pathbase, mut extensions) = extension::separate_known_extensions_from_name(path)?;
+                    let (output_path, mut extensions) = extension::separate_known_extensions_from_name(path)?;
+                    let mut output_path = output_path.to_owned();
 
-                    if let ControlFlow::Break(_) = check::check_file_signature(path, &mut extensions, question_policy)?
-                    {
-                        return Ok(());
+                    match check::check_file_signature(path, &extensions, question_policy)? {
+                        CheckFileSignatureControlFlow::HaltProgram => return Ok(()),
+                        CheckFileSignatureControlFlow::Continue => {}
+                        CheckFileSignatureControlFlow::ChangeToDetectedExtension {
+                            new_extension,
+                            new_path_filename,
+                        } => {
+                            extensions = vec![new_extension];
+                            output_path = output_path.with_file_name(new_path_filename);
+                        }
                     }
 
-                    files_output_paths.push(pathbase);
+                    files_output_paths.push(output_path);
                     files_extensions.push(extensions);
                 }
             }
@@ -193,7 +199,7 @@ pub fn run(
                 .zip(files_output_paths)
                 .try_for_each(|((input_path, formats), file_name)| {
                     // Path used by single file format archives
-                    let output_file_path = if is_path_stdin(file_name) {
+                    let output_file_path = if is_path_stdin(&file_name) {
                         output_dir.join("ouch-output")
                     } else {
                         output_dir.join(file_name)
@@ -229,15 +235,17 @@ pub fn run(
                 }
             } else {
                 for path in files.iter() {
-                    let mut file_formats = extension::extensions_from_path(path)?;
+                    let mut extensions = extension::extensions_from_path(path)?;
 
-                    if let ControlFlow::Break(_) =
-                        check::check_file_signature(path, &mut file_formats, question_policy)?
-                    {
-                        return Ok(());
+                    match check::check_file_signature(path, &extensions, question_policy)? {
+                        CheckFileSignatureControlFlow::HaltProgram => return Ok(()),
+                        CheckFileSignatureControlFlow::Continue => {}
+                        CheckFileSignatureControlFlow::ChangeToDetectedExtension { new_extension, .. } => {
+                            extensions = vec![new_extension]
+                        }
                     }
 
-                    formats.push(file_formats);
+                    formats.push(extensions);
                 }
             }
 

@@ -1,0 +1,9 @@
+---
+source: tests/ui.rs
+expression: "redact_paths(&output_to_string(output), dir)"
+---
+[WARNING] No recognized extensions in "file.unknown". Proceeding with `zst` that was detected from the file signature.
+Do you want to decompress '"file.unknown"'? [Y/n] 
+[INFO] File "file.unknown" decompressed to "output/file-output"
+[INFO] Input file size: [SIZE]
+[INFO] Output file size: [SIZE]

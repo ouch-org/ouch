@@ -3,7 +3,7 @@
 #![warn(missing_docs)]
 
 use std::{
-    ops::ControlFlow,
+    ffi::OsString,
     path::{Path, PathBuf},
 };
 
@@ -11,20 +11,39 @@ use crate::{
     error::FinalError,
     extension::{build_archive_file_suggestion, Extension},
     info_accessible,
-    utils::{pretty_format_list_of_paths, try_infer_format, user_wants_to_continue, PathFmt},
+    utils::{
+        append_ascii_suffix_to_os_str, pretty_format_list_of_paths, try_infer_format, user_wants_to_continue, PathFmt,
+    },
     warning, QuestionAction, QuestionPolicy, Result,
 };
+
+#[allow(missing_docs)]
+/// Different outcomes for file signature check that the caller must handle.
+pub enum CheckFileSignatureControlFlow {
+    HaltProgram,
+    Continue,
+    ChangeToDetectedExtension {
+        new_extension: Extension,
+        new_path_filename: OsString,
+    },
+}
 
 /// Check if the file signature matches the detected extensions.
 ///
 /// If the path didn't have any extensions, try to infer the format from signature.
 ///
 /// Note that Brotli can't be detected by signature.
+///
+/// # Panics
+///
+/// - Panics if `path` has no filename.
 pub fn check_file_signature(
     path: &Path,
-    extensions: &mut Vec<Extension>,
+    extensions: &[Extension],
     question_policy: QuestionPolicy,
-) -> Result<ControlFlow<()>> {
+) -> Result<CheckFileSignatureControlFlow> {
+    debug_assert!(path.file_name().is_some());
+
     let detected_format = try_infer_format(path);
     let outer_format_from_path = extensions
         .last()
@@ -51,9 +70,18 @@ pub fn check_file_signature(
 
             // TODO: change question to: "do you want to proceed regardless of that"?
             if !user_wants_to_continue(path, question_policy, QuestionAction::Decompression)? {
-                return Ok(ControlFlow::Break(()));
+                return Ok(CheckFileSignatureControlFlow::HaltProgram);
             }
-            *extensions = vec![Extension::from_format(detected)];
+
+            // We usually get the output path name by removing the extensions, in this scenario
+            // we didn't recognized path extensions, so we need to improvise to create a
+            // reasonable output path name
+            let new_path_filename =
+                append_ascii_suffix_to_os_str(path.with_extension("").file_name().unwrap(), "-output");
+            return Ok(CheckFileSignatureControlFlow::ChangeToDetectedExtension {
+                new_path_filename,
+                new_extension: Extension::from_format(detected),
+            });
         }
         (Some(detected), Some(from_path)) => {
             if from_path != detected {
@@ -73,7 +101,7 @@ pub fn check_file_signature(
         }
     }
 
-    Ok(ControlFlow::Continue(()))
+    Ok(CheckFileSignatureControlFlow::Continue)
 }
 
 /// In the context of listing archives, this function checks if `ouch` was told to list
