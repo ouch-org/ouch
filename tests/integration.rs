@@ -1070,8 +1070,7 @@ fn decompress_with_unknown_extension_should_detect_format_and_ask(
 fn test_concatenated_streams(extension: &str, compress_chunk: impl Fn(&[u8]) -> Vec<u8>) {
     use std::io::Write;
 
-    let temp_dir = tempdir().unwrap();
-    let root_path = temp_dir.path();
+    let (_tempdir, root_path) = testdir().unwrap();
 
     // Create content for three separate streams
     let chunks: &[&[u8]] = &[
