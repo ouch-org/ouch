@@ -35,17 +35,24 @@ The CI tests will run for a combination of features, `--no-default-features` wil
 
 We use snapshots to do UI testing and guarantee a consistent output, this way, you can catch accidental changes or see what output changed in the PR diff.
 
-- Run tests with `cargo` normally, or with a filter:
+- Run tests with `cargo insta` (requires `cargo install cargo-insta`):
 
 ```sh
-cargo test
+cargo insta test
 # Or, if you only want to run UI tests
-cargo test -- ui
+cargo insta test -- ui
 # Sometimes, you might have to run UI tests with different feature flags
-cargo test --no-default-features -- ui
+cargo insta test --no-default-features -- ui
 ```
 
-- If some UI test failed, you should review them (requires `cargo install cargo-insta`):
+- You can also use the `--profile fast` flag to trade some compile time for faster tests (usually worth it):
+
+```sh
+cargo test --profile fast
+cargo insta test --profile fast -- ui
+```
+
+- If some UI test failed, you should review them:
 
 ```sh
 cargo insta review
