@@ -1000,7 +1000,6 @@ fn decompress_with_mismatched_extension_should_use_detected_format() {
     let output = crate::utils::cargo_bin()
         .arg("decompress")
         .arg(misnamed_archive)
-        // TODO: --dir shouldn't be necessary here, this is a bug
         .arg("--dir")
         .arg(output_dir)
         .assert()
