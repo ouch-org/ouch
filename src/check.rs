@@ -94,7 +94,8 @@ pub fn check_file_signature(
                     .hint(format!(
                         "Use the `--format {}` flag to specify the correct format",
                         detected.as_str()
-                    ));
+                    ))
+                    .hint("(If that's not correct, please rename the file)");
 
                 return Err(error.into());
             }
