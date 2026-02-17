@@ -8,7 +8,7 @@ use std::{
     io::prelude::*,
     ops::Not,
     path::{Path, PathBuf},
-    sync::mpsc::{self, Receiver},
+    sync::mpsc,
     thread,
 };
 
@@ -18,7 +18,7 @@ use same_file::Handle;
 use crate::{
     error::FinalError,
     info,
-    list::FileInArchive,
+    list::{FileInArchive, FileInArchiveIterator},
     utils::{self, create_symlink, set_permission_mode, BytesFmt, FileVisibilityPolicy, PathFmt},
     warning,
 };
@@ -99,15 +99,6 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> crate::Result<
 pub fn list_archive(
     mut archive: tar::Archive<impl Read + Send + 'static>,
 ) -> impl Iterator<Item = crate::Result<FileInArchive>> {
-    struct Files(Receiver<crate::Result<FileInArchive>>);
-    impl Iterator for Files {
-        type Item = crate::Result<FileInArchive>;
-
-        fn next(&mut self) -> Option<Self::Item> {
-            self.0.recv().ok()
-        }
-    }
-
     let (tx, rx) = mpsc::channel();
     thread::spawn(move || {
         for file in archive.entries().expect("entries is only used once") {
@@ -121,7 +112,7 @@ pub fn list_archive(
         }
     });
 
-    Files(rx)
+    FileInArchiveIterator::new(rx)
 }
 
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.

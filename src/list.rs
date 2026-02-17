@@ -4,6 +4,7 @@ use std::{
     fmt,
     io::{stdout, BufWriter, Write},
     path::{Path, PathBuf},
+    sync::mpsc,
 };
 
 use self::tree::Tree;
@@ -24,6 +25,27 @@ pub struct FileInArchive {
 
     /// Whether this file is a directory
     pub is_dir: bool,
+}
+
+/// An iterator wrapper around an `mpsc::Receiver<crate::Result<FileInArchive>>`.
+///
+/// This is used by archive listing functions that spawn a background thread
+/// to iterate over archive entries.
+pub struct FileInArchiveIterator(mpsc::Receiver<crate::Result<FileInArchive>>);
+
+impl FileInArchiveIterator {
+    /// Create a new iterator from a receiver.
+    pub fn new(receiver: mpsc::Receiver<crate::Result<FileInArchive>>) -> Self {
+        Self(receiver)
+    }
+}
+
+impl Iterator for FileInArchiveIterator {
+    type Item = crate::Result<FileInArchive>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.recv().ok()
+    }
 }
 
 /// Actually print the files

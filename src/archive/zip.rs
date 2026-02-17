@@ -19,7 +19,7 @@ use zip::{self, read::ZipFile, DateTime, ZipArchive};
 use crate::{
     error::FinalError,
     info, info_accessible,
-    list::FileInArchive,
+    list::{FileInArchive, FileInArchiveIterator},
     utils::{
         cd_into_same_dir_as, create_symlink, get_invalid_utf8_paths, pretty_format_list_of_paths, strip_cur_dir,
         BytesFmt, FileVisibilityPolicy, PathFmt,
@@ -114,15 +114,6 @@ pub fn list_archive<R>(
 where
     R: Read + Seek + Send + 'static,
 {
-    struct Files(mpsc::Receiver<crate::Result<FileInArchive>>);
-    impl Iterator for Files {
-        type Item = crate::Result<FileInArchive>;
-
-        fn next(&mut self) -> Option<Self::Item> {
-            self.0.recv().ok()
-        }
-    }
-
     let password = password.map(|p| p.to_owned());
 
     let (tx, rx) = mpsc::channel();
@@ -148,7 +139,7 @@ where
         }
     });
 
-    Files(rx)
+    FileInArchiveIterator::new(rx)
 }
 
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.
