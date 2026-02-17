@@ -1,7 +1,7 @@
 use std::{
     borrow::Cow,
     cmp,
-    ffi::OsStr,
+    ffi::{OsStr, OsString},
     fmt::{self, Write as _},
     path::{Path, PathBuf},
 };
@@ -77,6 +77,23 @@ pub fn strip_path_ascii_prefix<'a>(path: Cow<'a, Path>, ascii_prefix: &str) -> C
     } else {
         path
     }
+}
+
+/// Append an ASCII suffix to an OS string.
+///
+/// # Panics:
+///
+/// - Panics if suffix is not valid ASCII (to ensure safety).
+pub fn append_ascii_suffix_to_os_str(os_str: &OsStr, ascii_suffix: &str) -> OsString {
+    assert!(ascii_suffix.is_ascii());
+
+    let mut bytes = os_str.as_encoded_bytes().to_vec();
+    bytes.extend_from_slice(ascii_suffix.as_bytes());
+
+    // Safety: appending ASCII bytes to a valid OsStr encoding preserves validity.
+    // ASCII characters in WTF-8/UTF-8 are encoded identically to plain ASCII,
+    // so appending them cannot create invalid sequences or break encoding.
+    unsafe { OsStr::from_encoded_bytes_unchecked(&bytes) }.to_owned()
 }
 
 pub struct PathFmt<'a>(pub &'a Path);

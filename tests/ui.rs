@@ -19,7 +19,17 @@ fn testdir() -> io::Result<(tempfile::TempDir, &'static Path)> {
 }
 
 fn run_ouch(argv: &str, dir: &Path) -> String {
-    let output = utils::cargo_bin()
+    run_ouch_with_stdin(argv, dir, None)
+}
+
+fn run_ouch_with_stdin(argv: &str, dir: &Path, stdin: Option<&str>) -> String {
+    let mut command = utils::cargo_bin();
+
+    if let Some(stdin) = stdin {
+        command.write_stdin(stdin);
+    }
+
+    let output = command
         .args(argv.split_whitespace().skip(1))
         .current_dir(dir)
         .output()
@@ -199,4 +209,45 @@ fn concat_snapshot_filename_rar_feature(name: &str) -> String {
     };
 
     format!("{name}_{suffix}")
+}
+
+#[test]
+fn ui_test_decompress_with_unknown_extension_shows_output_path() {
+    let (_dropper, dir) = testdir().unwrap();
+
+    create_files_in(dir, &["input.txt"]);
+
+    // Compress with zst
+    run_ouch("ouch compress input.txt compressed.zst", dir);
+
+    // Rename to unknown extension
+    std::fs::rename(dir.join("compressed.zst"), dir.join("file.unknown")).unwrap();
+
+    std::fs::create_dir(dir.join("output")).unwrap();
+
+    // Decompress with stdin input to confirm format detection
+    let output = utils::cargo_bin()
+        .args(["decompress", "file.unknown", "--dir", "output"])
+        .current_dir(dir)
+        .write_stdin("y\n")
+        .output()
+        .unwrap();
+
+    insta_filter_settings().bind(|| {
+        ui!(redact_paths(&output_to_string(output), dir));
+    });
+}
+
+#[test]
+fn ui_test_err_decompress_output_file_exists() {
+    let (_dropper, dir) = testdir().unwrap();
+
+    // Create a file "out" that will conflict with decompression output
+    create_files_in(dir, &["input", "out"]);
+
+    run_ouch("ouch compress input out.gz", dir);
+
+    // Try to decompress out.gz, which would extract to "out" (already exists)
+    // Answer "n" to the overwrite prompt
+    ui!(run_ouch_with_stdin("ouch decompress out.gz", dir, Some("n\n")));
 }

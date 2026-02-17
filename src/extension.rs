@@ -49,7 +49,7 @@ pub const PRETTY_SUPPORTED_ALIASES: &str = "tgz, tbz, tlz4, txz, tlzma, tsz, tzs
 #[non_exhaustive]
 pub struct Extension {
     /// One extension like "tgz" can be made of multiple CompressionFormats ([Tar, Gz])
-    pub compression_formats: &'static [CompressionFormat],
+    pub compression_formats: Vec<CompressionFormat>,
     /// The input text for this extension, like "tgz", "tar" or "xz"
     display_text: String,
 }
@@ -57,18 +57,26 @@ pub struct Extension {
 impl Extension {
     /// # Panics:
     ///   Will panic if `formats` is empty
-    pub fn new(formats: &'static [CompressionFormat], text: impl ToString) -> Self {
-        assert!(!formats.is_empty());
+    pub fn new(formats: impl Into<Vec<CompressionFormat>>, text: impl ToString) -> Self {
+        let compression_formats = formats.into();
+        assert!(!compression_formats.is_empty());
         Self {
-            compression_formats: formats,
+            compression_formats,
             display_text: text.to_string(),
+        }
+    }
+
+    pub fn from_format(format: CompressionFormat) -> Self {
+        Self {
+            compression_formats: vec![format],
+            display_text: format.as_str().to_owned(),
         }
     }
 
     /// Checks if the first format in `compression_formats` is an archive
     pub fn is_archive(&self) -> bool {
         // Index Safety: we check that `compression_formats` is not empty in `Self::new`
-        self.compression_formats[0].archive_format()
+        self.compression_formats[0].is_archive_format()
     }
 }
 
@@ -112,45 +120,63 @@ pub enum CompressionFormat {
 }
 
 impl CompressionFormat {
-    pub fn archive_format(&self) -> bool {
+    pub fn is_archive_format(&self) -> bool {
         // Keep this match without a wildcard `_` so we never forget to update it
         match self {
             Tar | Zip | Rar | SevenZip => true,
             Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli | Gzip => false,
         }
     }
+
+    pub fn as_str(&self) -> &str {
+        match self {
+            Tar => "tar",
+            Zip => "zip",
+            Rar => "rar",
+            SevenZip => "7z",
+            Brotli => "br",
+            Gzip => "gz",
+            Bzip => "bz",
+            Bzip3 => "bz3",
+            Lz4 => "lz4",
+            Xz => "xz",
+            Lzma => "lzma",
+            Lzip => "lz",
+            Snappy => "sz",
+            Zstd => "zst",
+        }
+    }
 }
 
-fn to_extension(ext: &[u8]) -> Option<Extension> {
-    Some(Extension::new(
-        match ext {
-            b"tar" | b"cbt" => &[Tar],
-            b"tgz" => &[Tar, Gzip],
-            b"tbz" | b"tbz2" => &[Tar, Bzip],
-            b"tbz3" => &[Tar, Bzip3],
-            b"tlz4" => &[Tar, Lz4],
-            b"txz" => &[Tar, Xz],
-            b"tlzma" => &[Tar, Lzma],
-            b"tlz" => &[Tar, Lzip],
-            b"tsz" => &[Tar, Snappy],
-            b"tzst" => &[Tar, Zstd],
-            b"zip" | b"cbz" => &[Zip],
-            b"bz" | b"bz2" => &[Bzip],
-            b"bz3" => &[Bzip3],
-            b"gz" => &[Gzip],
-            b"lz4" => &[Lz4],
-            b"xz" => &[Xz],
-            b"lzma" => &[Lzma],
-            b"lz" => &[Lzip],
-            b"sz" => &[Snappy],
-            b"zst" => &[Zstd],
-            b"rar" | b"cbr" => &[Rar],
-            b"7z" | b"cb7" => &[SevenZip],
-            b"br" => &[Brotli],
-            _ => return None,
-        },
-        ext.to_str_lossy(),
-    ))
+fn slice_to_extension(ext: &[u8]) -> Option<Extension> {
+    let formats: &[CompressionFormat] = match ext {
+        b"tar" | b"cbt" => [Tar].as_slice(),
+        b"tgz" => [Tar, Gzip].as_slice(),
+        b"tbz" | b"tbz2" => [Tar, Bzip].as_slice(),
+        b"tbz3" => [Tar, Bzip3].as_slice(),
+        b"tlz4" => [Tar, Lz4].as_slice(),
+        b"txz" => [Tar, Xz].as_slice(),
+        b"tlzma" => [Tar, Lzma].as_slice(),
+        b"tlz" => [Tar, Lzip].as_slice(),
+        b"tsz" => [Tar, Snappy].as_slice(),
+        b"tzst" => [Tar, Zstd].as_slice(),
+        b"zip" | b"cbz" => [Zip].as_slice(),
+        b"bz" | b"bz2" => [Bzip].as_slice(),
+        b"bz3" => [Bzip3].as_slice(),
+        b"gz" => [Gzip].as_slice(),
+        b"lz4" => [Lz4].as_slice(),
+        b"xz" => [Xz].as_slice(),
+        b"lzma" => [Lzma].as_slice(),
+        b"lz" => [Lzip].as_slice(),
+        b"sz" => [Snappy].as_slice(),
+        b"zst" => [Zstd].as_slice(),
+        b"rar" | b"cbr" => [Rar].as_slice(),
+        b"7z" | b"cb7" => [SevenZip].as_slice(),
+        b"br" => [Brotli].as_slice(),
+        _ => return None,
+    };
+    let extension_text = ext.to_str_lossy();
+    Some(Extension::new(formats, extension_text))
 }
 
 fn split_extension_at_end(name: &[u8]) -> Option<(&[u8], Extension)> {
@@ -158,7 +184,7 @@ fn split_extension_at_end(name: &[u8]) -> Option<(&[u8], Extension)> {
     if matches!(new_name, b"" | b"." | b"..") {
         return None;
     }
-    let ext = to_extension(ext)?;
+    let ext = slice_to_extension(ext)?;
     Some((new_name, ext))
 }
 
@@ -167,7 +193,7 @@ pub fn parse_format_flag(text: &str) -> crate::Result<Vec<Extension>> {
         .split('.')
         .filter(|extension| !extension.is_empty())
         .map(|extension| {
-            to_extension(extension.as_bytes()).ok_or_else(|| Error::InvalidFormatFlag {
+            slice_to_extension(extension.as_bytes()).ok_or_else(|| Error::InvalidFormatFlag {
                 text: text.to_owned(),
                 reason: format!("Unsupported extension '{extension}'"),
             })
@@ -319,37 +345,37 @@ mod tests {
         );
         assert_eq!(
             separate_known_extensions_from_name("file.tar".as_ref()).unwrap(),
-            ("file".as_ref(), vec![Extension::new(&[Tar], "tar")])
+            ("file".as_ref(), vec![Extension::new([Tar], "tar")])
         );
         assert_eq!(
             separate_known_extensions_from_name("file.tar.gz".as_ref()).unwrap(),
             (
                 "file".as_ref(),
-                vec![Extension::new(&[Tar], "tar"), Extension::new(&[Gzip], "gz")]
+                vec![Extension::new([Tar], "tar"), Extension::new([Gzip], "gz")]
             )
         );
         assert_eq!(
             separate_known_extensions_from_name(".tar.gz".as_ref()).unwrap(),
-            (".tar".as_ref(), vec![Extension::new(&[Gzip], "gz")])
+            (".tar".as_ref(), vec![Extension::new([Gzip], "gz")])
         );
     }
 
     #[test]
     /// Test extension parsing of `--format FORMAT`
     fn test_parse_of_format_flag() {
-        assert_eq!(parse_format_flag("tar").unwrap(), vec![Extension::new(&[Tar], "tar")]);
-        assert_eq!(parse_format_flag(".tar").unwrap(), vec![Extension::new(&[Tar], "tar")]);
+        assert_eq!(parse_format_flag("tar").unwrap(), vec![Extension::new([Tar], "tar")]);
+        assert_eq!(parse_format_flag(".tar").unwrap(), vec![Extension::new([Tar], "tar")]);
         assert_eq!(
             parse_format_flag("tar.gz").unwrap(),
-            vec![Extension::new(&[Tar], "tar"), Extension::new(&[Gzip], "gz")]
+            vec![Extension::new([Tar], "tar"), Extension::new([Gzip], "gz")]
         );
         assert_eq!(
             parse_format_flag(".tar.gz").unwrap(),
-            vec![Extension::new(&[Tar], "tar"), Extension::new(&[Gzip], "gz")]
+            vec![Extension::new([Tar], "tar"), Extension::new([Gzip], "gz")]
         );
         assert_eq!(
             parse_format_flag("..tar..gz.....").unwrap(),
-            vec![Extension::new(&[Tar], "tar"), Extension::new(&[Gzip], "gz")]
+            vec![Extension::new([Tar], "tar"), Extension::new([Gzip], "gz")]
         );
 
         assert!(parse_format_flag("../tar.gz").is_err());

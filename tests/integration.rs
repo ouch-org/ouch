@@ -991,3 +991,96 @@ fn compress_with_rename_conflict() {
     assert!(root_path.join("archive_1.tar.gz").exists());
     assert!(root_path.join("archive_2.tar.gz").exists());
 }
+
+#[test]
+fn decompress_with_mismatched_extension_should_use_detected_format() {
+    let temp_dir = tempdir().unwrap();
+    let test_dir = temp_dir.path();
+
+    let original_file = test_dir.join("input.txt");
+    fs::write(&original_file, "Hello, world!").unwrap();
+
+    let gzip_archive = test_dir.join("archive.gz");
+    let misnamed_archive = test_dir.join("archive.zst");
+
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .arg(&original_file)
+        .arg(&gzip_archive)
+        .assert()
+        .success();
+
+    // Rename the .gz file to have a .zst extension (wrong extension)
+    fs::rename(&gzip_archive, &misnamed_archive).unwrap();
+
+    let output_dir = test_dir.join("output");
+    fs::create_dir(&output_dir).unwrap();
+
+    let output = crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(misnamed_archive)
+        // TODO: --dir shouldn't be necessary here, this is a bug
+        .arg("--dir")
+        .arg(output_dir)
+        .assert()
+        .failure()
+        .get_output()
+        .clone();
+
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("Format mismatch"), "Expected format mismatch error");
+    assert!(stderr.contains("--format"), "Expected hint about --format flag");
+}
+
+#[proptest(cases = 10)]
+fn decompress_with_unknown_extension_should_detect_format_and_ask(
+    ext: FileExtension,
+    contains_extension_in_filename: bool,
+) {
+    let temp_dir = tempdir()?;
+    let test_dir = temp_dir.path();
+
+    // Brotli has no magic bytes
+    if let FileExtension::Br = ext {
+        return Ok(());
+    }
+
+    let original_file = test_dir.join("input.txt");
+    let original_content = "Hello, world!";
+    fs::write(&original_file, original_content)?;
+
+    let compressed_archive = test_dir.join(format!("file.{ext}"));
+
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .arg(&original_file)
+        .arg(&compressed_archive)
+        .assert()
+        .success();
+
+    let erased_ext_filename = if contains_extension_in_filename {
+        "file.unknown"
+    } else {
+        "file"
+    };
+    let unknown_path = test_dir.join(erased_ext_filename);
+    // Rename to have an unknown extension (no recognized format)
+    fs::rename(&compressed_archive, &unknown_path)?;
+
+    let output_dir = test_dir.join("output");
+    fs::create_dir(&output_dir)?;
+
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(&unknown_path)
+        .arg("--dir")
+        .arg(&output_dir)
+        .write_stdin("y\n")
+        .assert()
+        .success();
+
+    // Ouch adds this suffix so it doesn't conflict with other stuff
+    let decompressed_file = output_dir.join("file-output");
+    let decompressed_content = fs::read_to_string(&decompressed_file)?;
+    assert_eq!(decompressed_content, original_content);
+}

@@ -4,15 +4,13 @@ mod compress;
 mod decompress;
 mod list;
 
-use std::ops::ControlFlow;
-
 use bstr::ByteSlice;
 use decompress::DecompressOptions;
 use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use utils::colors;
 
 use crate::{
-    check,
+    check::{self, CheckFileSignatureControlFlow},
     cli::Subcommand,
     commands::{compress::compress_files, decompress::decompress_file, list::list_archive_contents},
     error::{Error, FinalError},
@@ -148,8 +146,8 @@ pub fn run(
             output_dir,
             remove,
         } => {
-            let mut output_paths = vec![];
-            let mut formats = vec![];
+            let mut files_output_paths: Vec<_> = vec![];
+            let mut files_extensions: Vec<Vec<_>> = vec![];
 
             if let Some(format) = args.format {
                 let format = parse_format_flag(&format)?;
@@ -157,23 +155,32 @@ pub fn run(
                     let file_name = path.file_name().ok_or_else(|| Error::Custom {
                         reason: FinalError::with_title(format!("{:?} does not have a file name", PathFmt(path))),
                     })?;
-                    output_paths.push(file_name.as_ref());
-                    formats.push(format.clone());
+                    files_output_paths.push(file_name.into());
+                    files_extensions.push(format.clone());
                 }
             } else {
                 for path in files.iter() {
-                    let (pathbase, mut file_formats) = extension::separate_known_extensions_from_name(path)?;
+                    let (output_path, mut extensions) = extension::separate_known_extensions_from_name(path)?;
+                    let mut output_path = output_path.to_owned();
 
-                    if let ControlFlow::Break(_) = check::check_mime_type(path, &mut file_formats, question_policy)? {
-                        return Ok(());
+                    match check::check_file_signature(path, &extensions, question_policy)? {
+                        CheckFileSignatureControlFlow::HaltProgram => return Ok(()),
+                        CheckFileSignatureControlFlow::Continue => {}
+                        CheckFileSignatureControlFlow::ChangeToDetectedExtension {
+                            new_extension,
+                            new_path_filename,
+                        } => {
+                            extensions = vec![new_extension];
+                            output_path = output_path.with_file_name(new_path_filename);
+                        }
                     }
 
-                    output_paths.push(pathbase);
-                    formats.push(file_formats);
+                    files_output_paths.push(output_path);
+                    files_extensions.push(extensions);
                 }
             }
 
-            check::check_missing_formats_when_decompressing(&files, &formats)?;
+            check::check_missing_formats_when_decompressing(&files, &files_extensions)?;
 
             // The directory that will contain the output files
             // We default to the current directory if the user didn't specify an output directory with --dir
@@ -188,11 +195,11 @@ pub fn run(
 
             files
                 .par_iter()
-                .zip(formats)
-                .zip(output_paths)
+                .zip(files_extensions)
+                .zip(files_output_paths)
                 .try_for_each(|((input_path, formats), file_name)| {
                     // Path used by single file format archives
-                    let output_file_path = if is_path_stdin(file_name) {
+                    let output_file_path = if is_path_stdin(&file_name) {
                         output_dir.join("ouch-output")
                     } else {
                         output_dir.join(file_name)
@@ -209,6 +216,13 @@ pub fn run(
                         }),
                         remove,
                     })
+                    .map_err(|err| match err {
+                        Error::IoError { reason } => Error::Custom {
+                            reason: FinalError::with_title(format!("Failed to decompress {}", PathFmt(input_path)))
+                                .detail(reason),
+                        },
+                        other => other,
+                    })
                 })
         }
         Subcommand::List { archives: files, tree } => {
@@ -221,13 +235,17 @@ pub fn run(
                 }
             } else {
                 for path in files.iter() {
-                    let mut file_formats = extension::extensions_from_path(path)?;
+                    let mut extensions = extension::extensions_from_path(path)?;
 
-                    if let ControlFlow::Break(_) = check::check_mime_type(path, &mut file_formats, question_policy)? {
-                        return Ok(());
+                    match check::check_file_signature(path, &extensions, question_policy)? {
+                        CheckFileSignatureControlFlow::HaltProgram => return Ok(()),
+                        CheckFileSignatureControlFlow::Continue => {}
+                        CheckFileSignatureControlFlow::ChangeToDetectedExtension { new_extension, .. } => {
+                            extensions = vec![new_extension]
+                        }
                     }
 
-                    formats.push(file_formats);
+                    formats.push(extensions);
                 }
             }
 
