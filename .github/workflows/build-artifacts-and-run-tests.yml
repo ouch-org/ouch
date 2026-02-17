@@ -76,17 +76,29 @@ jobs:
             use-cross: true
           - target: armv7-unknown-linux-musleabihf
             use-cross: true
-          # Isolated 1 run per feature where only that feature is enabled, and the rest is disabled
-          - feature-unrar: true
-            target: x86_64-unknown-linux-gnu
-          - feature-use-zlib: true
-            target: x86_64-unknown-linux-gnu
-          - feature-use-zstd-thin: true
-            target: x86_64-unknown-linux-gnu
-          - feature-bzip3: true
-            target: x86_64-unknown-linux-gnu
+          # 1 run per feature where only that feature is enabled
+          - target: x86_64-unknown-linux-gnu
+            feature-unrar: true
+            feature-use-zlib: false
+            feature-use-zstd-thin: false
+            feature-bzip3: false
+          - target: x86_64-unknown-linux-gnu
+            feature-unrar: false
+            feature-use-zlib: true
+            feature-use-zstd-thin: false
+            feature-bzip3: false
+          - target: x86_64-unknown-linux-gnu
+            feature-unrar: false
+            feature-use-zlib: false
+            feature-use-zstd-thin: true
+            feature-bzip3: false
+          - target: x86_64-unknown-linux-gnu
+            feature-unrar: false
+            feature-use-zlib: false
+            feature-use-zstd-thin: false
+            feature-bzip3: true
           # One run with all features disabled
-          - target: aarch64-unknown-linux-gnu
+          - target: x86_64-unknown-linux-gnu
             feature-unrar: false
             feature-use-zlib: false
             feature-use-zstd-thin: false
