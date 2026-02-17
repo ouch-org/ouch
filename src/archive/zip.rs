@@ -21,8 +21,8 @@ use crate::{
     info, info_accessible,
     list::{FileInArchive, FileInArchiveIterator},
     utils::{
-        cd_into_same_dir_as, create_symlink, get_invalid_utf8_paths, pretty_format_list_of_paths, strip_cur_dir,
-        BytesFmt, FileVisibilityPolicy, PathFmt,
+        cd_into_same_dir_as, create_symlink, get_invalid_utf8_paths, is_same_file_as_output,
+        pretty_format_list_of_paths, strip_cur_dir, BytesFmt, FileVisibilityPolicy, PathFmt,
     },
     warning,
 };
@@ -187,11 +187,10 @@ where
             let entry = entry?;
             let path = entry.path();
 
-            // If the output_path is the same as the input file, warn the user and skip the input (in order to avoid compression recursion)
-            if let Ok(handle) = &output_handle {
-                if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
-                    warning!("Cannot compress {:?} into itself, skipping", PathFmt(output_path));
-                }
+            // Avoid compressing the output file into itself
+            if is_same_file_as_output(path, &output_handle) {
+                warning!("Cannot compress {:?} into itself, skipping", PathFmt(output_path));
+                continue;
             }
 
             info!("Compressing {:?}", PathFmt(path));
