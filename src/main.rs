@@ -21,8 +21,8 @@ use self::{
     },
 };
 
-// Used in BufReader and BufWriter to perform less syscalls
 const BUFFER_CAPACITY: usize = 1024 * 32;
+pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;
 
 /// Current directory, canonicalized for consistent path comparisons across platforms
 static INITIAL_CURRENT_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
@@ -36,9 +36,6 @@ static INITIAL_CURRENT_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
 
     dir
 });
-
-/// The status code returned from `ouch` on error
-pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;
 
 fn main() {
     force_lazy_locks_to_load();
