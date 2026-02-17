@@ -1084,3 +1084,89 @@ fn decompress_with_unknown_extension_should_detect_format_and_ask(
     let decompressed_content = fs::read_to_string(&decompressed_file)?;
     assert_eq!(decompressed_content, original_content);
 }
+
+/// Helper function to test decompression of concatenated streams (issue #855).
+/// Takes a file extension and a compression function that compresses a single chunk.
+fn test_concatenated_streams(extension: &str, compress_chunk: impl Fn(&[u8]) -> Vec<u8>) {
+    use std::io::Write;
+
+    let temp_dir = tempdir().unwrap();
+    let root_path = temp_dir.path();
+
+    // Create content for three separate streams
+    let chunks: &[&[u8]] = &[
+        b"First stream content - this is stream 1\n",
+        b"Second stream content - this is stream 2\n",
+        b"Third stream content - this is stream 3\n",
+    ];
+
+    // Create the concatenated file
+    let concatenated_path = root_path.join(format!("concatenated.{extension}"));
+    {
+        let mut file = fs::File::create(&concatenated_path).unwrap();
+        for chunk in chunks {
+            file.write_all(&compress_chunk(chunk)).unwrap();
+        }
+    }
+
+    // Decompress using ouch
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(&concatenated_path)
+        .arg("-d")
+        .arg(root_path)
+        .arg("--yes")
+        .assert()
+        .success();
+
+    // Verify the output contains all streams
+    let output_path = root_path.join("concatenated");
+    let output_content = fs::read(&output_path).unwrap();
+    let expected_content: Vec<u8> = chunks.iter().flat_map(|c| c.iter().copied()).collect();
+    assert_eq!(
+        output_content, expected_content,
+        "Decompressed content should contain all concatenated {extension} streams"
+    );
+}
+
+/// Test that concatenated gzip streams are fully decompressed (issue #855)
+#[test]
+fn decompress_concatenated_gzip_streams() {
+    use std::io::Write;
+
+    use flate2::{write::GzEncoder, Compression};
+
+    test_concatenated_streams("gz", |data| {
+        let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+        encoder.write_all(data).unwrap();
+        encoder.finish().unwrap()
+    });
+}
+
+/// Test that concatenated bzip2 streams are fully decompressed (related to issue #855)
+#[test]
+fn decompress_concatenated_bzip2_streams() {
+    use std::io::Write;
+
+    use bzip2::{write::BzEncoder, Compression};
+
+    test_concatenated_streams("bz2", |data| {
+        let mut encoder = BzEncoder::new(Vec::new(), Compression::default());
+        encoder.write_all(data).unwrap();
+        encoder.finish().unwrap()
+    });
+}
+
+/// Test that concatenated lz4 frames are fully decompressed (related to issue #855)
+#[test]
+fn decompress_concatenated_lz4_frames() {
+    use std::io::Write;
+
+    use lz4_flex::frame::FrameEncoder;
+
+    test_concatenated_streams("lz4", |data| {
+        let mut encoder = FrameEncoder::new(Vec::new());
+        encoder.write_all(data).unwrap();
+        encoder.finish().unwrap()
+    });
+}

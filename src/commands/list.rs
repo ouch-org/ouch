@@ -10,6 +10,7 @@ use crate::{
     commands::warn_user_about_loading_zip_in_memory,
     extension::CompressionFormat::{self, *},
     list::{self, FileInArchive, ListOptions},
+    non_archive::lz4::MultiFrameLz4Decoder,
     utils::{io::lock_and_flush_output_stdio, user_wants_to_continue},
     QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
@@ -47,8 +48,8 @@ pub fn list_archive_contents(
     let chain_reader_decoder =
         |format: CompressionFormat, decoder: Box<dyn Read + Send>| -> crate::Result<Box<dyn Read + Send>> {
             let decoder: Box<dyn Read + Send> = match format {
-                Gzip => Box::new(flate2::read::GzDecoder::new(decoder)),
-                Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
+                Gzip => Box::new(flate2::read::MultiGzDecoder::new(decoder)),
+                Bzip => Box::new(bzip2::read::MultiBzDecoder::new(decoder)),
                 Bzip3 => {
                     #[cfg(not(feature = "bzip3"))]
                     return Err(crate::Error::bzip3_no_support());
@@ -56,7 +57,7 @@ pub fn list_archive_contents(
                     #[cfg(feature = "bzip3")]
                     Box::new(bzip3::read::Bz3Decoder::new(decoder).unwrap())
                 }
-                Lz4 => Box::new(lz4_flex::frame::FrameDecoder::new(decoder)),
+                Lz4 => Box::new(MultiFrameLz4Decoder::new(decoder)),
                 Lzma => Box::new(lzma_rust2::LzmaReader::new_mem_limit(decoder, u32::MAX, None)?),
                 Xz => Box::new(lzma_rust2::XzReader::new(decoder, true)),
                 Lzip => Box::new(lzma_rust2::LzipReader::new(decoder)?),
