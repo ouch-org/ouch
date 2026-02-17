@@ -57,6 +57,7 @@ Categories Used:
 - Fix .7z always being fully loaded to memory (https://github.com/ouch-org/ouch/pull/905)
 - Fix reporting wrong path when file is renamed (https://github.com/ouch-org/ouch/pull/913)
 - Fix renaming broken when multi extension paths (https://github.com/ouch-org/ouch/pull/919)
+- Fix incorrectly overwriting input file when file signature is sniffed (https://github.com/ouch-org/ouch/pull/920)
 
 ### Tweaks
 
