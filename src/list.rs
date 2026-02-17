@@ -27,20 +27,16 @@ pub struct FileInArchive {
     pub is_dir: bool,
 }
 
-/// An iterator wrapper around an `mpsc::Receiver<Result<FileInArchive>>`.
-///
-/// This is used by archive listing functions that spawn a background thread
-/// to iterate over archive entries.
-pub struct FileInArchiveIterator(mpsc::Receiver<Result<FileInArchive>>);
+/// Used by archive listing functions that spawn a background thread
+pub struct ListArchiveReceiverIterator(mpsc::Receiver<Result<FileInArchive>>);
 
-impl FileInArchiveIterator {
-    /// Create a new iterator from a receiver.
+impl ListArchiveReceiverIterator {
     pub fn new(receiver: mpsc::Receiver<Result<FileInArchive>>) -> Self {
         Self(receiver)
     }
 }
 
-impl Iterator for FileInArchiveIterator {
+impl Iterator for ListArchiveReceiverIterator {
     type Item = Result<FileInArchive>;
 
     fn next(&mut self) -> Option<Self::Item> {

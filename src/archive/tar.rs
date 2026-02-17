@@ -18,7 +18,7 @@ use same_file::Handle;
 use crate::{
     error::FinalError,
     info,
-    list::{FileInArchive, FileInArchiveIterator},
+    list::{FileInArchive, ListArchiveReceiverIterator},
     utils::{
         self, create_symlink, is_broken_symlink_error, is_same_file_as_output, set_permission_mode, BytesFmt,
         FileVisibilityPolicy, PathFmt,
@@ -115,7 +115,7 @@ pub fn list_archive(
         }
     });
 
-    FileInArchiveIterator::new(rx)
+    ListArchiveReceiverIterator::new(rx)
 }
 
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.

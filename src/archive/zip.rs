@@ -19,7 +19,7 @@ use zip::{self, read::ZipFile, DateTime, ZipArchive};
 use crate::{
     error::FinalError,
     info, info_accessible,
-    list::{FileInArchive, FileInArchiveIterator},
+    list::{FileInArchive, ListArchiveReceiverIterator},
     utils::{
         cd_into_same_dir_as, create_symlink, ensure_parent_dir_exists, get_invalid_utf8_paths, is_broken_symlink_error,
         is_same_file_as_output, pretty_format_list_of_paths, strip_cur_dir, BytesFmt, FileVisibilityPolicy, PathFmt,
@@ -135,7 +135,7 @@ where
         }
     });
 
-    FileInArchiveIterator::new(rx)
+    ListArchiveReceiverIterator::new(rx)
 }
 
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.
