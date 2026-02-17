@@ -19,7 +19,10 @@ use crate::{
     error::FinalError,
     info,
     list::{FileInArchive, FileInArchiveIterator},
-    utils::{self, create_symlink, is_same_file_as_output, set_permission_mode, BytesFmt, FileVisibilityPolicy, PathFmt},
+    utils::{
+        self, create_symlink, is_broken_symlink_error, is_same_file_as_output, set_permission_mode, BytesFmt,
+        FileVisibilityPolicy, PathFmt,
+    },
     warning,
 };
 
@@ -200,13 +203,8 @@ where
 
             let mut file = match fs::File::open(path) {
                 Ok(f) => f,
-                Err(e) => {
-                    if e.kind() == std::io::ErrorKind::NotFound && path.is_symlink() {
-                        // This path is for a broken symlink, ignore it
-                        continue;
-                    }
-                    return Err(e.into());
-                }
+                Err(e) if is_broken_symlink_error(&e, path) => continue,
+                Err(e) => return Err(e.into()),
             };
             builder.append_file(path, file.file_mut()).map_err(|err| {
                 FinalError::with_title("Could not create archive")

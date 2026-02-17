@@ -127,6 +127,14 @@ pub fn is_same_file_as_output(path: &Path, output_handle: &std::result::Result<H
     false
 }
 
+/// Check if an IO error is caused by a broken symlink.
+///
+/// Returns `true` if the error is `NotFound` and the path is a symlink,
+/// indicating the symlink target doesn't exist.
+pub fn is_broken_symlink_error(error: &std::io::Error, path: &Path) -> bool {
+    error.kind() == std::io::ErrorKind::NotFound && path.is_symlink()
+}
+
 /// Try to detect the file extension by looking for known magic strings
 /// Source: <https://en.wikipedia.org/wiki/List_of_file_signatures>
 pub fn try_infer_format(path: &Path) -> Option<CompressionFormat> {

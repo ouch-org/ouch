@@ -21,8 +21,8 @@ use crate::{
     info, info_accessible,
     list::{FileInArchive, FileInArchiveIterator},
     utils::{
-        cd_into_same_dir_as, create_symlink, get_invalid_utf8_paths, is_same_file_as_output,
-        pretty_format_list_of_paths, strip_cur_dir, BytesFmt, FileVisibilityPolicy, PathFmt,
+        cd_into_same_dir_as, create_symlink, get_invalid_utf8_paths, is_broken_symlink_error,
+        is_same_file_as_output, pretty_format_list_of_paths, strip_cur_dir, BytesFmt, FileVisibilityPolicy, PathFmt,
     },
     warning,
 };
@@ -197,13 +197,8 @@ where
 
             let metadata = match path.metadata() {
                 Ok(metadata) => metadata,
-                Err(e) => {
-                    if e.kind() == std::io::ErrorKind::NotFound && path.is_symlink() {
-                        // This path is for a broken symlink, ignore it
-                        continue;
-                    }
-                    return Err(e.into());
-                }
+                Err(e) if is_broken_symlink_error(&e, path) => continue,
+                Err(e) => return Err(e.into()),
             };
 
             #[cfg(unix)]
