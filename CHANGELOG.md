@@ -56,6 +56,7 @@ Categories Used:
 - Fix enable gitignore flag should work without git (https://github.com/ouch-org/ouch/pull/881)
 - Fix .7z always being fully loaded to memory (https://github.com/ouch-org/ouch/pull/905)
 - Fix reporting wrong path when file is renamed (https://github.com/ouch-org/ouch/pull/913)
+- Fix renaming broken when multi extension paths (https://github.com/ouch-org/ouch/pull/919)
 
 ### Tweaks
 
