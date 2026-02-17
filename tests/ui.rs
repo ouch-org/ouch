@@ -5,18 +5,12 @@
 #[macro_use]
 mod utils;
 
-use std::{ffi::OsStr, io, path::Path, process::Output};
+use std::{ffi::OsStr, path::Path, process::Output};
 
 use insta::{assert_snapshot as ui, Settings};
 use regex::Regex;
 
-use crate::utils::create_files_in;
-
-fn testdir() -> io::Result<(tempfile::TempDir, &'static Path)> {
-    let dir = tempfile::tempdir()?;
-    let path = dir.path().to_path_buf().into_boxed_path();
-    Ok((dir, Box::leak(path)))
-}
+use crate::utils::{create_files_in, testdir};
 
 fn run_ouch(argv: &str, dir: &Path) -> String {
     run_ouch_with_stdin(argv, dir, None)
