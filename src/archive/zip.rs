@@ -11,7 +11,7 @@ use std::{
 };
 
 use filetime_creation::{set_file_mtime, FileTime};
-use fs_err::{self as fs};
+use fs_err::{self as fs, PathExt};
 use same_file::Handle;
 use time::OffsetDateTime;
 use zip::{self, read::ZipFile, DateTime, ZipArchive};
@@ -71,7 +71,7 @@ where
             }
             _is_file @ false => {
                 if let Some(path) = file_path.parent() {
-                    if !path.exists() {
+                    if !path.fs_err_try_exists()? {
                         fs::create_dir_all(path)?;
                     }
                 }
