@@ -1013,12 +1013,15 @@ fn decompress_with_mismatched_extension_should_use_detected_format() {
     // Rename the .gz file to have a .zst extension (wrong extension)
     fs::rename(&gzip_archive, &misnamed_archive).unwrap();
 
+    let output_dir = test_dir.join("output");
+    fs::create_dir(&output_dir).unwrap();
+
     let output = crate::utils::cargo_bin()
         .arg("decompress")
         .arg(misnamed_archive)
         // TODO: --dir shouldn't be necessary here, this is a bug
         .arg("--dir")
-        .arg(test_dir)
+        .arg(output_dir)
         .assert()
         .failure()
         .get_output()

@@ -18,6 +18,8 @@ use crate::{
 /// Check if the file signature matches the detected extensions.
 ///
 /// If the path didn't have any extensions, try to infer the format from signature.
+///
+/// Note that Brotli can't be detected by signature.
 pub fn check_file_signature(
     path: &Path,
     extensions: &mut Vec<Extension>,
