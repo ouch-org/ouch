@@ -103,6 +103,16 @@ pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
     Ok(())
 }
 
+/// Ensures the parent directory of a file path exists, creating it if necessary.
+pub fn ensure_parent_dir_exists(file_path: &Path) -> std::io::Result<()> {
+    if let Some(parent) = file_path.parent() {
+        if !parent.fs_err_try_exists()? {
+            fs::create_dir_all(parent)?;
+        }
+    }
+    Ok(())
+}
+
 /// Returns current directory, but before change the process' directory to the
 /// one that contains the file pointed to by `filename`.
 pub fn cd_into_same_dir_as(filename: &Path) -> crate::Result<PathBuf> {

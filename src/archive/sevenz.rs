@@ -16,7 +16,10 @@ use crate::{
     error::{Error, FinalError, Result},
     info,
     list::FileInArchive,
-    utils::{cd_into_same_dir_as, is_broken_symlink_error, is_same_file_as_output, BytesFmt, FileVisibilityPolicy, PathFmt},
+    utils::{
+        cd_into_same_dir_as, ensure_parent_dir_exists, is_broken_symlink_error, is_same_file_as_output, BytesFmt,
+        FileVisibilityPolicy, PathFmt,
+    },
     warning,
 };
 
@@ -43,11 +46,7 @@ where
         } else {
             info!("extracted ({}) {:?}", BytesFmt(entry.size()), PathFmt(&file_path));
 
-            if let Some(parent) = path.parent() {
-                if !parent.fs_err_try_exists()? {
-                    fs::create_dir_all(parent)?;
-                }
-            }
+            ensure_parent_dir_exists(path)?;
 
             let file = fs::File::create(path)?;
             let mut writer = BufWriter::new(file);

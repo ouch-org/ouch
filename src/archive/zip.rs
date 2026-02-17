@@ -11,7 +11,7 @@ use std::{
 };
 
 use filetime_creation::{set_file_mtime, FileTime};
-use fs_err::{self as fs, PathExt};
+use fs_err::{self as fs};
 use same_file::Handle;
 use time::OffsetDateTime;
 use zip::{self, read::ZipFile, DateTime, ZipArchive};
@@ -21,7 +21,7 @@ use crate::{
     info, info_accessible,
     list::{FileInArchive, FileInArchiveIterator},
     utils::{
-        cd_into_same_dir_as, create_symlink, get_invalid_utf8_paths, is_broken_symlink_error,
+        cd_into_same_dir_as, create_symlink, ensure_parent_dir_exists, get_invalid_utf8_paths, is_broken_symlink_error,
         is_same_file_as_output, pretty_format_list_of_paths, strip_cur_dir, BytesFmt, FileVisibilityPolicy, PathFmt,
     },
     warning,
@@ -70,11 +70,7 @@ where
                 }
             }
             _is_file @ false => {
-                if let Some(path) = file_path.parent() {
-                    if !path.fs_err_try_exists()? {
-                        fs::create_dir_all(path)?;
-                    }
-                }
+                ensure_parent_dir_exists(&file_path)?;
                 let file_path = strip_cur_dir(file_path.as_path());
 
                 let mode = file.unix_mode();
