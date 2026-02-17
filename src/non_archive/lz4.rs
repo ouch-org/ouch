@@ -1,75 +1,60 @@
 use std::io::{self, Read};
 
-/// A wrapper around lz4_flex::frame::FrameDecoder that handles concatenated lz4 frames.
-/// The standard FrameDecoder only reads a single frame and returns EOF.
-/// This wrapper continues reading subsequent frames until the underlying reader is exhausted.
-pub struct MultiFrameLz4Decoder {
-    buffer: io::Cursor<Vec<u8>>,
+use lz4_flex::frame::FrameDecoder;
+
+struct PrependReader<R> {
+    prefix: Option<u8>,
+    inner: R,
 }
 
-impl MultiFrameLz4Decoder {
-    pub fn new(mut reader: impl Read) -> io::Result<Self> {
-        // Decompress all concatenated frames into an in-memory buffer
-        let mut output = Vec::new();
-        let mut input_buffer = Vec::new();
-        reader.read_to_end(&mut input_buffer)?;
-
-        let mut cursor = io::Cursor::new(input_buffer);
-
-        // LZ4 frame magic number (little-endian)
-        const LZ4_MAGIC: [u8; 4] = [0x04, 0x22, 0x4D, 0x18];
-
-        for frame_index in 0..u32::MAX {
-            let pos = cursor.position() as usize;
-            let remaining = cursor.get_ref().len() - pos;
-
-            if remaining == 0 {
-                break;
-            }
-
-            if remaining < 4 {
-                return Err(io::Error::new(
-                    io::ErrorKind::UnexpectedEof,
-                    format!("Incomplete LZ4 frame header (frame index: {})", frame_index),
-                ));
-            }
-
-            // Check for magic number
-            let slice = &cursor.get_ref()[pos..pos + 4];
-            if slice != LZ4_MAGIC {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidData,
-                    format!("Invalid LZ4 frame magic number (frame index: {})", frame_index),
-                ));
-            }
-
-            // Create a decoder for this frame starting from current position
-            cursor.set_position(pos as u64);
-            let frame_reader = io::Cursor::new(&cursor.get_ref()[pos..]);
-            let mut decoder = lz4_flex::frame::FrameDecoder::new(frame_reader);
-
-            // Read the frame
-            let start_len = output.len();
-            decoder.read_to_end(&mut output)?;
-
-            // Get how many bytes were consumed from the input
-            let bytes_consumed = decoder.into_inner().position() as usize;
-            cursor.set_position((pos + bytes_consumed) as u64);
-
-            // If no progress was made, break to avoid infinite loop
-            if output.len() == start_len && bytes_consumed == 0 {
-                break;
+impl<R: Read> Read for PrependReader<R> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        if let Some(slot) = buf.first_mut() {
+            if let Some(byte) = self.prefix.take() {
+                *slot = byte;
+                return Ok(1);
             }
         }
-
-        Ok(Self {
-            buffer: io::Cursor::new(output),
-        })
+        self.inner.read(buf)
     }
 }
 
-impl Read for MultiFrameLz4Decoder {
+/// Wrapper that handles concatenated lz4 frames (the standard FrameDecoder only reads one).
+pub struct MultiFrameLz4Decoder<R: Read> {
+    decoder: Option<FrameDecoder<PrependReader<R>>>,
+}
+
+impl<R: Read> MultiFrameLz4Decoder<R> {
+    pub fn new(reader: R) -> Self {
+        Self {
+            decoder: Some(FrameDecoder::new(PrependReader { prefix: None, inner: reader })),
+        }
+    }
+}
+
+impl<R: Read> Read for MultiFrameLz4Decoder<R> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.buffer.read(buf)
+        loop {
+            let Some(decoder) = &mut self.decoder else {
+                return Ok(0);
+            };
+
+            let n = decoder.read(buf)?;
+            if n > 0 {
+                return Ok(n);
+            }
+
+            // Frame finished, check for next frame.
+            let mut inner = self.decoder.take().unwrap().into_inner().inner;
+            let mut peek = [0u8];
+            if inner.read(&mut peek)? == 0 {
+                return Ok(0);
+            }
+
+            self.decoder = Some(FrameDecoder::new(PrependReader {
+                prefix: Some(peek[0]),
+                inner,
+            }));
+        }
     }
 }

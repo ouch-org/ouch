@@ -57,7 +57,7 @@ pub fn list_archive_contents(
                     #[cfg(feature = "bzip3")]
                     Box::new(bzip3::read::Bz3Decoder::new(decoder).unwrap())
                 }
-                Lz4 => Box::new(MultiFrameLz4Decoder::new(decoder)?),
+                Lz4 => Box::new(MultiFrameLz4Decoder::new(decoder)),
                 Lzma => Box::new(lzma_rust2::LzmaReader::new_mem_limit(decoder, u32::MAX, None)?),
                 Xz => Box::new(lzma_rust2::XzReader::new(decoder, true)),
                 Lzip => Box::new(lzma_rust2::LzipReader::new(decoder)?),
