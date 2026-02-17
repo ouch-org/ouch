@@ -15,10 +15,9 @@ use parse_display::Display;
 use pretty_assertions::assert_eq;
 use proptest::sample::size_range;
 use rand::{rngs::SmallRng, Rng, SeedableRng};
-use tempfile::tempdir;
 use test_strategy::{proptest, Arbitrary};
 
-use crate::utils::{assert_same_directory, write_random_content};
+use crate::utils::{assert_same_directory, testdir, write_random_content};
 
 /// tar and zip extensions
 #[derive(Arbitrary, Clone, Copy, Debug, Display)]
@@ -117,8 +116,7 @@ fn create_n_random_files(n: usize, dir: impl Into<PathBuf>, rng: &mut SmallRng) 
 /// Compress and decompress a single empty file
 #[proptest(cases = 200)]
 fn single_empty_file(ext: Extension, #[any(size_range(0..8).lift())] exts: Vec<FileExtension>) {
-    let dir = tempdir().unwrap();
-    let dir = dir.path();
+    let (_tempdir, dir) = testdir().unwrap();
     let before = &dir.join("before");
     fs::create_dir(before).unwrap();
     let before_file = &before.join("file");
@@ -140,8 +138,7 @@ fn single_file(
     #[cfg_attr(target_arch = "arm", strategy(proptest::option::of(0i16..6)))]
     level: Option<i16>,
 ) {
-    let dir = tempdir().unwrap();
-    let dir = dir.path();
+    let (_tempdir, dir) = testdir().unwrap();
     let before = &dir.join("before");
     fs::create_dir(before).unwrap();
     let before_file = &before.join("file");
@@ -170,8 +167,7 @@ fn single_file_stdin(
     #[cfg_attr(target_arch = "arm", strategy(proptest::option::of(0i16..6)))]
     level: Option<i16>,
 ) {
-    let dir = tempdir().unwrap();
-    let dir = dir.path();
+    let (_tempdir, dir) = testdir().unwrap();
     let before = &dir.join("before");
     fs::create_dir(before).unwrap();
     let before_file = &before.join("file");
@@ -211,8 +207,7 @@ fn multiple_files(
     #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
     #[strategy(0u8..3)] depth: u8,
 ) {
-    let dir = tempdir().unwrap();
-    let dir = dir.path();
+    let (_tempdir, dir) = testdir().unwrap();
     let before = &dir.join("before");
     let before_dir = &before.join("dir");
     fs::create_dir_all(before_dir).unwrap();
@@ -230,8 +225,7 @@ fn multiple_files_with_conflict_and_choice_to_overwrite(
     #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
     #[strategy(0u8..3)] depth: u8,
 ) {
-    let dir = tempdir().unwrap();
-    let dir = dir.path();
+    let (_tempdir, dir) = testdir().unwrap();
 
     let before = &dir.join("before");
     let before_dir = &before.join("dir");
@@ -264,8 +258,7 @@ fn multiple_files_with_conflict_and_choice_to_not_overwrite(
     #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
     #[strategy(0u8..3)] depth: u8,
 ) {
-    let dir = tempdir().unwrap();
-    let dir = dir.path();
+    let (_tempdir, dir) = testdir().unwrap();
 
     let before = &dir.join("before");
     let before_dir = &before.join("dir");
@@ -304,8 +297,7 @@ fn multiple_files_with_conflict_and_choice_to_rename(
     ext: DirectoryExtension,
     #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
 ) {
-    let temp_dir = tempdir().unwrap();
-    let root_path = temp_dir.path();
+    let (_tempdir, root_path) = testdir().unwrap();
 
     let src_files_path = root_path.join("src_files");
     fs::create_dir_all(&src_files_path).unwrap();
@@ -339,8 +331,7 @@ fn multiple_files_with_conflict_and_choice_to_rename_with_already_a_renamed(
     ext: DirectoryExtension,
     #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
 ) {
-    let temp_dir = tempdir().unwrap();
-    let root_path = temp_dir.path();
+    let (_tempdir, root_path) = testdir().unwrap();
 
     let src_files_path = root_path.join("src_files");
     fs::create_dir_all(&src_files_path).unwrap();
@@ -377,8 +368,7 @@ fn multiple_files_with_conflict_and_choice_to_rename_with_already_a_renamed(
 #[test]
 fn unpack_rar() -> Result<(), Box<dyn std::error::Error>> {
     fn test_unpack_rar_single(input: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
-        let dir = tempdir()?;
-        let dirpath = dir.path();
+        let (_tempdir, dirpath) = testdir()?;
         let unpacked_path = &dirpath.join("testfile.txt");
         ouch!("-A", "d", input, "-d", dirpath);
         let content = fs::read_to_string(unpacked_path)?;
@@ -400,8 +390,7 @@ fn unpack_rar() -> Result<(), Box<dyn std::error::Error>> {
 #[test]
 fn unpack_rar_stdin() -> Result<(), Box<dyn std::error::Error>> {
     fn test_unpack_rar_single(input: &std::path::Path, format: &str) -> Result<(), Box<dyn std::error::Error>> {
-        let dir = tempdir()?;
-        let dirpath = dir.path();
+        let (_tempdir, dirpath) = testdir()?;
         let unpacked_path = &dirpath.join("testfile.txt");
         crate::utils::cargo_bin()
             .args([
@@ -443,8 +432,7 @@ fn symlink_pack_and_unpack(
         return Ok(());
     }
 
-    let temp_dir = tempdir()?;
-    let root_path = temp_dir.path();
+    let (_tempdir, root_path) = testdir()?;
 
     let src_files_path = root_path.join("src_files");
     let folder_path = src_files_path.join("folder");
@@ -530,8 +518,7 @@ fn symlink_pack_and_unpack(
 fn no_git_folder_after_decompression_with_gitignore_flag_active() {
     use std::process::Command;
 
-    let dir = tempdir().unwrap();
-    let dir_path = dir.path();
+    let (_tempdir, dir_path) = testdir().unwrap();
 
     let before = dir_path.join("before");
 
@@ -576,8 +563,7 @@ fn enable_gitignore_flag_should_work_without_git(
     ext: DirectoryExtension,
     #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
 ) {
-    let temp_dir = tempdir()?;
-    let root_path = temp_dir.path();
+    let (_tempdir, root_path) = testdir()?;
     let source_path = root_path.join(format!("in_{}", merge_extensions(ext, &extra_extensions)));
     fs::create_dir_all(&source_path)?;
     let out_path = root_path.join(format!("out_{}", merge_extensions(ext, &extra_extensions)));
@@ -626,8 +612,7 @@ fn unpack_multiple_sources_into_the_same_destination_with_merge(
     ext: DirectoryExtension,
     #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
 ) {
-    let temp_dir = tempdir()?;
-    let root_path = temp_dir.path();
+    let (_tempdir, root_path) = testdir()?;
     let source_path = root_path
         .join(format!("example_{}", merge_extensions(ext, &extra_extensions)))
         .join("sub_a")
@@ -689,8 +674,8 @@ fn reading_nested_archives_with_two_archive_extensions_adjacent() {
     let archive_formats = ["tar", "zip", "7z"].into_iter();
 
     for (first_archive, second_archive) in archive_formats.clone().cartesian_product(archive_formats.rev()) {
-        let temp_dir = tempdir().unwrap();
-        let in_dir = |path: &str| format!("{}/{}", temp_dir.path().display(), path);
+        let (_tempdir, dir) = testdir().unwrap();
+        let in_dir = |path: &str| format!("{}/{}", dir.display(), path);
 
         fs::write(in_dir("a.txt"), "contents").unwrap();
 
@@ -735,8 +720,8 @@ fn reading_nested_archives_with_two_archive_extensions_interleaved() {
     let archive_formats = ["tar", "zip", "7z"].into_iter();
 
     for (first_archive, second_archive) in archive_formats.clone().cartesian_product(archive_formats.rev()) {
-        let temp_dir = tempdir().unwrap();
-        let in_dir = |path: &str| format!("{}/{}", temp_dir.path().display(), path);
+        let (_tempdir, dir) = testdir().unwrap();
+        let in_dir = |path: &str| format!("{}/{}", dir.display(), path);
 
         fs::write(in_dir("a.txt"), "contents").unwrap();
 
@@ -783,8 +768,8 @@ fn compressing_archive_with_two_archive_formats() {
     let archive_formats = ["tar", "zip", "7z"].into_iter();
 
     for (first_archive, second_archive) in archive_formats.clone().cartesian_product(archive_formats.rev()) {
-        let temp_dir = tempdir().unwrap();
-        let dir = temp_dir.path().display().to_string();
+        let (_tempdir, dir_path) = testdir().unwrap();
+        let dir = dir_path.display().to_string();
 
         let output = crate::utils::cargo_bin()
             .args([
@@ -839,8 +824,8 @@ fn compressing_archive_with_two_archive_formats() {
 #[test]
 fn fail_when_compressing_archive_as_the_second_extension() {
     for archive_format in ["tar", "zip", "7z"] {
-        let temp_dir = tempdir().unwrap();
-        let dir = temp_dir.path().display().to_string();
+        let (_tempdir, dir_path) = testdir().unwrap();
+        let dir = dir_path.display().to_string();
 
         let output = crate::utils::cargo_bin()
             .args([
@@ -882,8 +867,7 @@ fn fail_when_compressing_archive_as_the_second_extension() {
 
 #[test]
 fn sevenz_list_should_not_failed() {
-    let temp_dir = tempdir().unwrap();
-    let root_path = temp_dir.path();
+    let (_tempdir, root_path) = testdir().unwrap();
     let src_files_path = root_path.join("src_files");
     fs::create_dir_all(&src_files_path).unwrap();
 
@@ -914,8 +898,7 @@ fn sevenz_list_should_not_failed() {
 fn tar_hardlink_pack_and_unpack() {
     use std::{fs::hard_link, os::unix::fs::MetadataExt};
 
-    let temp_dir = tempdir().unwrap();
-    let root_path = temp_dir.path();
+    let (_tempdir, root_path) = testdir().unwrap();
     let source_path = root_path.join("hardlink");
     fs::create_dir_all(&source_path).unwrap();
     let out_path = root_path.join("out");
@@ -969,8 +952,7 @@ fn tar_hardlink_pack_and_unpack() {
 
 #[test]
 fn compress_with_rename_conflict() {
-    let temp_dir = tempdir().unwrap();
-    let root_path = temp_dir.path();
+    let (_tempdir, root_path) = testdir().unwrap();
 
     let file_path = root_path.join("file.txt");
     fs::write(&file_path, "content").unwrap();
@@ -994,8 +976,7 @@ fn compress_with_rename_conflict() {
 
 #[test]
 fn decompress_with_mismatched_extension_should_use_detected_format() {
-    let temp_dir = tempdir().unwrap();
-    let test_dir = temp_dir.path();
+    let (_tempdir, test_dir) = testdir().unwrap();
 
     let original_file = test_dir.join("input.txt");
     fs::write(&original_file, "Hello, world!").unwrap();
@@ -1037,8 +1018,7 @@ fn decompress_with_unknown_extension_should_detect_format_and_ask(
     ext: FileExtension,
     contains_extension_in_filename: bool,
 ) {
-    let temp_dir = tempdir()?;
-    let test_dir = temp_dir.path();
+    let (_tempdir, test_dir) = testdir()?;
 
     // Brotli has no magic bytes
     if let FileExtension::Br = ext {
