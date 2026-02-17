@@ -8,6 +8,7 @@ use std::{
 
 use bstr::ByteSlice;
 use fs_err as fs;
+use fs_err::PathExt;
 use same_file::Handle;
 use sevenz_rust2::ArchiveEntry;
 
@@ -103,14 +104,14 @@ where
 
         if entry.is_directory() {
             info!("File {} extracted to {:?}", entry.name(), PathFmt(&file_path));
-            if !path.exists() {
+            if !path.fs_err_try_exists()? {
                 fs::create_dir_all(path)?;
             }
         } else {
             info!("extracted ({}) {:?}", BytesFmt(entry.size()), PathFmt(&file_path));
 
             if let Some(parent) = path.parent() {
-                if !parent.exists() {
+                if !parent.fs_err_try_exists()? {
                     fs::create_dir_all(parent)?;
                 }
             }

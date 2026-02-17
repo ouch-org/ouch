@@ -137,7 +137,7 @@ pub fn create_file_or_prompt_on_conflict(
             utils::remove_file_or_dir(&path)?;
             path
         }
-        FileConflitOperation::Rename => utils::find_available_filename_by_renaming(&path),
+        FileConflitOperation::Rename => utils::find_available_filename_by_renaming(&path)?,
     };
 
     let file = fs::File::create(&path_to_create_file)?;

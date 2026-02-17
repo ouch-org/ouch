@@ -7,7 +7,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use fs_err as fs;
+use fs_err::{self as fs, PathExt};
 
 use super::{question::FileConflitOperation, user_wants_to_overwrite};
 use crate::{
@@ -33,14 +33,14 @@ pub fn resolve_path_conflict(
     question_policy: QuestionPolicy,
     question_action: QuestionAction,
 ) -> crate::Result<Option<PathBuf>> {
-    if path.exists() {
+    if path.fs_err_try_exists()? {
         match user_wants_to_overwrite(path, question_policy, question_action)? {
             FileConflitOperation::Cancel => Ok(None),
             FileConflitOperation::Overwrite => {
                 remove_file_or_dir(path)?;
                 Ok(Some(path.to_path_buf()))
             }
-            FileConflitOperation::Rename => Ok(Some(find_available_filename_by_renaming(path))),
+            FileConflitOperation::Rename => Ok(Some(find_available_filename_by_renaming(path)?)),
             FileConflitOperation::Merge => Ok(Some(path.to_path_buf())),
         }
     } else {
@@ -71,7 +71,7 @@ pub fn file_size(path: &Path) -> crate::Result<u64> {
 /// - archive_1.tar.gz
 /// - archive_2.tar.gz
 /// - archive_3.tar.gz
-pub fn find_available_filename_by_renaming(path: &Path) -> PathBuf {
+pub fn find_available_filename_by_renaming(path: &Path) -> crate::Result<PathBuf> {
     fn create_path_with_given_index(path: &Path, i: usize) -> PathBuf {
         let parent = path.parent().unwrap_or_else(|| Path::new(""));
         let file_name = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
@@ -86,8 +86,8 @@ pub fn find_available_filename_by_renaming(path: &Path) -> PathBuf {
 
     for i in 1.. {
         let renamed_path = create_path_with_given_index(path, i);
-        if !renamed_path.exists() {
-            return renamed_path;
+        if !renamed_path.fs_err_try_exists()? {
+            return Ok(renamed_path);
         }
     }
     unreachable!()
@@ -95,7 +95,7 @@ pub fn find_available_filename_by_renaming(path: &Path) -> PathBuf {
 
 /// Creates a directory at the path, if there is nothing there.
 pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
-    if !path.exists() {
+    if !path.fs_err_try_exists()? {
         fs::create_dir_all(path)?;
         info_accessible!("Directory {:?} created", PathFmt(path));
     }

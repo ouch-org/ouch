@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use fs_err as fs;
+use fs_err::{self as fs, PathExt};
 
 use crate::{
     commands::{warn_user_about_loading_sevenz_in_memory, warn_user_about_loading_zip_in_memory},
@@ -42,7 +42,7 @@ enum DecompressionSummary {
 
 /// Decompress (or unpack) a compressed (or packed) file.
 pub fn decompress_file(options: DecompressOptions) -> crate::Result<()> {
-    assert!(options.output_dir.try_exists()?);
+    assert!(options.output_dir.fs_err_try_exists()?);
 
     let input_is_stdin = is_path_stdin(options.input_file_path);
     let (first_extension, extensions) = split_first_compression_format(&options.formats);
@@ -220,7 +220,8 @@ fn unpack_archive(
     output_dir: &Path,
     question_policy: QuestionPolicy,
 ) -> crate::Result<ControlFlow<(), DecompressionSummary>> {
-    let is_valid_output_dir = !output_dir.exists() || (output_dir.is_dir() && output_dir.read_dir()?.next().is_none());
+    let is_valid_output_dir =
+        !output_dir.fs_err_try_exists()? || (output_dir.is_dir() && output_dir.read_dir()?.next().is_none());
 
     let output_dir_cleaned = if is_valid_output_dir {
         output_dir.to_owned()
@@ -231,7 +232,7 @@ fn unpack_archive(
         }
     };
 
-    if !output_dir_cleaned.exists() {
+    if !output_dir_cleaned.fs_err_try_exists()? {
         fs::create_dir(&output_dir_cleaned)?;
     }
 
