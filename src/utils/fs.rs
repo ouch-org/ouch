@@ -126,14 +126,9 @@ pub fn cd_into_same_dir_as(filename: &Path) -> Result<PathBuf> {
 }
 
 /// Check if a path refers to the same file as the output handle.
-///
-/// Used during archive building to avoid compressing a file into itself.
-/// Returns `true` if the path is the same file as the output handle (should be skipped).
-pub fn is_same_file_as_output(path: &Path, output_handle: &std::result::Result<Handle, std::io::Error>) -> bool {
-    if let Ok(handle) = output_handle {
-        if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
-            return true;
-        }
+pub fn is_same_file_as_output(path: &Path, output_handle: &Handle) -> bool {
+    if matches!(Handle::from_path(path), Ok(x) if &x == output_handle) {
+        return true;
     }
     false
 }
