@@ -64,7 +64,7 @@ impl Error {
 }
 
 /// Alias to std's Result with ouch's Error
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T, E = self::Error> = std::result::Result<T, E>;
 
 /// A string either heap-allocated or located in static storage
 pub type CowStr = Cow<'static, str>;

@@ -4,10 +4,11 @@ use std::{
     fmt,
     io::{stdout, BufWriter, Write},
     path::{Path, PathBuf},
+    sync::mpsc,
 };
 
 use self::tree::Tree;
-use crate::{accessible::is_running_in_accessible_mode, utils::PathFmt};
+use crate::{accessible::is_running_in_accessible_mode, utils::PathFmt, Result};
 
 /// Options controlling how archive contents should be listed
 #[derive(Debug, Clone, Copy)]
@@ -26,18 +27,35 @@ pub struct FileInArchive {
     pub is_dir: bool,
 }
 
+/// Used by archive listing functions that spawn a background thread
+pub struct ListArchiveReceiverIterator(mpsc::Receiver<Result<FileInArchive>>);
+
+impl ListArchiveReceiverIterator {
+    pub fn new(receiver: mpsc::Receiver<Result<FileInArchive>>) -> Self {
+        Self(receiver)
+    }
+}
+
+impl Iterator for ListArchiveReceiverIterator {
+    type Item = Result<FileInArchive>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.recv().ok()
+    }
+}
+
 /// Actually print the files
 /// Returns an Error, if one of the files can't be read
 pub fn list_files(
     archive: &Path,
-    files: impl IntoIterator<Item = crate::Result<FileInArchive>>,
+    files: impl IntoIterator<Item = Result<FileInArchive>>,
     list_options: ListOptions,
-) -> crate::Result<()> {
+) -> Result<()> {
     let mut out = BufWriter::new(stdout().lock());
     let _ = writeln!(out, "Archive: {:?}", PathFmt(archive));
 
     if list_options.tree {
-        let tree = files.into_iter().collect::<crate::Result<Tree>>()?;
+        let tree = files.into_iter().collect::<Result<Tree>>()?;
         tree.print(&mut out);
     } else {
         for file in files {

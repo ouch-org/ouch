@@ -11,7 +11,7 @@ use std::{
 };
 
 use filetime_creation::{set_file_mtime, FileTime};
-use fs_err::{self as fs, PathExt};
+use fs_err::{self as fs};
 use same_file::Handle;
 use time::OffsetDateTime;
 use zip::{self, read::ZipFile, DateTime, ZipArchive};
@@ -19,17 +19,17 @@ use zip::{self, read::ZipFile, DateTime, ZipArchive};
 use crate::{
     error::FinalError,
     info, info_accessible,
-    list::FileInArchive,
+    list::{FileInArchive, ListArchiveReceiverIterator},
     utils::{
-        cd_into_same_dir_as, create_symlink, get_invalid_utf8_paths, pretty_format_list_of_paths, strip_cur_dir,
-        BytesFmt, FileVisibilityPolicy, PathFmt,
+        cd_into_same_dir_as, create_symlink, ensure_parent_dir_exists, get_invalid_utf8_paths, is_broken_symlink_error,
+        is_same_file_as_output, pretty_format_list_of_paths, strip_cur_dir, BytesFmt, FileVisibilityPolicy, PathFmt,
     },
-    warning,
+    warning, Result,
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `output_folder`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive<R>(reader: R, output_folder: &Path, password: Option<&[u8]>) -> crate::Result<u64>
+pub fn unpack_archive<R>(reader: R, output_folder: &Path, password: Option<&[u8]>) -> Result<u64>
 where
     R: Read + Seek,
 {
@@ -70,11 +70,7 @@ where
                 }
             }
             _is_file @ false => {
-                if let Some(path) = file_path.parent() {
-                    if !path.fs_err_try_exists()? {
-                        fs::create_dir_all(path)?;
-                    }
-                }
+                ensure_parent_dir_exists(&file_path)?;
                 let file_path = strip_cur_dir(file_path.as_path());
 
                 let mode = file.unix_mode();
@@ -110,19 +106,10 @@ where
 pub fn list_archive<R>(
     mut archive: ZipArchive<R>,
     password: Option<&[u8]>,
-) -> impl Iterator<Item = crate::Result<FileInArchive>>
+) -> impl Iterator<Item = Result<FileInArchive>>
 where
     R: Read + Seek + Send + 'static,
 {
-    struct Files(mpsc::Receiver<crate::Result<FileInArchive>>);
-    impl Iterator for Files {
-        type Item = crate::Result<FileInArchive>;
-
-        fn next(&mut self) -> Option<Self::Item> {
-            self.0.recv().ok()
-        }
-    }
-
     let password = password.map(|p| p.to_owned());
 
     let (tx, rx) = mpsc::channel();
@@ -148,17 +135,17 @@ where
         }
     });
 
-    Files(rx)
+    ListArchiveReceiverIterator::new(rx)
 }
 
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.
-pub fn build_archive_from_paths<W>(
+pub fn build_archive<W>(
     input_filenames: &[PathBuf],
     output_path: &Path,
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
     follow_symlinks: bool,
-) -> crate::Result<W>
+) -> Result<W>
 where
     W: Write + Seek,
 {
@@ -196,10 +183,11 @@ where
             let entry = entry?;
             let path = entry.path();
 
-            // If the output_path is the same as the input file, warn the user and skip the input (in order to avoid compression recursion)
-            if let Ok(handle) = &output_handle {
-                if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
+            // Avoid compressing the output file into itself
+            if let Ok(handle) = output_handle.as_ref() {
+                if is_same_file_as_output(path, handle) {
                     warning!("Cannot compress {:?} into itself, skipping", PathFmt(output_path));
+                    continue;
                 }
             }
 
@@ -207,13 +195,8 @@ where
 
             let metadata = match path.metadata() {
                 Ok(metadata) => metadata,
-                Err(e) => {
-                    if e.kind() == std::io::ErrorKind::NotFound && path.is_symlink() {
-                        // This path is for a broken symlink, ignore it
-                        continue;
-                    }
-                    return Err(e.into());
-                }
+                Err(e) if is_broken_symlink_error(&e, path) => continue,
+                Err(e) => return Err(e.into()),
             };
 
             #[cfg(unix)]
@@ -298,7 +281,7 @@ fn get_last_modified_time(file: &fs::File) -> DateTime {
         .unwrap_or_default()
 }
 
-fn set_last_modified_time<R: Read>(zip_file: &ZipFile<'_, R>, path: &Path) -> crate::Result<()> {
+fn set_last_modified_time<R: Read>(zip_file: &ZipFile<'_, R>, path: &Path) -> Result<()> {
     // Extract modification time from zip file and convert to FileTime
     let file_time = zip_file
         .last_modified()
@@ -317,7 +300,7 @@ fn set_last_modified_time<R: Read>(zip_file: &ZipFile<'_, R>, path: &Path) -> cr
 }
 
 #[cfg(unix)]
-fn unix_set_permissions<R: Read>(file_path: &Path, file: &ZipFile<'_, R>) -> crate::Result<()> {
+fn unix_set_permissions<R: Read>(file_path: &Path, file: &ZipFile<'_, R>) -> Result<()> {
     use std::fs::Permissions;
 
     if let Some(mode) = file.unix_mode() {

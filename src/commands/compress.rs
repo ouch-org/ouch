@@ -19,7 +19,7 @@ use crate::{
         threads::{logical_thread_count, physical_thread_count},
         user_wants_to_continue, BytesFmt, FileVisibilityPolicy,
     },
-    QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
+    QuestionAction, QuestionPolicy, Result, BUFFER_CAPACITY,
 };
 
 /// Compress files into `output_file`.
@@ -41,14 +41,14 @@ pub fn compress_files(
     question_policy: QuestionPolicy,
     file_visibility_policy: FileVisibilityPolicy,
     level: Option<i16>,
-) -> crate::Result<bool> {
+) -> Result<bool> {
     // If the input files contain a directory, then the total size will be underestimated
     let file_writer = BufWriter::with_capacity(BUFFER_CAPACITY, output_file);
 
     let mut writer: Box<dyn Send + Write> = Box::new(file_writer);
 
     // Grab previous encoder and wrap it inside of a new one
-    let chain_writer_encoder = |format: &_, encoder| -> crate::Result<_> {
+    let chain_writer_encoder = |format: &_, encoder| -> Result<_> {
         let encoder: Box<dyn Send + Write> = match format {
             Gzip => Box::new({
                 // by default, ParCompress uses a default compression level of 3
@@ -147,7 +147,7 @@ pub fn compress_files(
             info_accessible!("Input file size: {}", BytesFmt(file_size(&files[0])?));
         }
         Tar => {
-            archive::tar::build_archive_from_paths(
+            archive::tar::build_archive(
                 &files,
                 output_path,
                 &mut writer,
@@ -169,7 +169,7 @@ pub fn compress_files(
 
             let mut vec_buffer = Cursor::new(vec![]);
 
-            archive::zip::build_archive_from_paths(
+            archive::zip::build_archive(
                 &files,
                 output_path,
                 &mut vec_buffer,
@@ -198,7 +198,7 @@ pub fn compress_files(
             }
 
             let mut vec_buffer = Cursor::new(vec![]);
-            archive::sevenz::compress_sevenz(&files, output_path, &mut vec_buffer, file_visibility_policy)?;
+            archive::sevenz::build_archive(&files, output_path, &mut vec_buffer, file_visibility_policy)?;
             vec_buffer.rewind()?;
             io::copy(&mut vec_buffer, &mut writer)?;
         }

@@ -8,7 +8,7 @@ use std::{
     io::prelude::*,
     ops::Not,
     path::{Path, PathBuf},
-    sync::mpsc::{self, Receiver},
+    sync::mpsc,
     thread,
 };
 
@@ -18,14 +18,17 @@ use same_file::Handle;
 use crate::{
     error::FinalError,
     info,
-    list::FileInArchive,
-    utils::{self, create_symlink, set_permission_mode, BytesFmt, FileVisibilityPolicy, PathFmt},
-    warning,
+    list::{FileInArchive, ListArchiveReceiverIterator},
+    utils::{
+        self, create_symlink, is_broken_symlink_error, is_same_file_as_output, set_permission_mode, BytesFmt,
+        FileVisibilityPolicy, PathFmt,
+    },
+    warning, Result,
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `into`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> crate::Result<u64> {
+pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> Result<u64> {
     let mut archive = tar::Archive::new(reader);
 
     let mut files_unpacked = 0;
@@ -98,16 +101,7 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> crate::Result<
 /// List contents of `archive`, returning a vector of archive entries
 pub fn list_archive(
     mut archive: tar::Archive<impl Read + Send + 'static>,
-) -> impl Iterator<Item = crate::Result<FileInArchive>> {
-    struct Files(Receiver<crate::Result<FileInArchive>>);
-    impl Iterator for Files {
-        type Item = crate::Result<FileInArchive>;
-
-        fn next(&mut self) -> Option<Self::Item> {
-            self.0.recv().ok()
-        }
-    }
-
+) -> impl Iterator<Item = Result<FileInArchive>> {
     let (tx, rx) = mpsc::channel();
     thread::spawn(move || {
         for file in archive.entries().expect("entries is only used once") {
@@ -121,17 +115,17 @@ pub fn list_archive(
         }
     });
 
-    Files(rx)
+    ListArchiveReceiverIterator::new(rx)
 }
 
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.
-pub fn build_archive_from_paths<W>(
+pub fn build_archive<W>(
     input_filenames: &[PathBuf],
     output_path: &Path,
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
     follow_symlinks: bool,
-) -> crate::Result<W>
+) -> Result<W>
 where
     W: Write,
 {
@@ -150,11 +144,10 @@ where
             let entry = entry?;
             let path = entry.path();
 
-            // If the output_path is the same as the input file, warn the user and skip the input (in order to avoid compression recursion)
-            if let Ok(handle) = &output_handle {
-                if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
+            // Avoid compressing the output file into itself
+            if let Ok(handle) = output_handle.as_ref() {
+                if is_same_file_as_output(path, handle) {
                     warning!("Cannot compress {:?} into itself, skipping", PathFmt(output_path));
-
                     continue;
                 }
             }
@@ -212,13 +205,8 @@ where
 
             let mut file = match fs::File::open(path) {
                 Ok(f) => f,
-                Err(e) => {
-                    if e.kind() == std::io::ErrorKind::NotFound && path.is_symlink() {
-                        // This path is for a broken symlink, ignore it
-                        continue;
-                    }
-                    return Err(e.into());
-                }
+                Err(e) if is_broken_symlink_error(&e, path) => continue,
+                Err(e) => return Err(e.into()),
             };
             builder.append_file(path, file.file_mut()).map_err(|err| {
                 FinalError::with_title("Could not create archive")

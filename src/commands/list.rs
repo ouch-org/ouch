@@ -12,7 +12,7 @@ use crate::{
     list::{self, FileInArchive, ListOptions},
     non_archive::lz4::MultiFrameLz4Decoder,
     utils::{io::lock_and_flush_output_stdio, user_wants_to_continue},
-    QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
+    QuestionAction, QuestionPolicy, Result, BUFFER_CAPACITY,
 };
 
 /// File at archive_path is opened for reading, example: "archive.tar.gz"
@@ -23,7 +23,7 @@ pub fn list_archive_contents(
     list_options: ListOptions,
     question_policy: QuestionPolicy,
     password: Option<&[u8]>,
-) -> crate::Result<()> {
+) -> Result<()> {
     let reader = fs::File::open(archive_path)?;
 
     // Zip archives are special, because they require io::Seek, so it requires its logic separated
@@ -46,7 +46,7 @@ pub fn list_archive_contents(
 
     // Grab previous decoder and wrap it inside of a new one
     let chain_reader_decoder =
-        |format: CompressionFormat, decoder: Box<dyn Read + Send>| -> crate::Result<Box<dyn Read + Send>> {
+        |format: CompressionFormat, decoder: Box<dyn Read + Send>| -> Result<Box<dyn Read + Send>> {
             let decoder: Box<dyn Read + Send> = match format {
                 Gzip => Box::new(flate2::read::MultiGzDecoder::new(decoder)),
                 Bzip => Box::new(bzip2::read::MultiBzDecoder::new(decoder)),
@@ -79,7 +79,7 @@ pub fn list_archive_contents(
     }
 
     let archive_format = misplaced_archive_format.unwrap_or(formats[0]);
-    let files: Box<dyn Iterator<Item = crate::Result<FileInArchive>>> = match archive_format {
+    let files: Box<dyn Iterator<Item = Result<FileInArchive>>> = match archive_format {
         Tar => Box::new(crate::archive::tar::list_archive(tar::Archive::new(reader))),
         Zip => {
             if formats.len() > 1 {

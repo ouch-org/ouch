@@ -3,14 +3,16 @@
 use std::{
     borrow::Cow,
     env,
-    io::Read,
+    io::{self, Read},
     path::{Path, PathBuf},
 };
 
 use fs_err::{self as fs, PathExt};
+use same_file::Handle;
 
 use super::{question::FileConflitOperation, user_wants_to_overwrite};
 use crate::{
+    error::Error,
     extension::CompressionFormat,
     info_accessible,
     utils::{strip_path_ascii_prefix, PathFmt, QuestionAction},
@@ -32,7 +34,7 @@ pub fn resolve_path_conflict(
     path: &Path,
     question_policy: QuestionPolicy,
     question_action: QuestionAction,
-) -> crate::Result<Option<PathBuf>> {
+) -> Result<Option<PathBuf>> {
     if path.fs_err_try_exists()? {
         match user_wants_to_overwrite(path, question_policy, question_action)? {
             FileConflitOperation::Cancel => Ok(None),
@@ -48,7 +50,7 @@ pub fn resolve_path_conflict(
     }
 }
 
-pub fn remove_file_or_dir(path: &Path) -> crate::Result<()> {
+pub fn remove_file_or_dir(path: &Path) -> Result<()> {
     if path.is_dir() {
         fs::remove_dir_all(path)?;
     } else if path.is_file() {
@@ -57,7 +59,7 @@ pub fn remove_file_or_dir(path: &Path) -> crate::Result<()> {
     Ok(())
 }
 
-pub fn file_size(path: &Path) -> crate::Result<u64> {
+pub fn file_size(path: &Path) -> Result<u64> {
     Ok(fs::metadata(path)?.len())
 }
 
@@ -71,7 +73,7 @@ pub fn file_size(path: &Path) -> crate::Result<u64> {
 /// - archive_1.tar.gz
 /// - archive_2.tar.gz
 /// - archive_3.tar.gz
-pub fn find_available_filename_by_renaming(path: &Path) -> crate::Result<PathBuf> {
+pub fn find_available_filename_by_renaming(path: &Path) -> Result<PathBuf> {
     fn create_path_with_given_index(path: &Path, i: usize) -> PathBuf {
         let parent = path.parent().unwrap_or_else(|| Path::new(""));
         let file_name = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
@@ -94,7 +96,7 @@ pub fn find_available_filename_by_renaming(path: &Path) -> crate::Result<PathBuf
 }
 
 /// Creates a directory at the path, if there is nothing there.
-pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
+pub fn create_dir_if_non_existent(path: &Path) -> Result<()> {
     if !path.fs_err_try_exists()? {
         fs::create_dir_all(path)?;
         info_accessible!("Directory {:?} created", PathFmt(path));
@@ -102,15 +104,41 @@ pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
     Ok(())
 }
 
+/// Ensures the parent directory of a file path exists, creating it if necessary.
+pub fn ensure_parent_dir_exists(file_path: &Path) -> io::Result<()> {
+    if let Some(parent) = file_path.parent() {
+        if !parent.fs_err_try_exists()? {
+            fs::create_dir_all(parent)?;
+        }
+    }
+    Ok(())
+}
+
 /// Returns current directory, but before change the process' directory to the
 /// one that contains the file pointed to by `filename`.
-pub fn cd_into_same_dir_as(filename: &Path) -> crate::Result<PathBuf> {
+pub fn cd_into_same_dir_as(filename: &Path) -> Result<PathBuf> {
     let previous_location = env::current_dir()?;
 
-    let parent = filename.parent().ok_or(crate::Error::CompressingRootFolder)?;
+    let parent = filename.parent().ok_or(Error::CompressingRootFolder)?;
     env::set_current_dir(parent)?;
 
     Ok(previous_location)
+}
+
+/// Check if a path refers to the same file as the output handle.
+pub fn is_same_file_as_output(path: &Path, output_handle: &Handle) -> bool {
+    if matches!(Handle::from_path(path), Ok(x) if &x == output_handle) {
+        return true;
+    }
+    false
+}
+
+/// Check if an IO error is caused by a broken symlink.
+///
+/// Returns `true` if the error is `NotFound` and the path is a symlink,
+/// indicating the symlink target doesn't exist.
+pub fn is_broken_symlink_error(error: &std::io::Error, path: &Path) -> bool {
+    error.kind() == std::io::ErrorKind::NotFound && path.is_symlink()
 }
 
 /// Try to detect the file extension by looking for known magic strings
@@ -208,7 +236,7 @@ pub fn try_infer_format(path: &Path) -> Option<CompressionFormat> {
 }
 
 #[inline]
-pub fn create_symlink(target: &Path, full_path: &Path) -> crate::Result<()> {
+pub fn create_symlink(target: &Path, full_path: &Path) -> Result<()> {
     #[cfg(unix)]
     std::os::unix::fs::symlink(target, full_path)?;
 
@@ -223,7 +251,7 @@ pub fn create_symlink(target: &Path, full_path: &Path) -> crate::Result<()> {
 
 #[cfg(unix)]
 #[inline]
-pub fn set_permission_mode(path: &Path, mode: u32) -> crate::Result<()> {
+pub fn set_permission_mode(path: &Path, mode: u32) -> Result<()> {
     use std::{fs::Permissions, os::unix::fs::PermissionsExt};
     fs::set_permissions(path, Permissions::from_mode(mode))?;
     Ok(())
@@ -231,7 +259,7 @@ pub fn set_permission_mode(path: &Path, mode: u32) -> crate::Result<()> {
 
 #[cfg(windows)]
 #[inline]
-pub fn set_permission_mode(_path: &Path, _mode: u32) -> crate::Result<()> {
+pub fn set_permission_mode(_path: &Path, _mode: u32) -> Result<()> {
     Ok(())
 }
 
