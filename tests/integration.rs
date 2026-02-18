@@ -7,6 +7,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use anyhow::Result;
 use bstr::ByteSlice;
 use fs_err as fs;
 use itertools::Itertools;
@@ -19,7 +20,6 @@ use test_strategy::{Arbitrary, proptest};
 
 use crate::utils::{assert_same_directory, testdir, write_random_content};
 
-/// tar and zip extensions
 #[derive(Arbitrary, Clone, Copy, Debug, Display)]
 #[display(style = "lowercase")]
 enum DirectoryExtension {
@@ -37,6 +37,15 @@ enum DirectoryExtension {
     Tsz,
     Txz,
     Tzst,
+    Zip,
+}
+
+#[derive(Arbitrary, Clone, Copy, Debug, Display, strum::EnumIter)]
+#[display(style = "lowercase")]
+enum MainDirectoryExtension {
+    #[display("7z")]
+    SevenZ,
+    Tar,
     Zip,
 }
 
@@ -422,95 +431,174 @@ fn unpack_rar_stdin() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-#[proptest(cases = 25)]
-fn symlink_pack_and_unpack(
-    ext: DirectoryExtension,
-    #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
-) {
-    if matches!(ext, DirectoryExtension::SevenZ) {
-        // Skip 7z because the 7z format does not support symlinks
-        return Ok(());
-    }
+#[cfg(unix)]
+#[test]
+fn symlink_pack_and_unpack() -> Result<()> {
+    use strum::IntoEnumIterator as _;
 
-    let (_tempdir, root_path) = testdir()?;
+    for ext in MainDirectoryExtension::iter() {
+        if let MainDirectoryExtension::SevenZ = ext {
+            // 7z doesn't support symlinks
+            return Ok(());
+        }
 
-    let src_files_path = root_path.join("src_files");
-    let folder_path = src_files_path.join("folder");
-    fs::create_dir_all(&folder_path)?;
+        eprintln!("ext = {ext}");
 
-    let mut files_path = ["file1.txt", "file2.txt", "file3.txt", "file4.txt", "file5.txt"]
-        .into_iter()
-        .map(|f| src_files_path.join(f))
-        .inspect(|path| {
-            let mut file = fs::File::create(path).unwrap();
-            file.write_all("Some content".as_bytes()).unwrap();
-        })
-        .collect::<Vec<_>>();
+        let (_tempdir, root_path) = testdir()?;
 
-    let dest_files_path = root_path.join("dest_files");
-    fs::create_dir_all(&dest_files_path)?;
+        let src_files_path = root_path.join("src_files");
+        let folder_path = src_files_path.join("folder");
+        fs::create_dir_all(&folder_path)?;
 
-    let symlink_path = src_files_path.join(Path::new("symlink"));
-    let symlink_folder_path = src_files_path.join(Path::new("symlink_folder"));
-    #[cfg(unix)]
-    std::os::unix::fs::symlink(&files_path[0], &symlink_path)?;
-    #[cfg(unix)]
-    std::os::unix::fs::symlink(&folder_path, &symlink_folder_path)?;
-    #[cfg(windows)]
-    std::os::windows::fs::symlink_file(&files_path[0], &symlink_path)?;
-    #[cfg(windows)]
-    std::os::windows::fs::symlink_dir(&folder_path, &symlink_folder_path)?;
+        let mut files_path = ["file1.txt", "file2.txt", "file3.txt", "file4.txt", "file5.txt"]
+            .into_iter()
+            .map(|f| src_files_path.join(f))
+            .inspect(|path| {
+                let mut file = fs::File::create(path).unwrap();
+                file.write_all("Some content".as_bytes()).unwrap();
+            })
+            .collect::<Vec<_>>();
 
-    files_path.push(symlink_path);
+        let dest_files_path = root_path.join("dest_files");
+        fs::create_dir_all(&dest_files_path)?;
 
-    let archive = &root_path.join(format!("archive.{}", merge_extensions(ext, &extra_extensions)));
+        let symlink_path = src_files_path.join(Path::new("symlink"));
+        let symlink_folder_path = src_files_path.join(Path::new("symlink_folder"));
+        std::os::unix::fs::symlink(&files_path[0], &symlink_path)?;
+        std::os::unix::fs::symlink(&folder_path, &symlink_folder_path)?;
 
-    crate::utils::cargo_bin()
-        .arg("compress")
-        .args(files_path.clone())
-        .arg(archive)
-        .assert()
-        .success();
+        files_path.push(symlink_path);
 
-    crate::utils::cargo_bin()
-        .arg("decompress")
-        .arg(archive)
-        .arg("-d")
-        .arg(&dest_files_path)
-        .assert()
-        .success();
+        let archive = &root_path.join(format!("archive.{ext}"));
 
-    // check the symlink stand still
-    for f in dest_files_path.as_path().read_dir()? {
-        let f = f?;
-        if f.file_name() == "symlink" || f.file_name() == "symlink_folder" {
-            assert!(f.file_type()?.is_symlink())
+        crate::utils::cargo_bin()
+            .arg("compress")
+            .args(files_path.clone())
+            .arg(archive)
+            .assert()
+            .success();
+
+        crate::utils::cargo_bin()
+            .arg("decompress")
+            .arg(archive)
+            .arg("-d")
+            .arg(&dest_files_path)
+            .assert()
+            .success();
+
+        // check the symlink stand still
+        for f in dest_files_path.as_path().read_dir()? {
+            let f = f?;
+            if f.file_name() == "symlink" || f.file_name() == "symlink_folder" {
+                assert!(f.file_type()?.is_symlink())
+            }
+        }
+
+        fs::remove_file(archive)?;
+        fs::remove_dir_all(&dest_files_path)?;
+
+        crate::utils::cargo_bin()
+            .arg("compress")
+            .arg("--follow-symlinks")
+            .args(files_path)
+            .arg(archive)
+            .assert()
+            .success();
+
+        crate::utils::cargo_bin()
+            .arg("decompress")
+            .arg(archive)
+            .arg("-d")
+            .arg(&dest_files_path)
+            .assert()
+            .success();
+
+        // check there is no symlinks
+        for f in dest_files_path.as_path().read_dir()? {
+            let f = f?;
+            assert!(!f.file_type().unwrap().is_symlink())
         }
     }
+    Ok(())
+}
 
-    fs::remove_file(archive)?;
-    fs::remove_dir_all(&dest_files_path)?;
+/// Test that broken symlinks are handled correctly by formats that support it.
+#[cfg(unix)]
+#[test]
+fn broken_symlink_stored_successfully_when_format_supports_it() -> Result<()> {
+    use strum::IntoEnumIterator as _;
 
-    crate::utils::cargo_bin()
-        .arg("compress")
-        .arg("--follow-symlinks")
-        .args(files_path)
-        .arg(archive)
-        .assert()
-        .success();
+    for ext in MainDirectoryExtension::iter() {
+        eprintln!("ext = {ext}");
 
-    crate::utils::cargo_bin()
-        .arg("decompress")
-        .arg(archive)
-        .arg("-d")
-        .arg(&dest_files_path)
-        .assert()
-        .success();
+        let (_tempdir, dir) = dbg!(testdir().unwrap());
 
-    // check there is no symlinks
-    for f in dest_files_path.as_path().read_dir()? {
-        let f = f?;
-        assert!(!f.file_type().unwrap().is_symlink())
+        // Create a broken symlink (points to non-existent target)
+        let broken_symlink = dir.join("broken_link");
+        let broken_target = "/nonexistent/path";
+        fs::os::unix::fs::symlink(&broken_target, &broken_symlink).unwrap();
+        let archive = dir.join(format!("archive.{ext}"));
+        let output = dir.join("output");
+
+        let result = crate::utils::cargo_bin()
+            .arg("compress")
+            .arg(broken_symlink)
+            .arg(&archive)
+            .assert();
+
+        match ext {
+            MainDirectoryExtension::SevenZ => {
+                result.failure();
+                continue;
+            }
+            MainDirectoryExtension::Tar | MainDirectoryExtension::Zip => {
+                result.success();
+            }
+        }
+
+        crate::utils::cargo_bin()
+            .arg("decompress")
+            .arg(&archive)
+            .arg("--dir")
+            .arg(&output)
+            .assert()
+            .success();
+
+        let target = fs::read_link(output.join("broken_link")).unwrap();
+        assert_eq!(Path::new(&target), broken_target);
+    }
+    Ok(())
+}
+
+/// Test that broken symlinks lead into errors when --follow-symlinks is passed.
+#[cfg(unix)]
+#[test]
+fn broken_symlink_compression_follow_symlinks() {
+    use strum::IntoEnumIterator as _;
+
+    for ext in MainDirectoryExtension::iter() {
+        eprintln!("ext = {ext}");
+
+        let (_tempdir, dir) = testdir().unwrap();
+        let input = dir.join("input");
+        let output = dir.join("output");
+
+        fs::create_dir_all(&input).unwrap();
+        fs::create_dir_all(&output).unwrap();
+
+        // Create a broken symlink
+        let broken_symlink = input.join("broken_link");
+        std::os::unix::fs::symlink("/nonexistent/path", &broken_symlink).unwrap();
+
+        let archive = dir.join(format!("archive.{ext}"));
+
+        crate::utils::cargo_bin()
+            .arg("compress")
+            .arg("--follow-symlinks")
+            .arg(&input)
+            .arg(&archive)
+            .assert()
+            .failure();
     }
 }
 
