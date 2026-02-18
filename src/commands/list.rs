@@ -6,13 +6,12 @@ use std::{
 use fs_err as fs;
 
 use crate::{
-    archive,
+    BUFFER_CAPACITY, QuestionAction, QuestionPolicy, Result, archive,
     commands::warn_user_about_loading_zip_in_memory,
     extension::CompressionFormat::{self, *},
     list::{self, FileInArchive, ListOptions},
     non_archive::lz4::MultiFrameLz4Decoder,
     utils::{io::lock_and_flush_output_stdio, user_wants_to_continue},
-    QuestionAction, QuestionPolicy, Result, BUFFER_CAPACITY,
 };
 
 /// File at archive_path is opened for reading, example: "archive.tar.gz"

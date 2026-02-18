@@ -10,6 +10,7 @@ use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelI
 use utils::colors;
 
 use crate::{
+    CliArgs, INITIAL_CURRENT_DIR, QuestionPolicy, Result,
     check::{self, CheckFileSignatureControlFlow},
     cli::Subcommand,
     commands::{compress::compress_files, decompress::decompress_file, list::list_archive_contents},
@@ -18,10 +19,9 @@ use crate::{
     info_accessible,
     list::ListOptions,
     utils::{
-        self, canonicalize, colors::*, file_size, is_path_stdin, BytesFmt, FileVisibilityPolicy, PathFmt,
-        QuestionAction,
+        self, BytesFmt, FileVisibilityPolicy, PathFmt, QuestionAction, canonicalize, colors::*, file_size,
+        is_path_stdin,
     },
-    CliArgs, QuestionPolicy, Result, INITIAL_CURRENT_DIR,
 };
 
 /// Warn the user that (de)compressing this .zip archive might freeze their system.

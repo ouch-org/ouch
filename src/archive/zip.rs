@@ -10,21 +10,23 @@ use std::{
     thread,
 };
 
-use filetime_creation::{set_file_mtime, FileTime};
+use filetime_creation::{FileTime, set_file_mtime};
 use fs_err::{self as fs};
 use same_file::Handle;
 use time::OffsetDateTime;
-use zip::{self, read::ZipFile, DateTime, ZipArchive};
+use zip::{self, DateTime, ZipArchive, read::ZipFile};
 
 use crate::{
+    Result,
     error::FinalError,
     info, info_accessible,
     list::{FileInArchive, ListArchiveReceiverIterator},
     utils::{
-        cd_into_same_dir_as, create_symlink, ensure_parent_dir_exists, get_invalid_utf8_paths, is_broken_symlink_error,
-        is_same_file_as_output, pretty_format_list_of_paths, strip_cur_dir, BytesFmt, FileVisibilityPolicy, PathFmt,
+        BytesFmt, FileVisibilityPolicy, PathFmt, cd_into_same_dir_as, create_symlink, ensure_parent_dir_exists,
+        get_invalid_utf8_paths, is_broken_symlink_error, is_same_file_as_output, pretty_format_list_of_paths,
+        strip_cur_dir,
     },
-    warning, Result,
+    warning,
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `output_folder`.

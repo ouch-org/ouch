@@ -8,13 +8,14 @@ use std::{
 };
 
 use crate::{
+    QuestionAction, QuestionPolicy, Result,
     error::FinalError,
-    extension::{build_archive_file_suggestion, Extension},
+    extension::{Extension, build_archive_file_suggestion},
     info_accessible,
     utils::{
-        append_ascii_suffix_to_os_str, pretty_format_list_of_paths, try_infer_format, user_wants_to_continue, PathFmt,
+        PathFmt, append_ascii_suffix_to_os_str, pretty_format_list_of_paths, try_infer_format, user_wants_to_continue,
     },
-    warning, QuestionAction, QuestionPolicy, Result,
+    warning,
 };
 
 #[allow(missing_docs)]

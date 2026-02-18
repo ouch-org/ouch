@@ -15,8 +15,8 @@ use cli::CliArgs;
 
 pub use self::error::{Error, FinalError, Result};
 use self::utils::{
-    logger::{shutdown_logger_and_wait, spawn_logger_thread},
     QuestionAction, QuestionPolicy,
+    logger::{shutdown_logger_and_wait, spawn_logger_thread},
 };
 
 const BUFFER_CAPACITY: usize = 1024 * 32;

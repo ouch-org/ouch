@@ -8,11 +8,11 @@ use clap::Parser;
 
 pub use self::args::{CliArgs, Subcommand};
 use crate::{
+    QuestionPolicy, Result,
     accessible::set_accessible,
     utils::{
-        canonicalize, is_path_stdin, logger::set_log_display_level, threads::set_thread_count, FileVisibilityPolicy,
+        FileVisibilityPolicy, canonicalize, is_path_stdin, logger::set_log_display_level, threads::set_thread_count,
     },
-    QuestionPolicy, Result,
 };
 
 impl CliArgs {

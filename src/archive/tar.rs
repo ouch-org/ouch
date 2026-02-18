@@ -16,14 +16,15 @@ use fs_err::{self as fs};
 use same_file::Handle;
 
 use crate::{
+    Result,
     error::FinalError,
     info,
     list::{FileInArchive, ListArchiveReceiverIterator},
     utils::{
-        self, create_symlink, is_broken_symlink_error, is_same_file_as_output, set_permission_mode, BytesFmt,
-        FileVisibilityPolicy, PathFmt,
+        self, BytesFmt, FileVisibilityPolicy, PathFmt, create_symlink, is_broken_symlink_error, is_same_file_as_output,
+        set_permission_mode,
     },
-    warning, Result,
+    warning,
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `into`.

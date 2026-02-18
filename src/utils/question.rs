@@ -5,7 +5,7 @@
 
 use std::{
     borrow::Cow,
-    io::{self, stdin, BufRead},
+    io::{self, BufRead, stdin},
     path::{Path, PathBuf},
 };
 

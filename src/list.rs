@@ -2,13 +2,13 @@
 
 use std::{
     fmt,
-    io::{stdout, BufWriter, Write},
+    io::{BufWriter, Write, stdout},
     path::{Path, PathBuf},
     sync::mpsc,
 };
 
 use self::tree::Tree;
-use crate::{accessible::is_running_in_accessible_mode, utils::PathFmt, Result};
+use crate::{Result, accessible::is_running_in_accessible_mode, utils::PathFmt};
 
 /// Options controlling how archive contents should be listed
 #[derive(Debug, Clone, Copy)]

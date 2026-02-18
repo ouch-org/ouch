@@ -2,8 +2,8 @@
 
 use std::{fmt, path::Path};
 
-use bstr::ByteSlice;
 use CompressionFormat::*;
+use bstr::ByteSlice;
 
 use crate::{
     error::{Error, FinalError, Result},
