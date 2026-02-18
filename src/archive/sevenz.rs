@@ -13,14 +13,15 @@ use same_file::Handle;
 use sevenz_rust2::ArchiveEntry;
 
 use crate::{
+    Result,
     error::{Error, FinalError},
     info,
     list::FileInArchive,
     utils::{
-        cd_into_same_dir_as, ensure_parent_dir_exists, is_broken_symlink_error, is_same_file_as_output, BytesFmt,
-        FileVisibilityPolicy, PathFmt,
+        BytesFmt, FileVisibilityPolicy, PathFmt, cd_into_same_dir_as, ensure_parent_dir_exists,
+        is_broken_symlink_error, is_same_file_as_output,
     },
-    warning, Result,
+    warning,
 };
 
 pub fn unpack_archive<R>(reader: R, output_path: &Path, password: Option<&[u8]>) -> Result<u64>

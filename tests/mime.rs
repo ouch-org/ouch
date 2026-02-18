@@ -1,7 +1,7 @@
 #[macro_use]
 mod utils;
 
-use rand::{rngs::SmallRng, SeedableRng};
+use rand::{SeedableRng, rngs::SmallRng};
 use tempfile::NamedTempFile;
 
 use crate::utils::write_random_content;

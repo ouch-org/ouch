@@ -1,4 +1,4 @@
-use std::io::{self, stderr, stdout, StderrLock, StdoutLock, Write};
+use std::io::{self, StderrLock, StdoutLock, Write, stderr, stdout};
 
 use fs_err as fs;
 

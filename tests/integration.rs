@@ -14,8 +14,8 @@ use memchr::memmem;
 use parse_display::Display;
 use pretty_assertions::assert_eq;
 use proptest::sample::size_range;
-use rand::{rngs::SmallRng, Rng, SeedableRng};
-use test_strategy::{proptest, Arbitrary};
+use rand::{Rng, SeedableRng, rngs::SmallRng};
+use test_strategy::{Arbitrary, proptest};
 
 use crate::utils::{assert_same_directory, testdir, write_random_content};
 
@@ -801,11 +801,13 @@ fn compressing_archive_with_two_archive_formats() {
             .clone();
 
         let stderr = output.stderr.to_str().unwrap();
-        assert!(memmem::find(
-            stderr.as_bytes(),
-            b"can only be used at the start of the file extension",
-        )
-        .is_some());
+        assert!(
+            memmem::find(
+                stderr.as_bytes(),
+                b"can only be used at the start of the file extension",
+            )
+            .is_some()
+        );
 
         crate::utils::cargo_bin()
             .args([
@@ -857,11 +859,13 @@ fn fail_when_compressing_archive_as_the_second_extension() {
             .clone();
 
         let stderr = output.stderr.to_str().unwrap();
-        assert!(memmem::find(
-            stderr.as_bytes(),
-            format!("'{archive_format}' can only be used at the start of the file extension").as_bytes(),
-        )
-        .is_some());
+        assert!(
+            memmem::find(
+                stderr.as_bytes(),
+                format!("'{archive_format}' can only be used at the start of the file extension").as_bytes(),
+            )
+            .is_some()
+        );
     }
 }
 
@@ -1112,7 +1116,7 @@ fn test_concatenated_streams(extension: &str, compress_chunk: impl Fn(&[u8]) -> 
 fn decompress_concatenated_gzip_streams() {
     use std::io::Write;
 
-    use flate2::{write::GzEncoder, Compression};
+    use flate2::{Compression, write::GzEncoder};
 
     test_concatenated_streams("gz", |data| {
         let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
@@ -1126,7 +1130,7 @@ fn decompress_concatenated_gzip_streams() {
 fn decompress_concatenated_bzip2_streams() {
     use std::io::Write;
 
-    use bzip2::{write::BzEncoder, Compression};
+    use bzip2::{Compression, write::BzEncoder};
 
     test_concatenated_streams("bz2", |data| {
         let mut encoder = BzEncoder::new(Vec::new(), Compression::default());

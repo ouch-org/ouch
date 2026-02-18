@@ -12,11 +12,11 @@ use same_file::Handle;
 
 use super::{question::FileConflitOperation, user_wants_to_overwrite};
 use crate::{
+    QuestionPolicy, Result,
     error::Error,
     extension::CompressionFormat,
     info_accessible,
-    utils::{strip_path_ascii_prefix, PathFmt, QuestionAction},
-    QuestionPolicy, Result,
+    utils::{PathFmt, QuestionAction, strip_path_ascii_prefix},
 };
 
 pub fn is_path_stdin(path: &Path) -> bool {

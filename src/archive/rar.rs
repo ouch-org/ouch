@@ -44,7 +44,7 @@ pub fn unpack_archive(archive_path: &Path, output_folder: &Path, password: Optio
 pub fn list_archive(
     archive_path: &Path,
     password: Option<&[u8]>,
-) -> Result<impl Iterator<Item = Result<FileInArchive>>> {
+) -> Result<impl Iterator<Item = Result<FileInArchive>> + use<>> {
     let archive = match password {
         Some(password) => Archive::with_password(archive_path, password),
         None => Archive::new(archive_path),

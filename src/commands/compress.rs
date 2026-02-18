@@ -9,17 +9,16 @@ use gzp::par::compress::{ParCompress, ParCompressBuilder};
 
 use super::warn_user_about_loading_sevenz_in_memory;
 use crate::{
-    archive,
+    BUFFER_CAPACITY, QuestionAction, QuestionPolicy, Result, archive,
     commands::warn_user_about_loading_zip_in_memory,
-    extension::{split_first_compression_format, CompressionFormat::*, Extension},
+    extension::{CompressionFormat::*, Extension, split_first_compression_format},
     info_accessible,
     utils::{
-        file_size,
+        BytesFmt, FileVisibilityPolicy, file_size,
         io::lock_and_flush_output_stdio,
         threads::{logical_thread_count, physical_thread_count},
-        user_wants_to_continue, BytesFmt, FileVisibilityPolicy,
+        user_wants_to_continue,
     },
-    QuestionAction, QuestionPolicy, Result, BUFFER_CAPACITY,
 };
 
 /// Compress files into `output_file`.

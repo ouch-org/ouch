@@ -7,20 +7,19 @@ use std::{
 use fs_err::{self as fs, PathExt};
 
 use crate::{
+    BUFFER_CAPACITY, QuestionAction, QuestionPolicy, Result,
     commands::{warn_user_about_loading_sevenz_in_memory, warn_user_about_loading_zip_in_memory},
     extension::{
-        split_first_compression_format,
         CompressionFormat::{self, *},
-        Extension,
+        Extension, split_first_compression_format,
     },
     info, info_accessible,
     non_archive::lz4::MultiFrameLz4Decoder,
     utils::{
-        self, file_size,
-        io::{lock_and_flush_output_stdio, ReadSeek},
-        is_path_stdin, user_wants_to_continue, BytesFmt, PathFmt,
+        self, BytesFmt, PathFmt, file_size,
+        io::{ReadSeek, lock_and_flush_output_stdio},
+        is_path_stdin, user_wants_to_continue,
     },
-    QuestionAction, QuestionPolicy, Result, BUFFER_CAPACITY,
 };
 
 pub struct DecompressOptions<'a> {
