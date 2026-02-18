@@ -8,8 +8,6 @@ use std::{
     io::prelude::*,
     ops::Not,
     path::{Path, PathBuf},
-    sync::mpsc,
-    thread,
 };
 
 use fs_err::{self as fs};
@@ -19,7 +17,7 @@ use crate::{
     Result,
     error::FinalError,
     info,
-    list::{FileInArchive, ListArchiveReceiverIterator},
+    list::FileInArchive,
     utils::{
         self, BytesFmt, FileVisibilityPolicy, PathFmt, create_symlink, is_broken_symlink_error, is_same_file_as_output,
         set_permission_mode,
@@ -100,23 +98,15 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> Result<u64> {
 }
 
 /// List contents of `archive`, returning a vector of archive entries
-pub fn list_archive(
-    mut archive: tar::Archive<impl Read + Send + 'static>,
-) -> impl Iterator<Item = Result<FileInArchive>> {
-    let (tx, rx) = mpsc::channel();
-    thread::spawn(move || {
-        for file in archive.entries().expect("entries is only used once") {
-            let file_in_archive = (|| {
-                let file = file?;
-                let path = file.path()?.into_owned();
-                let is_dir = file.header().entry_type().is_dir();
-                Ok(FileInArchive { path, is_dir })
-            })();
-            tx.send(file_in_archive).unwrap();
-        }
+pub fn list_archive(mut archive: tar::Archive<impl Read>) -> Result<impl Iterator<Item = Result<FileInArchive>>> {
+    let entries = archive.entries()?.map(|file| {
+        let file = file?;
+        let path = file.path()?.into_owned();
+        let is_dir = file.header().entry_type().is_dir();
+        Ok(FileInArchive { path, is_dir })
     });
 
-    ListArchiveReceiverIterator::new(rx)
+    Ok(entries.collect::<Vec<_>>().into_iter())
 }
 
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.

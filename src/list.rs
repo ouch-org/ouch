@@ -4,7 +4,6 @@ use std::{
     fmt,
     io::{BufWriter, Write, stdout},
     path::{Path, PathBuf},
-    sync::mpsc,
 };
 
 use self::tree::Tree;
@@ -25,23 +24,6 @@ pub struct FileInArchive {
 
     /// Whether this file is a directory
     pub is_dir: bool,
-}
-
-/// Used by archive listing functions that spawn a background thread
-pub struct ListArchiveReceiverIterator(mpsc::Receiver<Result<FileInArchive>>);
-
-impl ListArchiveReceiverIterator {
-    pub fn new(receiver: mpsc::Receiver<Result<FileInArchive>>) -> Self {
-        Self(receiver)
-    }
-}
-
-impl Iterator for ListArchiveReceiverIterator {
-    type Item = Result<FileInArchive>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.recv().ok()
-    }
 }
 
 /// Actually print the files

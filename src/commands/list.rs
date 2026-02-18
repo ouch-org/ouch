@@ -79,7 +79,7 @@ pub fn list_archive_contents(
 
     let archive_format = misplaced_archive_format.unwrap_or(formats[0]);
     let files: Box<dyn Iterator<Item = Result<FileInArchive>>> = match archive_format {
-        Tar => Box::new(crate::archive::tar::list_archive(tar::Archive::new(reader))),
+        Tar => Box::new(crate::archive::tar::list_archive(tar::Archive::new(reader))?),
         Zip => {
             if formats.len() > 1 {
                 // Make thread own locks to keep output messages adjacent

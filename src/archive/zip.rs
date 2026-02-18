@@ -6,8 +6,6 @@ use std::{
     env,
     io::{self, prelude::*},
     path::{Path, PathBuf},
-    sync::mpsc,
-    thread,
 };
 
 use filetime_creation::{FileTime, set_file_mtime};
@@ -20,7 +18,7 @@ use crate::{
     Result,
     error::FinalError,
     info, info_accessible,
-    list::{FileInArchive, ListArchiveReceiverIterator},
+    list::FileInArchive,
     utils::{
         BytesFmt, FileVisibilityPolicy, PathFmt, cd_into_same_dir_as, create_symlink, ensure_parent_dir_exists,
         get_invalid_utf8_paths, is_broken_symlink_error, is_same_file_as_output, pretty_format_list_of_paths,
@@ -110,34 +108,26 @@ pub fn list_archive<R>(
     password: Option<&[u8]>,
 ) -> impl Iterator<Item = Result<FileInArchive>>
 where
-    R: Read + Seek + Send + 'static,
+    R: Read + Seek,
 {
     let password = password.map(|p| p.to_owned());
 
-    let (tx, rx) = mpsc::channel();
-    thread::spawn(move || {
-        for idx in 0..archive.len() {
-            let file_in_archive = (|| {
-                let zip_result = match password.clone() {
-                    Some(password) => archive.by_index_decrypt(idx, &password),
-                    None => archive.by_index(idx),
-                };
+    (0..archive.len()).map(move |idx| {
+        let zip_result = match password.clone() {
+            Some(password) => archive.by_index_decrypt(idx, &password),
+            None => archive.by_index(idx),
+        };
 
-                let file = match zip_result {
-                    Ok(f) => f,
-                    Err(e) => return Err(e.into()),
-                };
+        let file = match zip_result {
+            Ok(f) => f,
+            Err(e) => return Err(e.into()),
+        };
 
-                let path = file.enclosed_name().unwrap_or_else(|| file.mangled_name()).to_owned();
-                let is_dir = file.is_dir();
+        let path = file.enclosed_name().unwrap_or_else(|| file.mangled_name()).to_owned();
+        let is_dir = file.is_dir();
 
-                Ok(FileInArchive { path, is_dir })
-            })();
-            tx.send(file_in_archive).unwrap();
-        }
-    });
-
-    ListArchiveReceiverIterator::new(rx)
+        Ok(FileInArchive { path, is_dir })
+    })
 }
 
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.
