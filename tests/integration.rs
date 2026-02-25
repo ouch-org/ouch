@@ -255,7 +255,7 @@ fn multiple_files_with_conflict_and_choice_to_overwrite(
         .arg(archive)
         .arg("-d")
         .arg(after)
-        .arg("--yes")
+        .write_stdin("y")
         .assert()
         .success();
 
@@ -1248,6 +1248,76 @@ fn test_concatenated_streams(extension: &str, compress_chunk: impl Fn(&[u8]) -> 
     assert_eq!(
         output_content, expected_content,
         "Decompressed content should contain all concatenated {extension} streams"
+    );
+}
+
+/// Regression test: `--yes` should merge into a non-empty output directory rather than wiping it.
+/// Previously, `--yes` defaulted to `Overwrite`, which would call `remove_dir_all` on the output
+/// directory, including when that directory was `$CWD`.
+#[test]
+fn yes_flag_merges_into_nonempty_dir() {
+    let (_tempdir, dir) = testdir().unwrap();
+
+    // Create an archive from a source directory
+    let src = dir.join("src");
+    fs::create_dir_all(&src).unwrap();
+    fs::write(src.join("new_file.txt"), "new content").unwrap();
+    let archive = dir.join("archive.tar.gz");
+    ouch!("-A", "c", &src, &archive);
+
+    // Output directory already has a file and simulates a non-empty $CWD
+    let output = dir.join("output");
+    fs::create_dir_all(&output).unwrap();
+    fs::write(output.join("important.txt"), "keep this").unwrap();
+
+    crate::utils::cargo_bin()
+        .current_dir(&output)
+        .arg("decompress")
+        .arg(&archive)
+        .arg("--yes")
+        .assert()
+        .success();
+
+    assert!(
+        output.join("important.txt").exists(),
+        "--yes wiped the output directory instead of merging"
+    );
+    assert!(
+        output.join("src").join("new_file.txt").exists(),
+        "archive contents were not extracted"
+    );
+}
+
+/// Regression test: the CWD guard must block `remove_dir_all` on the current working directory
+/// even when the user explicitly selects the overwrite option interactively.
+#[test]
+fn cwd_guard_blocks_explicit_overwrite() {
+    let (_tempdir, dir) = testdir().unwrap();
+
+    let src = dir.join("src");
+    fs::create_dir_all(&src).unwrap();
+    fs::write(src.join("file.txt"), "content").unwrap();
+    let archive = dir.join("archive.tar.gz");
+    ouch!("-A", "c", &src, &archive);
+
+    // Give the "CWD" a pre-existing file to trigger a conflict on the output directory
+    let cwd = dir.join("cwd");
+    fs::create_dir_all(&cwd).unwrap();
+    fs::write(cwd.join("important.txt"), "keep this").unwrap();
+
+    // User explicitly answers "y" (overwrite); the guard should block deletion and fail
+    crate::utils::cargo_bin()
+        .current_dir(&cwd)
+        .arg("decompress")
+        .arg(&archive)
+        .write_stdin("y")
+        .assert()
+        .failure();
+
+    assert!(cwd.exists(), "CWD was deleted despite guard");
+    assert!(
+        cwd.join("important.txt").exists(),
+        "CWD contents were deleted despite guard"
     );
 }
 
