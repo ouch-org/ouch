@@ -13,7 +13,7 @@ use same_file::Handle;
 use super::{question::FileConflitOperation, user_wants_to_overwrite};
 use crate::{
     QuestionPolicy, Result,
-    error::Error,
+    error::{Error, FinalError},
     extension::CompressionFormat,
     info_accessible,
     utils::{PathFmt, QuestionAction, strip_path_ascii_prefix},
@@ -52,6 +52,19 @@ pub fn resolve_path_conflict(
 
 pub fn remove_file_or_dir(path: &Path) -> Result<()> {
     if path.is_dir() {
+        if let Ok(cwd) = env::current_dir() {
+            if matches!(
+                (Handle::from_path(path), Handle::from_path(&cwd)),
+                (Ok(a), Ok(b)) if a == b
+            ) {
+                return Err(
+                    FinalError::with_title("Refusing to delete the current working directory")
+                        .detail(format!("Path {:?} is the current directory", PathFmt(path)))
+                        .hint("Use a different output directory with `--dir` / `-d`")
+                        .into(),
+                );
+            }
+        }
         fs::remove_dir_all(path)?;
     } else if path.is_file() {
         fs::remove_file(path)?;
