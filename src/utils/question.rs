@@ -65,7 +65,10 @@ pub fn user_wants_to_overwrite(
     use FileConflitOperation as Op;
 
     match question_policy {
-        QuestionPolicy::AlwaysYes => Ok(Op::Overwrite),
+        QuestionPolicy::AlwaysYes => match question_action {
+            QuestionAction::Decompression => Ok(Op::Merge),
+            QuestionAction::Compression => Ok(Op::Overwrite),
+        },
         QuestionPolicy::AlwaysNo => Ok(Op::Cancel),
         QuestionPolicy::Ask => prompt_user_for_file_conflict_resolution(path, question_action),
     }
