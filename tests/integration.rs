@@ -16,6 +16,7 @@ use parse_display::Display;
 use pretty_assertions::assert_eq;
 use proptest::sample::size_range;
 use rand::{Rng, SeedableRng, rngs::SmallRng};
+use strum::IntoEnumIterator as _;
 use test_strategy::{Arbitrary, proptest};
 
 use crate::utils::{assert_same_directory, testdir, write_random_content};
@@ -434,8 +435,6 @@ fn unpack_rar_stdin() -> Result<(), Box<dyn std::error::Error>> {
 #[cfg(unix)]
 #[test]
 fn symlink_pack_and_unpack() -> Result<()> {
-    use strum::IntoEnumIterator as _;
-
     for ext in MainDirectoryExtension::iter() {
         if let MainDirectoryExtension::SevenZ = ext {
             // 7z doesn't support symlinks
@@ -526,19 +525,19 @@ fn symlink_pack_and_unpack() -> Result<()> {
 #[cfg(unix)]
 #[test]
 fn broken_symlink_stored_successfully_when_format_supports_it() -> Result<()> {
-    use strum::IntoEnumIterator as _;
-
     for ext in MainDirectoryExtension::iter() {
         eprintln!("ext = {ext}");
 
-        let (_tempdir, dir) = dbg!(testdir().unwrap());
+        let (_tempdir, dir) = testdir().unwrap();
 
         // Create a broken symlink (points to non-existent target)
         let broken_symlink = dir.join("broken_link");
         let broken_target = "/nonexistent/path";
-        fs::os::unix::fs::symlink(&broken_target, &broken_symlink).unwrap();
+        fs::os::unix::fs::symlink(broken_target, &broken_symlink).unwrap();
         let archive = dir.join(format!("archive.{ext}"));
         let output = dir.join("output");
+
+        assert!(broken_symlink.is_symlink());
 
         let result = crate::utils::cargo_bin()
             .arg("compress")
@@ -564,6 +563,14 @@ fn broken_symlink_stored_successfully_when_format_supports_it() -> Result<()> {
             .assert()
             .success();
 
+        for x in fs::read_dir(output.clone()).unwrap() {
+            eprintln!("{:?}", x.unwrap());
+        }
+        eprintln!("---------");
+        for x in fs::read_dir(output.clone().parent().unwrap()).unwrap() {
+            eprintln!("{:?}", x.unwrap());
+        }
+
         let target = fs::read_link(output.join("broken_link")).unwrap();
         assert_eq!(Path::new(&target), broken_target);
     }
@@ -574,8 +581,6 @@ fn broken_symlink_stored_successfully_when_format_supports_it() -> Result<()> {
 #[cfg(unix)]
 #[test]
 fn broken_symlink_compression_follow_symlinks() {
-    use strum::IntoEnumIterator as _;
-
     for ext in MainDirectoryExtension::iter() {
         eprintln!("ext = {ext}");
 
@@ -759,7 +764,7 @@ fn unpack_multiple_sources_into_the_same_destination_with_merge(
 
 #[test]
 fn reading_nested_archives_with_two_archive_extensions_adjacent() {
-    let archive_formats = ["tar", "zip", "7z"].into_iter();
+    let archive_formats = MainDirectoryExtension::iter();
 
     for (first_archive, second_archive) in archive_formats.clone().cartesian_product(archive_formats.rev()) {
         let (_tempdir, dir) = testdir().unwrap();
@@ -778,7 +783,7 @@ fn reading_nested_archives_with_two_archive_extensions_adjacent() {
         for (window, format) in files.windows(2).zip(transformations.iter()) {
             let [a, b] = [window[0], window[1]].map(in_dir);
             crate::utils::cargo_bin()
-                .args(["compress", &a, &b, "--format", format])
+                .args(["compress", &a, &b, "--format", &format.to_string()])
                 .assert()
                 .success();
         }
@@ -805,7 +810,7 @@ fn reading_nested_archives_with_two_archive_extensions_adjacent() {
 
 #[test]
 fn reading_nested_archives_with_two_archive_extensions_interleaved() {
-    let archive_formats = ["tar", "zip", "7z"].into_iter();
+    let archive_formats = MainDirectoryExtension::iter();
 
     for (first_archive, second_archive) in archive_formats.clone().cartesian_product(archive_formats.rev()) {
         let (_tempdir, dir) = testdir().unwrap();
@@ -820,7 +825,7 @@ fn reading_nested_archives_with_two_archive_extensions_interleaved() {
             &format!("e.{first_archive}.zst.{second_archive}"),
             &format!("f.{first_archive}.zst.{second_archive}.lz4"),
         ];
-        let transformations = [first_archive, "zst", second_archive, "lz4"];
+        let transformations = [&first_archive.to_string(), "zst", &second_archive.to_string(), "lz4"];
         let compressed_path = in_dir(files.last().unwrap());
 
         for (window, format) in files.windows(2).zip(transformations.iter()) {
@@ -853,7 +858,7 @@ fn reading_nested_archives_with_two_archive_extensions_interleaved() {
 
 #[test]
 fn compressing_archive_with_two_archive_formats() {
-    let archive_formats = ["tar", "zip", "7z"].into_iter();
+    let archive_formats = MainDirectoryExtension::iter();
 
     for (first_archive, second_archive) in archive_formats.clone().cartesian_product(archive_formats.rev()) {
         let (_tempdir, dir_path) = testdir().unwrap();
@@ -904,7 +909,7 @@ fn compressing_archive_with_two_archive_formats() {
                 &format!("{dir}/out.{first_archive}.{second_archive}"),
                 "--yes",
                 "--format",
-                first_archive,
+                &first_archive.to_string(),
             ])
             .assert()
             .success();
@@ -913,7 +918,7 @@ fn compressing_archive_with_two_archive_formats() {
 
 #[test]
 fn fail_when_compressing_archive_as_the_second_extension() {
-    for archive_format in ["tar", "zip", "7z"] {
+    for archive_format in MainDirectoryExtension::iter() {
         let (_tempdir, dir_path) = testdir().unwrap();
         let dir = dir_path.display().to_string();
 
