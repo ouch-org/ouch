@@ -25,8 +25,7 @@ pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;
 /// Current directory, canonicalized for consistent path comparisons across platforms
 static INITIAL_CURRENT_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
     let dir = env::current_dir().expect("can't read current directory");
-    let dir = utils::canonicalize(&dir).expect("can't canonicalize current directory");
-    dir
+    utils::canonicalize(&dir).expect("can't canonicalize current directory")
 });
 
 fn main() {
