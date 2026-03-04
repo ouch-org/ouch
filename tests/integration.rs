@@ -438,9 +438,8 @@ fn symlink_pack_and_unpack() -> Result<()> {
     for ext in MainDirectoryExtension::iter() {
         if let MainDirectoryExtension::SevenZ = ext {
             // 7z doesn't support symlinks
-            return Ok(());
+            continue;
         }
-
         eprintln!("ext = {ext}");
 
         let (_tempdir, root_path) = testdir()?;
