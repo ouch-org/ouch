@@ -90,6 +90,7 @@ where
         files.push(Ok(FileInArchive {
             path: entry.name().into(),
             is_dir: entry.is_directory(),
+            symlink_target: None,
         }));
         Ok(true)
     };

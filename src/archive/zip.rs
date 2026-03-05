@@ -118,7 +118,7 @@ where
             None => archive.by_index(idx),
         };
 
-        let file = match zip_result {
+        let mut file = match zip_result {
             Ok(f) => f,
             Err(e) => return Err(e.into()),
         };
@@ -126,7 +126,19 @@ where
         let path = file.enclosed_name().unwrap_or_else(|| file.mangled_name()).to_owned();
         let is_dir = file.is_dir();
 
-        Ok(FileInArchive { path, is_dir })
+        let symlink_target = file
+            .unix_mode()
+            .filter(|mode| mode & 0o170000 == 0o120000)
+            .and_then(|_| {
+                let mut s = String::new();
+                file.read_to_string(&mut s).ok().map(|_| PathBuf::from(s))
+            });
+
+        Ok(FileInArchive {
+            path,
+            is_dir,
+            symlink_target,
+        })
     })
 }
 

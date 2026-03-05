@@ -103,7 +103,12 @@ pub fn list_archive(mut archive: tar::Archive<impl Read>) -> Result<impl Iterato
         let file = file?;
         let path = file.path()?.into_owned();
         let is_dir = file.header().entry_type().is_dir();
-        Ok(FileInArchive { path, is_dir })
+        let symlink_target = file.link_name()?.map(|p| p.into_owned());
+        Ok(FileInArchive {
+            path,
+            is_dir,
+            symlink_target,
+        })
     });
 
     Ok(entries.collect::<Vec<_>>().into_iter())

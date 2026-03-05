@@ -24,6 +24,9 @@ pub struct FileInArchive {
 
     /// Whether this file is a directory
     pub is_dir: bool,
+
+    /// The target of the symlink, if this file is a symlink
+    pub symlink_target: Option<PathBuf>,
 }
 
 /// Actually print the files
@@ -41,8 +44,12 @@ pub fn list_files(
         tree.print(&mut out);
     } else {
         for file in files {
-            let FileInArchive { path, is_dir } = file?;
-            print_entry(&mut out, path.display(), is_dir);
+            let FileInArchive {
+                path,
+                is_dir,
+                symlink_target,
+            } = file?;
+            print_entry(&mut out, path.display(), is_dir, symlink_target);
         }
     }
     Ok(())
@@ -50,12 +57,31 @@ pub fn list_files(
 
 /// Print an entry and highlight directories, either by coloring them
 /// if that's supported or by adding a trailing /
-fn print_entry(out: &mut impl Write, name: impl fmt::Display, is_dir: bool) {
+fn print_entry(out: &mut impl Write, name: impl fmt::Display, is_dir: bool, symlink_target: Option<PathBuf>) {
     use crate::utils::colors::*;
 
     if !is_dir {
         // Not a directory -> just print the file name
-        let _ = writeln!(out, "{name}");
+        if let Some(target) = symlink_target {
+            if is_running_in_accessible_mode() {
+                // Accessible mode: use "->" for screen readers
+                let _ = writeln!(out, "{} -> {}", name, target.display());
+            } else {
+                // Normal mode: use "->" with colors
+                let _ = writeln!(
+                    out,
+                    "{}{}{} -> {}{}{}",
+                    *CYAN,
+                    name,
+                    *ALL_RESET,
+                    *CYAN,
+                    target.display(),
+                    *ALL_RESET
+                );
+            }
+        } else {
+            let _ = writeln!(out, "{name}");
+        }
         return;
     }
 
@@ -151,11 +177,18 @@ mod tree {
             };
 
             let _ = write!(out, "{prefix}{final_part}");
-            let is_dir = match self.file {
-                Some(FileInArchive { is_dir, .. }) => is_dir,
-                None => true,
+            let (is_dir, symlink_target) = match &self.file {
+                Some(FileInArchive {
+                    is_dir, symlink_target, ..
+                }) => (*is_dir, symlink_target.clone()),
+                None => (true, None),
             };
-            super::print_entry(out, <Vec<u8> as ByteVec>::from_os_str_lossy(name).as_bstr(), is_dir);
+            super::print_entry(
+                out,
+                <Vec<u8> as ByteVec>::from_os_str_lossy(name).as_bstr(),
+                is_dir,
+                symlink_target,
+            );
 
             // Construct prefix for children, adding either a line if this isn't
             // the last entry in the parent dir or empty space if it is.

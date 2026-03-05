@@ -55,7 +55,11 @@ pub fn list_archive(
         let is_dir = item.is_directory();
         let path = item.filename;
 
-        Ok(FileInArchive { path, is_dir })
+        Ok(FileInArchive {
+            path,
+            is_dir,
+            symlink_target: None,
+        })
     }))
 }
 
