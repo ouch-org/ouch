@@ -21,6 +21,7 @@ pub enum FileType {
     File,
     Directory,
     Symlink { target: PathBuf },
+    Hardlink { target: PathBuf },
 }
 
 /// Represents a single file in an archive, used in `list::list_files()`
@@ -64,7 +65,7 @@ fn print_entry(out: &mut impl Write, name: impl fmt::Display, file_type: &FileTy
         FileType::File => {
             let _ = writeln!(out, "{name}");
         }
-        FileType::Symlink { target } => {
+        FileType::Symlink { target } | FileType::Hardlink { target } => {
             if is_running_in_accessible_mode() {
                 // Accessible mode: use "->" for screen readers
                 let _ = writeln!(out, "{} -> {}", name, target.display());

@@ -131,8 +131,10 @@ where
             .unix_mode()
             .filter(|mode| mode & 0o170000 == 0o120000)
             .and_then(|_| {
-                let mut s = String::new();
-                file.read_to_string(&mut s).ok().map(|_| PathBuf::from(s))
+                let mut s = Vec::new();
+                file.read_to_end(&mut s)
+                    .ok()
+                    .map(|_| PathBuf::from(String::from_utf8_lossy(&s).into_owned()))
             })
         {
             FileType::Symlink { target }

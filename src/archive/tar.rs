@@ -102,20 +102,26 @@ pub fn list_archive(mut archive: tar::Archive<impl Read>) -> Result<impl Iterato
     let entries = archive.entries()?.map(|file| {
         let file = file?;
         let path = file.path()?.into_owned();
-        let file_type = if file.header().entry_type().is_dir() {
-            FileType::Directory
-        } else if let Some(target) = file.link_name()? {
-            FileType::Symlink {
-                target: target.into_owned(),
-            }
-        } else {
-            FileType::File
-        };
-
+        let file_type = get_file_type(file.header(), &file)?;
         Ok(FileInArchive { path, file_type })
     });
 
     Ok(entries.collect::<Vec<_>>().into_iter())
+}
+
+fn get_file_type(header: &tar::Header, file: &tar::Entry<impl Read>) -> Result<FileType> {
+    Ok(match header.entry_type() {
+        tar::EntryType::Directory => FileType::Directory,
+        tar::EntryType::Symlink => file
+            .link_name()?
+            .map(|t| FileType::Symlink { target: t.into_owned() })
+            .unwrap_or(FileType::File),
+        tar::EntryType::Link => file
+            .link_name()?
+            .map(|t| FileType::Hardlink { target: t.into_owned() })
+            .unwrap_or(FileType::File),
+        _ => FileType::File,
+    })
 }
 
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.
