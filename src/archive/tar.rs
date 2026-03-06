@@ -17,7 +17,7 @@ use crate::{
     Result,
     error::FinalError,
     info,
-    list::FileInArchive,
+    list::{FileInArchive, FileType},
     utils::{
         self, BytesFmt, FileVisibilityPolicy, PathFmt, create_symlink, is_broken_symlink_error, is_same_file_as_output,
         set_permission_mode,
@@ -102,13 +102,17 @@ pub fn list_archive(mut archive: tar::Archive<impl Read>) -> Result<impl Iterato
     let entries = archive.entries()?.map(|file| {
         let file = file?;
         let path = file.path()?.into_owned();
-        let is_dir = file.header().entry_type().is_dir();
-        let symlink_target = file.link_name()?.map(|p| p.into_owned());
-        Ok(FileInArchive {
-            path,
-            is_dir,
-            symlink_target,
-        })
+        let file_type = if file.header().entry_type().is_dir() {
+            FileType::Directory
+        } else if let Some(target) = file.link_name()? {
+            FileType::Symlink {
+                target: target.into_owned(),
+            }
+        } else {
+            FileType::File
+        };
+
+        Ok(FileInArchive { path, file_type })
     });
 
     Ok(entries.collect::<Vec<_>>().into_iter())

@@ -16,17 +16,21 @@ pub struct ListOptions {
     pub tree: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FileType {
+    File,
+    Directory,
+    Symlink { target: PathBuf },
+}
+
 /// Represents a single file in an archive, used in `list::list_files()`
 #[derive(Debug, Clone)]
 pub struct FileInArchive {
     /// The file path
     pub path: PathBuf,
 
-    /// Whether this file is a directory
-    pub is_dir: bool,
-
-    /// The target of the symlink, if this file is a symlink
-    pub symlink_target: Option<PathBuf>,
+    /// The type of file
+    pub file_type: FileType,
 }
 
 /// Actually print the files
@@ -44,12 +48,8 @@ pub fn list_files(
         tree.print(&mut out);
     } else {
         for file in files {
-            let FileInArchive {
-                path,
-                is_dir,
-                symlink_target,
-            } = file?;
-            print_entry(&mut out, path.display(), is_dir, symlink_target);
+            let FileInArchive { path, file_type } = file?;
+            print_entry(&mut out, path.display(), &file_type);
         }
     }
     Ok(())
@@ -57,12 +57,14 @@ pub fn list_files(
 
 /// Print an entry and highlight directories, either by coloring them
 /// if that's supported or by adding a trailing /
-fn print_entry(out: &mut impl Write, name: impl fmt::Display, is_dir: bool, symlink_target: Option<PathBuf>) {
+fn print_entry(out: &mut impl Write, name: impl fmt::Display, file_type: &FileType) {
     use crate::utils::colors::*;
 
-    if !is_dir {
-        // Not a directory -> just print the file name
-        if let Some(target) = symlink_target {
+    match file_type {
+        FileType::File => {
+            let _ = writeln!(out, "{name}");
+        }
+        FileType::Symlink { target } => {
             if is_running_in_accessible_mode() {
                 // Accessible mode: use "->" for screen readers
                 let _ = writeln!(out, "{} -> {}", name, target.display());
@@ -79,28 +81,25 @@ fn print_entry(out: &mut impl Write, name: impl fmt::Display, is_dir: bool, syml
                     *ALL_RESET
                 );
             }
-        } else {
-            let _ = writeln!(out, "{name}");
         }
-        return;
+        FileType::Directory => {
+            let name_str = name.to_string();
+            let display_name = name_str.strip_suffix('/').unwrap_or(&name_str);
+
+            let output = if BLUE.is_empty() {
+                // Colors are deactivated, print final / to mark directories
+                format!("{display_name}/")
+            } else if is_running_in_accessible_mode() {
+                // Accessible mode: use colors but print final / for screen readers
+                format!("{}{}{}/{}", *BLUE, *STYLE_BOLD, display_name, *ALL_RESET)
+            } else {
+                // Normal mode: use colors without trailing slash
+                format!("{}{}{}{}", *BLUE, *STYLE_BOLD, display_name, *ALL_RESET)
+            };
+
+            let _ = writeln!(out, "{output}");
+        }
     }
-
-    // Handle directory display
-    let name_str = name.to_string();
-    let display_name = name_str.strip_suffix('/').unwrap_or(&name_str);
-
-    let output = if BLUE.is_empty() {
-        // Colors are deactivated, print final / to mark directories
-        format!("{display_name}/")
-    } else if is_running_in_accessible_mode() {
-        // Accessible mode: use colors but print final / for screen readers
-        format!("{}{}{}/{}", *BLUE, *STYLE_BOLD, display_name, *ALL_RESET)
-    } else {
-        // Normal mode: use colors without trailing slash
-        format!("{}{}{}{}", *BLUE, *STYLE_BOLD, display_name, *ALL_RESET)
-    };
-
-    let _ = writeln!(out, "{output}");
 }
 
 /// Since archives store files as a list of entries -> without direct
@@ -117,7 +116,7 @@ mod tree {
     use bstr::{ByteSlice, ByteVec};
     use linked_hash_map::LinkedHashMap;
 
-    use super::FileInArchive;
+    use super::{FileInArchive, FileType};
     use crate::{utils::PathFmt, warning};
 
     /// Directory tree
@@ -177,18 +176,12 @@ mod tree {
             };
 
             let _ = write!(out, "{prefix}{final_part}");
-            let (is_dir, symlink_target) = match &self.file {
-                Some(FileInArchive {
-                    is_dir, symlink_target, ..
-                }) => (*is_dir, symlink_target.clone()),
-                None => (true, None),
+            let file_type = match &self.file {
+                Some(FileInArchive { file_type, .. }) => file_type.clone(),
+                // If we don't have a file entry but have children, it's an implicit directory
+                None => FileType::Directory,
             };
-            super::print_entry(
-                out,
-                <Vec<u8> as ByteVec>::from_os_str_lossy(name).as_bstr(),
-                is_dir,
-                symlink_target,
-            );
+            super::print_entry(out, <Vec<u8> as ByteVec>::from_os_str_lossy(name).as_bstr(), &file_type);
 
             // Construct prefix for children, adding either a line if this isn't
             // the last entry in the parent dir or empty space if it is.
