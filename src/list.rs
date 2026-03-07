@@ -14,6 +14,9 @@ use crate::{Result, accessible::is_running_in_accessible_mode, utils::PathFmt};
 pub struct ListOptions {
     /// Whether to show a tree view
     pub tree: bool,
+
+    /// Whether to suppress extra output like symlink targets (for scripting)
+    pub quiet: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -42,7 +45,10 @@ pub fn list_files(
     list_options: ListOptions,
 ) -> Result<()> {
     let mut out = BufWriter::new(stdout().lock());
-    let _ = writeln!(out, "Archive: {:?}", PathFmt(archive));
+
+    if !list_options.quiet {
+        let _ = writeln!(out, "Archive: {:?}", PathFmt(archive));
+    }
 
     if list_options.tree {
         let tree = files.into_iter().collect::<Result<Tree>>()?;
@@ -50,7 +56,7 @@ pub fn list_files(
     } else {
         for file in files {
             let FileInArchive { path, file_type } = file?;
-            print_entry(&mut out, path.display(), &file_type);
+            print_entry(&mut out, path.display(), &file_type, list_options.quiet);
         }
     }
     Ok(())
@@ -58,7 +64,7 @@ pub fn list_files(
 
 /// Print an entry and highlight directories, either by coloring them
 /// if that's supported or by adding a trailing /
-fn print_entry(out: &mut impl Write, name: impl fmt::Display, file_type: &FileType) {
+fn print_entry(out: &mut impl Write, name: impl fmt::Display, file_type: &FileType, quiet: bool) {
     use crate::utils::colors::*;
 
     match file_type {
@@ -66,17 +72,30 @@ fn print_entry(out: &mut impl Write, name: impl fmt::Display, file_type: &FileTy
             let _ = writeln!(out, "{name}");
         }
         FileType::Symlink { target } | FileType::Hardlink { target } => {
-            if is_running_in_accessible_mode() {
-                // Accessible mode: use "->" for screen readers
-                let _ = writeln!(out, "{} -> {}", name, target.display());
+            if quiet {
+                // In quiet mode, just print the name (like a regular file)
+                // This allows scripts to process the list without parsing arrows
+                let _ = write!(out, "{}{name}{}", *CYAN, *ALL_RESET);
+                return;
+            }
+
+            let arrow = if matches!(file_type, FileType::Symlink { .. }) {
+                "->"
             } else {
-                // Normal mode: use "->" with colors
+                "=>"
+            };
+
+            if is_running_in_accessible_mode() {
+                let _ = writeln!(out, "{} {} {}", name, arrow, target.display());
+            } else {
                 let _ = writeln!(
                     out,
-                    "{}{}{} -> {}{}{}",
+                    "{}{}{} {}{} {}{}{}",
                     *CYAN,
                     name,
                     *ALL_RESET,
+                    *CYAN,
+                    arrow,
                     *CYAN,
                     target.display(),
                     *ALL_RESET
@@ -182,7 +201,12 @@ mod tree {
                 // If we don't have a file entry but have children, it's an implicit directory
                 None => FileType::Directory,
             };
-            super::print_entry(out, <Vec<u8> as ByteVec>::from_os_str_lossy(name).as_bstr(), &file_type);
+            super::print_entry(
+                out,
+                <Vec<u8> as ByteVec>::from_os_str_lossy(name).as_bstr(),
+                &file_type,
+                false, // Always show targets in tree view, regardless of --quiet flag
+            );
 
             // Construct prefix for children, adding either a line if this isn't
             // the last entry in the parent dir or empty space if it is.
