@@ -75,30 +75,25 @@ fn print_entry(out: &mut impl Write, name: impl fmt::Display, file_type: &FileTy
             if quiet {
                 // In quiet mode, just print the name (like a regular file)
                 // This allows scripts to process the list without parsing arrows
-                let _ = write!(out, "{}{name}{}", *CYAN, *ALL_RESET);
+                let _ = writeln!(out, "{}{name}{}", *CYAN, *ALL_RESET);
                 return;
             }
 
-            let arrow = if matches!(file_type, FileType::Symlink { .. }) {
-                "->"
+            let suffix = if matches!(file_type, FileType::Hardlink { .. }) {
+                " (hardlink)"
             } else {
-                "link to"
+                ""
             };
 
             if is_running_in_accessible_mode() {
-                let _ = writeln!(out, "{} {} {}", name, arrow, target.display());
+                let _ = writeln!(out, "{name} -> {}{suffix}", target.display());
             } else {
                 let _ = writeln!(
                     out,
-                    "{}{}{} {}{} {}{}{}",
-                    *CYAN,
-                    name,
-                    *ALL_RESET,
-                    *CYAN,
-                    arrow,
-                    *CYAN,
-                    target.display(),
-                    *ALL_RESET
+                    "{c}{name}{r} {c}-> {c}{target}{suffix}{r}",
+                    c = *CYAN,
+                    r = *ALL_RESET,
+                    target = target.display()
                 );
             }
         }
