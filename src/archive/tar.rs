@@ -167,8 +167,6 @@ where
                 match seen_inode.get(&inode_identifier) {
                     Some(target_path) => {
                         let mut header = tar::Header::new_gnu();
-                        // TODO: this should be a hard link not a soft one, call hard_link()
-                        // and add tests to ensure it works
                         header.set_entry_type(tar::EntryType::Link);
                         header.set_size(0);
 
