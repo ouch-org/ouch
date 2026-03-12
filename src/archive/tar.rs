@@ -81,7 +81,7 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> Result<u64> {
 
         if file.header().entry_type().is_dir() {
             info!("Directory {:?} created", PathFmt(&output_folder.join(file.path()?)));
-        } else {   
+        } else {
             info!(
                 "extracted ({}) {:?}",
                 BytesFmt(file.size()),
