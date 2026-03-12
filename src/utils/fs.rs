@@ -12,7 +12,7 @@ use same_file::Handle;
 
 use super::{question::FileConflitOperation, user_wants_to_overwrite};
 use crate::{
-    QuestionPolicy, Result,
+    FinalError, QuestionPolicy, Result,
     error::Error,
     extension::CompressionFormat,
     info_accessible,
@@ -275,4 +275,25 @@ pub fn canonicalize(path: impl AsRef<Path>) -> Result<PathBuf> {
     } else {
         canonicalized
     })
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::EnumIs)]
+pub enum FileType {
+    Regular,
+    Directory,
+    Symlink,
+}
+
+pub fn read_file_type(path: impl AsRef<Path>) -> Result<FileType> {
+    use file_type_enum::FileType::*;
+
+    let path = path.as_ref();
+    match file_type_enum::FileType::symlink_read_at(path)? {
+        Regular => Ok(FileType::Regular),
+        Directory => Ok(FileType::Directory),
+        Symlink => Ok(FileType::Symlink),
+        variant => Err(FinalError::with_title(format!("unsupported file type {variant}"))
+            .detail(format!("found at {}", PathFmt(path)))
+            .into()),
+    }
 }

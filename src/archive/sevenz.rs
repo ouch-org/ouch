@@ -18,8 +18,7 @@ use crate::{
     info,
     list::FileInArchive,
     utils::{
-        BytesFmt, FileVisibilityPolicy, PathFmt, cd_into_same_dir_as, ensure_parent_dir_exists,
-        is_broken_symlink_error, is_same_file_as_output,
+        BytesFmt, FileVisibilityPolicy, PathFmt, cd_into_same_dir_as, ensure_parent_dir_exists, is_same_file_as_output,
     },
     warning,
 };
@@ -150,11 +149,8 @@ where
 
             info!("Compressing {:?}", PathFmt(path));
 
-            let metadata = match path.metadata() {
-                Ok(metadata) => metadata,
-                Err(e) if is_broken_symlink_error(&e, path) => continue,
-                Err(e) => return Err(e.into()),
-            };
+            // use metadata instead of symlink_metadata, 7z doesn't support symlinks
+            let metadata = path.metadata()?;
 
             let entry_name = path.to_str().ok_or_else(|| {
                 FinalError::with_title("7z requires that all entry names are valid UTF-8")

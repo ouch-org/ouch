@@ -10,6 +10,7 @@ use std::{
 
 use filetime_creation::{FileTime, set_file_mtime};
 use fs_err::{self as fs};
+use is_executable::is_executable;
 use same_file::Handle;
 use time::OffsetDateTime;
 use zip::{self, DateTime, ZipArchive, read::ZipFile};
@@ -20,9 +21,9 @@ use crate::{
     info, info_accessible,
     list::FileInArchive,
     utils::{
-        BytesFmt, FileVisibilityPolicy, PathFmt, cd_into_same_dir_as, create_symlink, ensure_parent_dir_exists,
-        get_invalid_utf8_paths, is_broken_symlink_error, is_same_file_as_output, pretty_format_list_of_paths,
-        strip_cur_dir,
+        BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, cd_into_same_dir_as, create_symlink,
+        ensure_parent_dir_exists, get_invalid_utf8_paths, is_same_file_as_output, pretty_format_list_of_paths,
+        read_file_type, strip_cur_dir,
     },
     warning,
 };
@@ -142,13 +143,12 @@ where
     W: Write + Seek,
 {
     let mut writer = zip::ZipWriter::new(writer);
-    // always use ZIP64 to allow compression of files larger than 4GB
-    // the format is widely supported and the extra 20B is negligible in most cases
-    let options = zip::write::SimpleFileOptions::default().large_file(true);
     let output_handle = Handle::from_path(output_path);
 
-    #[cfg(not(unix))]
-    let executable = options.unix_permissions(0o755);
+    // always use ZIP64 to allow compression of files larger than 4GB
+    // the format is widely supported and the 20B cost is negligible
+    let default_options = zip::write::SimpleFileOptions::default().large_file(true);
+    let default_executable_options = default_options.unix_permissions(0o755);
 
     // Vec of any filename that failed the UTF-8 check
     let invalid_unicode_filenames = get_invalid_utf8_paths(input_filenames);
@@ -164,80 +164,79 @@ where
         return Err(error.into());
     }
 
-    for filename in input_filenames {
-        let previous_location = cd_into_same_dir_as(filename)?;
+    for explicit_path in input_filenames {
+        let previous_location = cd_into_same_dir_as(explicit_path)?;
 
         // Unwrap safety:
         //   paths should be canonicalized by now, and the root directory rejected.
-        let filename = filename.file_name().unwrap();
+        let filename = explicit_path.file_name().unwrap();
 
-        for entry in file_visibility_policy.build_walker(filename) {
-            let entry = entry?;
-            let path = entry.path();
+        let iter = file_visibility_policy.workaround_build_walker_or_broken_link_path(explicit_path, filename);
+
+        for entry in iter {
+            let path = entry?;
 
             // Avoid compressing the output file into itself
             if let Ok(handle) = output_handle.as_ref() {
-                if is_same_file_as_output(path, handle) {
+                if is_same_file_as_output(&path, handle) {
                     warning!("Cannot compress {:?} into itself, skipping", PathFmt(output_path));
                     continue;
                 }
             }
 
-            info!("Compressing {:?}", PathFmt(path));
+            info!("Compressing {:?}", PathFmt(&path));
 
-            let metadata = match path.metadata() {
-                Ok(metadata) => metadata,
-                Err(e) if is_broken_symlink_error(&e, path) => continue,
-                Err(e) => return Err(e.into()),
+            let (metadata, file_type) = {
+                if follow_symlinks {
+                    (path.metadata()?, read_file_type(canonicalize(&path)?)?)
+                } else {
+                    (path.symlink_metadata()?, read_file_type(&path)?)
+                }
             };
 
             #[cfg(unix)]
             let mode = metadata.permissions().mode();
 
-            fn zip_non_utf8_error<'a>(path: &'a Path) -> impl Fn() -> FinalError + 'a {
-                || {
-                    FinalError::with_title("Zip requires that all paths are valid UTF-8")
-                        .detail(format!("File {:?} has a non-UTF-8 path", PathFmt(path)))
-                }
-            }
-
-            let entry_name = path.to_str().ok_or_else(zip_non_utf8_error(path))?;
+            let entry_name = path.to_str().ok_or_else(zip_non_utf8_error(&path))?;
             // ZIP format requires forward slashes as path separators, regardless of platform
             let entry_name = entry_name.replace(std::path::MAIN_SEPARATOR, "/");
 
-            if !follow_symlinks && path.symlink_metadata()?.is_symlink() {
-                let target_path = path.read_link()?;
-                let target_name = target_path.to_str().ok_or_else(zip_non_utf8_error(&target_path))?;
-                // ZIP format requires forward slashes as path separators, regardless of platform
-                let target_name = target_name.replace(std::path::MAIN_SEPARATOR, "/");
+            match file_type {
+                FileType::Regular => {
+                    let options = if cfg!(not(unix)) && is_executable(&path) {
+                        default_executable_options
+                    } else {
+                        default_options
+                    };
 
-                // This approach writes the symlink target path as the content of the symlink entry.
-                // We detect symlinks during extraction by checking for the Unix symlink mode (0o120000) in the entry's permissions.
-                #[cfg(unix)]
-                let symlink_options = options.unix_permissions(0o120000 | (mode & 0o777));
-                #[cfg(windows)]
-                let symlink_options = options.unix_permissions(0o120777);
+                    let mut file = fs::File::open(&path)?;
 
-                writer.add_symlink(entry_name, target_name, symlink_options)?;
-            } else if path.is_dir() {
-                writer.add_directory(entry_name, options)?;
-            } else {
-                #[cfg(not(unix))]
-                let options = if is_executable::is_executable(path) {
-                    executable
-                } else {
-                    options
-                };
+                    #[cfg(unix)]
+                    let options = options.unix_permissions(mode);
+                    // Updated last modified time
+                    let last_modified_time = options.last_modified_time(get_last_modified_time(&file));
 
-                let mut file = fs::File::open(path)?;
+                    writer.start_file(entry_name, last_modified_time)?;
+                    io::copy(&mut file, &mut writer)?;
+                }
+                FileType::Directory => {
+                    writer.add_directory(entry_name, default_options)?;
+                }
+                FileType::Symlink => {
+                    let target_path = path.read_link()?;
+                    let target_name = target_path.to_str().ok_or_else(zip_non_utf8_error(&target_path))?;
+                    // ZIP format requires forward slashes as path separators, regardless of platform
+                    let target_name = target_name.replace(std::path::MAIN_SEPARATOR, "/");
 
-                #[cfg(unix)]
-                let options = options.unix_permissions(mode);
-                // Updated last modified time
-                let last_modified_time = options.last_modified_time(get_last_modified_time(&file));
+                    // This approach writes the symlink target path as the content of the symlink entry.
+                    // We detect symlinks during extraction by checking for the Unix symlink mode (0o120000) in the entry's permissions.
+                    #[cfg(unix)]
+                    let symlink_options = default_options.unix_permissions(0o120000 | (mode & 0o777));
+                    #[cfg(windows)]
+                    let symlink_options = default_options.unix_permissions(0o120777);
 
-                writer.start_file(entry_name, last_modified_time)?;
-                io::copy(&mut file, &mut writer)?;
+                    writer.add_symlink(entry_name, target_name, symlink_options)?;
+                }
             }
         }
 
@@ -300,4 +299,11 @@ fn unix_set_permissions<R: Read>(file_path: &Path, file: &ZipFile<'_, R>) -> Res
     }
 
     Ok(())
+}
+
+fn zip_non_utf8_error<'a>(path: &'a Path) -> impl Fn() -> FinalError + 'a {
+    || {
+        FinalError::with_title("Zip requires that all paths are valid UTF-8")
+            .detail(format!("File {:?} has a non-UTF-8 path", PathFmt(path)))
+    }
 }

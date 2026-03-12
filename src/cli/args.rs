@@ -82,7 +82,7 @@ pub enum Subcommand {
         #[arg(long, group = "compression-level")]
         slow: bool,
 
-        /// Archive target files instead of storing symlinks (supported by `tar` and `zip`)
+        /// Read from target files instead of from symlinks (relevant for `tar` and `zip`)
         #[arg(long, short = 'S')]
         follow_symlinks: bool,
     },
