@@ -5,7 +5,7 @@ use std::os::unix::fs::MetadataExt;
 use std::{
     collections::HashMap,
     env,
-    io::prelude::*,
+    io::{self, prelude::*},
     ops::Not,
     path::{Path, PathBuf},
 };
@@ -42,7 +42,7 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> Result<u64> {
                 let full_path = output_folder.join(&relative_path);
                 let target = file
                     .link_name()?
-                    .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidData, "Missing symlink target"))?;
+                    .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Missing symlink target"))?;
 
                 create_symlink(&target, &full_path)?;
             }
@@ -50,7 +50,7 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> Result<u64> {
                 let link_path = file.path()?;
                 let target = file
                     .link_name()?
-                    .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidData, "Missing hardlink target"))?;
+                    .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Missing hardlink target"))?;
 
                 let full_link_path = output_folder.join(&link_path);
                 let full_target_path = output_folder.join(&target);
@@ -64,6 +64,7 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> Result<u64> {
                 let original_mode = file.header().mode()?;
                 let is_writeable = (original_mode & 0o200) != 0;
 
+                // this is no-op when dir already exists, errs if a file with another type is found there
                 file.unpack_in(output_folder)?;
 
                 if cfg!(unix) && is_writeable.not() {
