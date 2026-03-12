@@ -248,10 +248,13 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
             // Ensure we were not told to list the content of a non-archive compressed file
             check::check_for_non_archive_formats(&files, &formats)?;
 
-            let list_options = ListOptions { tree };
+            let list_options = ListOptions {
+                tree,
+                quiet: args.quiet,
+            };
 
             for (i, (archive_path, formats)) in files.iter().zip(formats).enumerate() {
-                if i > 0 {
+                if i > 0 && !args.quiet {
                     println!();
                 }
                 let formats = extension::flatten_compression_formats(&formats);
