@@ -3,6 +3,7 @@ use std::{ffi::OsString, path::PathBuf};
 use clap::{Parser, ValueHint};
 
 // Ouch command line options (docstrings below are part of --help)
+#[allow(clippy::doc_markdown)]
 /// A command-line utility for easily compressing and decompressing files and directories.
 ///
 /// Supported formats: tar, zip, gz, 7z, xz, lzma, lzip, bz/bz2, bz3, lz4, sz (Snappy), zst, rar and br.
@@ -55,7 +56,7 @@ pub struct CliArgs {
 }
 
 #[derive(Parser, PartialEq, Eq, Debug)]
-#[allow(rustdoc::bare_urls)]
+#[allow(rustdoc::bare_urls, clippy::doc_markdown)]
 pub enum Subcommand {
     /// Compress one or more files into one output file
     #[command(visible_alias = "c")]
@@ -82,7 +83,7 @@ pub enum Subcommand {
         #[arg(long, group = "compression-level")]
         slow: bool,
 
-        /// Archive target files instead of storing symlinks (supported by `tar` and `zip`)
+        /// Read from target files instead of from symlinks (relevant for `tar` and `zip`)
         #[arg(long, short = 'S')]
         follow_symlinks: bool,
     },

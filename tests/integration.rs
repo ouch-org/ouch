@@ -7,6 +7,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use anyhow::Result;
 use bstr::ByteSlice;
 use fs_err as fs;
 use itertools::Itertools;
@@ -15,11 +16,11 @@ use parse_display::Display;
 use pretty_assertions::assert_eq;
 use proptest::sample::size_range;
 use rand::{Rng, SeedableRng, rngs::SmallRng};
+use strum::IntoEnumIterator as _;
 use test_strategy::{Arbitrary, proptest};
 
 use crate::utils::{assert_same_directory, testdir, write_random_content};
 
-/// tar and zip extensions
 #[derive(Arbitrary, Clone, Copy, Debug, Display)]
 #[display(style = "lowercase")]
 enum DirectoryExtension {
@@ -37,6 +38,15 @@ enum DirectoryExtension {
     Tsz,
     Txz,
     Tzst,
+    Zip,
+}
+
+#[derive(Arbitrary, Clone, Copy, Debug, Display, strum::EnumIter)]
+#[display(style = "lowercase")]
+enum MainDirectoryExtension {
+    #[display("7z")]
+    SevenZ,
+    Tar,
     Zip,
 }
 
@@ -422,95 +432,225 @@ fn unpack_rar_stdin() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-#[proptest(cases = 25)]
-fn symlink_pack_and_unpack(
-    ext: DirectoryExtension,
-    #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
-) {
-    if matches!(ext, DirectoryExtension::SevenZ) {
-        // Skip 7z because the 7z format does not support symlinks
-        return Ok(());
-    }
+#[cfg(unix)]
+#[test]
+fn symlink_pack_and_unpack() -> Result<()> {
+    for ext in MainDirectoryExtension::iter() {
+        if let MainDirectoryExtension::SevenZ = ext {
+            // 7z doesn't support symlinks
+            continue;
+        }
+        eprintln!("ext = {ext}");
 
-    let (_tempdir, root_path) = testdir()?;
+        let (_tempdir, root_path) = testdir()?;
 
-    let src_files_path = root_path.join("src_files");
-    let folder_path = src_files_path.join("folder");
-    fs::create_dir_all(&folder_path)?;
+        let src_files_path = root_path.join("src_files");
+        let folder_path = src_files_path.join("folder");
+        fs::create_dir_all(&folder_path)?;
 
-    let mut files_path = ["file1.txt", "file2.txt", "file3.txt", "file4.txt", "file5.txt"]
-        .into_iter()
-        .map(|f| src_files_path.join(f))
-        .inspect(|path| {
-            let mut file = fs::File::create(path).unwrap();
-            file.write_all("Some content".as_bytes()).unwrap();
-        })
-        .collect::<Vec<_>>();
+        let mut files_path = ["file1.txt", "file2.txt", "file3.txt", "file4.txt", "file5.txt"]
+            .into_iter()
+            .map(|f| src_files_path.join(f))
+            .inspect(|path| {
+                let mut file = fs::File::create(path).unwrap();
+                file.write_all("Some content".as_bytes()).unwrap();
+            })
+            .collect::<Vec<_>>();
 
-    let dest_files_path = root_path.join("dest_files");
-    fs::create_dir_all(&dest_files_path)?;
+        let dest_files_path = root_path.join("dest_files");
+        fs::create_dir_all(&dest_files_path)?;
 
-    let symlink_path = src_files_path.join(Path::new("symlink"));
-    let symlink_folder_path = src_files_path.join(Path::new("symlink_folder"));
-    #[cfg(unix)]
-    std::os::unix::fs::symlink(&files_path[0], &symlink_path)?;
-    #[cfg(unix)]
-    std::os::unix::fs::symlink(&folder_path, &symlink_folder_path)?;
-    #[cfg(windows)]
-    std::os::windows::fs::symlink_file(&files_path[0], &symlink_path)?;
-    #[cfg(windows)]
-    std::os::windows::fs::symlink_dir(&folder_path, &symlink_folder_path)?;
+        let symlink_path = src_files_path.join(Path::new("symlink"));
+        let symlink_folder_path = src_files_path.join(Path::new("symlink_folder"));
+        std::os::unix::fs::symlink(&files_path[0], &symlink_path)?;
+        std::os::unix::fs::symlink(&folder_path, &symlink_folder_path)?;
 
-    files_path.push(symlink_path);
+        files_path.push(symlink_path);
 
-    let archive = &root_path.join(format!("archive.{}", merge_extensions(ext, &extra_extensions)));
+        let archive = &root_path.join(format!("archive.{ext}"));
 
-    crate::utils::cargo_bin()
-        .arg("compress")
-        .args(files_path.clone())
-        .arg(archive)
-        .assert()
-        .success();
+        crate::utils::cargo_bin()
+            .arg("compress")
+            .args(files_path.clone())
+            .arg(archive)
+            .assert()
+            .success();
 
-    crate::utils::cargo_bin()
-        .arg("decompress")
-        .arg(archive)
-        .arg("-d")
-        .arg(&dest_files_path)
-        .assert()
-        .success();
+        crate::utils::cargo_bin()
+            .arg("decompress")
+            .arg(archive)
+            .arg("-d")
+            .arg(&dest_files_path)
+            .assert()
+            .success();
 
-    // check the symlink stand still
-    for f in dest_files_path.as_path().read_dir()? {
-        let f = f?;
-        if f.file_name() == "symlink" || f.file_name() == "symlink_folder" {
-            assert!(f.file_type()?.is_symlink())
+        // check the symlink stand still
+        for f in dest_files_path.as_path().read_dir()? {
+            let f = f?;
+            if f.file_name() == "symlink" || f.file_name() == "symlink_folder" {
+                assert!(f.file_type()?.is_symlink())
+            }
+        }
+
+        fs::remove_file(archive)?;
+        fs::remove_dir_all(&dest_files_path)?;
+
+        crate::utils::cargo_bin()
+            .arg("compress")
+            .arg("--follow-symlinks")
+            .args(files_path)
+            .arg(archive)
+            .assert()
+            .success();
+
+        crate::utils::cargo_bin()
+            .arg("decompress")
+            .arg(archive)
+            .arg("-d")
+            .arg(&dest_files_path)
+            .assert()
+            .success();
+
+        // check there is no symlinks
+        for f in dest_files_path.as_path().read_dir()? {
+            let f = f?;
+            assert!(!f.file_type().unwrap().is_symlink())
         }
     }
+    Ok(())
+}
 
-    fs::remove_file(archive)?;
-    fs::remove_dir_all(&dest_files_path)?;
+/// Test that broken symlinks are handled correctly by formats that support it.
+#[cfg(unix)]
+#[test]
+fn broken_symlink_stored_successfully_when_format_supports_it() -> Result<()> {
+    for ext in MainDirectoryExtension::iter() {
+        eprintln!("ext = {ext}");
 
-    crate::utils::cargo_bin()
-        .arg("compress")
-        .arg("--follow-symlinks")
-        .args(files_path)
-        .arg(archive)
-        .assert()
-        .success();
+        let (_tempdir, dir) = testdir().unwrap();
 
-    crate::utils::cargo_bin()
-        .arg("decompress")
-        .arg(archive)
-        .arg("-d")
-        .arg(&dest_files_path)
-        .assert()
-        .success();
+        // Create a broken symlink (points to non-existent target)
+        let broken_symlink = dir.join("broken_link");
+        let broken_target = "/nonexistent/path";
+        fs::os::unix::fs::symlink(broken_target, &broken_symlink).unwrap();
+        let archive = dir.join(format!("archive.{ext}"));
+        let output = dir.join("output");
 
-    // check there is no symlinks
-    for f in dest_files_path.as_path().read_dir()? {
-        let f = f?;
-        assert!(!f.file_type().unwrap().is_symlink())
+        assert!(broken_symlink.is_symlink());
+
+        let result = crate::utils::cargo_bin()
+            .arg("compress")
+            .arg(broken_symlink)
+            .arg(&archive)
+            .assert();
+
+        match ext {
+            MainDirectoryExtension::SevenZ => {
+                result.failure();
+                continue;
+            }
+            MainDirectoryExtension::Tar | MainDirectoryExtension::Zip => {
+                result.success();
+            }
+        }
+
+        crate::utils::cargo_bin()
+            .arg("decompress")
+            .arg(&archive)
+            .arg("--dir")
+            .arg(&output)
+            .assert()
+            .success();
+
+        let target = fs::read_link(output.join("broken_link")).unwrap();
+        assert_eq!(Path::new(&target), broken_target);
+    }
+    Ok(())
+}
+
+#[cfg(unix)]
+#[test]
+fn broken_symlink_error_when_compressing_with_follow_symlinks() {
+    for ext in MainDirectoryExtension::iter() {
+        eprintln!("ext = {ext}");
+
+        let (_tempdir, dir) = testdir().unwrap();
+        let input = dir.join("input");
+        let output = dir.join("output");
+
+        fs::create_dir_all(&input).unwrap();
+        fs::create_dir_all(&output).unwrap();
+
+        // Create a broken symlink
+        let broken_symlink = input.join("broken_link");
+        fs::os::unix::fs::symlink("/nonexistent/path", &broken_symlink).unwrap();
+
+        let archive = dir.join(format!("archive.{ext}"));
+
+        crate::utils::cargo_bin()
+            .arg("compress")
+            .arg("--follow-symlinks")
+            .arg(&input)
+            .arg(&archive)
+            .assert()
+            .failure();
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn symlink_treatment_inside_nested_dirs_with_follow_symlinks_flag() {
+    for (ext, follow_symlinks_flag) in MainDirectoryExtension::iter().cartesian_product([false, true]) {
+        if let MainDirectoryExtension::SevenZ = ext {
+            // 7z doesn't support symlinks
+            continue;
+        }
+        eprintln!("ext = {ext}");
+
+        let (_tempdir, dir) = testdir().unwrap();
+        let input_a = dir.join("input_a");
+        let input_b = dir.join("input_b");
+
+        fs::create_dir_all(&input_a).unwrap();
+        fs::create_dir_all(&input_b).unwrap();
+
+        let input1_nested_dir = dir.join("input_a/dir1/dir2");
+        fs::create_dir_all(&input1_nested_dir).unwrap();
+        // create a symlink called dir3
+        // points to directory at the second input folder
+        fs::os::unix::fs::symlink(input_b.join("target_here"), dir.join("input_a/dir1/dir2/dir3")).unwrap();
+
+        let input_b_nested_dir = dir.join("input_b/target_here/dir4/dir5");
+        let input_b_file = dir.join("input_b/target_here/dir4/dir5/file");
+        fs::create_dir_all(&input_b_nested_dir).unwrap();
+        fs::write(input_b_file, "contents").unwrap();
+
+        let archive = dir.join(format!("archive.{ext}"));
+
+        let mut cmd = crate::utils::cargo_bin();
+        cmd.arg("compress");
+        if follow_symlinks_flag {
+            cmd.arg("--follow-symlinks");
+        }
+        cmd.arg(&input_a).arg(&archive).assert().success();
+
+        let output = dir.join("output");
+        crate::utils::cargo_bin()
+            .arg("decompress")
+            .arg(archive)
+            .arg("--dir")
+            .arg(&output)
+            .assert()
+            .success();
+
+        assert_eq!(
+            "contents",
+            fs::read_to_string(output.join("input_a/dir1/dir2/dir3/dir4/dir5/file")).unwrap(),
+        );
+        assert_eq!(
+            !follow_symlinks_flag,
+            output.join("input_a/dir1/dir2/dir3").is_symlink(),
+        );
     }
 }
 
@@ -671,7 +811,7 @@ fn unpack_multiple_sources_into_the_same_destination_with_merge(
 
 #[test]
 fn reading_nested_archives_with_two_archive_extensions_adjacent() {
-    let archive_formats = ["tar", "zip", "7z"].into_iter();
+    let archive_formats = MainDirectoryExtension::iter();
 
     for (first_archive, second_archive) in archive_formats.clone().cartesian_product(archive_formats.rev()) {
         let (_tempdir, dir) = testdir().unwrap();
@@ -690,7 +830,7 @@ fn reading_nested_archives_with_two_archive_extensions_adjacent() {
         for (window, format) in files.windows(2).zip(transformations.iter()) {
             let [a, b] = [window[0], window[1]].map(in_dir);
             crate::utils::cargo_bin()
-                .args(["compress", &a, &b, "--format", format])
+                .args(["compress", &a, &b, "--format", &format.to_string()])
                 .assert()
                 .success();
         }
@@ -717,7 +857,7 @@ fn reading_nested_archives_with_two_archive_extensions_adjacent() {
 
 #[test]
 fn reading_nested_archives_with_two_archive_extensions_interleaved() {
-    let archive_formats = ["tar", "zip", "7z"].into_iter();
+    let archive_formats = MainDirectoryExtension::iter();
 
     for (first_archive, second_archive) in archive_formats.clone().cartesian_product(archive_formats.rev()) {
         let (_tempdir, dir) = testdir().unwrap();
@@ -732,7 +872,7 @@ fn reading_nested_archives_with_two_archive_extensions_interleaved() {
             &format!("e.{first_archive}.zst.{second_archive}"),
             &format!("f.{first_archive}.zst.{second_archive}.lz4"),
         ];
-        let transformations = [first_archive, "zst", second_archive, "lz4"];
+        let transformations = [&first_archive.to_string(), "zst", &second_archive.to_string(), "lz4"];
         let compressed_path = in_dir(files.last().unwrap());
 
         for (window, format) in files.windows(2).zip(transformations.iter()) {
@@ -765,7 +905,7 @@ fn reading_nested_archives_with_two_archive_extensions_interleaved() {
 
 #[test]
 fn compressing_archive_with_two_archive_formats() {
-    let archive_formats = ["tar", "zip", "7z"].into_iter();
+    let archive_formats = MainDirectoryExtension::iter();
 
     for (first_archive, second_archive) in archive_formats.clone().cartesian_product(archive_formats.rev()) {
         let (_tempdir, dir_path) = testdir().unwrap();
@@ -816,7 +956,7 @@ fn compressing_archive_with_two_archive_formats() {
                 &format!("{dir}/out.{first_archive}.{second_archive}"),
                 "--yes",
                 "--format",
-                first_archive,
+                &first_archive.to_string(),
             ])
             .assert()
             .success();
@@ -825,7 +965,7 @@ fn compressing_archive_with_two_archive_formats() {
 
 #[test]
 fn fail_when_compressing_archive_as_the_second_extension() {
-    for archive_format in ["tar", "zip", "7z"] {
+    for archive_format in MainDirectoryExtension::iter() {
         let (_tempdir, dir_path) = testdir().unwrap();
         let dir = dir_path.display().to_string();
 
