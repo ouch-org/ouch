@@ -177,11 +177,11 @@ where
             let path = entry?;
 
             // Avoid compressing the output file into itself
-            if let Ok(handle) = output_handle.as_ref() {
-                if is_same_file_as_output(&path, handle) {
-                    warning!("Cannot compress {:?} into itself, skipping", PathFmt(output_path));
-                    continue;
-                }
+            if let Ok(handle) = output_handle.as_ref()
+                && is_same_file_as_output(&path, handle)
+            {
+                warning!("Cannot compress {:?} into itself, skipping", PathFmt(output_path));
+                continue;
             }
 
             info!("Compressing {:?}", PathFmt(&path));
