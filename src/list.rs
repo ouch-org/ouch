@@ -82,7 +82,7 @@ fn print_entry(out: &mut impl Write, name: impl fmt::Display, file_type: &FileTy
             let arrow = if matches!(file_type, FileType::Symlink { .. }) {
                 "->"
             } else {
-                "=>"
+                "link to"
             };
 
             if is_running_in_accessible_mode() {
