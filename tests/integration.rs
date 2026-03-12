@@ -562,24 +562,15 @@ fn broken_symlink_stored_successfully_when_format_supports_it() -> Result<()> {
             .assert()
             .success();
 
-        for x in fs::read_dir(output.clone()).unwrap() {
-            eprintln!("{:?}", x.unwrap());
-        }
-        eprintln!("---------");
-        for x in fs::read_dir(output.clone().parent().unwrap()).unwrap() {
-            eprintln!("{:?}", x.unwrap());
-        }
-
         let target = fs::read_link(output.join("broken_link")).unwrap();
         assert_eq!(Path::new(&target), broken_target);
     }
     Ok(())
 }
 
-/// Test that broken symlinks lead into errors when --follow-symlinks is passed.
 #[cfg(unix)]
 #[test]
-fn broken_symlink_compression_follow_symlinks() {
+fn broken_symlink_error_when_compressing_with_follow_symlinks() {
     for ext in MainDirectoryExtension::iter() {
         eprintln!("ext = {ext}");
 
@@ -592,7 +583,7 @@ fn broken_symlink_compression_follow_symlinks() {
 
         // Create a broken symlink
         let broken_symlink = input.join("broken_link");
-        std::os::unix::fs::symlink("/nonexistent/path", &broken_symlink).unwrap();
+        fs::os::unix::fs::symlink("/nonexistent/path", &broken_symlink).unwrap();
 
         let archive = dir.join(format!("archive.{ext}"));
 
@@ -603,6 +594,63 @@ fn broken_symlink_compression_follow_symlinks() {
             .arg(&archive)
             .assert()
             .failure();
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn symlink_treatment_inside_nested_dirs_with_follow_symlinks_flag() {
+    for (ext, follow_symlinks_flag) in MainDirectoryExtension::iter().cartesian_product([false, true]) {
+        if let MainDirectoryExtension::SevenZ = ext {
+            // 7z doesn't support symlinks
+            continue;
+        }
+        eprintln!("ext = {ext}");
+
+        let (_tempdir, dir) = testdir().unwrap();
+        let input_a = dir.join("input_a");
+        let input_b = dir.join("input_b");
+
+        fs::create_dir_all(&input_a).unwrap();
+        fs::create_dir_all(&input_b).unwrap();
+
+        let input1_nested_dir = dir.join("input_a/dir1/dir2");
+        fs::create_dir_all(&input1_nested_dir).unwrap();
+        // create a symlink called dir3
+        // points to directory at the second input folder
+        fs::os::unix::fs::symlink(input_b.join("target_here"), dir.join("input_a/dir1/dir2/dir3")).unwrap();
+
+        let input_b_nested_dir = dir.join("input_b/target_here/dir4/dir5");
+        let input_b_file = dir.join("input_b/target_here/dir4/dir5/file");
+        fs::create_dir_all(&input_b_nested_dir).unwrap();
+        fs::write(input_b_file, "contents").unwrap();
+
+        let archive = dir.join(format!("archive.{ext}"));
+
+        let mut cmd = crate::utils::cargo_bin();
+        cmd.arg("compress");
+        if follow_symlinks_flag {
+            cmd.arg("--follow-symlinks");
+        }
+        cmd.arg(&input_a).arg(&archive).assert().success();
+
+        let output = dir.join("output");
+        crate::utils::cargo_bin()
+            .arg("decompress")
+            .arg(archive)
+            .arg("--dir")
+            .arg(&output)
+            .assert()
+            .success();
+
+        assert_eq!(
+            "contents",
+            fs::read_to_string(output.join("input_a/dir1/dir2/dir3/dir4/dir5/file")).unwrap(),
+        );
+        assert_eq!(
+            !follow_symlinks_flag,
+            output.join("input_a/dir1/dir2/dir3").is_symlink(),
+        );
     }
 }
 

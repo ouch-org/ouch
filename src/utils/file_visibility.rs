@@ -93,7 +93,7 @@ impl FileVisibilityPolicy {
             .git_ignore(self.read_git_ignore)
             .ignore(self.read_ignore)
             .hidden(self.read_hidden)
-            .follow_links(true);
+            .follow_links(self.follow_symlinks);
 
         if self.read_git_ignore {
             builder.filter_entry(|p| p.path().file_name().is_some_and(|name| name != ".git"));
