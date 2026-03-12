@@ -17,7 +17,7 @@ use crate::{
     Result,
     error::FinalError,
     info,
-    list::{FileInArchive, FileType},
+    list::{FileInArchive, FileType as ListFileType},
     utils::{
         self, BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, create_symlink, is_same_file_as_output,
         read_file_type, set_permission_mode,
@@ -109,18 +109,18 @@ pub fn list_archive(mut archive: tar::Archive<impl Read>) -> Result<impl Iterato
     Ok(entries.collect::<Vec<_>>().into_iter())
 }
 
-fn get_file_type(header: &tar::Header, file: &tar::Entry<impl Read>) -> Result<FileType> {
+fn get_file_type(header: &tar::Header, file: &tar::Entry<impl Read>) -> Result<ListFileType> {
     Ok(match header.entry_type() {
-        tar::EntryType::Directory => FileType::Directory,
+        tar::EntryType::Directory => ListFileType::Directory,
         tar::EntryType::Symlink => file
             .link_name()?
-            .map(|t| FileType::Symlink { target: t.into_owned() })
-            .unwrap_or(FileType::File),
+            .map(|t| ListFileType::Symlink { target: t.into_owned() })
+            .unwrap_or(ListFileType::File),
         tar::EntryType::Link => file
             .link_name()?
-            .map(|t| FileType::Hardlink { target: t.into_owned() })
-            .unwrap_or(FileType::File),
-        _ => FileType::File,
+            .map(|t| ListFileType::Hardlink { target: t.into_owned() })
+            .unwrap_or(ListFileType::File),
+        _ => ListFileType::File,
     })
 }
 

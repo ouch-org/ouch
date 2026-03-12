@@ -19,7 +19,7 @@ use crate::{
     Result,
     error::FinalError,
     info, info_accessible,
-    list::{FileInArchive, FileType},
+    list::{FileInArchive, FileType as ListFileType},
     utils::{
         BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, cd_into_same_dir_as, create_symlink,
         ensure_parent_dir_exists, get_invalid_utf8_paths, is_same_file_as_output, pretty_format_list_of_paths,
@@ -127,7 +127,7 @@ where
         let path = file.enclosed_name().unwrap_or_else(|| file.mangled_name()).to_owned();
 
         let file_type = if file.is_dir() {
-            FileType::Directory
+            ListFileType::Directory
         } else if let Some(target) = file
             .unix_mode()
             .filter(|mode| mode & 0o170000 == 0o120000)
@@ -138,9 +138,9 @@ where
                     .map(|_| PathBuf::from(String::from_utf8_lossy(&s).into_owned()))
             })
         {
-            FileType::Symlink { target }
+            ListFileType::Symlink { target }
         } else {
-            FileType::File
+            ListFileType::File
         };
 
         Ok(FileInArchive { path, file_type })
