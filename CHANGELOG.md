@@ -33,7 +33,6 @@ Categories Used:
 - Support decompression of concatenated `.gz`, `.bz2`, and `.lz4` (https://github.com/ouch-org/ouch/pull/898)
 
 ### Improvements
-
 - Give better error messages when archive extensions are invalid (https://github.com/ouch-org/ouch/pull/817)
 - Improve misleading error message (https://github.com/ouch-org/ouch/pull/818)
 - Add aliases for `--password` flag (`--pass` and `--pw`) (https://github.com/ouch-org/ouch/pull/847)
@@ -44,6 +43,7 @@ Categories Used:
 - Refactor/simplify logger (https://github.com/ouch-org/ouch/pull/888)
 - Print input and output file sizes (https://github.com/ouch-org/ouch/pull/914)
 - Make path printing concise and consistent (https://github.com/ouch-org/ouch/pull/916)
+- Unify directory extraction message for zip and tar archives (https://github.com/ouch-org/ouch/pull/937)
 
 ### Bug Fixes
 
