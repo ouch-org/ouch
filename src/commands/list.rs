@@ -86,9 +86,7 @@ pub fn list_archive_contents(
                 let _locks = lock_and_flush_output_stdio();
 
                 warn_user_about_loading_zip_in_memory();
-                if !user_wants_to_continue(archive_path, question_policy, QuestionAction::Decompression)? {
-                    return Ok(());
-                }
+                user_wants_to_continue(archive_path, question_policy, QuestionAction::Decompression)?;
             }
 
             let mut vec = vec![];
@@ -116,9 +114,7 @@ pub fn list_archive_contents(
                 // Make thread own locks to keep output messages adjacent
                 let locks = lock_and_flush_output_stdio();
                 warn_user_about_loading_zip_in_memory();
-                if !user_wants_to_continue(archive_path, question_policy, QuestionAction::Decompression)? {
-                    return Ok(());
-                }
+                user_wants_to_continue(archive_path, question_policy, QuestionAction::Decompression)?;
                 drop(locks);
 
                 let mut vec = vec![];

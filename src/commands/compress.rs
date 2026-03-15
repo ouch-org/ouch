@@ -161,9 +161,7 @@ pub fn compress_files(
                 let _locks = lock_and_flush_output_stdio();
 
                 warn_user_about_loading_zip_in_memory();
-                if !user_wants_to_continue(output_path, question_policy, QuestionAction::Compression)? {
-                    return Ok(false);
-                }
+                user_wants_to_continue(output_path, question_policy, QuestionAction::Compression)?;
             }
 
             let mut vec_buffer = Cursor::new(vec![]);
@@ -191,9 +189,7 @@ pub fn compress_files(
                 let _locks = lock_and_flush_output_stdio();
 
                 warn_user_about_loading_sevenz_in_memory();
-                if !user_wants_to_continue(output_path, question_policy, QuestionAction::Compression)? {
-                    return Ok(false);
-                }
+                user_wants_to_continue(output_path, question_policy, QuestionAction::Compression)?;
             }
 
             let mut vec_buffer = Cursor::new(vec![]);

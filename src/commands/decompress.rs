@@ -1,6 +1,5 @@
 use std::{
     io::{self, BufReader, Read},
-    ops::ControlFlow,
     path::{Path, PathBuf},
 };
 
@@ -87,7 +86,7 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
         Ok(reader)
     };
 
-    let control_flow = match first_extension {
+    let decompression_summary: DecompressionSummary = match first_extension {
         Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {
             let reader = create_decoder_up_to_first_extension()?;
             let mut reader = chain_reader_decoder(&first_extension, reader)?;
@@ -102,9 +101,9 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
             };
 
             io::copy(&mut reader, &mut writer)?;
-            ControlFlow::Continue(DecompressionSummary::NonArchive {
+            DecompressionSummary::NonArchive {
                 output_path: final_output_path,
-            })
+            }
         }
         Tar => unpack_archive(
             |output_dir| crate::archive::tar::unpack_archive(create_decoder_up_to_first_extension()?, output_dir),
@@ -132,13 +131,11 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
                 // Make thread own locks to keep output messages adjacent
                 let locks = lock_and_flush_output_stdio();
                 memory_warning_fn();
-                if !user_wants_to_continue(
+                user_wants_to_continue(
                     options.input_file_path,
                     options.question_policy,
                     QuestionAction::Decompression,
-                )? {
-                    return Ok(());
-                }
+                )?;
                 drop(locks);
 
                 let mut vec = vec![];
@@ -179,10 +176,6 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
         }
     };
 
-    let ControlFlow::Continue(decompression_summary) = control_flow else {
-        return Ok(());
-    };
-
     match decompression_summary {
         DecompressionSummary::Archive { files_unpacked } => {
             info_accessible!("Successfully decompressed archive to {}", PathFmt(options.output_dir));
@@ -219,16 +212,14 @@ fn unpack_archive(
     unpack_fn: impl FnOnce(&Path) -> Result<u64>,
     output_dir: &Path,
     question_policy: QuestionPolicy,
-) -> Result<ControlFlow<(), DecompressionSummary>> {
+) -> Result<DecompressionSummary> {
     let is_valid_output_dir =
         !output_dir.fs_err_try_exists()? || (output_dir.is_dir() && output_dir.read_dir()?.next().is_none());
 
     let output_dir_cleaned = if is_valid_output_dir {
         output_dir.to_owned()
-    } else if let Some(path) = resolve_path_conflict(output_dir, question_policy, QuestionAction::Decompression)? {
-        path
     } else {
-        return Ok(ControlFlow::Break(()));
+        resolve_path_conflict(output_dir, question_policy, QuestionAction::Decompression)?
     };
 
     if !output_dir_cleaned.fs_err_try_exists()? {
@@ -237,5 +228,5 @@ fn unpack_archive(
 
     let files_unpacked = unpack_fn(&output_dir_cleaned)?;
 
-    Ok(ControlFlow::Continue(DecompressionSummary::Archive { files_unpacked }))
+    Ok(DecompressionSummary::Archive { files_unpacked })
 }

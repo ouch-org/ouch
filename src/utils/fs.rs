@@ -27,26 +27,26 @@ pub fn is_path_stdin(path: &Path) -> bool {
 /// If the user want to overwrite then the file or directory will be removed and returned the same input path
 /// If the user want to rename then nothing will be removed and a new path will be returned with a new name
 ///
-/// * `Ok(None)` means the user wants to cancel the operation
-/// * `Ok(Some(path))` returns a valid PathBuf without any another file or directory with the same name
+/// * `Ok(path)` returns a valid PathBuf without any another file or directory with the same name
+/// * `Err(Error::UserCancelled)`means the user asked to stop and halt
 /// * `Err(_)` is an error
 pub fn resolve_path_conflict(
     path: &Path,
     question_policy: QuestionPolicy,
     question_action: QuestionAction,
-) -> Result<Option<PathBuf>> {
+) -> Result<PathBuf> {
     if path.fs_err_try_exists()? {
         match user_wants_to_overwrite(path, question_policy, question_action)? {
-            FileConflitOperation::Cancel => Ok(None),
+            FileConflitOperation::Cancel => Err(Error::UserCancelled),
             FileConflitOperation::Overwrite => {
                 remove_file_or_dir(path)?;
-                Ok(Some(path.to_path_buf()))
+                Ok(path.to_path_buf())
             }
-            FileConflitOperation::Rename => Ok(Some(find_available_filename_by_renaming(path)?)),
-            FileConflitOperation::Merge => Ok(Some(path.to_path_buf())),
+            FileConflitOperation::Rename => Ok(find_available_filename_by_renaming(path)?),
+            FileConflitOperation::Merge => Ok(path.to_path_buf()),
         }
     } else {
-        Ok(Some(path.to_path_buf()))
+        Ok(path.to_path_buf())
     }
 }
 

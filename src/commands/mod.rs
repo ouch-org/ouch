@@ -11,7 +11,7 @@ use utils::colors;
 
 use crate::{
     CliArgs, INITIAL_CURRENT_DIR, QuestionPolicy, Result,
-    check::{self, CheckFileSignatureControlFlow},
+    check::{self, CheckFileSignatureResult},
     cli::Subcommand,
     commands::{compress::compress_files, decompress::decompress_file, list::list_archive_contents},
     error::{Error, FinalError},
@@ -160,9 +160,8 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                     let mut output_path = output_path.to_owned();
 
                     match check::check_file_signature(path, &extensions, question_policy)? {
-                        CheckFileSignatureControlFlow::HaltProgram => return Ok(()),
-                        CheckFileSignatureControlFlow::Continue => {}
-                        CheckFileSignatureControlFlow::ChangeToDetectedExtension {
+                        CheckFileSignatureResult::Ok => {}
+                        CheckFileSignatureResult::ChangeToDetectedExtension {
                             new_extension,
                             new_path_filename,
                         } => {
@@ -237,9 +236,8 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                     let mut extensions = extension::extensions_from_path(path)?;
 
                     match check::check_file_signature(path, &extensions, question_policy)? {
-                        CheckFileSignatureControlFlow::HaltProgram => return Ok(()),
-                        CheckFileSignatureControlFlow::Continue => {}
-                        CheckFileSignatureControlFlow::ChangeToDetectedExtension { new_extension, .. } => {
+                        CheckFileSignatureResult::Ok => {}
+                        CheckFileSignatureResult::ChangeToDetectedExtension { new_extension, .. } => {
                             extensions = vec![new_extension]
                         }
                     }

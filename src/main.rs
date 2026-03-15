@@ -34,9 +34,15 @@ fn main() {
     let result = run();
     shutdown_logger_and_wait();
 
-    if let Err(err) = result {
-        eprintln!("{err}");
-        std::process::exit(EXIT_FAILURE);
+    match result {
+        Ok(_) => {}
+        Err(Error::UserCancelled) => {
+            eprintln!("User cancelled.");
+        }
+        Err(err) => {
+            eprintln!("{err}");
+            std::process::exit(EXIT_FAILURE);
+        }
     }
 }
 

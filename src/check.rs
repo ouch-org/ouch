@@ -21,9 +21,8 @@ use crate::{
 
 #[allow(missing_docs)]
 /// Different outcomes for file signature check that the caller must handle.
-pub enum CheckFileSignatureControlFlow {
-    HaltProgram,
-    Continue,
+pub enum CheckFileSignatureResult {
+    Ok,
     ChangeToDetectedExtension {
         new_extension: Extension,
         new_path_filename: OsString,
@@ -43,7 +42,7 @@ pub fn check_file_signature(
     path: &Path,
     extensions: &[Extension],
     question_policy: QuestionPolicy,
-) -> Result<CheckFileSignatureControlFlow> {
+) -> Result<CheckFileSignatureResult> {
     debug_assert!(path.file_name().is_some());
 
     let detected_format = try_infer_format(path);
@@ -71,16 +70,14 @@ pub fn check_file_signature(
             );
 
             // TODO: change question to: "do you want to proceed regardless of that"?
-            if !user_wants_to_continue(path, question_policy, QuestionAction::Decompression)? {
-                return Ok(CheckFileSignatureControlFlow::HaltProgram);
-            }
+            user_wants_to_continue(path, question_policy, QuestionAction::Decompression)?;
 
             // We usually get the output path name by removing the extensions, in this scenario
             // we didn't recognized path extensions, so we need to improvise to create a
             // reasonable output path name
             let new_path_filename =
                 append_ascii_suffix_to_os_str(path.with_extension("").file_name().unwrap(), "-output");
-            return Ok(CheckFileSignatureControlFlow::ChangeToDetectedExtension {
+            return Ok(CheckFileSignatureResult::ChangeToDetectedExtension {
                 new_path_filename,
                 new_extension: Extension::from_format(detected),
             });
@@ -104,7 +101,7 @@ pub fn check_file_signature(
         }
     }
 
-    Ok(CheckFileSignatureControlFlow::Continue)
+    Ok(CheckFileSignatureResult::Ok)
 }
 
 /// In the context of listing archives, this function checks if `ouch` was told to list

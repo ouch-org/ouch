@@ -41,10 +41,8 @@ pub enum QuestionAction {
     Decompression,
 }
 
-#[derive(Default)]
 /// Determines which action to do when there is a file conflict
 pub enum FileConflitOperation {
-    #[default]
     /// Cancel the operation
     Cancel,
     /// Overwrite the existing file with the new one
@@ -131,7 +129,7 @@ pub fn create_file_or_prompt_on_conflict(
     };
 
     let path_to_create_file = match action {
-        FileConflitOperation::Cancel => return Ok(None),
+        FileConflitOperation::Cancel => return Err(Error::UserCancelled),
         FileConflitOperation::Merge => path,
         FileConflitOperation::Overwrite => {
             utils::remove_file_or_dir(&path)?;
@@ -149,10 +147,10 @@ pub fn user_wants_to_continue(
     path: &Path,
     question_policy: QuestionPolicy,
     question_action: QuestionAction,
-) -> Result<bool> {
+) -> Result<()> {
     match question_policy {
-        QuestionPolicy::AlwaysYes => Ok(true),
-        QuestionPolicy::AlwaysNo => Ok(false),
+        QuestionPolicy::AlwaysYes => Ok(()),
+        QuestionPolicy::AlwaysNo => Err(Error::UserCancelled),
         QuestionPolicy::Ask => {
             let action = match question_action {
                 QuestionAction::Compression => "compress",
@@ -168,7 +166,7 @@ pub fn user_wants_to_continue(
 
 /// Choise dialog for end user with [option1/option2/...] question.
 /// Each option is a [Choice] entity, holding a value "T" returned when that option is selected
-pub struct ChoicePrompt<'a, T: Default> {
+pub struct ChoicePrompt<'a, T> {
     /// The message to be displayed before the options
     /// e.g.: "Do you want to overwrite 'FILE'?"
     pub prompt: String,
@@ -178,13 +176,13 @@ pub struct ChoicePrompt<'a, T: Default> {
 
 /// A single choice showed as a option to user in a [ChoicePrompt]
 /// It holds a label and a color to display to user and a real value to be returned
-pub struct Choice<'a, T: Default> {
+pub struct Choice<'a, T> {
     label: &'a str,
     value: T,
     color: &'a str,
 }
 
-impl<'a, T: Default> ChoicePrompt<'a, T> {
+impl<'a, T> ChoicePrompt<'a, T> {
     /// Creates a new Confirmation.
     pub fn new(prompt: impl Into<String>, choises: impl IntoIterator<Item = (&'a str, T, &'a str)>) -> Self {
         Self {
@@ -203,8 +201,9 @@ impl<'a, T: Default> ChoicePrompt<'a, T> {
 
         if is_stdin_dev_null()? {
             eprintln!("{message}");
-            eprintln!("Stdin is null, can't read user input (bypass with --yes, but be careful)");
-            return Ok(T::default());
+            return Err(FinalError::with_title("Stdin is null, can't read user input")
+                .hint("bypass this with `--yes`")
+                .into());
         }
 
         let _locks = lock_and_flush_output_stdio()?;
@@ -290,7 +289,7 @@ impl<'a> Confirmation<'a> {
     }
 
     /// Creates user message and receives a boolean input to be used on the program
-    pub fn ask(&self, substitute: Option<&'a str>) -> Result<bool> {
+    pub fn ask(&self, substitute: Option<&'a str>) -> Result<()> {
         let message = match (self.placeholder, substitute) {
             (None, _) => Cow::Borrowed(self.prompt),
             (Some(_), None) => unreachable!("dev error, should be reported, we checked this won't happen"),
@@ -300,7 +299,7 @@ impl<'a> Confirmation<'a> {
         if is_stdin_dev_null()? {
             eprintln!("{message}");
             eprintln!("Stdin is null, can't read user input (bypass with --yes, but be careful)");
-            return Ok(false);
+            return Err(Error::UserCancelled);
         }
 
         let _locks = lock_and_flush_output_stdio()?;
@@ -343,8 +342,8 @@ impl<'a> Confirmation<'a> {
 
             answer.make_ascii_lowercase();
             match answer.trim() {
-                "" | "y" | "yes" => return Ok(true),
-                "n" | "no" => return Ok(false),
+                "" | "y" | "yes" => return Ok(()),
+                "n" | "no" => return Err(Error::UserCancelled),
                 _ => continue, // Try again
             }
         }
