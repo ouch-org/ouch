@@ -53,7 +53,7 @@ where
 
         match file.name().ends_with('/') {
             _is_dir @ true => {
-                info!("File {} extracted to {:?}", idx, PathFmt(&file_path));
+                info!("File {} extracted to {}", idx, PathFmt(&file_path));
 
                 let mode = file.unix_mode();
                 let is_symlink = mode.is_some_and(|mode| mode & 0o170000 == 0o120000);
@@ -81,7 +81,7 @@ where
                     let mut target = String::new();
                     file.read_to_string(&mut target)?;
 
-                    info!("linking {:?} -> \"{}\"", PathFmt(file_path), target);
+                    info!("linking {} -> \"{}\"", PathFmt(file_path), target);
 
                     create_symlink(Path::new(&target), file_path)?;
                 } else {
@@ -93,7 +93,7 @@ where
                 }
 
                 // same reason is in _is_dir: long, often not needed text
-                info!("extracted ({}) {:?}", BytesFmt(file.size()), PathFmt(file_path));
+                info!("extracted ({}) {}", BytesFmt(file.size()), PathFmt(file_path));
             }
         }
 
@@ -180,11 +180,11 @@ where
             if let Ok(handle) = output_handle.as_ref()
                 && is_same_file_as_output(&path, handle)
             {
-                warning!("Cannot compress {:?} into itself, skipping", PathFmt(output_path));
+                warning!("Cannot compress {} into itself, skipping", PathFmt(output_path));
                 continue;
             }
 
-            info!("Compressing {:?}", PathFmt(&path));
+            info!("Compressing {}", PathFmt(&path));
 
             let (metadata, file_type) = {
                 if follow_symlinks {
@@ -304,6 +304,6 @@ fn unix_set_permissions<R: Read>(file_path: &Path, file: &ZipFile<'_, R>) -> Res
 fn zip_non_utf8_error<'a>(path: &'a Path) -> impl Fn() -> FinalError + 'a {
     || {
         FinalError::with_title("Zip requires that all paths are valid UTF-8")
-            .detail(format!("File {:?} has a non-UTF-8 path", PathFmt(path)))
+            .detail(format!("File {} has a non-UTF-8 path", PathFmt(path)))
     }
 }

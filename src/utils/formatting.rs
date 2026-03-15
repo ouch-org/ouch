@@ -41,7 +41,7 @@ pub fn pretty_format_list_of_paths(paths: &[impl AsRef<Path>]) -> String {
         if i != 0 {
             string += ", ";
         }
-        write!(string, "{:?}", PathFmt(path.as_ref())).expect("Couldn't write to a string");
+        write!(string, "{}", PathFmt(path.as_ref())).expect("Couldn't write to a string");
     }
     string
 }
@@ -97,11 +97,21 @@ pub fn append_ascii_suffix_to_os_str(os_str: &OsStr, ascii_suffix: &str) -> OsSt
 }
 
 pub struct PathFmt<'a>(pub &'a Path);
+pub struct NoQuotePathFmt<'a>(pub &'a Path);
 
-/// Path::display but strip some prefixes that are just noise.
+/// Same as NoQuotePathFmt, but surrounded by "".
 impl<'a> fmt::Display for PathFmt<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "\"{}\"", NoQuotePathFmt(self.0))
+    }
+}
+
+/// Same as `path.display()` but try to strip some common noise prefixes
+impl<'a> fmt::Display for NoQuotePathFmt<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let path = self.0;
+        debug_assert_ne!(path.as_os_str().as_encoded_bytes().len(), 0, "empty path");
+
         let path = strip_path_ascii_prefix(Cow::Borrowed(path), "./");
         let path = path.as_ref();
 
@@ -113,13 +123,6 @@ impl<'a> fmt::Display for PathFmt<'a> {
         };
 
         write!(f, "{}", path.display())
-    }
-}
-
-/// Same as Display, but surrounded by "".
-impl<'a> fmt::Debug for PathFmt<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "\"{}\"", self)
     }
 }
 

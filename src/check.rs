@@ -13,7 +13,8 @@ use crate::{
     extension::{Extension, build_archive_file_suggestion},
     info_accessible,
     utils::{
-        PathFmt, append_ascii_suffix_to_os_str, pretty_format_list_of_paths, try_infer_format, user_wants_to_continue,
+        NoQuotePathFmt, PathFmt, append_ascii_suffix_to_os_str, pretty_format_list_of_paths, try_infer_format,
+        user_wants_to_continue,
     },
     warning,
 };
@@ -58,13 +59,13 @@ pub fn check_file_signature(
         (None, Some(_from_path)) => {
             // TODO: promote to a warning and ask the user to proceed
             info_accessible!(
-                "Failed to confirm the format of {:?} by sniffing the contents, file might be misnamed",
+                "Failed to confirm the format of {} by sniffing the contents, file might be misnamed",
                 PathFmt(path),
             );
         }
         (Some(detected), None) => {
             warning!(
-                "No recognized extensions in {:?}. Proceeding with `{}` that was detected from the file signature.",
+                "No recognized extensions in {}. Proceeding with `{}` that was detected from the file signature.",
                 PathFmt(path),
                 detected.as_str(),
             );
@@ -86,7 +87,7 @@ pub fn check_file_signature(
         }
         (Some(detected), Some(from_path)) => {
             if from_path != detected {
-                let error = FinalError::with_title(format!("Format mismatch for {:?}", PathFmt(path)))
+                let error = FinalError::with_title(format!("Format mismatch for {}", PathFmt(path)))
                     .detail(format!(
                         "File extension suggests `{}`, but file signature indicates `{}`",
                         from_path.as_str(),
@@ -134,7 +135,7 @@ pub fn check_for_non_archive_formats(files: &[PathBuf], formats: &[Vec<Extension
 /// Show error if archive format is not the first format in the chain.
 pub fn check_archive_formats_position(formats: &[Extension], output_path: &Path) -> Result<()> {
     if let Some(format) = formats.iter().skip(1).find(|format| format.is_archive()) {
-        let error = FinalError::with_title(format!("Cannot compress to {:?}", PathFmt(output_path)))
+        let error = FinalError::with_title(format!("Cannot compress to {}", PathFmt(output_path)))
             .detail(format!("Found the format '{format}' in an incorrect position."))
             .detail(format!(
                 "'{format}' can only be used at the start of the file extension."
@@ -143,7 +144,7 @@ pub fn check_archive_formats_position(formats: &[Extension], output_path: &Path)
                 "If you wish to compress multiple files, start the extension with '{format}'."
             ))
             .hint(format!(
-                "Otherwise, remove the last '{}' from {:?}.",
+                "Otherwise, remove the last '{}' from {}.",
                 format,
                 PathFmt(output_path)
             ));
@@ -195,7 +196,7 @@ pub fn check_missing_formats_when_decompressing(files: &[PathBuf], formats: &[Ve
         error = error
             .hint("")
             .hint("Alternatively, you can pass an extension to the '--format' flag:")
-            .hint(format!("  ouch decompress {} --format tar.gz", PathFmt(path)));
+            .hint(format!("  ouch decompress {} --format tar.gz", NoQuotePathFmt(path)));
     }
 
     Err(error.into())
@@ -204,16 +205,22 @@ pub fn check_missing_formats_when_decompressing(files: &[PathBuf], formats: &[Ve
 /// Check if there is a first format when compressing, and returns it.
 pub fn check_first_format_when_compressing<'a>(formats: &'a [Extension], output_path: &Path) -> Result<&'a Extension> {
     formats.first().ok_or_else(|| {
-        FinalError::with_title(format!("Cannot compress to {:?}", PathFmt(output_path)))
+        FinalError::with_title(format!("Cannot compress to {}", PathFmt(output_path)))
             .detail("You must supply the compression format")
             .hint("Try adding supported extensions (see --help):")
-            .hint(format!("  ouch compress <FILES>... {}.tar.gz", PathFmt(output_path)))
-            .hint(format!("  ouch compress <FILES>... {}.zip", PathFmt(output_path)))
+            .hint(format!(
+                "  ouch compress <FILES>... {}.tar.gz",
+                NoQuotePathFmt(output_path)
+            ))
+            .hint(format!(
+                "  ouch compress <FILES>... {}.zip",
+                NoQuotePathFmt(output_path)
+            ))
             .hint("")
             .hint("Alternatively, you can overwrite this option by using the '--format' flag:")
             .hint(format!(
                 "  ouch compress <FILES>... {} --format tar.gz",
-                PathFmt(output_path),
+                NoQuotePathFmt(output_path),
             ))
             .into()
     })
@@ -259,12 +266,12 @@ pub fn check_invalid_compression_with_non_archive_format(
             .expect("output path should contain a compression format");
 
         (
-            format!("From: {:?}", PathFmt(output_path)),
+            format!("From: {}", PathFmt(output_path)),
             format!("To:   \"{suggested_output_path}\""),
         )
     };
 
-    let error = FinalError::with_title(format!("Cannot compress to {:?}", PathFmt(output_path)))
+    let error = FinalError::with_title(format!("Cannot compress to {}", PathFmt(output_path)))
         .detail(first_detail_message)
         .detail(format!(
             "The compression format '{first_format}' does not accept multiple files.",

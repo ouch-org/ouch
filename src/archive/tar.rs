@@ -81,7 +81,7 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> Result<u64> {
         }
 
         info!(
-            "extracted ({}) {:?}",
+            "extracted ({}) {}",
             BytesFmt(entry.size()),
             PathFmt(&output_folder.join(entry.path()?)),
         );
@@ -141,11 +141,11 @@ where
             if let Ok(handle) = output_handle.as_ref()
                 && is_same_file_as_output(&path, handle)
             {
-                warning!("Cannot compress {:?} into itself, skipping", PathFmt(output_path));
+                warning!("Cannot compress {} into itself, skipping", PathFmt(output_path));
                 continue;
             }
 
-            info!("Compressing {:?}", PathFmt(&path));
+            info!("Compressing {}", PathFmt(&path));
 
             let (metadata, file_type) = {
                 if follow_symlinks {
@@ -173,7 +173,7 @@ where
 
                         builder.append_link(&mut header, &path, target_path).map_err(|err| {
                             FinalError::with_title("Could not create archive")
-                                .detail(format!("Error appending hard link {:?}: {err}", PathFmt(&path)))
+                                .detail(format!("Error appending hard link {}: {err}", PathFmt(&path)))
                         })?;
                         continue; // skip handling this file
                     }

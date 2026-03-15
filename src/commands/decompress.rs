@@ -185,15 +185,15 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
 
     match decompression_summary {
         DecompressionSummary::Archive { files_unpacked } => {
-            info_accessible!("Successfully decompressed archive to {:?}", PathFmt(options.output_dir));
+            info_accessible!("Successfully decompressed archive to {}", PathFmt(options.output_dir));
             info_accessible!("Files unpacked: {files_unpacked}");
         }
         DecompressionSummary::NonArchive { output_path } => {
             if input_is_stdin {
-                info_accessible!("STDIN decompressed to {:?}", PathFmt(&output_path));
+                info_accessible!("STDIN decompressed to {}", PathFmt(&output_path));
             } else {
                 info_accessible!(
-                    "File {:?} decompressed to {:?}",
+                    "File {} decompressed to {}",
                     PathFmt(options.input_file_path),
                     PathFmt(&output_path),
                 );
@@ -205,7 +205,7 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
 
     if !input_is_stdin && options.remove {
         fs::remove_file(options.input_file_path)?;
-        info!("Removed input file {:?}", PathFmt(options.input_file_path));
+        info!("Removed input file {}", PathFmt(options.input_file_path));
     }
 
     Ok(())

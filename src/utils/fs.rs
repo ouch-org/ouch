@@ -99,7 +99,7 @@ pub fn find_available_filename_by_renaming(path: &Path) -> Result<PathBuf> {
 pub fn create_dir_if_non_existent(path: &Path) -> Result<()> {
     if !path.fs_err_try_exists()? {
         fs::create_dir_all(path)?;
-        info_accessible!("Directory {:?} created", PathFmt(path));
+        info_accessible!("Directory {} created", PathFmt(path));
     }
     Ok(())
 }
@@ -293,7 +293,7 @@ pub fn read_file_type(path: impl AsRef<Path>) -> Result<FileType> {
         Directory => Ok(FileType::Directory),
         Symlink => Ok(FileType::Symlink),
         variant => Err(FinalError::with_title(format!("unsupported file type {variant}"))
-            .detail(format!("found at {:?}", PathFmt(path)))
+            .detail(format!("found at {}", PathFmt(path)))
             .into()),
     }
 }
