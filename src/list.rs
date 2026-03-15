@@ -34,7 +34,7 @@ pub fn list_files(
     list_options: ListOptions,
 ) -> Result<()> {
     let mut out = BufWriter::new(stdout().lock());
-    let _ = writeln!(out, "Archive: {:?}", PathFmt(archive));
+    let _ = writeln!(out, "Archive: {}", PathFmt(archive));
 
     if list_options.tree {
         let tree = files.into_iter().collect::<Result<Tree>>()?;
@@ -92,7 +92,7 @@ mod tree {
     use linked_hash_map::LinkedHashMap;
 
     use super::FileInArchive;
-    use crate::{utils::PathFmt, warning};
+    use crate::{utils::NoQuotePathFmt, warning};
 
     /// Directory tree
     #[derive(Debug, Default)]
@@ -128,7 +128,7 @@ mod tree {
                     Some(file) => {
                         warning!(
                             "multiple files with the same name in a single directory ({})",
-                            PathFmt(&file.path),
+                            NoQuotePathFmt(&file.path),
                         );
                     }
                 }

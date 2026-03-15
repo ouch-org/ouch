@@ -36,12 +36,12 @@ where
             let file_path = output_path.join(entry.name());
 
             if entry.is_directory() {
-                info!("File {} extracted to {:?}", entry.name(), PathFmt(&file_path));
+                info!("File {} extracted to {}", entry.name(), PathFmt(&file_path));
                 if !path.fs_err_try_exists()? {
                     fs::create_dir_all(path)?;
                 }
             } else {
-                info!("extracted ({}) {:?}", BytesFmt(entry.size()), PathFmt(&file_path));
+                info!("extracted ({}) {}", BytesFmt(entry.size()), PathFmt(&file_path));
 
                 ensure_parent_dir_exists(path)?;
 
@@ -143,18 +143,18 @@ where
             if let Ok(handle) = output_handle.as_ref()
                 && is_same_file_as_output(path, handle)
             {
-                warning!("Cannot compress {:?} into itself, skipping", PathFmt(output_path));
+                warning!("Cannot compress {} into itself, skipping", PathFmt(output_path));
                 continue;
             }
 
-            info!("Compressing {:?}", PathFmt(path));
+            info!("Compressing {}", PathFmt(path));
 
             // use metadata instead of symlink_metadata, 7z doesn't support symlinks
             let metadata = path.metadata()?;
 
             let entry_name = path.to_str().ok_or_else(|| {
                 FinalError::with_title("7z requires that all entry names are valid UTF-8")
-                    .detail(format!("File {:?} has a non-UTF-8 name", PathFmt(path)))
+                    .detail(format!("File {} has a non-UTF-8 name", PathFmt(path)))
             })?;
 
             let entry = sevenz_rust2::ArchiveEntry::from_path(path, entry_name.to_owned());

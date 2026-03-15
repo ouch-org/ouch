@@ -80,7 +80,7 @@ pub fn prompt_user_for_file_conflict_resolution(
 
     match question_action {
         QuestionAction::Compression => ChoicePrompt::new(
-            format!("Do you want to overwrite {:?}?", PathFmt(path)),
+            format!("Do you want to overwrite {}?", PathFmt(path)),
             [
                 ("yes", Op::Overwrite, *colors::GREEN),
                 ("no", Op::Cancel, *colors::RED),
@@ -89,7 +89,7 @@ pub fn prompt_user_for_file_conflict_resolution(
         )
         .ask(),
         QuestionAction::Decompression => ChoicePrompt::new(
-            format!("Do you want to overwrite {:?}?", PathFmt(path)),
+            format!("Do you want to overwrite {}?", PathFmt(path)),
             [
                 ("yes", Op::Overwrite, *colors::GREEN),
                 ("no", Op::Cancel, *colors::RED),
@@ -158,7 +158,7 @@ pub fn user_wants_to_continue(
                 QuestionAction::Compression => "compress",
                 QuestionAction::Decompression => "decompress",
             };
-            let path = format!("{:?}", PathFmt(path));
+            let path = format!("{}", PathFmt(path));
             let path = Some(&*path);
             let placeholder = Some("FILE");
             Confirmation::new(&format!("Do you want to {action} 'FILE'?"), placeholder).ask(path)

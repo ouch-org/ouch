@@ -19,8 +19,8 @@ use crate::{
     info_accessible,
     list::ListOptions,
     utils::{
-        self, BytesFmt, FileVisibilityPolicy, PathFmt, QuestionAction, canonicalize, colors::*, file_size,
-        is_path_stdin,
+        self, BytesFmt, FileVisibilityPolicy, NoQuotePathFmt, PathFmt, QuestionAction, canonicalize, colors::*,
+        file_size, is_path_stdin,
     },
 };
 
@@ -117,7 +117,7 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
 
             if let Ok(true) = compress_result {
                 info_accessible!("Output file size: {}", BytesFmt(file_size(&output_path)?));
-                info_accessible!("Successfully compressed to {:?}", PathFmt(&output_path));
+                info_accessible!("Successfully compressed to {}", PathFmt(&output_path));
             } else {
                 // If Ok(false) or Err() occurred, delete incomplete file at `output_path`
                 //
@@ -125,7 +125,7 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                 // out that we left a possibly CORRUPTED file at `output_path`
                 if utils::remove_file_or_dir(&output_path).is_err() {
                     eprintln!("{red}FATAL ERROR:\n", red = *colors::RED);
-                    eprintln!("  Ouch failed to delete the file {:?}", PathFmt(&output_path));
+                    eprintln!("  Ouch failed to delete the file {}", PathFmt(&output_path));
                     eprintln!("  Please delete it manually.");
                     eprintln!("  This file is corrupted if compression didn't finished.");
 
@@ -149,7 +149,7 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                 let format = parse_format_flag(&format)?;
                 for path in files.iter() {
                     let file_name = path.file_name().ok_or_else(|| Error::Custom {
-                        reason: FinalError::with_title(format!("{:?} does not have a file name", PathFmt(path))),
+                        reason: FinalError::with_title(format!("{} does not have a file name", PathFmt(path))),
                     })?;
                     files_output_paths.push(file_name.into());
                     files_extensions.push(format.clone());
@@ -214,8 +214,11 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                     })
                     .map_err(|err| match err {
                         Error::IoError { reason } => Error::Custom {
-                            reason: FinalError::with_title(format!("Failed to decompress {}", PathFmt(input_path)))
-                                .detail(reason),
+                            reason: FinalError::with_title(format!(
+                                "Failed to decompress {}",
+                                NoQuotePathFmt(input_path)
+                            ))
+                            .detail(reason),
                         },
                         other => other,
                     })
