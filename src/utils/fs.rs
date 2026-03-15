@@ -293,7 +293,7 @@ pub fn read_file_type(path: impl AsRef<Path>) -> Result<FileType> {
         Directory => Ok(FileType::Directory),
         Symlink => Ok(FileType::Symlink),
         variant => Err(FinalError::with_title(format!("unsupported file type {variant}"))
-            .detail(format!("found at {}", PathFmt(path)))
+            .detail(format!("found at {:?}", PathFmt(path)))
             .into()),
     }
 }

@@ -9,7 +9,7 @@ use std::{
 };
 
 use filetime_creation::{FileTime, set_file_mtime};
-use fs_err::{self as fs};
+use fs_err as fs;
 use is_executable::is_executable;
 use same_file::Handle;
 use time::OffsetDateTime;
