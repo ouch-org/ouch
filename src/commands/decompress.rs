@@ -18,7 +18,7 @@ use crate::{
     utils::{
         self, BytesFmt, PathFmt, file_size,
         io::{ReadSeek, lock_and_flush_output_stdio},
-        is_path_stdin, user_wants_to_continue,
+        is_path_stdin, resolve_path_conflict, user_wants_to_continue,
     },
 };
 
@@ -185,15 +185,15 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
 
     match decompression_summary {
         DecompressionSummary::Archive { files_unpacked } => {
-            info_accessible!("Successfully decompressed archive to {:?}", PathFmt(options.output_dir));
+            info_accessible!("Successfully decompressed archive to {}", PathFmt(options.output_dir));
             info_accessible!("Files unpacked: {files_unpacked}");
         }
         DecompressionSummary::NonArchive { output_path } => {
             if input_is_stdin {
-                info_accessible!("STDIN decompressed to {:?}", PathFmt(&output_path));
+                info_accessible!("STDIN decompressed to {}", PathFmt(&output_path));
             } else {
                 info_accessible!(
-                    "File {:?} decompressed to {:?}",
+                    "File {} decompressed to {}",
                     PathFmt(options.input_file_path),
                     PathFmt(&output_path),
                 );
@@ -205,7 +205,7 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
 
     if !input_is_stdin && options.remove {
         fs::remove_file(options.input_file_path)?;
-        info!("Removed input file {:?}", PathFmt(options.input_file_path));
+        info!("Removed input file {}", PathFmt(options.input_file_path));
     }
 
     Ok(())
@@ -225,11 +225,10 @@ fn unpack_archive(
 
     let output_dir_cleaned = if is_valid_output_dir {
         output_dir.to_owned()
+    } else if let Some(path) = resolve_path_conflict(output_dir, question_policy, QuestionAction::Decompression)? {
+        path
     } else {
-        match utils::resolve_path_conflict(output_dir, question_policy, QuestionAction::Decompression)? {
-            Some(path) => path,
-            None => return Ok(ControlFlow::Break(())),
-        }
+        return Ok(ControlFlow::Break(()));
     };
 
     if !output_dir_cleaned.fs_err_try_exists()? {

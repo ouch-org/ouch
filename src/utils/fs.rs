@@ -99,7 +99,7 @@ pub fn find_available_filename_by_renaming(path: &Path) -> Result<PathBuf> {
 pub fn create_dir_if_non_existent(path: &Path) -> Result<()> {
     if !path.fs_err_try_exists()? {
         fs::create_dir_all(path)?;
-        info_accessible!("Directory {:?} created", PathFmt(path));
+        info_accessible!("Directory {} created", PathFmt(path));
     }
     Ok(())
 }
@@ -137,8 +137,8 @@ pub fn is_same_file_as_output(path: &Path, output_handle: &Handle) -> bool {
 ///
 /// Returns `true` if the error is `NotFound` and the path is a symlink,
 /// indicating the symlink target doesn't exist.
-pub fn is_broken_symlink_error(error: &std::io::Error, path: &Path) -> bool {
-    error.kind() == std::io::ErrorKind::NotFound && path.is_symlink()
+pub fn is_broken_symlink_error(error: &io::Error, path: &Path) -> bool {
+    error.kind() == io::ErrorKind::NotFound && path.is_symlink()
 }
 
 /// Try to detect the file extension by looking for known magic strings
