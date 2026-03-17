@@ -48,52 +48,35 @@ where
         };
 
         let file_path = output_folder.join(file_path);
-
         display_zip_comment_if_exists(&file);
 
-        match file.name().ends_with('/') {
-            _is_dir @ true => {
-                info!("File {} extracted to {}", idx, PathFmt(&file_path));
+        let file_type = file_type_from_zip_file(&file);
+        let file_path = strip_cur_dir(file_path.as_path());
 
-                let mode = file.unix_mode();
-                let is_symlink = mode.is_some_and(|mode| mode & 0o170000 == 0o120000);
+        if !matches!(file_type, FileType::Directory) {
+            ensure_parent_dir_exists(file_path)?;
+        }
 
-                if is_symlink {
-                    let mut target = String::new();
-                    file.read_to_string(&mut target)?;
-
-                    #[cfg(unix)]
-                    std::os::unix::fs::symlink(&target, &file_path)?;
-                    #[cfg(windows)]
-                    std::os::windows::fs::symlink_dir(&target, file_path)?;
-                } else {
-                    fs::create_dir_all(&file_path)?;
-                }
+        match file_type {
+            FileType::Directory => {
+                fs::create_dir_all(file_path)?;
             }
-            _is_file @ false => {
-                ensure_parent_dir_exists(&file_path)?;
-                let file_path = strip_cur_dir(file_path.as_path());
+            FileType::Regular => {
+                let mut output_file = fs::File::create(file_path)?;
+                io::copy(&mut file, &mut output_file)?;
+                set_last_modified_time(&file, file_path)?;
 
-                let mode = file.unix_mode();
-                let is_symlink = mode.is_some_and(|mode| mode & 0o170000 == 0o120000);
+                #[cfg(unix)]
+                unix_set_permissions(file_path, &file)?;
 
-                if is_symlink {
-                    let mut target = String::new();
-                    file.read_to_string(&mut target)?;
-
-                    info!("linking {} -> \"{}\"", PathFmt(file_path), target);
-
-                    create_symlink(Path::new(&target), file_path)?;
-                } else {
-                    let mut output_file = fs::File::create(file_path)?;
-                    io::copy(&mut file, &mut output_file)?;
-                    set_last_modified_time(&file, file_path)?;
-                    #[cfg(unix)]
-                    unix_set_permissions(file_path, &file)?;
-                }
-
-                // same reason is in _is_dir: long, often not needed text
                 info!("extracted ({}) {}", BytesFmt(file.size()), PathFmt(file_path));
+            }
+            FileType::Symlink => {
+                let mut target = String::new();
+                file.read_to_string(&mut target)?;
+
+                info!("linking {} -> \"{}\"", PathFmt(file_path), target);
+                create_symlink(Path::new(&target), file_path)?;
             }
         }
 
@@ -101,6 +84,16 @@ where
     }
 
     Ok(files_unpacked)
+}
+
+fn file_type_from_zip_file<R: io::Read>(file: &ZipFile<'_, R>) -> FileType {
+    if file.is_symlink() {
+        FileType::Symlink
+    } else if file.is_dir() {
+        FileType::Directory
+    } else {
+        FileType::Regular
+    }
 }
 
 /// List contents of `archive`, returning a vector of archive entries
@@ -274,7 +267,7 @@ fn get_last_modified_time(file: &fs::File) -> DateTime {
 
 fn set_last_modified_time<R: Read>(zip_file: &ZipFile<'_, R>, path: &Path) -> Result<()> {
     // Extract modification time from zip file and convert to FileTime
-    let file_time = zip_file
+    let modification_time = zip_file
         .last_modified()
         .and_then(|datetime| OffsetDateTime::try_from(datetime).ok())
         .map(|time| {
@@ -283,7 +276,7 @@ fn set_last_modified_time<R: Read>(zip_file: &ZipFile<'_, R>, path: &Path) -> Re
         });
 
     // Set the modification time if available
-    if let Some(modification_time) = file_time {
+    if let Some(modification_time) = modification_time {
         set_file_mtime(path, modification_time)?;
     }
 
