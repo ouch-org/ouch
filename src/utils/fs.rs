@@ -105,10 +105,10 @@ pub fn create_dir_if_non_existent(path: &Path) -> Result<()> {
 
 /// Ensures the parent directory of a file path exists, creating it if necessary.
 pub fn ensure_parent_dir_exists(file_path: &Path) -> io::Result<()> {
-    if let Some(parent) = file_path.parent() {
-        if !parent.fs_err_try_exists()? {
-            fs::create_dir_all(parent)?;
-        }
+    if let Some(parent) = file_path.parent()
+        && !parent.fs_err_try_exists()?
+    {
+        fs::create_dir_all(parent)?;
     }
     Ok(())
 }
