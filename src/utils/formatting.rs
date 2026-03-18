@@ -6,7 +6,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::INITIAL_CURRENT_DIR;
+use crate::utils::current_dir;
 
 /// Converts an OsStr to utf8 with custom formatting.
 ///
@@ -29,7 +29,7 @@ pub fn os_str_to_str(os_str: &OsStr) -> Cow<'_, str> {
 /// Removes the current dir from the beginning of a path as it's redundant information,
 /// useful for presentation sake.
 pub fn strip_cur_dir(source_path: &Path) -> &Path {
-    source_path.strip_prefix(&*INITIAL_CURRENT_DIR).unwrap_or(source_path)
+    source_path.strip_prefix(&*current_dir()).unwrap_or(source_path)
 }
 
 /// Converts a slice of `AsRef<OsStr>` to comma separated String
@@ -115,7 +115,7 @@ impl<'a> fmt::Display for NoQuotePathFmt<'a> {
         let path = strip_path_ascii_prefix(Cow::Borrowed(path), "./");
         let path = path.as_ref();
 
-        let path = path.strip_prefix(&*INITIAL_CURRENT_DIR).unwrap_or(path);
+        let path = path.strip_prefix(&*current_dir()).unwrap_or(path);
         let path = if path.as_os_str().is_empty() {
             Path::new(".")
         } else {

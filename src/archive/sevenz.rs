@@ -1,7 +1,6 @@
 //! SevenZip archive format compress function
 
 use std::{
-    env,
     io::{self, BufWriter, Read, Seek, Write},
     path::{Path, PathBuf},
 };
@@ -19,6 +18,7 @@ use crate::{
     list::FileInArchive,
     utils::{
         BytesFmt, FileVisibilityPolicy, PathFmt, cd_into_same_dir_as, ensure_parent_dir_exists, is_same_file_as_output,
+        set_current_dir,
     },
     warning,
 };
@@ -167,7 +167,7 @@ where
             writer.push_archive_entry::<fs::File>(entry, entry_data)?;
         }
 
-        env::set_current_dir(previous_location)?;
+        set_current_dir(previous_location)?;
     }
 
     let bytes = writer.finish()?;

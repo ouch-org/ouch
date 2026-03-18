@@ -6,7 +6,7 @@ authors = [
     "Vinícius Rodrigues Miguel <vrmiguel99@gmail.com>",
 ]
 edition = "2024"
-rust-version = "1.85.0"
+rust-version = "1.91.0"
 readme = "README.md"
 repository = "https://github.com/ouch-org/ouch"
 license = "MIT"

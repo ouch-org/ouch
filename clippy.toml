@@ -1,0 +1,4 @@
+disallowed-methods = [
+    { path = "std::env::set_current_dir", reason = "use our utils set_current_dir" },
+    { path = "std::env::current_dir", reason = "use our utils current_dir" },
+]

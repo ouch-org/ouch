@@ -9,8 +9,6 @@ pub mod list;
 pub mod non_archive;
 pub mod utils;
 
-use std::{env, path::PathBuf, sync::LazyLock};
-
 use cli::CliArgs;
 
 pub use self::error::{Error, FinalError, Result};
@@ -20,16 +18,9 @@ use self::utils::{
 };
 
 const BUFFER_CAPACITY: usize = 1024 * 32;
-pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;
-
-/// Current directory, canonicalized for consistent path comparisons across platforms
-static INITIAL_CURRENT_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
-    let dir = env::current_dir().expect("can't read current directory");
-    utils::canonicalize(&dir).expect("can't canonicalize current directory")
-});
+const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;
 
 fn main() {
-    force_lazy_locks_to_load();
     spawn_logger_thread();
     let result = run();
     shutdown_logger_and_wait();
@@ -49,8 +40,4 @@ fn main() {
 fn run() -> Result<()> {
     let (args, skip_questions_positively, file_visibility_policy) = CliArgs::parse_and_validate_args()?;
     commands::run(args, skip_questions_positively, file_visibility_policy)
-}
-
-fn force_lazy_locks_to_load() {
-    LazyLock::force(&INITIAL_CURRENT_DIR);
 }

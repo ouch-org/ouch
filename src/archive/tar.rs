@@ -4,7 +4,6 @@
 use std::os::unix::fs::MetadataExt;
 use std::{
     collections::HashMap,
-    env,
     io::{self, prelude::*},
     ops::Not,
     path::{Path, PathBuf},
@@ -20,7 +19,7 @@ use crate::{
     list::FileInArchive,
     utils::{
         self, BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, create_symlink, is_same_file_as_output,
-        read_file_type, set_permission_mode,
+        read_file_type, set_current_dir, set_permission_mode,
     },
     warning,
 };
@@ -212,7 +211,7 @@ where
                 }
             }
         }
-        env::set_current_dir(previous_location)?;
+        set_current_dir(previous_location)?;
     }
 
     Ok(builder.into_inner()?)

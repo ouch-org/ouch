@@ -2,7 +2,6 @@
 
 use std::{
     borrow::Cow,
-    env,
     io::{self, Read},
     path::{Path, PathBuf},
 };
@@ -112,17 +111,6 @@ pub fn ensure_parent_dir_exists(file_path: &Path) -> io::Result<()> {
         }
     }
     Ok(())
-}
-
-/// Returns current directory, but before change the process' directory to the
-/// one that contains the file pointed to by `filename`.
-pub fn cd_into_same_dir_as(filename: &Path) -> Result<PathBuf> {
-    let previous_location = env::current_dir()?;
-
-    let parent = filename.parent().ok_or(Error::CompressingRootFolder)?;
-    env::set_current_dir(parent)?;
-
-    Ok(previous_location)
 }
 
 /// Check if a path refers to the same file as the output handle.

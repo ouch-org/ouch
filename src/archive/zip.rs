@@ -3,7 +3,6 @@
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::{
-    env,
     io::{self, prelude::*},
     path::{Path, PathBuf},
 };
@@ -23,7 +22,7 @@ use crate::{
     utils::{
         BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, cd_into_same_dir_as, create_symlink,
         ensure_parent_dir_exists, get_invalid_utf8_paths, is_same_file_as_output, pretty_format_list_of_paths,
-        read_file_type, strip_cur_dir,
+        read_file_type, set_current_dir, strip_cur_dir,
     },
     warning,
 };
@@ -233,7 +232,7 @@ where
             }
         }
 
-        env::set_current_dir(previous_location)?;
+        set_current_dir(previous_location)?;
     }
 
     let bytes = writer.finish()?;

@@ -10,7 +10,7 @@ use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelI
 use utils::colors;
 
 use crate::{
-    CliArgs, INITIAL_CURRENT_DIR, QuestionPolicy, Result,
+    CliArgs, QuestionPolicy, Result,
     check::{self, CheckFileSignatureResult},
     cli::Subcommand,
     commands::{compress::compress_files, decompress::decompress_file, list::list_archive_contents},
@@ -20,7 +20,7 @@ use crate::{
     list::ListOptions,
     utils::{
         self, BytesFmt, FileVisibilityPolicy, NoQuotePathFmt, PathFmt, QuestionAction, canonicalize, colors::*,
-        file_size, is_path_stdin,
+        current_dir, file_size, is_path_stdin,
     },
 };
 
@@ -185,7 +185,7 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                 // Led to bugs when output_dir was a symlink
                 canonicalize(&dir)?
             } else {
-                INITIAL_CURRENT_DIR.clone()
+                current_dir().clone()
             };
 
             files
