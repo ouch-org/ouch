@@ -531,7 +531,7 @@ fn broken_symlink_stored_successfully_when_format_supports_it() -> Result<()> {
 
         // Create a broken symlink (points to non-existent target)
         let broken_symlink = dir.join("broken_link");
-        let broken_target = "/nonexistent/path";
+        let broken_target = "nonexistent/path";
         fs::os::unix::fs::symlink(broken_target, &broken_symlink).unwrap();
         let archive = dir.join(format!("archive.{ext}"));
         let output = dir.join("output");
@@ -562,8 +562,7 @@ fn broken_symlink_stored_successfully_when_format_supports_it() -> Result<()> {
             .assert()
             .success();
 
-        let target = fs::read_link(output.join("broken_link")).unwrap();
-        assert_eq!(Path::new(&target), broken_target);
+        assert_eq!(&fs::read_link(output.join("broken_link")).unwrap(), broken_target);
     }
     Ok(())
 }
@@ -583,7 +582,7 @@ fn broken_symlink_error_when_compressing_with_follow_symlinks() {
 
         // Create a broken symlink
         let broken_symlink = input.join("broken_link");
-        fs::os::unix::fs::symlink("/nonexistent/path", &broken_symlink).unwrap();
+        fs::os::unix::fs::symlink("nonexistent/path", &broken_symlink).unwrap();
 
         let archive = dir.join(format!("archive.{ext}"));
 
@@ -605,7 +604,7 @@ fn symlink_treatment_inside_nested_dirs_with_follow_symlinks_flag() {
             // 7z doesn't support symlinks
             continue;
         }
-        eprintln!("ext = {ext}");
+        eprintln!("ext = {ext}, follow_symlinks_flag = {follow_symlinks_flag}");
 
         let (_tempdir, dir) = testdir().unwrap();
         let input_a = dir.join("input_a");
@@ -618,7 +617,7 @@ fn symlink_treatment_inside_nested_dirs_with_follow_symlinks_flag() {
         fs::create_dir_all(&input1_nested_dir).unwrap();
         // create a symlink called dir3
         // points to directory at the second input folder
-        fs::os::unix::fs::symlink(input_b.join("target_here"), dir.join("input_a/dir1/dir2/dir3")).unwrap();
+        fs::os::unix::fs::symlink("../../../input_b/target_here", dir.join("input_a/dir1/dir2/dir3")).unwrap();
 
         let input_b_nested_dir = dir.join("input_b/target_here/dir4/dir5");
         let input_b_file = dir.join("input_b/target_here/dir4/dir5/file");
@@ -632,7 +631,7 @@ fn symlink_treatment_inside_nested_dirs_with_follow_symlinks_flag() {
         if follow_symlinks_flag {
             cmd.arg("--follow-symlinks");
         }
-        cmd.arg(&input_a).arg(&archive).assert().success();
+        cmd.arg(&input_a).arg(&input_b).arg(&archive).assert().success();
 
         let output = dir.join("output");
         crate::utils::cargo_bin()
@@ -705,8 +704,8 @@ fn enable_gitignore_flag_should_work_without_git(
 ) {
     let (_tempdir, root_path) = testdir()?;
     let source_path = root_path.join(format!("in_{}", merge_extensions(ext, &extra_extensions)));
-    fs::create_dir_all(&source_path)?;
     let out_path = root_path.join(format!("out_{}", merge_extensions(ext, &extra_extensions)));
+    fs::create_dir_all(&source_path)?;
     fs::create_dir_all(&out_path)?;
 
     let mut gitignore_file = fs::File::create(source_path.join(".gitignore"))?;
@@ -1043,21 +1042,22 @@ fn tar_hardlink_pack_and_unpack() {
     use std::{fs::hard_link, os::unix::fs::MetadataExt};
 
     let (_tempdir, root_path) = testdir().unwrap();
-    let source_path = root_path.join("hardlink");
-    fs::create_dir_all(&source_path).unwrap();
+
+    let hardlinks = root_path.join("hardlinks");
     let out_path = root_path.join("out");
+    fs::create_dir_all(&hardlinks).unwrap();
     fs::create_dir_all(&out_path).unwrap();
 
-    let source = fs::File::create(source_path.join("source")).unwrap();
-    let link1 = source_path.join("link1");
-    let link2 = source_path.join("link2");
-    hard_link(source.path(), link1.as_path()).unwrap();
-    hard_link(source.path(), link2.as_path()).unwrap();
+    let source_path = hardlinks.join("source");
+    fs::write(&source_path, "contents").unwrap();
+    hard_link(&source_path, hardlinks.join("hardlink1")).unwrap();
+    hard_link(&source_path, hardlinks.join("hardlink2")).unwrap();
 
     let archive = root_path.join("archive.tar.gz");
     crate::utils::cargo_bin()
         .arg("compress")
         .arg(&source_path)
+        .arg(&hardlinks)
         .arg(&archive)
         .assert()
         .success();
@@ -1070,18 +1070,13 @@ fn tar_hardlink_pack_and_unpack() {
         .assert()
         .success();
 
-    let out_source_meta = fs::File::open(out_path.join("hardlink").join("source"))
-        .unwrap()
-        .metadata()
-        .unwrap();
-    let out_link1_meta = fs::File::open(out_path.join("hardlink").join("link1"))
-        .unwrap()
-        .metadata()
-        .unwrap();
-    let out_link2_meta = fs::File::open(out_path.join("hardlink").join("link2"))
-        .unwrap()
-        .metadata()
-        .unwrap();
+    let get_hardlink_metadata = |filename: &str| -> std::io::Result<std::fs::Metadata> {
+        fs::File::open(out_path.join("hardlinks").join(filename))?.metadata()
+    };
+
+    let out_source_meta = get_hardlink_metadata("source").unwrap();
+    let out_link1_meta = get_hardlink_metadata("hardlink1").unwrap();
+    let out_link2_meta = get_hardlink_metadata("hardlink2").unwrap();
 
     assert!(out_source_meta.nlink() > 1);
     assert!(out_link1_meta.nlink() > 1);

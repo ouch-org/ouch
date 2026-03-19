@@ -185,7 +185,7 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                 // Led to bugs when output_dir was a symlink
                 canonicalize(&dir)?
             } else {
-                current_dir().clone()
+                current_dir().to_owned()
             };
 
             files

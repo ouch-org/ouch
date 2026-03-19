@@ -706,6 +706,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "fs-tree"
+version = "0.8.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5082380dac47b23b39a145837120bd0e7a9597ca8e70677d804f356034f55fbb"
+dependencies = [
+ "file_type_enum",
+ "fs-err 3.3.0",
+]
+
+[[package]]
 name = "futures-core"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -793,9 +803,9 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
-version = "0.15.4"
+version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5971ac85611da7067dbfcabef3c70ebb5606018acd9e2a3903a0da507521e0d5"
+checksum = "841d1cc9bed7f9236f321df977030373f4a4163ae1a7dbfe1a51a2c1a51d9100"
 
 [[package]]
 name = "heck"
@@ -845,9 +855,9 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "2.10.0"
+version = "2.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe4cd85333e22411419a0bcae1297d25e58c9443848b11dc6a86fefe8c78a661"
+checksum = "7714e70437a7dc3ac8eb7e6f8df75fd8eb422675fc7678aff7364301092b1017"
 dependencies = [
  "equivalent",
  "hashbrown",
@@ -1175,15 +1185,16 @@ dependencies = [
  "filetime_creation",
  "flate2",
  "fs-err 2.11.0",
+ "fs-tree",
  "glob",
  "gzp",
  "ignore",
+ "indexmap",
  "infer",
  "insta",
  "is_executable",
  "itertools",
  "libc",
- "linked-hash-map",
  "lz4_flex",
  "lzma-rust2",
  "memchr",
@@ -1192,6 +1203,7 @@ dependencies = [
  "pretty_assertions",
  "proptest",
  "rand",
+ "rapidhash",
  "rayon",
  "regex",
  "same-file",
@@ -1414,6 +1426,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d25bf25ec5ae4a3f1b92f929810509a2f53d7dca2f50b794ff57e3face536c8f"
 dependencies = [
  "rand_core",
+]
+
+[[package]]
+name = "rapidhash"
+version = "4.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b5e48930979c155e2f33aa36ab3119b5ee81332beb6482199a8ecd6029b80b59"
+dependencies = [
+ "rustversion",
 ]
 
 [[package]]

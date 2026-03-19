@@ -272,6 +272,23 @@ pub enum FileType {
     Symlink,
 }
 
+/// All possible types for unpacking archives
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum UnpackEntryType {
+    Regular,
+    Directory,
+    // Zip and Tar
+    Symlink,
+    // Tar-only
+    HardLink,
+    // Tar-only
+    Char,
+    // Tar-only
+    Block,
+    // Tar-only
+    Fifo,
+}
+
 pub fn read_file_type(path: impl AsRef<Path>) -> Result<FileType> {
     use file_type_enum::FileType::*;
 
@@ -284,4 +301,34 @@ pub fn read_file_type(path: impl AsRef<Path>) -> Result<FileType> {
             .detail(format!("found at {}", PathFmt(path)))
             .into()),
     }
+}
+
+pub fn option_read_file_type(path: impl AsRef<Path>) -> Result<Option<FileType>> {
+    let path = path.as_ref();
+    if !file_exists(path)? {
+        return Ok(None);
+    }
+    read_file_type(path).map(Some)
+}
+
+fn file_exists(path: impl AsRef<Path>) -> Result<bool> {
+    match fs::symlink_metadata(path) {
+        Ok(_) => Ok(true),
+        Err(err) if matches!(err.kind(), io::ErrorKind::NotFound) => Ok(false),
+        Err(err) => Err(err.into()),
+    }
+}
+
+/// Check if two symlinks point to the same target.
+/// Both paths must be symlinks.
+pub fn symlinks_match_target(from_path: &Path, to_path: &Path) -> Result<()> {
+    assert_eq!(FileType::Symlink, read_file_type(from_path)?);
+    assert_eq!(FileType::Symlink, read_file_type(to_path)?);
+    if fs::read_link(from_path)? != fs::read_link(to_path)? {
+        return Err(FinalError::with_title(format!(
+            "can't import {from_path:?}, it conflicts with {to_path:?}, they're both symlinks but their targets are different",
+        ))
+        .into());
+    }
+    Ok(())
 }

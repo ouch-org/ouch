@@ -4,7 +4,7 @@
 use std::os::unix::fs::MetadataExt;
 use std::{
     collections::HashMap,
-    io::{self, prelude::*},
+    io::{self, Read, Write},
     ops::Not,
     path::{Path, PathBuf},
 };
@@ -13,13 +13,14 @@ use fs_err as fs;
 use same_file::Handle;
 
 use crate::{
-    Result,
+    Error, Result,
+    archive::{ConflictResolution, ConflictResolver},
     error::FinalError,
     info,
     list::FileInArchive,
     utils::{
-        self, BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, create_symlink, is_same_file_as_output,
-        read_file_type, set_current_dir, set_permission_mode,
+        self, BytesFmt, FileType, FileVisibilityPolicy, PathFmt, UnpackEntryType, canonicalize, create_symlink,
+        current_dir, is_same_file_as_output, read_file_type, set_current_dir, set_permission_mode,
     },
     warning,
 };
@@ -27,6 +28,7 @@ use crate::{
 /// Unpacks the archive given by `archive` into the folder given by `into`.
 /// Assumes that output_folder is empty
 pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> Result<u64> {
+    let resolver = ConflictResolver::new(output_folder);
     let mut archive = tar::Archive::new(reader);
 
     let mut files_unpacked = 0;
@@ -35,54 +37,62 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> Result<u64> {
     for entry in archive.entries()? {
         let mut entry = entry?;
 
-        match entry.header().entry_type() {
-            tar::EntryType::Symlink => {
-                let relative_path = entry.path()?;
-                let full_path = output_folder.join(&relative_path);
-                let target = entry
-                    .link_name()?
-                    .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Missing symlink target"))?;
+        let relative_path = entry.path()?.into_owned();
+        let entry_type: UnpackEntryType = entry.header().entry_type().try_into()?;
 
-                create_symlink(&target, &full_path)?;
-            }
-            tar::EntryType::Link => {
-                let link_path = entry.path()?;
+        let solution = resolver.resolve_archive_path_and_check_conflicts(&relative_path, entry_type)?;
+        let resolved_path = match &solution {
+            ConflictResolution::Proceed(path) => path,
+            ConflictResolution::SkipEntry => continue,
+        };
+
+        match entry_type {
+            // Entry::unpack allow us to point the destination where the file should go, but
+            // for symlink and hardlinks, it doesn't find the correct target location
+            UnpackEntryType::Symlink | UnpackEntryType::HardLink => {
+                let is_symlink = matches!(entry_type, UnpackEntryType::Symlink);
+
                 let target = entry
                     .link_name()?
                     .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Missing hardlink target"))?;
 
-                let full_link_path = output_folder.join(&link_path);
-                let full_target_path = output_folder.join(&target);
-
-                fs::hard_link(&full_target_path, &full_link_path)?;
-            }
-            tar::EntryType::Regular => {
-                entry.unpack_in(output_folder)?;
-            }
-            tar::EntryType::Directory => {
-                let original_mode = entry.header().mode()?;
-                let is_writeable = (original_mode & 0o200) != 0;
-
-                // this is no-op when dir already exists, errs if a file with another type is found there
-                entry.unpack_in(output_folder)?;
-
-                if cfg!(unix) && is_writeable.not() {
-                    // We unpacked a read-only directory, make it writeable so that we can
-                    // create the files inside of it, by the end, restore the original mode
-                    let original_path = entry.path()?.to_path_buf();
-                    let unpacked = output_folder.join(&original_path);
-                    set_permission_mode(&unpacked, original_mode | 0o200)?;
-
-                    read_only_dirs_and_modes.push((original_path, original_mode));
+                if is_symlink {
+                    // Just a sanity check, discard the resolved path
+                    let _ = resolver.resolve_archive_path(target.as_ref())?;
+                    create_symlink(&target, resolved_path)?;
+                } else {
+                    let unpacked_target_path = resolver.resolve_archive_path(target.as_ref())?;
+                    fs::hard_link(&unpacked_target_path, resolved_path)?;
                 }
             }
-            _ => continue,
+            _ => {
+                entry
+                    .unpack(resolved_path)
+                    .map_err(|err| FinalError::with_title("Failed to unpack .tar entry").detail(err.to_string()))?;
+            }
+        }
+
+        // TODO: make a test for this, I suspect it's not working
+        if cfg!(unix)
+            && let tar::EntryType::Directory = entry.header().entry_type()
+        {
+            let original_mode = entry.header().mode()?;
+            let is_writeable = (original_mode & 0o200) != 0;
+
+            if is_writeable.not() {
+                // We unpacked a read-only directory, make it writeable so that we can
+                // create the files inside of it, by the end, restore the original mode
+                let unpacked = output_folder.join(resolved_path);
+                set_permission_mode(&unpacked, original_mode | 0o200)?;
+
+                read_only_dirs_and_modes.push((resolved_path.to_owned(), original_mode));
+            }
         }
 
         info!(
             "extracted ({}) {}",
             BytesFmt(entry.size()),
-            PathFmt(&output_folder.join(entry.path()?)),
+            PathFmt(&output_folder.join(relative_path)),
         );
         files_unpacked += 1;
     }
@@ -197,7 +207,27 @@ where
                     builder.append_dir(&path, &path)?;
                 }
                 FileType::Symlink => {
-                    let target_path = path.read_link()?;
+                    let target_path = {
+                        let target_path = path.read_link()?;
+                        if !target_path.is_absolute() {
+                            target_path
+                        } else {
+                            warning!(
+                                "Symlink at {} has an absolute target, trying to relativize to make it valid.",
+                                PathFmt(&path),
+                            );
+                            target_path
+                                .strip_prefix(&*current_dir())
+                                .map_err(|_| {
+                                    FinalError::with_title("Failed to add symlink to archive")
+                                        .detail(format!("symlink at path {}", PathFmt(&path)))
+                                        .detail(format!("with target {}", PathFmt(&target_path)))
+                                        .detail("points to an absolute path, which is forbidden for security reasons")
+                                        .detail("relativizing failed, the path is outside of current directory")
+                                })?
+                                .to_owned()
+                        }
+                    };
 
                     let mut header = tar::Header::new_gnu();
                     header.set_entry_type(tar::EntryType::Symlink);
@@ -215,4 +245,26 @@ where
     }
 
     Ok(builder.into_inner()?)
+}
+
+impl TryFrom<tar::EntryType> for UnpackEntryType {
+    type Error = Error;
+
+    fn try_from(value: tar::EntryType) -> Result<Self> {
+        let result = match value {
+            tar::EntryType::Regular | tar::EntryType::Continuous => Ok(Self::Regular),
+            tar::EntryType::Directory => Ok(Self::Directory),
+            tar::EntryType::Symlink => Ok(Self::Symlink),
+            tar::EntryType::Link => Ok(Self::HardLink),
+            tar::EntryType::Char => Ok(Self::Char),
+            tar::EntryType::Block => Ok(Self::Block),
+            tar::EntryType::Fifo => Ok(Self::Fifo),
+            _ => {
+                debug_assert!(false);
+                Err("unknown/unsupported")
+            }
+        };
+
+        result.map_err(|name| FinalError::with_title(format!("unsupported file type in tar archive: {name}")).into())
+    }
 }
