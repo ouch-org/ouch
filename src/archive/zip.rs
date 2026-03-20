@@ -53,7 +53,7 @@ where
 
         match file.name().ends_with('/') {
             _is_dir @ true => {
-                info!("File {} extracted to {}", idx, PathFmt(&file_path));
+                info!("Directory {} created", PathFmt(&file_path));
 
                 let mode = file.unix_mode();
                 let is_symlink = mode.is_some_and(|mode| mode & 0o170000 == 0o120000);
