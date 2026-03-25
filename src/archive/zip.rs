@@ -19,7 +19,7 @@ use crate::{
     Result,
     error::FinalError,
     info, info_accessible,
-    list::FileInArchive,
+    list::{FileInArchive, FileType as ListFileType},
     utils::{
         BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, cd_into_same_dir_as, create_symlink,
         ensure_parent_dir_exists, get_invalid_utf8_paths, is_same_file_as_output, pretty_format_list_of_paths,
@@ -119,15 +119,31 @@ where
             None => archive.by_index(idx),
         };
 
-        let file = match zip_result {
+        let mut file = match zip_result {
             Ok(f) => f,
             Err(e) => return Err(e.into()),
         };
 
         let path = file.enclosed_name().unwrap_or_else(|| file.mangled_name()).to_owned();
-        let is_dir = file.is_dir();
 
-        Ok(FileInArchive { path, is_dir })
+        let file_type = if file.is_dir() {
+            ListFileType::Directory
+        } else if let Some(target) = file
+            .unix_mode()
+            .filter(|mode| mode & 0o170000 == 0o120000)
+            .and_then(|_| {
+                let mut s = Vec::new();
+                file.read_to_end(&mut s)
+                    .ok()
+                    .map(|_| PathBuf::from(String::from_utf8_lossy(&s).into_owned()))
+            })
+        {
+            ListFileType::Symlink { target }
+        } else {
+            ListFileType::File
+        };
+
+        Ok(FileInArchive { path, file_type })
     })
 }
 

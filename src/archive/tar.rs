@@ -17,7 +17,7 @@ use crate::{
     Result,
     error::FinalError,
     info,
-    list::FileInArchive,
+    list::{FileInArchive, FileType as ListFileType},
     utils::{
         self, BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, create_symlink, is_same_file_as_output,
         read_file_type, set_permission_mode,
@@ -103,11 +103,26 @@ pub fn list_archive(mut archive: tar::Archive<impl Read>) -> Result<impl Iterato
     let entries = archive.entries()?.map(|file| {
         let file = file?;
         let path = file.path()?.into_owned();
-        let is_dir = file.header().entry_type().is_dir();
-        Ok(FileInArchive { path, is_dir })
+        let file_type = get_file_type(file.header(), &file)?;
+        Ok(FileInArchive { path, file_type })
     });
 
     Ok(entries.collect::<Vec<_>>().into_iter())
+}
+
+fn get_file_type(header: &tar::Header, file: &tar::Entry<impl Read>) -> Result<ListFileType> {
+    Ok(match header.entry_type() {
+        tar::EntryType::Directory => ListFileType::Directory,
+        tar::EntryType::Symlink => file
+            .link_name()?
+            .map(|t| ListFileType::Symlink { target: t.into_owned() })
+            .unwrap_or(ListFileType::File),
+        tar::EntryType::Link => file
+            .link_name()?
+            .map(|t| ListFileType::Hardlink { target: t.into_owned() })
+            .unwrap_or(ListFileType::File),
+        _ => ListFileType::File,
+    })
 }
 
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.
