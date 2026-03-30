@@ -1,4 +1,10 @@
-use std::path::Path;
+use std::{
+    ffi::OsStr,
+    iter,
+    path::{Path, PathBuf},
+};
+
+use fs_err as fs;
 
 /// Determines which files should be read or ignored during directory walking
 pub struct FileVisibilityPolicy {
@@ -19,6 +25,8 @@ pub struct FileVisibilityPolicy {
 
     /// Enables reading `.git/info/exclude` files.
     pub read_git_exclude: bool,
+
+    pub follow_symlinks: bool,
 }
 
 impl Default for FileVisibilityPolicy {
@@ -28,6 +36,7 @@ impl Default for FileVisibilityPolicy {
             read_hidden: true,
             read_git_ignore: false,
             read_git_exclude: false,
+            follow_symlinks: false,
         }
     }
 }
@@ -67,6 +76,14 @@ impl FileVisibilityPolicy {
         Self { read_hidden, ..self }
     }
 
+    #[must_use]
+    pub fn follow_symlinks(self, follow_symlinks: bool) -> Self {
+        Self {
+            follow_symlinks,
+            ..self
+        }
+    }
+
     /// Walks through a directory using [`ignore::Walk`]
     pub fn build_walker(&self, path: impl AsRef<Path>) -> ignore::Walk {
         let mut builder = ignore::WalkBuilder::new(path);
@@ -75,7 +92,8 @@ impl FileVisibilityPolicy {
             .git_exclude(self.read_git_exclude)
             .git_ignore(self.read_git_ignore)
             .ignore(self.read_ignore)
-            .hidden(self.read_hidden);
+            .hidden(self.read_hidden)
+            .follow_links(self.follow_symlinks);
 
         if self.read_git_ignore {
             builder.filter_entry(|p| p.path().file_name().is_some_and(|name| name != ".git"));
@@ -83,5 +101,27 @@ impl FileVisibilityPolicy {
         }
 
         builder.build()
+    }
+
+    // workaround for ignore::Walk failing if the first given path is a broken symlink
+    // even if follow_symlinks is set to false
+    //
+    // used by tar and zip
+    pub fn workaround_build_walker_or_broken_link_path(
+        &self,
+        explicit_path: &Path,
+        filename: &OsStr,
+    ) -> Box<dyn Iterator<Item = Result<PathBuf, ignore::Error>> + 'static> {
+        let is_broken_symlink = explicit_path.is_symlink() && fs::metadata(explicit_path).is_err();
+
+        let iter: Box<dyn Iterator<Item = Result<PathBuf, ignore::Error>>> = if is_broken_symlink {
+            Box::new(iter::once(Ok(PathBuf::from(filename))))
+        } else {
+            Box::new(
+                self.build_walker(filename)
+                    .map(|result| result.map(ignore::DirEntry::into_path)),
+            )
+        };
+        iter
     }
 }

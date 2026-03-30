@@ -4,70 +4,107 @@
 
 use std::{
     ffi::OsString,
-    ops::ControlFlow,
     path::{Path, PathBuf},
 };
 
 use crate::{
+    QuestionAction, QuestionPolicy, Result,
     error::FinalError,
-    extension::{build_archive_file_suggestion, Extension},
+    extension::{Extension, build_archive_file_suggestion},
     info_accessible,
-    utils::{pretty_format_list_of_paths, try_infer_extension, user_wants_to_continue, EscapedPathDisplay},
-    warning, QuestionAction, QuestionPolicy, Result,
+    utils::{
+        NoQuotePathFmt, PathFmt, append_ascii_suffix_to_os_str, pretty_format_list_of_paths, try_infer_format,
+        user_wants_to_continue,
+    },
+    warning,
 };
 
-/// Check if the mime type matches the detected extensions.
+#[allow(missing_docs)]
+/// Different outcomes for file signature check that the caller must handle.
+pub enum CheckFileSignatureControlFlow {
+    HaltProgram,
+    Continue,
+    ChangeToDetectedExtension {
+        new_extension: Extension,
+        new_path_filename: OsString,
+    },
+}
+
+/// Check if the file signature matches the detected extensions.
 ///
-/// In case the file doesn't has any extensions, try to infer the format.
+/// If the path didn't have any extensions, try to infer the format from signature.
 ///
-/// TODO: maybe the name of this should be "magic numbers" or "file signature",
-/// and not MIME.
-pub fn check_mime_type(
+/// Note that Brotli can't be detected by signature.
+///
+/// # Panics
+///
+/// - Panics if `path` has no filename.
+pub fn check_file_signature(
     path: &Path,
-    formats: &mut Vec<Extension>,
+    extensions: &[Extension],
     question_policy: QuestionPolicy,
-) -> Result<ControlFlow<()>> {
-    if formats.is_empty() {
-        // File with no extension
-        // Try to detect it automatically and prompt the user about it
-        if let Some(detected_format) = try_infer_extension(path) {
-            // Inferring the file extension can have unpredicted consequences (e.g. the user just
-            // mistyped, ...) which we should always inform the user about.
+) -> Result<CheckFileSignatureControlFlow> {
+    debug_assert!(path.file_name().is_some());
+
+    let detected_format = try_infer_format(path);
+    let outer_format_from_path = extensions
+        .last()
+        .and_then(|extension| extension.compression_formats.last())
+        .copied();
+
+    match (detected_format, outer_format_from_path) {
+        (None, None) => {
+            // Do nothing, so these cases will be reported at `check::check_missing_formats_when_decompressing` together
+        }
+        (None, Some(_from_path)) => {
+            // TODO: promote to a warning and ask the user to proceed
+            info_accessible!(
+                "Failed to confirm the format of {} by sniffing the contents, file might be misnamed",
+                PathFmt(path),
+            );
+        }
+        (Some(detected), None) => {
             warning!(
-                "We detected a file named `{}`, do you want to decompress it?",
-                path.display(),
+                "No recognized extensions in {}. Proceeding with `{}` that was detected from the file signature.",
+                PathFmt(path),
+                detected.as_str(),
             );
 
-            if user_wants_to_continue(path, question_policy, QuestionAction::Decompression)? {
-                formats.push(detected_format);
-            } else {
-                return Ok(ControlFlow::Break(()));
-            }
-        }
-    } else if let Some(detected_format) = try_infer_extension(path) {
-        // File ending with extension
-        // Try to detect the extension and warn the user if it differs from the written one
-
-        let outer_ext = formats.iter().next_back().unwrap();
-        if !outer_ext
-            .compression_formats
-            .ends_with(detected_format.compression_formats)
-        {
-            warning!("The file extension: `{outer_ext}` differ from the detected extension: `{detected_format}`");
-
+            // TODO: change question to: "do you want to proceed regardless of that"?
             if !user_wants_to_continue(path, question_policy, QuestionAction::Decompression)? {
-                return Ok(ControlFlow::Break(()));
+                return Ok(CheckFileSignatureControlFlow::HaltProgram);
+            }
+
+            // We usually get the output path name by removing the extensions, in this scenario
+            // we didn't recognized path extensions, so we need to improvise to create a
+            // reasonable output path name
+            let new_path_filename =
+                append_ascii_suffix_to_os_str(path.with_extension("").file_name().unwrap(), "-output");
+            return Ok(CheckFileSignatureControlFlow::ChangeToDetectedExtension {
+                new_path_filename,
+                new_extension: Extension::from_format(detected),
+            });
+        }
+        (Some(detected), Some(from_path)) => {
+            if from_path != detected {
+                let error = FinalError::with_title(format!("Format mismatch for {}", PathFmt(path)))
+                    .detail(format!(
+                        "File extension suggests `{}`, but file signature indicates `{}`",
+                        from_path.as_str(),
+                        detected.as_str(),
+                    ))
+                    .hint(format!(
+                        "Use the `--format {}` flag to specify the correct format",
+                        detected.as_str()
+                    ))
+                    .hint("(If that's not correct, please rename the file)");
+
+                return Err(error.into());
             }
         }
-    } else {
-        // NOTE: If this actually produces no false positives, we can upgrade it in the future
-        // to a warning and ask the user if he wants to continue decompressing.
-        info_accessible!(
-            "Failed to confirm the format of `{}` by sniffing the contents, file might be misnamed",
-            path.display()
-        );
     }
-    Ok(ControlFlow::Continue(()))
+
+    Ok(CheckFileSignatureControlFlow::Continue)
 }
 
 /// In the context of listing archives, this function checks if `ouch` was told to list
@@ -98,22 +135,19 @@ pub fn check_for_non_archive_formats(files: &[PathBuf], formats: &[Vec<Extension
 /// Show error if archive format is not the first format in the chain.
 pub fn check_archive_formats_position(formats: &[Extension], output_path: &Path) -> Result<()> {
     if let Some(format) = formats.iter().skip(1).find(|format| format.is_archive()) {
-        let error = FinalError::with_title(format!(
-            "Cannot compress to '{}'.",
-            EscapedPathDisplay::new(output_path)
-        ))
-        .detail(format!("Found the format '{format}' in an incorrect position."))
-        .detail(format!(
-            "'{format}' can only be used at the start of the file extension."
-        ))
-        .hint(format!(
-            "If you wish to compress multiple files, start the extension with '{format}'."
-        ))
-        .hint(format!(
-            "Otherwise, remove the last '{}' from '{}'.",
-            format,
-            EscapedPathDisplay::new(output_path)
-        ));
+        let error = FinalError::with_title(format!("Cannot compress to {}", PathFmt(output_path)))
+            .detail(format!("Found the format '{format}' in an incorrect position."))
+            .detail(format!(
+                "'{format}' can only be used at the start of the file extension."
+            ))
+            .hint(format!(
+                "If you wish to compress multiple files, start the extension with '{format}'."
+            ))
+            .hint(format!(
+                "Otherwise, remove the last '{}' from {}.",
+                format,
+                PathFmt(output_path)
+            ));
 
         return Err(error.into());
     }
@@ -128,7 +162,7 @@ pub fn check_deb_compression(output_path: &Path) -> Result<()> {
     {
         let error = FinalError::with_title(format!(
             "Cannot compress to '{}'.",
-            EscapedPathDisplay::new(output_path)
+            PathFmt(output_path)
         ))
         .detail("Creating .deb packages is not supported, use 'dpkg-deb' instead.");
 
@@ -171,7 +205,7 @@ pub fn check_missing_formats_when_decompressing(files: &[PathBuf], formats: &[Ve
         ));
     }
 
-    error = error.detail("Decompression formats are detected automatically from file extension");
+    error = error.detail("Decompression formats are detected automatically from file extension and signature");
     error = error.hint_all_supported_formats();
 
     // If there's exactly one file, give a suggestion to use `--format`
@@ -179,10 +213,7 @@ pub fn check_missing_formats_when_decompressing(files: &[PathBuf], formats: &[Ve
         error = error
             .hint("")
             .hint("Alternatively, you can pass an extension to the '--format' flag:")
-            .hint(format!(
-                "  ouch decompress {} --format tar.gz",
-                EscapedPathDisplay::new(path),
-            ));
+            .hint(format!("  ouch decompress {} --format tar.gz", NoQuotePathFmt(path)));
     }
 
     Err(error.into())
@@ -191,15 +222,23 @@ pub fn check_missing_formats_when_decompressing(files: &[PathBuf], formats: &[Ve
 /// Check if there is a first format when compressing, and returns it.
 pub fn check_first_format_when_compressing<'a>(formats: &'a [Extension], output_path: &Path) -> Result<&'a Extension> {
     formats.first().ok_or_else(|| {
-        let output_path = EscapedPathDisplay::new(output_path);
-        FinalError::with_title(format!("Cannot compress to '{output_path}'."))
-            .detail("You shall supply the compression format")
+        FinalError::with_title(format!("Cannot compress to {}", PathFmt(output_path)))
+            .detail("You must supply the compression format")
             .hint("Try adding supported extensions (see --help):")
-            .hint(format!("  ouch compress <FILES>... {output_path}.tar.gz"))
-            .hint(format!("  ouch compress <FILES>... {output_path}.zip"))
+            .hint(format!(
+                "  ouch compress <FILES>... {}.tar.gz",
+                NoQuotePathFmt(output_path)
+            ))
+            .hint(format!(
+                "  ouch compress <FILES>... {}.zip",
+                NoQuotePathFmt(output_path)
+            ))
             .hint("")
             .hint("Alternatively, you can overwrite this option by using the '--format' flag:")
-            .hint(format!("  ouch compress <FILES>... {output_path} --format tar.gz"))
+            .hint(format!(
+                "  ouch compress <FILES>... {} --format tar.gz",
+                NoQuotePathFmt(output_path),
+            ))
             .into()
     })
 }
@@ -211,7 +250,7 @@ pub fn check_invalid_compression_with_non_archive_format(
     formats: &[Extension],
     output_path: &Path,
     files: &[PathBuf],
-    formats_from_flag: Option<&OsString>,
+    formats_from_flag: Option<&str>,
 ) -> Result<()> {
     let first_format = check_first_format_when_compressing(formats, output_path)?;
 
@@ -231,7 +270,6 @@ pub fn check_invalid_compression_with_non_archive_format(
     };
 
     let (from_hint, to_hint) = if let Some(formats) = formats_from_flag {
-        let formats = formats.to_string_lossy();
         (
             format!("From: --format {formats}"),
             format!("To:   --format tar.{formats}"),
@@ -245,19 +283,20 @@ pub fn check_invalid_compression_with_non_archive_format(
             .expect("output path should contain a compression format");
 
         (
-            format!("From: {}", EscapedPathDisplay::new(output_path)),
-            format!("To:   {suggested_output_path}"),
+            format!("From: {}", PathFmt(output_path)),
+            format!("To:   \"{suggested_output_path}\""),
         )
     };
-    let output_path = EscapedPathDisplay::new(output_path);
 
-    let error = FinalError::with_title(format!("Cannot compress to '{output_path}'."))
+    let error = FinalError::with_title(format!("Cannot compress to {}", PathFmt(output_path)))
         .detail(first_detail_message)
         .detail(format!(
             "The compression format '{first_format}' does not accept multiple files.",
         ))
-        .detail("Formats that bundle files into an archive are tar and zip.")
-        .hint(format!("Try inserting 'tar.' or 'zip.' before '{first_format}'."))
+        .detail("Formats that bundle files into an archive are tar, zip and 7z.")
+        .hint(format!(
+            "Try inserting 'tar.', 'zip.' or '7z.' before '{first_format}'."
+        ))
         .hint(from_hint)
         .hint(to_hint);
 

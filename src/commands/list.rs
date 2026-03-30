@@ -6,12 +6,12 @@ use std::{
 use fs_err as fs;
 
 use crate::{
-    archive,
+    BUFFER_CAPACITY, QuestionAction, QuestionPolicy, Result, archive,
     commands::warn_user_about_loading_zip_in_memory,
     extension::CompressionFormat::{self, *},
     list::{self, FileInArchive, ListOptions},
+    non_archive::lz4::MultiFrameLz4Decoder,
     utils::{io::lock_and_flush_output_stdio, user_wants_to_continue},
-    QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
 /// File at archive_path is opened for reading, example: "archive.tar.gz"
@@ -22,7 +22,7 @@ pub fn list_archive_contents(
     list_options: ListOptions,
     question_policy: QuestionPolicy,
     password: Option<&[u8]>,
-) -> crate::Result<()> {
+) -> Result<()> {
     let reader = fs::File::open(archive_path)?;
 
     // Zip archives are special, because they require io::Seek, so it requires its logic separated
@@ -45,18 +45,18 @@ pub fn list_archive_contents(
 
     // Grab previous decoder and wrap it inside of a new one
     let chain_reader_decoder =
-        |format: CompressionFormat, decoder: Box<dyn Read + Send>| -> crate::Result<Box<dyn Read + Send>> {
+        |format: CompressionFormat, decoder: Box<dyn Read + Send>| -> Result<Box<dyn Read + Send>> {
             let decoder: Box<dyn Read + Send> = match format {
-                Gzip => Box::new(flate2::read::GzDecoder::new(decoder)),
-                Bzip => Box::new(bzip2::read::BzDecoder::new(decoder)),
+                Gzip => Box::new(flate2::read::MultiGzDecoder::new(decoder)),
+                Bzip => Box::new(bzip2::read::MultiBzDecoder::new(decoder)),
                 Bzip3 => {
                     #[cfg(not(feature = "bzip3"))]
-                    return Err(archive::bzip3_stub::no_support());
+                    return Err(crate::Error::bzip3_no_support());
 
                     #[cfg(feature = "bzip3")]
                     Box::new(bzip3::read::Bz3Decoder::new(decoder).unwrap())
                 }
-                Lz4 => Box::new(lz4_flex::frame::FrameDecoder::new(decoder)),
+                Lz4 => Box::new(MultiFrameLz4Decoder::new(decoder)),
                 Lzma => Box::new(lzma_rust2::LzmaReader::new_mem_limit(decoder, u32::MAX, None)?),
                 Xz => Box::new(lzma_rust2::XzReader::new(decoder, true)),
                 Lzip => Box::new(lzma_rust2::LzipReader::new(decoder)?),
@@ -70,7 +70,7 @@ pub fn list_archive_contents(
 
     let mut misplaced_archive_format = None;
     for &format in formats.iter().skip(1).rev() {
-        if format.archive_format() {
+        if format.is_archive_format() {
             misplaced_archive_format = Some(format);
             break;
         }
@@ -78,12 +78,11 @@ pub fn list_archive_contents(
     }
 
     let archive_format = misplaced_archive_format.unwrap_or(formats[0]);
-    let files: Box<dyn Iterator<Item = crate::Result<FileInArchive>>> = match archive_format {
-        Tar => Box::new(crate::archive::tar::list_archive(tar::Archive::new(reader))),
+    let files: Box<dyn Iterator<Item = Result<FileInArchive>>> = match archive_format {
+        Tar => Box::new(crate::archive::tar::list_archive(tar::Archive::new(reader))?),
         Zip => {
             if formats.len() > 1 {
-                // Locking necessary to guarantee that warning and question
-                // messages stay adjacent
+                // Make thread own locks to keep output messages adjacent
                 let _locks = lock_and_flush_output_stdio();
 
                 warn_user_about_loading_zip_in_memory();
@@ -110,18 +109,18 @@ pub fn list_archive_contents(
         }
         #[cfg(not(feature = "unrar"))]
         Rar => {
-            return Err(crate::archive::rar_stub::no_support());
+            return Err(crate::Error::rar_no_support());
         }
         SevenZip => {
             if formats.len() > 1 {
-                // Locking necessary to guarantee that warning and question
-                // messages stay adjacent
-                let _locks = lock_and_flush_output_stdio();
-
+                // Make thread own locks to keep output messages adjacent
+                let locks = lock_and_flush_output_stdio();
                 warn_user_about_loading_zip_in_memory();
                 if !user_wants_to_continue(archive_path, question_policy, QuestionAction::Decompression)? {
                     return Ok(());
                 }
+                drop(locks);
+
                 let mut vec = vec![];
                 io::copy(&mut reader, &mut vec)?;
 

@@ -1,7 +1,6 @@
 ---
 source: tests/ui.rs
 expression: "output_to_string(ouch!(\"--help\"))"
-snapshot_kind: text
 ---
 A command-line utility for easily compressing and decompressing files and directories.
 
@@ -9,7 +8,7 @@ Supported formats: tar, zip, gz, 7z, xz, lzma, lzip, bz/bz2, bz3, lz4, sz (Snapp
 
 Repository: https://github.com/ouch-org/ouch
 
-Usage: <OUCH_BIN> [OPTIONS] <COMMAND>
+Usage: [OUCH_BIN] [OPTIONS] <COMMAND>
 
 Commands:
   compress    Compress one or more files into one output file [aliases: c]

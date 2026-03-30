@@ -9,15 +9,16 @@ use gzp::par::compress::{ParCompress, ParCompressBuilder};
 
 use super::warn_user_about_loading_sevenz_in_memory;
 use crate::{
-    archive,
+    BUFFER_CAPACITY, QuestionAction, QuestionPolicy, Result, archive,
     commands::warn_user_about_loading_zip_in_memory,
-    extension::{split_first_compression_format, CompressionFormat::*, Extension},
+    extension::{CompressionFormat::*, Extension, split_first_compression_format},
+    info_accessible,
     utils::{
+        BytesFmt, FileVisibilityPolicy, file_size,
         io::lock_and_flush_output_stdio,
         threads::{logical_thread_count, physical_thread_count},
-        user_wants_to_continue, FileVisibilityPolicy,
+        user_wants_to_continue,
     },
-    QuestionAction, QuestionPolicy, BUFFER_CAPACITY,
 };
 
 /// Compress files into `output_file`.
@@ -30,7 +31,6 @@ use crate::{
 /// # Return value
 /// - Returns `Ok(true)` if compressed all files normally.
 /// - Returns `Ok(false)` if user opted to abort compression mid-way.
-#[allow(clippy::too_many_arguments)]
 pub fn compress_files(
     files: Vec<PathBuf>,
     extensions: Vec<Extension>,
@@ -40,14 +40,14 @@ pub fn compress_files(
     question_policy: QuestionPolicy,
     file_visibility_policy: FileVisibilityPolicy,
     level: Option<i16>,
-) -> crate::Result<bool> {
+) -> Result<bool> {
     // If the input files contain a directory, then the total size will be underestimated
     let file_writer = BufWriter::with_capacity(BUFFER_CAPACITY, output_file);
 
     let mut writer: Box<dyn Send + Write> = Box::new(file_writer);
 
     // Grab previous encoder and wrap it inside of a new one
-    let chain_writer_encoder = |format: &_, encoder| -> crate::Result<_> {
+    let chain_writer_encoder = |format: &_, encoder| -> Result<_> {
         let encoder: Box<dyn Send + Write> = match format {
             Gzip => Box::new({
                 // by default, ParCompress uses a default compression level of 3
@@ -67,7 +67,7 @@ pub fn compress_files(
             )),
             Bzip3 => {
                 #[cfg(not(feature = "bzip3"))]
-                return Err(archive::bzip3_stub::no_support());
+                return Err(crate::Error::bzip3_no_support());
 
                 #[cfg(feature = "bzip3")]
                 Box::new(
@@ -108,7 +108,6 @@ pub fn compress_files(
                     .num_threads(logical_thread_count())
                     .expect("gpz: num_threads must be greater than 0")
                     .from_writer(encoder);
-
                 parz
             }),
             Zstd => {
@@ -143,11 +142,11 @@ pub fn compress_files(
         Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {
             writer = chain_writer_encoder(&first_format, writer)?;
             let mut reader = fs::File::open(&files[0])?;
-
             io::copy(&mut reader, &mut writer)?;
+            info_accessible!("Input file size: {}", BytesFmt(file_size(&files[0])?));
         }
         Tar => {
-            archive::tar::build_archive_from_paths(
+            archive::tar::build_archive(
                 &files,
                 output_path,
                 &mut writer,
@@ -158,8 +157,7 @@ pub fn compress_files(
         }
         Zip => {
             if !formats.is_empty() {
-                // Locking necessary to guarantee that warning and question
-                // messages stay adjacent
+                // Make thread own locks to keep output messages adjacent
                 let _locks = lock_and_flush_output_stdio();
 
                 warn_user_about_loading_zip_in_memory();
@@ -170,7 +168,7 @@ pub fn compress_files(
 
             let mut vec_buffer = Cursor::new(vec![]);
 
-            archive::zip::build_archive_from_paths(
+            archive::zip::build_archive(
                 &files,
                 output_path,
                 &mut vec_buffer,
@@ -185,12 +183,11 @@ pub fn compress_files(
             return Err(archive::rar::no_compression());
 
             #[cfg(not(feature = "unrar"))]
-            return Err(archive::rar_stub::no_support());
+            return Err(crate::Error::rar_no_support());
         }
         SevenZip => {
             if !formats.is_empty() {
-                // Locking necessary to guarantee that warning and question
-                // messages stay adjacent
+                // Make thread own locks to keep output messages adjacent
                 let _locks = lock_and_flush_output_stdio();
 
                 warn_user_about_loading_sevenz_in_memory();
@@ -200,7 +197,7 @@ pub fn compress_files(
             }
 
             let mut vec_buffer = Cursor::new(vec![]);
-            archive::sevenz::compress_sevenz(&files, output_path, &mut vec_buffer, file_visibility_policy)?;
+            archive::sevenz::build_archive(&files, output_path, &mut vec_buffer, file_visibility_policy)?;
             vec_buffer.rewind()?;
             io::copy(&mut vec_buffer, &mut writer)?;
         }

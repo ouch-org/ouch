@@ -12,16 +12,16 @@ use fs_err as fs;
 use same_file::Handle;
 
 use crate::{
-    commands::Unpacked,
+    Result,
     error::FinalError,
     info,
     list::FileInArchive,
-    utils::{self, Bytes, EscapedPathDisplay, FileVisibilityPolicy},
+    utils::{self, BytesFmt, FileVisibilityPolicy, PathFmt, is_same_file_as_output},
     warning,
 };
 
 /// Unpacks an ar archive into the given output folder
-pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path) -> crate::Result<Unpacked> {
+pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> Result<u64> {
     let mut archive = ar::Archive::new(reader);
     let mut files_unpacked = 0;
 
@@ -51,18 +51,15 @@ pub fn unpack_archive(reader: Box<dyn Read>, output_folder: &Path) -> crate::Res
         let size = std::io::copy(&mut entry, &mut output_file)?;
 
         info!(
-            "extracted ({}) {:?}",
-            Bytes::new(size),
-            utils::strip_cur_dir(&output_path),
+            "extracted ({}) {}",
+            BytesFmt(size),
+            PathFmt(&output_path),
         );
 
         files_unpacked += 1;
     }
 
-    Ok(Unpacked {
-        files_unpacked,
-        read_only_directories: Vec::new(),
-    })
+    Ok(files_unpacked)
 }
 
 /// List contents of an ar archive
@@ -121,7 +118,7 @@ pub fn build_archive_from_paths<W>(
     output_path: &Path,
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
-) -> crate::Result<W>
+) -> Result<W>
 where
     W: Write,
 {
@@ -139,12 +136,12 @@ where
             let entry = entry?;
             let path = entry.path();
 
-            // If the output_path is the same as the input file, warn the user and skip
-            if let Ok(handle) = &output_handle {
-                if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
-                    warning!("Cannot compress `{}` into itself, skipping", output_path.display());
-                    continue;
-                }
+            // Avoid compressing the output file into itself
+            if let Ok(handle) = output_handle.as_ref()
+                && is_same_file_as_output(path, handle)
+            {
+                warning!("Cannot compress {} into itself, skipping", PathFmt(output_path));
+                continue;
             }
 
             // ar archives only support regular files, skip directories and symlinks
@@ -152,7 +149,7 @@ where
                 continue;
             }
 
-            info!("Compressing '{}'", EscapedPathDisplay::new(path));
+            info!("Compressing {}", PathFmt(path));
 
             let file = match fs::File::open(path) {
                 Ok(f) => f,

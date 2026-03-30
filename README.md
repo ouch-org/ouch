@@ -11,7 +11,7 @@
 
 `ouch` stands for **Obvious Unified Compression Helper**.
 
-It's a CLI tool for compressing and decompressing for various formats.
+It's a CLI tool for compressing and decompressing various formats.
 
 - [Features](#features)
 - [Usage](#usage)
@@ -25,13 +25,13 @@ It's a CLI tool for compressing and decompressing for various formats.
 1. Easy to use.
 2. Fast.
 3. Great error message feedback.
-4. No runtime dependencies required (for _Linux x86_64_).
+4. No runtime dependencies (when using the Linux static binary).
 5. Accessibility mode ([see more](https://github.com/ouch-org/ouch/wiki/Accessibility)).
 6. Shell completions and man pages.
 
 # Usage
 
-Ouch has three main subcommands:
+`ouch` has three main subcommands:
 
 - `ouch decompress` (alias `d`)
 - `ouch compress` (alias `c`)
@@ -111,9 +111,9 @@ Output:
 
 # Supported formats
 
-| Format    | `.tar` | `.zip` | `7z` | `.gz` | `.xz` | `.lzma` | `.lz` | `.bz`, `.bz2` | `.bz3` | `.lz4` | `.sz` (Snappy) | `.zst` | `.rar` | `.br` |
+| Format    | `.tar` | `.zip` | `.7z` | `.gz` | `.sz` | `.zst` | `.xz` | `.lzma` | `.lz` | `.bz`, `.bz2` | `.bz3` | `.lz4` | `.rar` | `.br` |
 |:---------:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Supported | ✓ | ✓¹ | ✓¹ | ✓² | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓² | ✓² | ✓³ | ✓ |
+| Supported | ✓ | ✓¹ | ✓¹ | ✓² | ✓² | ✓² | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓³ | ✓ |
 
 ✓: Supports compression and decompression.
 
@@ -137,7 +137,7 @@ Formats can be chained:
 - `.tar.gz`
 - `.tar.gz.xz.zst.gz.lz4.sz`
 
-If the filename has no extensions, `Ouch` will try to infer the format by the [file signature](https://en.wikipedia.org/wiki/List_of_file_signatures) and ask the user for confirmation.
+If the filename has no extensions, `ouch` will try to infer the format by the [file signature](https://en.wikipedia.org/wiki/List_of_file_signatures) and ask the user for confirmation.
 
 # Installation
 
@@ -155,9 +155,9 @@ The most commonly used installation methods:
 pacman -S ouch
 ```
 
-## On MacOS via homebrew
+## On MacOS via Homebrew
 
-```cmd
+```bash
 brew install ouch
 ```
 
@@ -173,7 +173,7 @@ scoop install ouch
 cargo install ouch
 ```
 
-(If you're in Ubuntu, you might need to install `clang` to build it from crates.io.)
+(If you're on Ubuntu, you might need to install `clang` to build it from crates.io.)
 
 ## Download the latest release bundle
 
@@ -201,7 +201,7 @@ These should be available in your system's package manager.
 
 Benchmark results are available [here](benchmarks/results.md).
 Performance of compressing and decompressing
-[Rust](https://github.com/rust-lang/rust) source code are measured and compared with
+[Rust](https://github.com/rust-lang/rust) source code is measured and compared with
 [Hyperfine](https://github.com/sharkdp/hyperfine).
 The values presented are the average (wall clock) elapsed time.
 
@@ -217,7 +217,7 @@ Versions used:
 
 # Contributing
 
-`ouch` is made out of voluntary work, contributors are very welcome! Contributions of all sizes are appreciated.
+Contributions of all sizes are welcome and appreciated!
 
 - Open an [issue](https://github.com/ouch-org/ouch/issues).
 - Package it for your favorite distribution or package manager.

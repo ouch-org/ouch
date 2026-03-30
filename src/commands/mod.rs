@@ -4,24 +4,24 @@ mod compress;
 mod decompress;
 mod list;
 
-use std::{ops::ControlFlow, path::PathBuf};
-
 use bstr::ByteSlice;
 use decompress::DecompressOptions;
-pub use decompress::Unpacked;
 use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use utils::colors;
 
 use crate::{
-    check,
+    CliArgs, INITIAL_CURRENT_DIR, QuestionPolicy, Result,
+    check::{self, CheckFileSignatureControlFlow},
     cli::Subcommand,
     commands::{compress::compress_files, decompress::decompress_file, list::list_archive_contents},
     error::{Error, FinalError},
     extension::{self, parse_format_flag},
     info_accessible,
     list::ListOptions,
-    utils::{self, colors::*, is_path_stdin, path_to_str, EscapedPathDisplay, FileVisibilityPolicy, QuestionAction},
-    CliArgs, QuestionPolicy,
+    utils::{
+        self, BytesFmt, FileVisibilityPolicy, NoQuotePathFmt, PathFmt, QuestionAction, canonicalize, colors::*,
+        file_size, is_path_stdin,
+    },
 };
 
 /// Warn the user that (de)compressing this .zip archive might freeze their system.
@@ -48,11 +48,7 @@ fn warn_user_about_loading_sevenz_in_memory() {
 /// to assume everything is OK.
 ///
 /// There are a lot of custom errors to give enough error description and explanation.
-pub fn run(
-    args: CliArgs,
-    question_policy: QuestionPolicy,
-    file_visibility_policy: FileVisibilityPolicy,
-) -> crate::Result<()> {
+pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_policy: FileVisibilityPolicy) -> Result<()> {
     if let Some(threads) = args.threads {
         rayon::ThreadPoolBuilder::new()
             .num_threads(threads)
@@ -87,16 +83,19 @@ pub fn run(
                 &formats,
                 &output_path,
                 &files,
-                formats_from_flag.as_ref(),
+                formats_from_flag.as_deref(),
             )?;
             check::check_archive_formats_position(&formats, &output_path)?;
             check::check_deb_compression(&output_path)?;
 
-            let output_file =
-                match utils::ask_to_create_file(&output_path, question_policy, QuestionAction::Compression)? {
-                    Some(writer) => writer,
-                    None => return Ok(()),
-                };
+            let (output_file, output_path) = match utils::create_file_or_prompt_on_conflict(
+                &output_path,
+                question_policy,
+                QuestionAction::Compression,
+            )? {
+                Some(writer) => writer,
+                None => return Ok(()),
+            };
 
             let level = if fast {
                 Some(1) // Lowest level of compression
@@ -118,11 +117,8 @@ pub fn run(
             );
 
             if let Ok(true) = compress_result {
-                // this is only printed once, so it doesn't result in much text. On the other hand,
-                // having a final status message is important especially in an accessibility context
-                // as screen readers may not read a commands exit code, making it hard to reason
-                // about whether the command succeeded without such a message
-                info_accessible!("Successfully compressed '{}'", path_to_str(&output_path));
+                info_accessible!("Output file size: {}", BytesFmt(file_size(&output_path)?));
+                info_accessible!("Successfully compressed to {}", PathFmt(&output_path));
             } else {
                 // If Ok(false) or Err() occurred, delete incomplete file at `output_path`
                 //
@@ -130,10 +126,7 @@ pub fn run(
                 // out that we left a possibly CORRUPTED file at `output_path`
                 if utils::remove_file_or_dir(&output_path).is_err() {
                     eprintln!("{red}FATAL ERROR:\n", red = *colors::RED);
-                    eprintln!(
-                        "  Ouch failed to delete the file '{}'.",
-                        EscapedPathDisplay::new(&output_path)
-                    );
+                    eprintln!("  Ouch failed to delete the file {}", PathFmt(&output_path));
                     eprintln!("  Please delete it manually.");
                     eprintln!("  This file is corrupted if compression didn't finished.");
 
@@ -149,71 +142,86 @@ pub fn run(
             files,
             output_dir,
             remove,
-            no_smart_unpack,
         } => {
-            let mut output_paths = vec![];
-            let mut formats = vec![];
+            let mut files_output_paths: Vec<_> = vec![];
+            let mut files_extensions: Vec<Vec<_>> = vec![];
 
             if let Some(format) = args.format {
                 let format = parse_format_flag(&format)?;
                 for path in files.iter() {
-                    // TODO: use Error::Custom
-                    let file_name = path.file_name().ok_or_else(|| Error::NotFound {
-                        error_title: format!("{} does not have a file name", EscapedPathDisplay::new(path)),
+                    let file_name = path.file_name().ok_or_else(|| Error::Custom {
+                        reason: FinalError::with_title(format!("{} does not have a file name", PathFmt(path))),
                     })?;
-                    output_paths.push(file_name.as_ref());
-                    formats.push(format.clone());
+                    files_output_paths.push(file_name.into());
+                    files_extensions.push(format.clone());
                 }
             } else {
                 for path in files.iter() {
-                    let (pathbase, mut file_formats) = extension::separate_known_extensions_from_name(path)?;
+                    let (output_path, mut extensions) = extension::separate_known_extensions_from_name(path)?;
+                    let mut output_path = output_path.to_owned();
 
-                    if let ControlFlow::Break(_) = check::check_mime_type(path, &mut file_formats, question_policy)? {
-                        return Ok(());
+                    match check::check_file_signature(path, &extensions, question_policy)? {
+                        CheckFileSignatureControlFlow::HaltProgram => return Ok(()),
+                        CheckFileSignatureControlFlow::Continue => {}
+                        CheckFileSignatureControlFlow::ChangeToDetectedExtension {
+                            new_extension,
+                            new_path_filename,
+                        } => {
+                            extensions = vec![new_extension];
+                            output_path = output_path.with_file_name(new_path_filename);
+                        }
                     }
 
-                    output_paths.push(pathbase);
-                    formats.push(file_formats);
+                    files_output_paths.push(output_path);
+                    files_extensions.push(extensions);
                 }
             }
 
-            check::check_missing_formats_when_decompressing(&files, &formats)?;
-
-            let is_output_dir_provided = output_dir.is_some();
-            let is_smart_unpack = !is_output_dir_provided && !no_smart_unpack;
+            check::check_missing_formats_when_decompressing(&files, &files_extensions)?;
 
             // The directory that will contain the output files
             // We default to the current directory if the user didn't specify an output directory with --dir
             let output_dir = if let Some(dir) = output_dir {
                 utils::create_dir_if_non_existent(&dir)?;
-                dir
+                // If not canonicalized, strip_prefix won't work and logs will break
+                // Led to bugs when output_dir was a symlink
+                canonicalize(&dir)?
             } else {
-                PathBuf::from(".")
+                INITIAL_CURRENT_DIR.clone()
             };
 
             files
                 .par_iter()
-                .zip(formats)
-                .zip(output_paths)
+                .zip(files_extensions)
+                .zip(files_output_paths)
                 .try_for_each(|((input_path, formats), file_name)| {
                     // Path used by single file format archives
-                    let output_file_path = if is_path_stdin(file_name) {
-                        output_dir.join("stdin-output")
+                    let output_file_path = if is_path_stdin(&file_name) {
+                        output_dir.join("ouch-output")
                     } else {
                         output_dir.join(file_name)
                     };
+
                     decompress_file(DecompressOptions {
                         input_file_path: input_path,
                         formats,
-                        is_output_dir_provided,
                         output_dir: &output_dir,
                         output_file_path,
-                        is_smart_unpack,
                         question_policy,
                         password: args.password.as_deref().map(|str| {
                             <[u8] as ByteSlice>::from_os_str(str).expect("convert password to bytes failed")
                         }),
                         remove,
+                    })
+                    .map_err(|err| match err {
+                        Error::IoError { reason } => Error::Custom {
+                            reason: FinalError::with_title(format!(
+                                "Failed to decompress {}",
+                                NoQuotePathFmt(input_path)
+                            ))
+                            .detail(reason),
+                        },
+                        other => other,
                     })
                 })
         }
@@ -227,13 +235,17 @@ pub fn run(
                 }
             } else {
                 for path in files.iter() {
-                    let mut file_formats = extension::extensions_from_path(path)?;
+                    let mut extensions = extension::extensions_from_path(path)?;
 
-                    if let ControlFlow::Break(_) = check::check_mime_type(path, &mut file_formats, question_policy)? {
-                        return Ok(());
+                    match check::check_file_signature(path, &extensions, question_policy)? {
+                        CheckFileSignatureControlFlow::HaltProgram => return Ok(()),
+                        CheckFileSignatureControlFlow::Continue => {}
+                        CheckFileSignatureControlFlow::ChangeToDetectedExtension { new_extension, .. } => {
+                            extensions = vec![new_extension]
+                        }
                     }
 
-                    formats.push(file_formats);
+                    formats.push(extensions);
                 }
             }
 

@@ -5,9 +5,9 @@ expression: "run_ouch(\"ouch decompress a b.unknown\", dir)"
 ---
 [WARNING] Received a file with name 'a', but a was expected as the extension
 [ERROR] Cannot decompress files
- - Files with unsupported extensions: <TMP_DIR>/b.unknown
- - Files with missing extensions: <TMP_DIR>/a
- - Decompression formats are detected automatically from file extension
+ - Files with unsupported extensions: "b.unknown"
+ - Files with missing extensions: "a"
+ - Decompression formats are detected automatically from file extension and signature
 
 hint: Supported extensions are: tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, lz, sz, zst, rar, 7z, a, deb
 hint: Supported aliases are: tgz, tbz, tlz4, txz, tlzma, tsz, tzst, tlz, cbt, cbz, cb7, cbr

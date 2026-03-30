@@ -5,8 +5,8 @@ authors = [
     "João Marcos <marcospb19@hotmail.com>",
     "Vinícius Rodrigues Miguel <vrmiguel99@gmail.com>",
 ]
-edition = "2021"
-rust-version = "1.82.0"
+edition = "2024"
+rust-version = "1.85.0"
 readme = "README.md"
 repository = "https://github.com/ouch-org/ouch"
 license = "MIT"
@@ -22,22 +22,25 @@ bytesize = "1.3.0"
 bzip2 = "0.4.4"
 bzip3 = { version = "0.9.0", features = ["bundled"], optional = true }
 clap = { version = "4.5.20", features = ["derive", "env"] }
+file_type_enum = "3.0.1"
 filetime_creation = "0.2"
 flate2 = { version = "1.0.30", default-features = false }
 fs-err = "2.11.0"
 gzp = { version = "2.0.1", default-features = true, features = [
     "snappy_default",
 ] }
-ignore = "0.4.23"
+ignore = "0.4.25"
+is_executable = "1.0.5"
 libc = "0.2.155"
 linked-hash-map = "0.5.6"
-lz4_flex = "0.11.3"
+lz4_flex = "0.11.6"
 lzma-rust2 = "0.14.2"
 num_cpus = "1.16.0"
 rayon = "1.10.0"
 same-file = "1.0.6"
 sevenz-rust2 = { version = "0.19.1", features = ["compress", "aes256"] }
 snap = "1.1.1"
+strum = { version = "0.28.0", features = ["derive"] }
 tar = "0.4.42"
 tempfile = "3.10.1"
 time = { version = "0.3.36", default-features = false }
@@ -49,16 +52,8 @@ zip = { version = "6", default-features = false, features = [
 ] }
 zstd = { version = "0.13.2", default-features = false, features = ["zstdmt"] }
 
-[target.'cfg(not(unix))'.dependencies]
-is_executable = "1.0.1"
-
-[build-dependencies]
-clap = { version = "4.5.20", features = ["derive", "env", "string"] }
-clap_complete = "4.5.28"
-clap_complete_nushell = "4.5.5"
-clap_mangen = "0.2.24"
-
 [dev-dependencies]
+anyhow = "1.0.102"
 assert_cmd = "2.0.14"
 glob = "0.3.2"
 infer = "0.16.0"
@@ -75,11 +70,16 @@ rand = { version = "0.8.5", default-features = false, features = [
 regex = "1.10.4"
 test-strategy = "0.4.0"
 
+[build-dependencies]
+clap = { version = "4.5.20", features = ["derive", "env", "string"] }
+clap_complete = "4.5.28"
+clap_complete_nushell = "4.5.5"
+clap_mangen = "0.2.24"
+
 [features]
 default = ["unrar", "use_zlib", "use_zstd_thin", "bzip3"]
 use_zlib = ["flate2/zlib", "gzp/deflate_zlib", "zip/deflate-flate2-zlib"]
 use_zstd_thin = ["zstd/thin"]
-allow_piped_choice = []
 
 # For generating binaries for releases
 [profile.release]
@@ -96,3 +96,7 @@ opt-level = 2
 incremental = true
 codegen-units = 32
 strip = false
+
+[lints.clippy]
+type_complexity = "allow"
+too_many_arguments = "allow"

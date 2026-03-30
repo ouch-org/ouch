@@ -37,12 +37,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # TODO: avoid exploding the matrix by removing unrar and bzip3 from the all combinations runs
-        # I can add a monthly run with all combinations
         feature-unrar: ${{ inputs.matrix_all_combinations && fromJSON('[true, false]') || fromJSON('[true]')}}
         feature-bzip3: ${{ inputs.matrix_all_combinations && fromJSON('[true, false]') || fromJSON('[true]')}}
-        feature-use-zlib: ${{ inputs.matrix_all_combinations && fromJSON('[true, false]') || fromJSON('[false]')}}
-        feature-use-zstd-thin: ${{ inputs.matrix_all_combinations && fromJSON('[true, false]') || fromJSON('[false]')}}
+        feature-use-zlib: ${{ inputs.matrix_all_combinations && fromJSON('[true, false]') || fromJSON('[true]')}}
+        feature-use-zstd-thin: ${{ inputs.matrix_all_combinations && fromJSON('[true, false]') || fromJSON('[true]')}}
         target:
           # native
           - x86_64-unknown-linux-gnu
@@ -78,15 +76,33 @@ jobs:
             use-cross: true
           - target: armv7-unknown-linux-musleabihf
             use-cross: true
-          # features (unless `matrix_all_combinations` is true, we only run these on linux-gnu)
-          - feature-unrar: false
-            target: x86_64-unknown-linux-gnu
-          - feature-use-zlib: true
-            target: x86_64-unknown-linux-gnu
-          - feature-use-zstd-thin: true
-            target: x86_64-unknown-linux-gnu
-          - feature-bzip3: false
-            target: x86_64-unknown-linux-gnu
+          # 1 run per feature where only that feature is enabled
+          - target: x86_64-unknown-linux-gnu
+            feature-unrar: true
+            feature-use-zlib: false
+            feature-use-zstd-thin: false
+            feature-bzip3: false
+          - target: x86_64-unknown-linux-gnu
+            feature-unrar: false
+            feature-use-zlib: true
+            feature-use-zstd-thin: false
+            feature-bzip3: false
+          - target: x86_64-unknown-linux-gnu
+            feature-unrar: false
+            feature-use-zlib: false
+            feature-use-zstd-thin: true
+            feature-bzip3: false
+          - target: x86_64-unknown-linux-gnu
+            feature-unrar: false
+            feature-use-zlib: false
+            feature-use-zstd-thin: false
+            feature-bzip3: true
+          # One run with all features disabled
+          - target: x86_64-unknown-linux-gnu
+            feature-unrar: false
+            feature-use-zlib: false
+            feature-use-zstd-thin: false
+            feature-bzip3: false
 
     steps:
       - name: Checkout
@@ -106,7 +122,7 @@ jobs:
         id: concat-features
         shell: bash
         run: |
-          FEATURES=(allow_piped_choice)
+          FEATURES=()
           if [[ "${{ matrix.feature-unrar }}" == true ]]; then FEATURES+=(unrar); fi
           if [[ "${{ matrix.feature-use-zlib }}" == true ]]; then FEATURES+=(use_zlib); fi
           if [[ "${{ matrix.feature-use-zstd-thin }}" == true ]]; then FEATURES+=(use_zstd_thin); fi

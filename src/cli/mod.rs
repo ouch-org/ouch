@@ -2,19 +2,17 @@
 
 mod args;
 
-use std::{
-    io,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf, absolute};
 
 use clap::Parser;
-use fs_err as fs;
 
 pub use self::args::{CliArgs, Subcommand};
 use crate::{
+    QuestionPolicy, Result,
     accessible::set_accessible,
-    utils::{is_path_stdin, logger::set_log_display_level, threads::set_thread_count, FileVisibilityPolicy},
-    QuestionPolicy,
+    utils::{
+        FileVisibilityPolicy, canonicalize, is_path_stdin, logger::set_log_display_level, threads::set_thread_count,
+    },
 };
 
 impl CliArgs {
@@ -23,7 +21,7 @@ impl CliArgs {
     /// And:
     ///   1. Make paths absolute.
     ///   2. Checks the QuestionPolicy.
-    pub fn parse_and_validate_args() -> crate::Result<(Self, QuestionPolicy, FileVisibilityPolicy)> {
+    pub fn parse_and_validate_args() -> Result<(Self, QuestionPolicy, FileVisibilityPolicy)> {
         let mut args = Self::parse();
 
         set_accessible(args.accessible);
@@ -37,7 +35,7 @@ impl CliArgs {
         let (Subcommand::Compress { files, .. }
         | Subcommand::Decompress { files, .. }
         | Subcommand::List { archives: files, .. }) = &mut args.cmd;
-        *files = canonicalize_files(files)?;
+        *files = absolutize_paths(files)?;
 
         let skip_questions_positively = match (args.yes, args.no) {
             (false, false) => QuestionPolicy::Ask,
@@ -46,24 +44,36 @@ impl CliArgs {
             (true, true) => unreachable!(),
         };
 
+        let follow_symlinks = matches!(
+            &args.cmd,
+            Subcommand::Compress {
+                follow_symlinks: true,
+                ..
+            }
+        );
+
         let file_visibility_policy = FileVisibilityPolicy::new()
             .read_git_exclude(args.gitignore)
             .read_ignore(args.gitignore)
             .read_git_ignore(args.gitignore)
-            .read_hidden(args.hidden);
+            .read_hidden(args.hidden)
+            .follow_symlinks(follow_symlinks);
 
         Ok((args, skip_questions_positively, file_visibility_policy))
     }
 }
 
-fn canonicalize_files(files: &[impl AsRef<Path>]) -> io::Result<Vec<PathBuf>> {
-    files
+fn absolutize_paths(paths: &[impl AsRef<Path>]) -> Result<Vec<PathBuf>> {
+    paths
         .iter()
-        .map(|f| {
-            if is_path_stdin(f.as_ref()) || f.as_ref().is_symlink() {
-                Ok(f.as_ref().to_path_buf())
+        .map(|path| {
+            let path = path.as_ref();
+            if is_path_stdin(path) {
+                Ok(path.into())
+            } else if path.is_symlink() {
+                Ok(absolute(path)?)
             } else {
-                fs::canonicalize(f)
+                canonicalize(path)
             }
         })
         .collect()

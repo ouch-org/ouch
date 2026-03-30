@@ -1,0 +1,5 @@
+---
+source: tests/ui.rs
+expression: "run_ouch_with_stdin(\"ouch decompress out.gz\", dir, Some(\"n\\n\"))"
+---
+Do you want to overwrite "out"? [y/n/r/m]

@@ -5,8 +5,8 @@
 
 use std::{
     borrow::Cow,
-    io::{stdin, BufRead, IsTerminal},
-    path::Path,
+    io::{self, BufRead, stdin},
+    path::{Path, PathBuf},
 };
 
 use fs_err as fs;
@@ -14,7 +14,11 @@ use fs_err as fs;
 use crate::{
     accessible::is_running_in_accessible_mode,
     error::{Error, FinalError, Result},
-    utils::{self, colors, formatting::path_to_str, io::lock_and_flush_output_stdio, strip_cur_dir},
+    utils::{
+        self, colors,
+        formatting::PathFmt,
+        io::{is_stdin_dev_null, lock_and_flush_output_stdio},
+    },
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -57,24 +61,29 @@ pub fn user_wants_to_overwrite(
     path: &Path,
     question_policy: QuestionPolicy,
     question_action: QuestionAction,
-) -> crate::Result<FileConflitOperation> {
+) -> Result<FileConflitOperation> {
     use FileConflitOperation as Op;
 
     match question_policy {
-        QuestionPolicy::AlwaysYes => Ok(Op::Overwrite),
+        QuestionPolicy::AlwaysYes => match question_action {
+            QuestionAction::Decompression => Ok(Op::Merge),
+            QuestionAction::Compression => Ok(Op::Overwrite),
+        },
         QuestionPolicy::AlwaysNo => Ok(Op::Cancel),
-        QuestionPolicy::Ask => ask_file_conflict_operation(path, question_action),
+        QuestionPolicy::Ask => prompt_user_for_file_conflict_resolution(path, question_action),
     }
 }
 
 /// Ask the user if they want to overwrite or rename the &Path
-pub fn ask_file_conflict_operation(path: &Path, question_action: QuestionAction) -> Result<FileConflitOperation> {
+pub fn prompt_user_for_file_conflict_resolution(
+    path: &Path,
+    question_action: QuestionAction,
+) -> Result<FileConflitOperation> {
     use FileConflitOperation as Op;
 
-    let path = path_to_str(strip_cur_dir(path));
     match question_action {
         QuestionAction::Compression => ChoicePrompt::new(
-            format!("Do you want to overwrite {path}?"),
+            format!("Do you want to overwrite {}?", PathFmt(path)),
             [
                 ("yes", Op::Overwrite, *colors::GREEN),
                 ("no", Op::Cancel, *colors::RED),
@@ -83,7 +92,7 @@ pub fn ask_file_conflict_operation(path: &Path, question_action: QuestionAction)
         )
         .ask(),
         QuestionAction::Decompression => ChoicePrompt::new(
-            format!("Do you want to overwrite {path}?"),
+            format!("Do you want to overwrite {}?", PathFmt(path)),
             [
                 ("yes", Op::Overwrite, *colors::GREEN),
                 ("no", Op::Cancel, *colors::RED),
@@ -96,36 +105,46 @@ pub fn ask_file_conflict_operation(path: &Path, question_action: QuestionAction)
 }
 
 /// Create the file if it doesn't exist and if it does then ask to overwrite it.
+///
 /// If the user doesn't want to overwrite then we return [`Ok(None)`]
-pub fn ask_to_create_file(
+///
+/// Returns the new file name in case the user asked to rename the file to avoid
+/// the conflict.
+pub fn create_file_or_prompt_on_conflict(
     path: &Path,
     question_policy: QuestionPolicy,
     question_action: QuestionAction,
-) -> Result<Option<fs::File>> {
-    match fs::OpenOptions::new().write(true).create_new(true).open(path) {
-        Ok(w) => Ok(Some(w)),
-        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
-            let action = match question_policy {
-                QuestionPolicy::AlwaysYes => FileConflitOperation::Overwrite,
-                QuestionPolicy::AlwaysNo => FileConflitOperation::Cancel,
-                QuestionPolicy::Ask => ask_file_conflict_operation(path, question_action)?,
-            };
+) -> Result<Option<(fs::File, PathBuf)>> {
+    let path = path.to_owned();
 
-            match action {
-                FileConflitOperation::Merge => Ok(Some(fs::File::create(path)?)),
-                FileConflitOperation::Overwrite => {
-                    utils::remove_file_or_dir(path)?;
-                    Ok(Some(fs::File::create(path)?))
-                }
-                FileConflitOperation::Cancel => Ok(None),
-                FileConflitOperation::Rename => {
-                    let renamed_file_path = utils::rename_for_available_filename(path);
-                    Ok(Some(fs::File::create(renamed_file_path)?))
-                }
-            }
+    match fs::OpenOptions::new().write(true).create_new(true).open(&path) {
+        Ok(file) => return Ok(Some((file, path))),
+        Err(e) if e.kind() != io::ErrorKind::AlreadyExists => return Err(Error::from(e)),
+
+        Err(_file_already_exists) => {
+            // Keep going, will prompt user to solve conflicts
         }
-        Err(e) => Err(Error::from(e)),
     }
+
+    // Question policy override prompting
+    let action = match question_policy {
+        QuestionPolicy::AlwaysYes => FileConflitOperation::Overwrite,
+        QuestionPolicy::AlwaysNo => FileConflitOperation::Cancel,
+        QuestionPolicy::Ask => prompt_user_for_file_conflict_resolution(&path, question_action)?,
+    };
+
+    let path_to_create_file = match action {
+        FileConflitOperation::Cancel => return Ok(None),
+        FileConflitOperation::Merge => path,
+        FileConflitOperation::Overwrite => {
+            utils::remove_file_or_dir(&path)?;
+            path
+        }
+        FileConflitOperation::Rename => utils::find_available_filename_by_renaming(&path)?,
+    };
+
+    let file = fs::File::create(&path_to_create_file)?;
+    Ok(Some((file, path_to_create_file)))
 }
 
 /// Check if QuestionPolicy flags were set, otherwise, ask the user if they want to continue.
@@ -133,7 +152,7 @@ pub fn user_wants_to_continue(
     path: &Path,
     question_policy: QuestionPolicy,
     question_action: QuestionAction,
-) -> crate::Result<bool> {
+) -> Result<bool> {
     match question_policy {
         QuestionPolicy::AlwaysYes => Ok(true),
         QuestionPolicy::AlwaysNo => Ok(false),
@@ -142,7 +161,7 @@ pub fn user_wants_to_continue(
                 QuestionAction::Compression => "compress",
                 QuestionAction::Decompression => "decompress",
             };
-            let path = path_to_str(strip_cur_dir(path));
+            let path = format!("{}", PathFmt(path));
             let path = Some(&*path);
             let placeholder = Some("FILE");
             Confirmation::new(&format!("Do you want to {action} 'FILE'?"), placeholder).ask(path)
@@ -182,13 +201,12 @@ impl<'a, T: Default> ChoicePrompt<'a, T> {
 
     /// Creates user message and receives a input to be compared with choises "label"
     /// and returning the real value of the choise selected
-    pub fn ask(mut self) -> crate::Result<T> {
+    pub fn ask(mut self) -> Result<T> {
         let message = self.prompt;
 
-        #[cfg(not(feature = "allow_piped_choice"))]
-        if !stdin().is_terminal() {
+        if is_stdin_dev_null()? {
             eprintln!("{message}");
-            eprintln!("Pass --yes to proceed");
+            eprintln!("Stdin is null, can't read user input (bypass with --yes, but be careful)");
             return Ok(T::default());
         }
 
@@ -275,17 +293,16 @@ impl<'a> Confirmation<'a> {
     }
 
     /// Creates user message and receives a boolean input to be used on the program
-    pub fn ask(&self, substitute: Option<&'a str>) -> crate::Result<bool> {
+    pub fn ask(&self, substitute: Option<&'a str>) -> Result<bool> {
         let message = match (self.placeholder, substitute) {
             (None, _) => Cow::Borrowed(self.prompt),
             (Some(_), None) => unreachable!("dev error, should be reported, we checked this won't happen"),
             (Some(placeholder), Some(subs)) => Cow::Owned(self.prompt.replace(placeholder, subs)),
         };
 
-        #[cfg(not(feature = "allow_piped_choice"))]
-        if !stdin().is_terminal() {
+        if is_stdin_dev_null()? {
             eprintln!("{message}");
-            eprintln!("Pass --yes to proceed");
+            eprintln!("Stdin is null, can't read user input (bypass with --yes, but be careful)");
             return Ok(false);
         }
 

@@ -3,7 +3,7 @@
 
 use std::{
     env,
-    io::Write,
+    io::{self, Write},
     path::{Path, PathBuf},
 };
 
@@ -33,6 +33,12 @@ pub fn cargo_bin() -> Command {
             })
         })
         .unwrap_or_else(|| Command::cargo_bin("ouch").expect("Failed to find ouch executable"))
+}
+
+pub fn testdir() -> io::Result<(tempfile::TempDir, &'static Path)> {
+    let dir = tempfile::tempdir()?;
+    let path = dir.path().to_path_buf().into_boxed_path();
+    Ok((dir, Box::leak(path)))
 }
 
 /// Creates files in the specified directory.

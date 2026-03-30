@@ -1,19 +1,22 @@
 //! Filesystem utility functions.
 
 use std::{
+    borrow::Cow,
     env,
-    io::Read,
+    io::{self, Read},
     path::{Path, PathBuf},
 };
 
-use fs_err as fs;
+use fs_err::{self as fs, PathExt};
+use same_file::Handle;
 
 use super::{question::FileConflitOperation, user_wants_to_overwrite};
 use crate::{
-    extension::Extension,
+    FinalError, QuestionPolicy, Result,
+    error::Error,
+    extension::CompressionFormat,
     info_accessible,
-    utils::{EscapedPathDisplay, QuestionAction},
-    QuestionPolicy,
+    utils::{PathFmt, QuestionAction, strip_path_ascii_prefix},
 };
 
 pub fn is_path_stdin(path: &Path) -> bool {
@@ -31,18 +34,15 @@ pub fn resolve_path_conflict(
     path: &Path,
     question_policy: QuestionPolicy,
     question_action: QuestionAction,
-) -> crate::Result<Option<PathBuf>> {
-    if path.exists() {
+) -> Result<Option<PathBuf>> {
+    if path.fs_err_try_exists()? {
         match user_wants_to_overwrite(path, question_policy, question_action)? {
             FileConflitOperation::Cancel => Ok(None),
             FileConflitOperation::Overwrite => {
                 remove_file_or_dir(path)?;
                 Ok(Some(path.to_path_buf()))
             }
-            FileConflitOperation::Rename => {
-                let renamed_path = rename_for_available_filename(path);
-                Ok(Some(renamed_path))
-            }
+            FileConflitOperation::Rename => Ok(Some(find_available_filename_by_renaming(path)?)),
             FileConflitOperation::Merge => Ok(Some(path.to_path_buf())),
         }
     } else {
@@ -50,8 +50,21 @@ pub fn resolve_path_conflict(
     }
 }
 
-pub fn remove_file_or_dir(path: &Path) -> crate::Result<()> {
+pub fn remove_file_or_dir(path: &Path) -> Result<()> {
     if path.is_dir() {
+        if let Ok(cwd) = env::current_dir() {
+            if matches!(
+                (Handle::from_path(path), Handle::from_path(&cwd)),
+                (Ok(a), Ok(b)) if a == b
+            ) {
+                return Err(
+                    FinalError::with_title("Refusing to delete the current working directory")
+                        .detail(format!("Path {} is the current directory", PathFmt(path)))
+                        .hint("Use a different output directory with `--dir` / `-d`")
+                        .into(),
+                );
+            }
+        }
         fs::remove_dir_all(path)?;
     } else if path.is_file() {
         fs::remove_file(path)?;
@@ -59,66 +72,91 @@ pub fn remove_file_or_dir(path: &Path) -> crate::Result<()> {
     Ok(())
 }
 
-/// Create a new path renaming the "filename" from &Path for a available name in the same directory
-pub fn rename_for_available_filename(path: &Path) -> PathBuf {
-    let mut renamed_path = rename_or_increment_filename(path);
-    while renamed_path.exists() {
-        renamed_path = rename_or_increment_filename(&renamed_path);
-    }
-    renamed_path
+pub fn file_size(path: &Path) -> Result<u64> {
+    Ok(fs::metadata(path)?.len())
 }
 
-/// Create a new path renaming the "filename" from &Path to `filename_1`
-/// if its name already ends with `_` and some number, then it increments the number
-/// Example:
-/// - `file.txt` -> `file_1.txt`
-/// - `file_1.txt` -> `file_2.txt`
-pub fn rename_or_increment_filename(path: &Path) -> PathBuf {
-    let parent = path.parent().unwrap_or_else(|| Path::new(""));
-    let filename = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
-    let extension = path.extension().and_then(|s| s.to_str()).unwrap_or("");
+/// Say you want to write to `archive.tar.gz` but that already exists.
+///
+/// So the user chooses to `rename` to avoid the conflict (keep both files).
+///
+/// In this scenario, this function will return `archive_1.tar.gz`, subsequent
+/// calls will keep incrementing the number:
+///
+/// - archive_1.tar.gz
+/// - archive_2.tar.gz
+/// - archive_3.tar.gz
+pub fn find_available_filename_by_renaming(path: &Path) -> Result<PathBuf> {
+    fn create_path_with_given_index(path: &Path, i: usize) -> PathBuf {
+        let parent = path.parent().unwrap_or_else(|| Path::new(""));
+        let file_name = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
 
-    let new_filename = match filename.rsplit_once('_') {
-        Some((base, number_str)) if number_str.chars().all(char::is_numeric) => {
-            let number = number_str.parse::<u32>().unwrap_or(0);
-            format!("{}_{}", base, number + 1)
-        }
-        _ => format!("{filename}_1"),
-    };
+        let new_filename = match file_name.split_once('.') {
+            Some((stem, extension)) if !stem.is_empty() => format!("{stem}_{i}.{extension}"),
+            _ => format!("{file_name}_{i}"),
+        };
 
-    let mut new_path = parent.join(new_filename);
-    if !extension.is_empty() {
-        new_path.set_extension(extension);
+        parent.join(new_filename)
     }
 
-    new_path
+    for i in 1.. {
+        let renamed_path = create_path_with_given_index(path, i);
+        if !renamed_path.fs_err_try_exists()? {
+            return Ok(renamed_path);
+        }
+    }
+    unreachable!()
 }
 
 /// Creates a directory at the path, if there is nothing there.
-pub fn create_dir_if_non_existent(path: &Path) -> crate::Result<()> {
-    if !path.exists() {
+pub fn create_dir_if_non_existent(path: &Path) -> Result<()> {
+    if !path.fs_err_try_exists()? {
         fs::create_dir_all(path)?;
-        // creating a directory is an important change to the file system we
-        // should always inform the user about
-        info_accessible!("Directory {} created", EscapedPathDisplay::new(path));
+        info_accessible!("Directory {} created", PathFmt(path));
+    }
+    Ok(())
+}
+
+/// Ensures the parent directory of a file path exists, creating it if necessary.
+pub fn ensure_parent_dir_exists(file_path: &Path) -> io::Result<()> {
+    if let Some(parent) = file_path.parent() {
+        if !parent.fs_err_try_exists()? {
+            fs::create_dir_all(parent)?;
+        }
     }
     Ok(())
 }
 
 /// Returns current directory, but before change the process' directory to the
 /// one that contains the file pointed to by `filename`.
-pub fn cd_into_same_dir_as(filename: &Path) -> crate::Result<PathBuf> {
+pub fn cd_into_same_dir_as(filename: &Path) -> Result<PathBuf> {
     let previous_location = env::current_dir()?;
 
-    let parent = filename.parent().ok_or(crate::Error::CompressingRootFolder)?;
+    let parent = filename.parent().ok_or(Error::CompressingRootFolder)?;
     env::set_current_dir(parent)?;
 
     Ok(previous_location)
 }
 
+/// Check if a path refers to the same file as the output handle.
+pub fn is_same_file_as_output(path: &Path, output_handle: &Handle) -> bool {
+    if matches!(Handle::from_path(path), Ok(x) if &x == output_handle) {
+        return true;
+    }
+    false
+}
+
+/// Check if an IO error is caused by a broken symlink.
+///
+/// Returns `true` if the error is `NotFound` and the path is a symlink,
+/// indicating the symlink target doesn't exist.
+pub fn is_broken_symlink_error(error: &io::Error, path: &Path) -> bool {
+    error.kind() == io::ErrorKind::NotFound && path.is_symlink()
+}
+
 /// Try to detect the file extension by looking for known magic strings
 /// Source: <https://en.wikipedia.org/wiki/List_of_file_signatures>
-pub fn try_infer_extension(path: &Path) -> Option<Extension> {
+pub fn try_infer_format(path: &Path) -> Option<CompressionFormat> {
     fn is_zip(buf: &[u8]) -> bool {
         buf.len() >= 3
             && buf[..=1] == [0x50, 0x4B]
@@ -183,62 +221,41 @@ pub fn try_infer_extension(path: &Path) -> Option<Extension> {
         buf
     };
 
-    use crate::extension::CompressionFormat::*;
     if is_zip(&buf) {
-        Some(Extension::new(&[Zip], "zip"))
+        Some(CompressionFormat::Zip)
     } else if is_tar(&buf) {
-        Some(Extension::new(&[Tar], "tar"))
+        Some(CompressionFormat::Tar)
     } else if is_gz(&buf) {
-        Some(Extension::new(&[Gzip], "gz"))
+        Some(CompressionFormat::Gzip)
     } else if is_bz2(&buf) {
-        Some(Extension::new(&[Bzip], "bz2"))
+        Some(CompressionFormat::Bzip)
     } else if is_bz3(&buf) {
-        Some(Extension::new(&[Bzip3], "bz3"))
+        Some(CompressionFormat::Bzip3)
     } else if is_lzma(&buf) {
-        Some(Extension::new(&[Lzma], "lzma"))
+        Some(CompressionFormat::Lzma)
     } else if is_xz(&buf) {
-        Some(Extension::new(&[Xz], "xz"))
+        Some(CompressionFormat::Xz)
     } else if is_lzip(&buf) {
-        Some(Extension::new(&[Lzip], "lzip"))
+        Some(CompressionFormat::Lzip)
     } else if is_lz4(&buf) {
-        Some(Extension::new(&[Lz4], "lz4"))
+        Some(CompressionFormat::Lz4)
     } else if is_sz(&buf) {
-        Some(Extension::new(&[Snappy], "sz"))
+        Some(CompressionFormat::Snappy)
     } else if is_zst(&buf) {
-        Some(Extension::new(&[Zstd], "zst"))
+        Some(CompressionFormat::Zstd)
     } else if is_rar(&buf) {
-        Some(Extension::new(&[Rar], "rar"))
+        Some(CompressionFormat::Rar)
     } else if is_sevenz(&buf) {
-        Some(Extension::new(&[SevenZip], "7z"))
+        Some(CompressionFormat::SevenZip)
     } else if is_ar(&buf) {
-        Some(Extension::new(&[Ar], "a"))
+        Some(CompressionFormat::Ar)
     } else {
         None
     }
 }
 
-/// Rename the src directory into the dst directory recursively
-pub fn rename_recursively(src: &Path, dst: &Path) -> crate::Result<()> {
-    if !src.exists() || !dst.exists() {
-        return Err(crate::Error::NotFound {
-            error_title: "source or destination directory does not exist".to_string(),
-        });
-    }
-
-    for entry in fs::read_dir(src)? {
-        let entry = entry?;
-        let ty = entry.file_type()?;
-        if ty.is_dir() {
-            rename_recursively(entry.path().as_path(), dst.join(entry.file_name()).as_path())?;
-        } else {
-            fs::rename(entry.path(), dst.join(entry.file_name()).as_path())?;
-        }
-    }
-    Ok(())
-}
-
 #[inline]
-pub fn create_symlink(target: &Path, full_path: &Path) -> crate::Result<()> {
+pub fn create_symlink(target: &Path, full_path: &Path) -> Result<()> {
     #[cfg(unix)]
     std::os::unix::fs::symlink(target, full_path)?;
 
@@ -253,16 +270,49 @@ pub fn create_symlink(target: &Path, full_path: &Path) -> crate::Result<()> {
 
 #[cfg(unix)]
 #[inline]
-pub fn set_permission_mode(path: &Path, mode: u32) -> crate::Result<()> {
+pub fn set_permission_mode(path: &Path, mode: u32) -> Result<()> {
     use std::{fs::Permissions, os::unix::fs::PermissionsExt};
-
     fs::set_permissions(path, Permissions::from_mode(mode))?;
-
     Ok(())
 }
 
 #[cfg(windows)]
 #[inline]
-pub fn set_permission_mode(path: &Path, mode: u32) -> crate::Result<()> {
+pub fn set_permission_mode(_path: &Path, _mode: u32) -> Result<()> {
     Ok(())
+}
+
+/// Canonicalize a path.
+///
+/// On Windows, it strips the `\\?\` extended path prefix that fs::canonicalize
+/// adds that would break `strip_prefix` calls involving this path.
+pub fn canonicalize(path: impl AsRef<Path>) -> Result<PathBuf> {
+    let canonicalized = fs::canonicalize(path.as_ref())?;
+
+    Ok(if cfg!(windows) {
+        strip_path_ascii_prefix(Cow::Owned(canonicalized), r"\\?\").into_owned()
+    } else {
+        canonicalized
+    })
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::EnumIs)]
+pub enum FileType {
+    Regular,
+    Directory,
+    Symlink,
+}
+
+pub fn read_file_type(path: impl AsRef<Path>) -> Result<FileType> {
+    use file_type_enum::FileType::*;
+
+    let path = path.as_ref();
+    match file_type_enum::FileType::symlink_read_at(path)? {
+        Regular => Ok(FileType::Regular),
+        Directory => Ok(FileType::Directory),
+        Symlink => Ok(FileType::Symlink),
+        variant => Err(FinalError::with_title(format!("unsupported file type {variant}"))
+            .detail(format!("found at {}", PathFmt(path)))
+            .into()),
+    }
 }

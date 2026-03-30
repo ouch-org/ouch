@@ -6,39 +6,36 @@ use std::{
     env,
     io::{self, prelude::*},
     path::{Path, PathBuf},
-    sync::mpsc,
-    thread,
 };
 
-use filetime_creation::{set_file_mtime, FileTime};
-use fs_err::{self as fs};
+use filetime_creation::{FileTime, set_file_mtime};
+use fs_err as fs;
+use is_executable::is_executable;
 use same_file::Handle;
 use time::OffsetDateTime;
-use zip::{self, read::ZipFile, DateTime, ZipArchive};
+use zip::{self, DateTime, ZipArchive, read::ZipFile};
 
 use crate::{
-    commands::Unpacked,
+    Result,
     error::FinalError,
     info, info_accessible,
     list::FileInArchive,
     utils::{
-        cd_into_same_dir_as, create_symlink, get_invalid_utf8_paths, pretty_format_list_of_paths, strip_cur_dir, Bytes,
-        EscapedPathDisplay, FileVisibilityPolicy,
+        BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, cd_into_same_dir_as, create_symlink,
+        ensure_parent_dir_exists, get_invalid_utf8_paths, is_same_file_as_output, pretty_format_list_of_paths,
+        read_file_type, strip_cur_dir,
     },
     warning,
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `output_folder`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive<R>(
-    mut archive: ZipArchive<R>,
-    output_folder: &Path,
-    password: Option<&[u8]>,
-) -> crate::Result<Unpacked>
+pub fn unpack_archive<R>(reader: R, output_folder: &Path, password: Option<&[u8]>) -> Result<u64>
 where
     R: Read + Seek,
 {
-    let mut unpacked_files = 0;
+    let mut files_unpacked = 0;
+    let mut archive = ZipArchive::new(reader)?;
 
     for idx in 0..archive.len() {
         let mut file = match password {
@@ -56,11 +53,7 @@ where
 
         match file.name().ends_with('/') {
             _is_dir @ true => {
-                // This is printed for every file in the archive and has little
-                // importance for most users, but would generate lots of
-                // spoken text for users using screen readers, braille displays
-                // and so on
-                info!("File {} extracted to \"{}\"", idx, file_path.display());
+                info!("File {} extracted to {}", idx, PathFmt(&file_path));
 
                 let mode = file.unix_mode();
                 let is_symlink = mode.is_some_and(|mode| mode & 0o170000 == 0o120000);
@@ -78,11 +71,7 @@ where
                 }
             }
             _is_file @ false => {
-                if let Some(path) = file_path.parent() {
-                    if !path.exists() {
-                        fs::create_dir_all(path)?;
-                    }
-                }
+                ensure_parent_dir_exists(&file_path)?;
                 let file_path = strip_cur_dir(file_path.as_path());
 
                 let mode = file.unix_mode();
@@ -92,7 +81,7 @@ where
                     let mut target = String::new();
                     file.read_to_string(&mut target)?;
 
-                    info!("linking {} -> {}", file_path.display(), target);
+                    info!("linking {} -> \"{}\"", PathFmt(file_path), target);
 
                     create_symlink(Path::new(&target), file_path)?;
                 } else {
@@ -104,83 +93,62 @@ where
                 }
 
                 // same reason is in _is_dir: long, often not needed text
-                info!("extracted ({}) {:?}", Bytes::new(file.size()), file_path.display(),);
+                info!("extracted ({}) {}", BytesFmt(file.size()), PathFmt(file_path));
             }
         }
 
-        unpacked_files += 1;
+        files_unpacked += 1;
     }
 
-    Ok(Unpacked {
-        files_unpacked: unpacked_files,
-        read_only_directories: Vec::new(),
-    })
+    Ok(files_unpacked)
 }
 
 /// List contents of `archive`, returning a vector of archive entries
 pub fn list_archive<R>(
     mut archive: ZipArchive<R>,
     password: Option<&[u8]>,
-) -> impl Iterator<Item = crate::Result<FileInArchive>>
+) -> impl Iterator<Item = Result<FileInArchive>>
 where
-    R: Read + Seek + Send + 'static,
+    R: Read + Seek,
 {
-    struct Files(mpsc::Receiver<crate::Result<FileInArchive>>);
-    impl Iterator for Files {
-        type Item = crate::Result<FileInArchive>;
-
-        fn next(&mut self) -> Option<Self::Item> {
-            self.0.recv().ok()
-        }
-    }
-
     let password = password.map(|p| p.to_owned());
 
-    let (tx, rx) = mpsc::channel();
-    thread::spawn(move || {
-        for idx in 0..archive.len() {
-            let file_in_archive = (|| {
-                let zip_result = match password.clone() {
-                    Some(password) => archive.by_index_decrypt(idx, &password),
-                    None => archive.by_index(idx),
-                };
+    (0..archive.len()).map(move |idx| {
+        let zip_result = match password.clone() {
+            Some(password) => archive.by_index_decrypt(idx, &password),
+            None => archive.by_index(idx),
+        };
 
-                let file = match zip_result {
-                    Ok(f) => f,
-                    Err(e) => return Err(e.into()),
-                };
+        let file = match zip_result {
+            Ok(f) => f,
+            Err(e) => return Err(e.into()),
+        };
 
-                let path = file.enclosed_name().unwrap_or_else(|| file.mangled_name()).to_owned();
-                let is_dir = file.is_dir();
+        let path = file.enclosed_name().unwrap_or_else(|| file.mangled_name()).to_owned();
+        let is_dir = file.is_dir();
 
-                Ok(FileInArchive { path, is_dir })
-            })();
-            tx.send(file_in_archive).unwrap();
-        }
-    });
-
-    Files(rx)
+        Ok(FileInArchive { path, is_dir })
+    })
 }
 
 /// Compresses the archives given by `input_filenames` into the file given previously to `writer`.
-pub fn build_archive_from_paths<W>(
+pub fn build_archive<W>(
     input_filenames: &[PathBuf],
     output_path: &Path,
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
     follow_symlinks: bool,
-) -> crate::Result<W>
+) -> Result<W>
 where
     W: Write + Seek,
 {
     let mut writer = zip::ZipWriter::new(writer);
-    // always use ZIP64 to allow compression of files larger than 4GB
-    // the format is widely supported and the extra 20B is negligible in most cases
-    let options = zip::write::SimpleFileOptions::default().large_file(true);
     let output_handle = Handle::from_path(output_path);
 
-    #[cfg(not(unix))]
-    let executable = options.unix_permissions(0o755);
+    // always use ZIP64 to allow compression of files larger than 4GB
+    // the format is widely supported and the 20B cost is negligible
+    let default_options = zip::write::SimpleFileOptions::default().large_file(true);
+    let default_executable_options = default_options.unix_permissions(0o755);
 
     // Vec of any filename that failed the UTF-8 check
     let invalid_unicode_filenames = get_invalid_utf8_paths(input_filenames);
@@ -190,93 +158,85 @@ where
             .detail("Zip archives require files to have valid UTF-8 paths")
             .detail(format!(
                 "Files with invalid paths: {}",
-                pretty_format_list_of_paths(&invalid_unicode_filenames)
+                pretty_format_list_of_paths(&invalid_unicode_filenames),
             ));
 
         return Err(error.into());
     }
 
-    for filename in input_filenames {
-        let previous_location = cd_into_same_dir_as(filename)?;
+    for explicit_path in input_filenames {
+        let previous_location = cd_into_same_dir_as(explicit_path)?;
 
         // Unwrap safety:
         //   paths should be canonicalized by now, and the root directory rejected.
-        let filename = filename.file_name().unwrap();
+        let filename = explicit_path.file_name().unwrap();
 
-        for entry in file_visibility_policy.build_walker(filename) {
-            let entry = entry?;
-            let path = entry.path();
+        let iter = file_visibility_policy.workaround_build_walker_or_broken_link_path(explicit_path, filename);
 
-            // If the output_path is the same as the input file, warn the user and skip the input (in order to avoid compression recursion)
-            if let Ok(handle) = &output_handle {
-                if matches!(Handle::from_path(path), Ok(x) if &x == handle) {
-                    warning!("Cannot compress `{}` into itself, skipping", output_path.display());
-                }
+        for entry in iter {
+            let path = entry?;
+
+            // Avoid compressing the output file into itself
+            if let Ok(handle) = output_handle.as_ref()
+                && is_same_file_as_output(&path, handle)
+            {
+                warning!("Cannot compress {} into itself, skipping", PathFmt(output_path));
+                continue;
             }
 
-            // This is printed for every file in `input_filenames` and has
-            // little importance for most users, but would generate lots of
-            // spoken text for users using screen readers, braille displays
-            // and so on
-            info!("Compressing '{}'", EscapedPathDisplay::new(path));
+            info!("Compressing {}", PathFmt(&path));
 
-            let metadata = match path.metadata() {
-                Ok(metadata) => metadata,
-                Err(e) => {
-                    if e.kind() == std::io::ErrorKind::NotFound && path.is_symlink() {
-                        // This path is for a broken symlink, ignore it
-                        continue;
-                    }
-                    return Err(e.into());
+            let (metadata, file_type) = {
+                if follow_symlinks {
+                    (path.metadata()?, read_file_type(canonicalize(&path)?)?)
+                } else {
+                    (path.symlink_metadata()?, read_file_type(&path)?)
                 }
             };
 
             #[cfg(unix)]
             let mode = metadata.permissions().mode();
 
-            let entry_name = path.to_str().ok_or_else(|| {
-                FinalError::with_title("Zip requires that all directories names are valid UTF-8")
-                    .detail(format!("File at '{path:?}' has a non-UTF-8 name"))
-            })?;
+            let entry_name = path.to_str().ok_or_else(zip_non_utf8_error(&path))?;
             // ZIP format requires forward slashes as path separators, regardless of platform
             let entry_name = entry_name.replace(std::path::MAIN_SEPARATOR, "/");
 
-            if !follow_symlinks && path.symlink_metadata()?.is_symlink() {
-                let target_path = path.read_link()?;
-                let target_name = target_path.to_str().ok_or_else(|| {
-                    FinalError::with_title("Zip requires that all directories names are valid UTF-8")
-                        .detail(format!("File at '{target_path:?}' has a non-UTF-8 name"))
-                })?;
-                // ZIP format requires forward slashes as path separators, regardless of platform
-                let target_name = target_name.replace(std::path::MAIN_SEPARATOR, "/");
+            match file_type {
+                FileType::Regular => {
+                    let options = if cfg!(not(unix)) && is_executable(&path) {
+                        default_executable_options
+                    } else {
+                        default_options
+                    };
 
-                // This approach writes the symlink target path as the content of the symlink entry.
-                // We detect symlinks during extraction by checking for the Unix symlink mode (0o120000) in the entry's permissions.
-                #[cfg(unix)]
-                let symlink_options = options.unix_permissions(0o120000 | (mode & 0o777));
-                #[cfg(windows)]
-                let symlink_options = options.unix_permissions(0o120777);
+                    let mut file = fs::File::open(&path)?;
 
-                writer.add_symlink(entry_name, target_name, symlink_options)?;
-            } else if path.is_dir() {
-                writer.add_directory(entry_name, options)?;
-            } else {
-                #[cfg(not(unix))]
-                let options = if is_executable::is_executable(path) {
-                    executable
-                } else {
-                    options
-                };
+                    #[cfg(unix)]
+                    let options = options.unix_permissions(mode);
+                    // Updated last modified time
+                    let last_modified_time = options.last_modified_time(get_last_modified_time(&file));
 
-                let mut file = fs::File::open(path)?;
+                    writer.start_file(entry_name, last_modified_time)?;
+                    io::copy(&mut file, &mut writer)?;
+                }
+                FileType::Directory => {
+                    writer.add_directory(entry_name, default_options)?;
+                }
+                FileType::Symlink => {
+                    let target_path = path.read_link()?;
+                    let target_name = target_path.to_str().ok_or_else(zip_non_utf8_error(&target_path))?;
+                    // ZIP format requires forward slashes as path separators, regardless of platform
+                    let target_name = target_name.replace(std::path::MAIN_SEPARATOR, "/");
 
-                #[cfg(unix)]
-                let options = options.unix_permissions(mode);
-                // Updated last modified time
-                let last_modified_time = options.last_modified_time(get_last_modified_time(&file));
+                    // This approach writes the symlink target path as the content of the symlink entry.
+                    // We detect symlinks during extraction by checking for the Unix symlink mode (0o120000) in the entry's permissions.
+                    #[cfg(unix)]
+                    let symlink_options = default_options.unix_permissions(0o120000 | (mode & 0o777));
+                    #[cfg(windows)]
+                    let symlink_options = default_options.unix_permissions(0o120777);
 
-                writer.start_file(entry_name, last_modified_time)?;
-                io::copy(&mut file, &mut writer)?;
+                    writer.add_symlink(entry_name, target_name, symlink_options)?;
+                }
             }
         }
 
@@ -312,7 +272,7 @@ fn get_last_modified_time(file: &fs::File) -> DateTime {
         .unwrap_or_default()
 }
 
-fn set_last_modified_time<R: Read>(zip_file: &ZipFile<'_, R>, path: &Path) -> crate::Result<()> {
+fn set_last_modified_time<R: Read>(zip_file: &ZipFile<'_, R>, path: &Path) -> Result<()> {
     // Extract modification time from zip file and convert to FileTime
     let file_time = zip_file
         .last_modified()
@@ -331,7 +291,7 @@ fn set_last_modified_time<R: Read>(zip_file: &ZipFile<'_, R>, path: &Path) -> cr
 }
 
 #[cfg(unix)]
-fn unix_set_permissions<R: Read>(file_path: &Path, file: &ZipFile<'_, R>) -> crate::Result<()> {
+fn unix_set_permissions<R: Read>(file_path: &Path, file: &ZipFile<'_, R>) -> Result<()> {
     use std::fs::Permissions;
 
     if let Some(mode) = file.unix_mode() {
@@ -339,4 +299,11 @@ fn unix_set_permissions<R: Read>(file_path: &Path, file: &ZipFile<'_, R>) -> cra
     }
 
     Ok(())
+}
+
+fn zip_non_utf8_error<'a>(path: &'a Path) -> impl Fn() -> FinalError + 'a {
+    || {
+        FinalError::with_title("Zip requires that all paths are valid UTF-8")
+            .detail(format!("File {} has a non-UTF-8 path", PathFmt(path)))
+    }
 }

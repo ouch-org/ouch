@@ -5,50 +5,46 @@ use std::path::Path;
 use unrar::Archive;
 
 use crate::{
-    commands::Unpacked,
     error::{Error, Result},
     info,
     list::FileInArchive,
-    utils::Bytes,
+    utils::BytesFmt,
 };
 
 /// Unpacks the archive given by `archive_path` into the folder given by `output_folder`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive(archive_path: &Path, output_folder: &Path, password: Option<&[u8]>) -> crate::Result<Unpacked> {
+pub fn unpack_archive(archive_path: &Path, output_folder: &Path, password: Option<&[u8]>) -> Result<u64> {
     let archive = match password {
         Some(password) => Archive::with_password(archive_path, password),
         None => Archive::new(archive_path),
     };
 
     let mut archive = archive.open_for_processing()?;
-    let mut unpacked = 0;
+    let mut files_unpacked = 0;
 
     while let Some(header) = archive.read_header()? {
         let entry = header.entry();
         archive = if entry.is_file() {
             info!(
                 "extracted ({}) {}",
-                Bytes::new(entry.unpacked_size),
+                BytesFmt(entry.unpacked_size),
                 entry.filename.display(),
             );
-            unpacked += 1;
+            files_unpacked += 1;
             header.extract_with_base(output_folder)?
         } else {
             header.skip()?
         };
     }
 
-    Ok(Unpacked {
-        files_unpacked: unpacked,
-        read_only_directories: Vec::new(),
-    })
+    Ok(files_unpacked)
 }
 
 /// List contents of `archive_path`, returning a vector of archive entries
 pub fn list_archive(
     archive_path: &Path,
     password: Option<&[u8]>,
-) -> Result<impl Iterator<Item = Result<FileInArchive>>> {
+) -> Result<impl Iterator<Item = Result<FileInArchive>> + use<>> {
     let archive = match password {
         Some(password) => Archive::with_password(archive_path, password),
         None => Archive::new(archive_path),

@@ -3,6 +3,7 @@ use std::{ffi::OsString, path::PathBuf};
 use clap::{Parser, ValueHint};
 
 // Ouch command line options (docstrings below are part of --help)
+#[allow(clippy::doc_markdown)]
 /// A command-line utility for easily compressing and decompressing files and directories.
 ///
 /// Supported formats: tar, zip, gz, 7z, xz, lzma, lzip, bz/bz2, bz3, lz4, sz (Snappy), zst, rar and br.
@@ -39,7 +40,7 @@ pub struct CliArgs {
 
     /// Specify the format of the archive
     #[arg(short, long, global = true)]
-    pub format: Option<OsString>,
+    pub format: Option<String>,
 
     /// Decompress or list with password
     #[arg(short, long = "password", aliases = ["pass", "pw"], global = true)]
@@ -55,7 +56,7 @@ pub struct CliArgs {
 }
 
 #[derive(Parser, PartialEq, Eq, Debug)]
-#[allow(rustdoc::bare_urls)]
+#[allow(rustdoc::bare_urls, clippy::doc_markdown)]
 pub enum Subcommand {
     /// Compress one or more files into one output file
     #[command(visible_alias = "c")]
@@ -82,7 +83,7 @@ pub enum Subcommand {
         #[arg(long, group = "compression-level")]
         slow: bool,
 
-        /// Archive target files instead of storing symlinks (supported by `tar` and `zip`)
+        /// Read from target files instead of from symlinks (relevant for `tar` and `zip`)
         #[arg(long, short = 'S')]
         follow_symlinks: bool,
     },
@@ -93,17 +94,13 @@ pub enum Subcommand {
         #[arg(required = true, num_args = 1.., value_hint = ValueHint::FilePath)]
         files: Vec<PathBuf>,
 
-        /// Place results in a directory other than the current one
+        /// Decompress inside OUTPUT_DIR instead of current directory
         #[arg(short = 'd', long = "dir", value_hint = ValueHint::FilePath)]
         output_dir: Option<PathBuf>,
 
         /// Remove the source file after successful decompression
         #[arg(short = 'r', long)]
         remove: bool,
-
-        /// Disable Smart Unpack
-        #[arg(long)]
-        no_smart_unpack: bool,
     },
     /// List contents of an archive
     #[command(visible_aliases = ["l", "ls"])]
@@ -160,7 +157,6 @@ mod tests {
                 files: vec!["\x00\x11\x22".into()],
                 output_dir: None,
                 remove: false,
-                no_smart_unpack: false,
             },
         }
     }
@@ -174,7 +170,6 @@ mod tests {
                     files: to_paths(["file.tar.gz"]),
                     output_dir: None,
                     remove: false,
-                    no_smart_unpack: false,
                 },
                 ..mock_cli_args()
             }
@@ -186,7 +181,6 @@ mod tests {
                     files: to_paths(["file.tar.gz"]),
                     output_dir: None,
                     remove: false,
-                    no_smart_unpack: false,
                 },
                 ..mock_cli_args()
             }
@@ -198,7 +192,6 @@ mod tests {
                     files: to_paths(["a", "b", "c"]),
                     output_dir: None,
                     remove: false,
-                    no_smart_unpack: false,
                 },
                 ..mock_cli_args()
             }

@@ -1,6 +1,6 @@
 use std::{
     fmt,
-    sync::{mpsc, Arc, Barrier, OnceLock},
+    sync::{Arc, Barrier, OnceLock, mpsc},
     thread,
 };
 
@@ -172,8 +172,8 @@ enum MessageLevel {
 
 mod logger_thread {
     use std::{
-        io::{stderr, Write},
-        sync::{mpsc::RecvTimeoutError, Arc, Barrier},
+        io::{Write, stderr},
+        sync::{Arc, Barrier, mpsc::RecvTimeoutError},
         time::Duration,
     };
 
