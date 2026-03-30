@@ -160,11 +160,8 @@ pub fn check_deb_compression(output_path: &Path) -> Result<()> {
         .extension()
         .is_some_and(|ext| ext.eq_ignore_ascii_case("deb"))
     {
-        let error = FinalError::with_title(format!(
-            "Cannot compress to '{}'.",
-            PathFmt(output_path)
-        ))
-        .detail("Creating .deb packages is not supported, use 'dpkg-deb' instead.");
+        let error = FinalError::with_title(format!("Cannot compress to '{}'.", PathFmt(output_path)))
+            .detail("Creating .deb packages is not supported, use 'dpkg-deb' instead.");
 
         return Err(error.into());
     }

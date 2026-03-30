@@ -50,11 +50,7 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> Result<u64> {
         let mut output_file = fs::File::create(&output_path)?;
         let size = std::io::copy(&mut entry, &mut output_file)?;
 
-        info!(
-            "extracted ({}) {}",
-            BytesFmt(size),
-            PathFmt(&output_path),
-        );
+        info!("extracted ({}) {}", BytesFmt(size), PathFmt(&output_path),);
 
         files_unpacked += 1;
     }
