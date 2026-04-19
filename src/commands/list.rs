@@ -54,7 +54,7 @@ pub fn list_archive_contents(
                     return Err(crate::Error::bzip3_no_support());
 
                     #[cfg(feature = "bzip3")]
-                    Box::new(bzip3::read::Bz3Decoder::new(decoder).unwrap())
+                    Box::new(bzip3::read::Bz3Decoder::new(decoder)?)
                 }
                 Lz4 => Box::new(MultiFrameLz4Decoder::new(decoder)),
                 Lzma => Box::new(lzma_rust2::LzmaReader::new_mem_limit(decoder, u32::MAX, None)?),

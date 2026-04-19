@@ -30,7 +30,7 @@ pub const SUPPORTED_EXTENSIONS: &[&str] = &[
 ];
 
 pub const SUPPORTED_ALIASES: &[&str] = &[
-    "tgz", "tbz", "tlz4", "txz", "tzlma", "tsz", "tzst", "tlz", "cbt", "cbz", "cb7", "cbr",
+    "tgz", "tbz", "tlz4", "txz", "tlzma", "tsz", "tzst", "tlz", "cbt", "cbz", "cb7", "cbr",
 ];
 
 #[cfg(not(feature = "unrar"))]
