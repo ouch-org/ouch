@@ -28,7 +28,7 @@ Categories Used:
 ### Tweaks
 
 
-## [0.7.0](https://github.com/ouch-org/ouch/compare/0.6.1...0.7.0)
+## [0.7.0](https://github.com/ouch-org/ouch/releases/tag/0.7.0)
 
 ### Removals
 
@@ -82,11 +82,11 @@ Categories Used:
 - Bump gzp from 0.11.3 to 2.0.0 (https://github.com/ouch-org/ouch/pull/876)
 - Rename output when input is stdin (https://github.com/ouch-org/ouch/pull/903)
 
-## [0.6.1](https://github.com/ouch-org/ouch/compare/0.6.0...0.6.1)
+## [0.6.1](https://github.com/ouch-org/ouch/releases/tag/0.6.1)
 
 - Fix .zip crash when file mode isn't present (https://github.com/ouch-org/ouch/pull/804)
 
-## [0.6.0](https://github.com/ouch-org/ouch/compare/0.5.1...0.6.0)
+## [0.6.0](https://github.com/ouch-org/ouch/releases/tag/0.6.0)
 
 ### New Features
 
@@ -118,7 +118,7 @@ Categories Used:
 - Disable smart unpack when `--dir` flag is provided in decompress command (https://github.com/ouch-org/ouch/pull/782)
 - Align file sizes at left for each extracted file to make output clearer (https://github.com/ouch-org/ouch/pull/792)
 
-## [0.5.1](https://github.com/ouch-org/ouch/compare/0.5.0...0.5.1)
+## [0.5.1](https://github.com/ouch-org/ouch/releases/tag/0.5.1)
 
 ### Improvements
 
@@ -128,7 +128,7 @@ Categories Used:
 
 - Mention support for `7z` and `rar` in help message.
 
-## [0.5.0](https://github.com/ouch-org/ouch/compare/0.4.2...0.5.0)
+## [0.5.0](https://github.com/ouch-org/ouch/releases/tag/0.5.0)
 
 ### New Features
 
@@ -144,7 +144,7 @@ Categories Used:
 
 - Hint completions generator to expand file paths (https://github.com/ouch-org/ouch/pull/508)
 
-## [0.4.2](https://github.com/ouch-org/ouch/compare/0.4.1...0.4.2)
+## [0.4.2](https://github.com/ouch-org/ouch/releases/tag/0.4.2)
 
 ### New Features
 
@@ -165,7 +165,7 @@ Categories Used:
 - Remove remaining mentions of `.lz` that refers to the LZMA format (https://github.com/ouch-org/ouch/pull/344)
 - Handle Zip when modification times are missing (https://github.com/ouch-org/ouch/pull/433)
 
-## [0.4.1](https://github.com/ouch-org/ouch/compare/0.4.0...0.4.1)
+## [0.4.1](https://github.com/ouch-org/ouch/releases/tag/0.4.1)
 
 ### New Features
 
@@ -190,7 +190,7 @@ Categories Used:
 
 - Add scoop install instructions to readme (https://github.com/ouch-org/ouch/pull/323)
 
-## [0.4.0](https://github.com/ouch-org/ouch/compare/0.3.1...0.4.0) (2022-11-20)
+## [0.4.0](https://github.com/ouch-org/ouch/releases/tag/0.4.0) (2022-11-20)
 
 ### New Features
 
@@ -284,13 +284,13 @@ Categories Used:
 - Remove automatic detection for partial compression (https://github.com/ouch-org/ouch/pull/286)
 - Remove progress feature (https://github.com/ouch-org/ouch/pull/300)
 
-## [0.3.1](https://github.com/ouch-org/ouch/compare/0.3.0...0.3.1) (2021-11-02)
+## [0.3.1](https://github.com/ouch-org/ouch/releases/tag/0.3.1) (2021-11-02)
 
 ### Tweaks
 
 - Version bump
 
-## [0.3.0](https://github.com/ouch-org/ouch/compare/0.2.0...0.3.0) (2021-11-02)
+## [0.3.0](https://github.com/ouch-org/ouch/releases/tag/0.3.0) (2021-11-02)
 
 ### New Features
 
@@ -348,7 +348,7 @@ Categories Used:
 - Remove tar combinations from compression format (https://github.com/ouch-org/ouch/pull/133)
 - Simplify cli canonicalize implementation (https://github.com/ouch-org/ouch/pull/139)
 
-## [0.2.0](https://github.com/ouch-org/ouch/compare/0.1.6...0.2.0) (2021-10-06)
+## [0.2.0](https://github.com/ouch-org/ouch/releases/tag/0.2.0) (2021-10-06)
 
 ### New Features
 
@@ -367,7 +367,7 @@ Categories Used:
 - Making an error message for running decompress without arguments (https://github.com/ouch-org/ouch/issues/63)
 - Increasing read and writer buffers capacity (https://github.com/ouch-org/ouch/pull/65)
 
-## [0.1.6](https://github.com/ouch-org/ouch/compare/0.1.5...0.1.6) (2021-09-17)
+## [0.1.6](https://github.com/ouch-org/ouch/releases/tag/0.1.6) (2021-09-17)
 
 ### New Features
 
@@ -380,7 +380,7 @@ Categories Used:
 - Further testing to oof cli (https://github.com/ouch-org/ouch/pull/38)
 - Reuse Confirmation struct when checking for overwrite permission (https://github.com/ouch-org/ouch/pull/42)
 
-## [0.1.5](https://github.com/ouch-org/ouch/compare/0.1.5-rc...0.1.5) (2021-05-27)
+## [0.1.5](https://github.com/ouch-org/ouch/releases/tag/0.1.5) (2021-05-27)
 
 ### New Features
 
