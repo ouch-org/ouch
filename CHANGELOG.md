@@ -30,6 +30,7 @@ Categories Used:
 ### Bug Fixes
 
 - Fix various panics not handled gracefully (https://github.com/ouch-org/ouch/pull/950)
+- Fix directory display with trailing slashes in list output (https://github.com/ouch-org/ouch/commit/de22cbc)
 
 ### Tweaks
 
