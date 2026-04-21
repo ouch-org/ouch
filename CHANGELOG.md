@@ -190,7 +190,7 @@ Categories Used:
 
 - Add scoop install instructions to readme (https://github.com/ouch-org/ouch/pull/323)
 
-## [0.4.0](https://github.com/ouch-org/ouch/releases/tag/0.4.0) (2022-11-20)
+## [0.4.0](https://github.com/ouch-org/ouch/releases/tag/0.4.0)
 
 ### New Features
 
@@ -284,13 +284,13 @@ Categories Used:
 - Remove automatic detection for partial compression (https://github.com/ouch-org/ouch/pull/286)
 - Remove progress feature (https://github.com/ouch-org/ouch/pull/300)
 
-## [0.3.1](https://github.com/ouch-org/ouch/releases/tag/0.3.1) (2021-11-02)
+## [0.3.1](https://github.com/ouch-org/ouch/releases/tag/0.3.1)
 
 ### Tweaks
 
 - Version bump
 
-## [0.3.0](https://github.com/ouch-org/ouch/releases/tag/0.3.0) (2021-11-02)
+## [0.3.0](https://github.com/ouch-org/ouch/releases/tag/0.3.0)
 
 ### New Features
 
@@ -348,7 +348,7 @@ Categories Used:
 - Remove tar combinations from compression format (https://github.com/ouch-org/ouch/pull/133)
 - Simplify cli canonicalize implementation (https://github.com/ouch-org/ouch/pull/139)
 
-## [0.2.0](https://github.com/ouch-org/ouch/releases/tag/0.2.0) (2021-10-06)
+## [0.2.0](https://github.com/ouch-org/ouch/releases/tag/0.2.0)
 
 ### New Features
 
@@ -367,7 +367,7 @@ Categories Used:
 - Making an error message for running decompress without arguments (https://github.com/ouch-org/ouch/issues/63)
 - Increasing read and writer buffers capacity (https://github.com/ouch-org/ouch/pull/65)
 
-## [0.1.6](https://github.com/ouch-org/ouch/releases/tag/0.1.6) (2021-09-17)
+## [0.1.6](https://github.com/ouch-org/ouch/releases/tag/0.1.6)
 
 ### New Features
 
@@ -380,7 +380,7 @@ Categories Used:
 - Further testing to oof cli (https://github.com/ouch-org/ouch/pull/38)
 - Reuse Confirmation struct when checking for overwrite permission (https://github.com/ouch-org/ouch/pull/42)
 
-## [0.1.5](https://github.com/ouch-org/ouch/releases/tag/0.1.5) (2021-05-27)
+## [0.1.5](https://github.com/ouch-org/ouch/releases/tag/0.1.5)
 
 ### New Features
 
