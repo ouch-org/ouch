@@ -20,7 +20,7 @@ pub struct ListOptions {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum FileType {
+pub enum ListFileType {
     File,
     Directory,
     Symlink { target: PathBuf },
@@ -34,7 +34,7 @@ pub struct FileInArchive {
     pub path: PathBuf,
 
     /// The type of file
-    pub file_type: FileType,
+    pub file_type: ListFileType,
 }
 
 /// Actually print the files
@@ -64,14 +64,14 @@ pub fn list_files(
 
 /// Print an entry and highlight directories, either by coloring them
 /// if that's supported or by adding a trailing /
-fn print_entry(out: &mut impl Write, name: impl fmt::Display, file_type: &FileType, quiet: bool) {
+fn print_entry(out: &mut impl Write, name: impl fmt::Display, file_type: &ListFileType, quiet: bool) {
     use crate::utils::colors::*;
 
     match file_type {
-        FileType::File => {
+        ListFileType::File => {
             let _ = writeln!(out, "{name}");
         }
-        FileType::Symlink { target } | FileType::Hardlink { target } => {
+        ListFileType::Symlink { target } | ListFileType::Hardlink { target } => {
             if quiet {
                 // In quiet mode, just print the name (like a regular file)
                 // This allows scripts to process the list without parsing arrows
@@ -79,7 +79,7 @@ fn print_entry(out: &mut impl Write, name: impl fmt::Display, file_type: &FileTy
                 return;
             }
 
-            let suffix = if matches!(file_type, FileType::Hardlink { .. }) {
+            let suffix = if matches!(file_type, ListFileType::Hardlink { .. }) {
                 " (hardlink)"
             } else {
                 ""
@@ -97,7 +97,7 @@ fn print_entry(out: &mut impl Write, name: impl fmt::Display, file_type: &FileTy
                 );
             }
         }
-        FileType::Directory => {
+        ListFileType::Directory => {
             let name_str = name.to_string();
             let display_name = name_str.strip_suffix('/').unwrap_or(&name_str);
 
@@ -131,7 +131,7 @@ mod tree {
     use bstr::{ByteSlice, ByteVec};
     use linked_hash_map::LinkedHashMap;
 
-    use super::{FileInArchive, FileType};
+    use super::{FileInArchive, ListFileType};
     use crate::{utils::NoQuotePathFmt, warning};
 
     /// Directory tree
@@ -194,7 +194,7 @@ mod tree {
             let file_type = match &self.file {
                 Some(FileInArchive { file_type, .. }) => file_type.clone(),
                 // If we don't have a file entry but have children, it's an implicit directory
-                None => FileType::Directory,
+                None => ListFileType::Directory,
             };
             super::print_entry(
                 out,

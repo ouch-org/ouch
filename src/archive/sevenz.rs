@@ -16,7 +16,7 @@ use crate::{
     Result,
     error::{Error, FinalError},
     info,
-    list::{FileInArchive, FileType},
+    list::{FileInArchive, ListFileType},
     utils::{
         BytesFmt, FileVisibilityPolicy, PathFmt, cd_into_same_dir_as, ensure_parent_dir_exists, is_same_file_as_output,
     },
@@ -89,9 +89,9 @@ where
         files.push(Ok(FileInArchive {
             path: entry.name().into(),
             file_type: if entry.is_directory() {
-                FileType::Directory
+                ListFileType::Directory
             } else {
-                FileType::File
+                ListFileType::File
             },
         }));
         Ok(true)

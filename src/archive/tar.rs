@@ -17,7 +17,7 @@ use crate::{
     Result,
     error::FinalError,
     info,
-    list::{FileInArchive, FileType as ListFileType},
+    list::{FileInArchive, ListFileType},
     utils::{
         self, BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, create_symlink, is_same_file_as_output,
         read_file_type, set_permission_mode,

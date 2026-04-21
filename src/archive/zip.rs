@@ -19,7 +19,7 @@ use crate::{
     Result,
     error::FinalError,
     info, info_accessible,
-    list::{FileInArchive, FileType as ListFileType},
+    list::{FileInArchive, ListFileType},
     utils::{
         BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, cd_into_same_dir_as, create_symlink,
         ensure_parent_dir_exists, get_invalid_utf8_paths, is_same_file_as_output, pretty_format_list_of_paths,

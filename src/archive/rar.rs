@@ -7,7 +7,7 @@ use unrar::Archive;
 use crate::{
     error::{Error, Result},
     info,
-    list::{FileInArchive, FileType},
+    list::{FileInArchive, ListFileType},
     utils::BytesFmt,
 };
 
@@ -57,7 +57,11 @@ pub fn list_archive(
 
         Ok(FileInArchive {
             path,
-            file_type: if is_dir { FileType::Directory } else { FileType::File },
+            file_type: if is_dir {
+                ListFileType::Directory
+            } else {
+                ListFileType::File
+            },
         })
     }))
 }
