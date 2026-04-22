@@ -16,7 +16,7 @@ use crate::{
     Result,
     error::{Error, FinalError},
     info,
-    list::FileInArchive,
+    list::{FileInArchive, ListFileType},
     utils::{
         BytesFmt, FileVisibilityPolicy, PathFmt, cd_into_same_dir_as, ensure_parent_dir_exists, is_same_file_as_output,
     },
@@ -88,7 +88,11 @@ where
     let entry_extract_fn = |entry: &ArchiveEntry, _: &mut dyn Read, _: &PathBuf| {
         files.push(Ok(FileInArchive {
             path: entry.name().into(),
-            is_dir: entry.is_directory(),
+            file_type: if entry.is_directory() {
+                ListFileType::Directory
+            } else {
+                ListFileType::File
+            },
         }));
         Ok(true)
     };

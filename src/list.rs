@@ -14,6 +14,17 @@ use crate::{Result, accessible::is_running_in_accessible_mode, utils::PathFmt};
 pub struct ListOptions {
     /// Whether to show a tree view
     pub tree: bool,
+
+    /// Whether to suppress extra output like symlink targets (for scripting)
+    pub quiet: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ListFileType {
+    File,
+    Directory,
+    Symlink { target: PathBuf },
+    Hardlink { target: PathBuf },
 }
 
 /// Represents a single file in an archive, used in `list::list_files()`
@@ -22,8 +33,8 @@ pub struct FileInArchive {
     /// The file path
     pub path: PathBuf,
 
-    /// Whether this file is a directory
-    pub is_dir: bool,
+    /// The type of file
+    pub file_type: ListFileType,
 }
 
 /// Actually print the files
@@ -34,15 +45,18 @@ pub fn list_files(
     list_options: ListOptions,
 ) -> Result<()> {
     let mut out = BufWriter::new(stdout().lock());
-    let _ = writeln!(out, "Archive: {}", PathFmt(archive));
+
+    if !list_options.quiet {
+        let _ = writeln!(out, "Archive: {}", PathFmt(archive));
+    }
 
     if list_options.tree {
         let tree = files.into_iter().collect::<Result<Tree>>()?;
         tree.print(&mut out);
     } else {
         for file in files {
-            let FileInArchive { path, is_dir } = file?;
-            print_entry(&mut out, path.display(), is_dir);
+            let FileInArchive { path, file_type } = file?;
+            print_entry(&mut out, path.display(), &file_type, list_options.quiet);
         }
     }
     Ok(())
@@ -50,31 +64,57 @@ pub fn list_files(
 
 /// Print an entry and highlight directories, either by coloring them
 /// if that's supported or by adding a trailing /
-fn print_entry(out: &mut impl Write, name: impl fmt::Display, is_dir: bool) {
+fn print_entry(out: &mut impl Write, name: impl fmt::Display, file_type: &ListFileType, quiet: bool) {
     use crate::utils::colors::*;
 
-    if !is_dir {
-        // Not a directory -> just print the file name
-        let _ = writeln!(out, "{name}");
-        return;
+    match file_type {
+        ListFileType::File => {
+            let _ = writeln!(out, "{name}");
+        }
+        ListFileType::Symlink { target } | ListFileType::Hardlink { target } => {
+            if quiet {
+                // In quiet mode, just print the name (like a regular file)
+                // This allows scripts to process the list without parsing arrows
+                let _ = writeln!(out, "{}{name}{}", *CYAN, *ALL_RESET);
+                return;
+            }
+
+            let suffix = if matches!(file_type, ListFileType::Hardlink { .. }) {
+                " (hardlink)"
+            } else {
+                ""
+            };
+
+            if is_running_in_accessible_mode() {
+                let _ = writeln!(out, "{name} -> {}{suffix}", target.display());
+            } else {
+                let _ = writeln!(
+                    out,
+                    "{c}{name}{r} {c}-> {c}{target}{suffix}{r}",
+                    c = *CYAN,
+                    r = *ALL_RESET,
+                    target = target.display()
+                );
+            }
+        }
+        ListFileType::Directory => {
+            let name_str = name.to_string();
+            let display_name = name_str.strip_suffix('/').unwrap_or(&name_str);
+
+            let output = if BLUE.is_empty() {
+                // Colors are deactivated, print final / to mark directories
+                format!("{display_name}/")
+            } else if is_running_in_accessible_mode() {
+                // Accessible mode: use colors but print final / for screen readers
+                format!("{}{}{}/{}", *BLUE, *STYLE_BOLD, display_name, *ALL_RESET)
+            } else {
+                // Normal mode: use colors without trailing slash
+                format!("{}{}{}{}", *BLUE, *STYLE_BOLD, display_name, *ALL_RESET)
+            };
+
+            let _ = writeln!(out, "{output}");
+        }
     }
-
-    // Handle directory display
-    let name_str = name.to_string();
-    let display_name = name_str.strip_suffix('/').unwrap_or(&name_str);
-
-    let output = if BLUE.is_empty() {
-        // Colors are deactivated, print final / to mark directories
-        format!("{display_name}/")
-    } else if is_running_in_accessible_mode() {
-        // Accessible mode: use colors but print final / for screen readers
-        format!("{}{}{}/{}", *BLUE, *STYLE_BOLD, display_name, *ALL_RESET)
-    } else {
-        // Normal mode: use colors without trailing slash
-        format!("{}{}{}{}", *BLUE, *STYLE_BOLD, display_name, *ALL_RESET)
-    };
-
-    let _ = writeln!(out, "{output}");
 }
 
 /// Since archives store files as a list of entries -> without direct
@@ -91,7 +131,7 @@ mod tree {
     use bstr::{ByteSlice, ByteVec};
     use linked_hash_map::LinkedHashMap;
 
-    use super::FileInArchive;
+    use super::{FileInArchive, ListFileType};
     use crate::{utils::NoQuotePathFmt, warning};
 
     /// Directory tree
@@ -151,11 +191,17 @@ mod tree {
             };
 
             let _ = write!(out, "{prefix}{final_part}");
-            let is_dir = match self.file {
-                Some(FileInArchive { is_dir, .. }) => is_dir,
-                None => true,
+            let file_type = match &self.file {
+                Some(FileInArchive { file_type, .. }) => file_type.clone(),
+                // If we don't have a file entry but have children, it's an implicit directory
+                None => ListFileType::Directory,
             };
-            super::print_entry(out, <Vec<u8> as ByteVec>::from_os_str_lossy(name).as_bstr(), is_dir);
+            super::print_entry(
+                out,
+                <Vec<u8> as ByteVec>::from_os_str_lossy(name).as_bstr(),
+                &file_type,
+                false, // Always show targets in tree view, regardless of --quiet flag
+            );
 
             // Construct prefix for children, adding either a line if this isn't
             // the last entry in the parent dir or empty space if it is.
