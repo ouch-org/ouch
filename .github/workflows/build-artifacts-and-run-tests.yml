@@ -158,12 +158,12 @@ jobs:
         # there's no way to run tests for ARM64 Windows for now
         if: matrix.target != 'aarch64-pc-windows-msvc'
         run: |
-          ${{ env.CARGO }} +stable test --profile fast --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
+          ${{ env.CARGO }} +stable test --locked --profile fast --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
 
       - name: Build release artifacts (binary and completions)
         if: ${{ inputs.artifact_upload_mode != 'none' }}
         run: |
-          ${{ env.CARGO }} +stable build --release --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
+          ${{ env.CARGO }} +stable build --locked --release --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
         env:
           OUCH_ARTIFACTS_FOLDER: man-page-and-completions-artifacts
 
