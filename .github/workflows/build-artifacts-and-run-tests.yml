@@ -163,7 +163,7 @@ jobs:
       - name: Build release artifacts (binary and completions)
         if: ${{ inputs.artifact_upload_mode != 'none' }}
         run: |
-          ${{ env.CARGO }} +stable build --release --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
+          ${{ env.CARGO }} +stable build --locked --release --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
         env:
           OUCH_ARTIFACTS_FOLDER: man-page-and-completions-artifacts
 
