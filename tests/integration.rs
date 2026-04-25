@@ -1315,7 +1315,10 @@ fn decompress_into_cwd_merges_without_prompt() {
         .success();
 
     assert!(cwd.join("important.txt").exists(), "pre-existing file was lost");
-    assert!(cwd.join("src").join("file.txt").exists(), "archive contents were not extracted");
+    assert!(
+        cwd.join("src").join("file.txt").exists(),
+        "archive contents were not extracted"
+    );
 }
 
 /// Test that concatenated gzip streams are fully decompressed (issue #855)

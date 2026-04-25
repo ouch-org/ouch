@@ -223,10 +223,9 @@ fn unpack_archive(
 ) -> Result<ControlFlow<(), DecompressionSummary>> {
     // Extracting into the CWD is a merge into the user's workspace and should not prompt,
     // matching the behaviour of `tar xf` and `unzip` when no destination is given.
-    let is_cwd = output_dir == &*INITIAL_CURRENT_DIR;
-    let is_valid_output_dir = is_cwd
-        || !output_dir.fs_err_try_exists()?
-        || (output_dir.is_dir() && output_dir.read_dir()?.next().is_none());
+    let is_cwd = output_dir == *INITIAL_CURRENT_DIR;
+    let is_valid_output_dir =
+        is_cwd || !output_dir.fs_err_try_exists()? || (output_dir.is_dir() && output_dir.read_dir()?.next().is_none());
 
     let output_dir_cleaned = if is_valid_output_dir {
         output_dir.to_owned()
