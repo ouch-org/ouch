@@ -7,7 +7,7 @@ use std::{
 use fs_err::{self as fs, PathExt};
 
 use crate::{
-    BUFFER_CAPACITY, QuestionAction, QuestionPolicy, Result,
+    BUFFER_CAPACITY, INITIAL_CURRENT_DIR, QuestionAction, QuestionPolicy, Result,
     commands::{warn_user_about_loading_sevenz_in_memory, warn_user_about_loading_zip_in_memory},
     extension::{
         CompressionFormat::{self, *},
@@ -215,13 +215,18 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
 /// directory or replace it if it already exists. The `output_dir` needs to be empty
 /// - If `output_dir` does not exist OR is a empty directory, it will unpack there
 /// - If `output_dir` exist OR is a directory not empty, the user will be asked what to do
+/// - If `output_dir` is the current working directory, files are extracted directly without prompting
 fn unpack_archive(
     unpack_fn: impl FnOnce(&Path) -> Result<u64>,
     output_dir: &Path,
     question_policy: QuestionPolicy,
 ) -> Result<ControlFlow<(), DecompressionSummary>> {
-    let is_valid_output_dir =
-        !output_dir.fs_err_try_exists()? || (output_dir.is_dir() && output_dir.read_dir()?.next().is_none());
+    // Extracting into the CWD is a merge into the user's workspace and should not prompt,
+    // matching the behaviour of `tar xf` and `unzip` when no destination is given.
+    let is_cwd = output_dir == &*INITIAL_CURRENT_DIR;
+    let is_valid_output_dir = is_cwd
+        || !output_dir.fs_err_try_exists()?
+        || (output_dir.is_dir() && output_dir.read_dir()?.next().is_none());
 
     let output_dir_cleaned = if is_valid_output_dir {
         output_dir.to_owned()
