@@ -249,11 +249,7 @@ mod tests {
 
     #[test]
     fn pretty_format_list_of_paths_multiple() {
-        let paths = [
-            PathBuf::from("a.txt"),
-            PathBuf::from("b.txt"),
-            PathBuf::from("c.txt"),
-        ];
+        let paths = [PathBuf::from("a.txt"), PathBuf::from("b.txt"), PathBuf::from("c.txt")];
         assert_eq!(pretty_format_list_of_paths(&paths), "\"a.txt\", \"b.txt\", \"c.txt\"");
     }
 
