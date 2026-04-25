@@ -310,3 +310,51 @@ pub fn read_file_type(path: impl AsRef<Path>) -> Result<FileType> {
             .into()),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn is_path_stdin_recognizes_dash() {
+        assert!(is_path_stdin(Path::new("-")));
+    }
+
+    #[test]
+    fn is_path_stdin_rejects_normal_paths() {
+        assert!(!is_path_stdin(Path::new("file.txt")));
+        assert!(!is_path_stdin(Path::new("./-")));
+        assert!(!is_path_stdin(Path::new("--")));
+        assert!(!is_path_stdin(Path::new("")));
+    }
+
+    #[test]
+    fn try_infer_format_recognizes_zip_magic() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("a.zip");
+        // Minimal ZIP local file header magic
+        std::fs::write(&path, b"PK\x03\x04rest").unwrap();
+        assert_eq!(try_infer_format(&path), Some(CompressionFormat::Zip));
+    }
+
+    #[test]
+    fn try_infer_format_recognizes_gzip_magic() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("a.gz");
+        std::fs::write(&path, b"\x1f\x8b\x08\x00rest").unwrap();
+        assert_eq!(try_infer_format(&path), Some(CompressionFormat::Gzip));
+    }
+
+    #[test]
+    fn try_infer_format_returns_none_on_unknown() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("a.bin");
+        std::fs::write(&path, b"random bytes here").unwrap();
+        assert_eq!(try_infer_format(&path), None);
+    }
+
+    #[test]
+    fn try_infer_format_returns_none_on_missing_file() {
+        assert_eq!(try_infer_format(Path::new("/nonexistent/path/to/nothing")), None);
+    }
+}
