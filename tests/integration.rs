@@ -1288,10 +1288,10 @@ fn yes_flag_merges_into_nonempty_dir() {
     );
 }
 
-/// Regression test: the CWD guard must block `remove_dir_all` on the current working directory
-/// even when the user explicitly selects the overwrite option interactively.
+/// Regression test for the CWD-extraction bug: `ouch d archive` in a non-empty CWD
+/// should merge into the CWD without prompting, but ask for confirmation otherwise
 #[test]
-fn cwd_guard_blocks_explicit_overwrite() {
+fn decompress_into_cwd_merges_without_prompt() {
     let (_tempdir, dir) = testdir().unwrap();
 
     let src = dir.join("src");
@@ -1300,24 +1300,24 @@ fn cwd_guard_blocks_explicit_overwrite() {
     let archive = dir.join("archive.tar.gz");
     ouch!("-A", "c", &src, &archive);
 
-    // Give the "CWD" a pre-existing file to trigger a conflict on the output directory
+    // CWD already contains the archive itself plus an unrelated file
     let cwd = dir.join("cwd");
     fs::create_dir_all(&cwd).unwrap();
     fs::write(cwd.join("important.txt"), "keep this").unwrap();
+    fs::copy(&archive, cwd.join("archive.tar.gz")).unwrap();
 
-    // User explicitly answers "y" (overwrite); the guard should block deletion and fail
+    // Decompress with no `-d`; nothing typed on stdin
     crate::utils::cargo_bin()
         .current_dir(&cwd)
         .arg("decompress")
-        .arg(&archive)
-        .write_stdin("y")
+        .arg("archive.tar.gz")
         .assert()
-        .failure();
+        .success();
 
-    assert!(cwd.exists(), "CWD was deleted despite guard");
+    assert!(cwd.join("important.txt").exists(), "pre-existing file was lost");
     assert!(
-        cwd.join("important.txt").exists(),
-        "CWD contents were deleted despite guard"
+        cwd.join("src").join("file.txt").exists(),
+        "archive contents were not extracted"
     );
 }
 
