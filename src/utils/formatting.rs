@@ -197,4 +197,91 @@ mod tests {
         assert_eq!("999.90 GiB", format_bytes(999900000000));
         assert_eq!("  1.00 TiB", format_bytes(999990000000));
     }
+
+    #[test]
+    fn strip_path_ascii_prefix_removes_prefix() {
+        let p = PathBuf::from("./foo/bar");
+        let stripped = strip_path_ascii_prefix(Cow::Borrowed(&p), "./");
+        assert_eq!(stripped.as_ref(), Path::new("foo/bar"));
+    }
+
+    #[test]
+    fn strip_path_ascii_prefix_no_match_returns_unchanged() {
+        let p = PathBuf::from("foo/bar");
+        let stripped = strip_path_ascii_prefix(Cow::Borrowed(&p), "./");
+        assert_eq!(stripped.as_ref(), Path::new("foo/bar"));
+    }
+
+    #[test]
+    fn strip_path_ascii_prefix_empty_prefix_is_noop() {
+        let p = PathBuf::from("foo/bar");
+        let stripped = strip_path_ascii_prefix(Cow::Borrowed(&p), "");
+        assert_eq!(stripped.as_ref(), Path::new("foo/bar"));
+    }
+
+    #[test]
+    fn append_ascii_suffix_appends_to_filename() {
+        let result = append_ascii_suffix_to_os_str(OsStr::new("file"), ".bak");
+        assert_eq!(result, OsString::from("file.bak"));
+    }
+
+    #[test]
+    fn append_ascii_suffix_appends_to_empty_str() {
+        let result = append_ascii_suffix_to_os_str(OsStr::new(""), "foo");
+        assert_eq!(result, OsString::from("foo"));
+    }
+
+    #[test]
+    fn nice_directory_display_dot_returns_phrase() {
+        assert_eq!(nice_directory_display(Path::new(".")), "current directory");
+    }
+
+    #[test]
+    fn nice_directory_display_other_returns_path() {
+        assert_eq!(nice_directory_display(Path::new("foo/bar")), "foo/bar");
+    }
+
+    #[test]
+    fn pretty_format_list_of_paths_single() {
+        let paths = [PathBuf::from("a.txt")];
+        assert_eq!(pretty_format_list_of_paths(&paths), "\"a.txt\"");
+    }
+
+    #[test]
+    fn pretty_format_list_of_paths_multiple() {
+        let paths = [PathBuf::from("a.txt"), PathBuf::from("b.txt"), PathBuf::from("c.txt")];
+        assert_eq!(pretty_format_list_of_paths(&paths), "\"a.txt\", \"b.txt\", \"c.txt\"");
+    }
+
+    #[test]
+    fn pretty_format_list_of_paths_empty() {
+        let paths: [PathBuf; 0] = [];
+        assert_eq!(pretty_format_list_of_paths(&paths), "");
+    }
+
+    #[test]
+    fn path_to_str_valid_utf8() {
+        assert_eq!(path_to_str(Path::new("foo/bar.txt")), "foo/bar.txt");
+    }
+
+    #[test]
+    fn os_str_to_str_valid_utf8() {
+        assert_eq!(os_str_to_str(OsStr::new("hello")), "hello");
+    }
+
+    #[test]
+    fn path_fmt_quotes_path() {
+        let p = Path::new("name.txt");
+        let rendered = format!("{}", PathFmt(p));
+        assert!(rendered.starts_with('"') && rendered.ends_with('"'));
+        assert!(rendered.contains("name.txt"));
+    }
+
+    #[test]
+    fn no_quote_path_fmt_does_not_quote() {
+        let p = Path::new("name.txt");
+        let rendered = format!("{}", NoQuotePathFmt(p));
+        assert!(!rendered.starts_with('"'));
+        assert!(rendered.contains("name.txt"));
+    }
 }
