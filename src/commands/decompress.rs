@@ -327,3 +327,140 @@ fn deduplicate_basename_wrapper(wrapper: &Path) -> Result<PathBuf> {
 
     Ok(wrapper.to_path_buf())
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fs as std_fs;
+
+    use tempfile::tempdir;
+
+    use super::*;
+
+    /// Helper: collect the relative paths of every entry under `root`, sorted.
+    fn list_tree(root: &Path) -> Vec<String> {
+        fn walk(p: &Path, base: &Path, out: &mut Vec<String>) {
+            if let Ok(entries) = std_fs::read_dir(p) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    let rel = path
+                        .strip_prefix(base)
+                        .unwrap()
+                        .to_string_lossy()
+                        .replace('\\', "/");
+                    if path.is_dir() {
+                        out.push(format!("{rel}/"));
+                        walk(&path, base, out);
+                    } else {
+                        out.push(rel);
+                    }
+                }
+            }
+        }
+        let mut out = Vec::new();
+        walk(root, root, &mut out);
+        out.sort();
+        out
+    }
+
+    /// The main case: wrapper contains exactly one entry whose name equals the wrapper's
+    /// name. The inner entry should be promoted up one level.
+    #[test]
+    fn deduplicate_flattens_when_inner_dir_matches_wrapper_name() {
+        let dir = tempdir().unwrap();
+        let wrapper = dir.path().join("archive");
+        let inner = wrapper.join("archive");
+        std_fs::create_dir_all(&inner).unwrap();
+        std_fs::write(inner.join("a.txt"), "a").unwrap();
+        std_fs::write(inner.join("b.txt"), "b").unwrap();
+
+        let result = deduplicate_basename_wrapper(&wrapper).unwrap();
+
+        assert_eq!(result, wrapper);
+        assert_eq!(list_tree(&wrapper), vec!["a.txt", "b.txt"]);
+    }
+
+    /// Wrapper contains a single entry, but its name differs from the wrapper's name.
+    /// No flatten should happen — the wrapper survives and the inner entry stays nested.
+    #[test]
+    fn deduplicate_keeps_wrapper_when_inner_name_differs() {
+        let dir = tempdir().unwrap();
+        let wrapper = dir.path().join("archive");
+        let inner = wrapper.join("mytool");
+        std_fs::create_dir_all(&inner).unwrap();
+        std_fs::write(inner.join("file.txt"), "x").unwrap();
+
+        let result = deduplicate_basename_wrapper(&wrapper).unwrap();
+
+        assert_eq!(result, wrapper);
+        assert_eq!(list_tree(&wrapper), vec!["mytool/", "mytool/file.txt"]);
+    }
+
+    /// Wrapper contains two or more entries — no flatten regardless of names.
+    #[test]
+    fn deduplicate_keeps_wrapper_when_multiple_entries() {
+        let dir = tempdir().unwrap();
+        let wrapper = dir.path().join("archive");
+        std_fs::create_dir_all(&wrapper).unwrap();
+        std_fs::write(wrapper.join("a.txt"), "a").unwrap();
+        std_fs::write(wrapper.join("b.txt"), "b").unwrap();
+
+        let result = deduplicate_basename_wrapper(&wrapper).unwrap();
+
+        assert_eq!(result, wrapper);
+        assert_eq!(list_tree(&wrapper), vec!["a.txt", "b.txt"]);
+    }
+
+    /// Empty wrapper — nothing to flatten, no-op.
+    #[test]
+    fn deduplicate_is_noop_on_empty_wrapper() {
+        let dir = tempdir().unwrap();
+        let wrapper = dir.path().join("archive");
+        std_fs::create_dir(&wrapper).unwrap();
+
+        let result = deduplicate_basename_wrapper(&wrapper).unwrap();
+
+        assert_eq!(result, wrapper);
+        assert!(wrapper.is_dir());
+        assert_eq!(list_tree(&wrapper), Vec::<String>::new());
+    }
+
+    /// Edge case: the single inner entry is a *file* (not a directory) whose name
+    /// equals the wrapper's name. The wrapper directory should be replaced with that file.
+    #[test]
+    fn deduplicate_promotes_single_inner_file_with_matching_name() {
+        let dir = tempdir().unwrap();
+        let wrapper = dir.path().join("archive");
+        std_fs::create_dir(&wrapper).unwrap();
+        std_fs::write(wrapper.join("archive"), "data").unwrap();
+
+        let result = deduplicate_basename_wrapper(&wrapper).unwrap();
+
+        assert_eq!(result, wrapper);
+        assert!(wrapper.is_file(), "wrapper should now be a file, not a directory");
+        assert_eq!(std_fs::read(&wrapper).unwrap(), b"data");
+    }
+
+    /// The flatten only collapses *one* level: nested same-name directories produced
+    /// by the archive itself stay intact. For example, an archive whose layout is
+    /// `testing/testing/file` extracted into `./testing/` should leave the user with
+    /// `./testing/testing/file`, not `./testing/file`.
+    #[test]
+    fn deduplicate_only_flattens_outer_wrapper_not_inner_duplicates() {
+        let dir = tempdir().unwrap();
+        let wrapper = dir.path().join("testing");
+        let outer_inner = wrapper.join("testing");
+        let nested = outer_inner.join("testing");
+        std_fs::create_dir_all(&nested).unwrap();
+        std_fs::write(nested.join("file"), "deep").unwrap();
+
+        let result = deduplicate_basename_wrapper(&wrapper).unwrap();
+
+        assert_eq!(result, wrapper);
+        // After one flatten, `testing/testing/file` should remain — the algorithm only
+        // collapses the outer wrapper exactly once.
+        assert_eq!(
+            list_tree(&wrapper),
+            vec!["testing/", "testing/file"]
+        );
+    }
+}
