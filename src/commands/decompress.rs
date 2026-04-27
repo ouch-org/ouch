@@ -202,7 +202,10 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
     };
 
     match decompression_summary {
-        DecompressionSummary::Archive { files_unpacked, output_path } => {
+        DecompressionSummary::Archive {
+            files_unpacked,
+            output_path,
+        } => {
             // In default mode (no --dir, no --here), if the wrapper subdir we created
             // ended up containing exactly one entry whose name matches the wrapper itself
             // (e.g. `archive.zip` contained a single `archive/` root), flatten that
@@ -315,9 +318,7 @@ fn deduplicate_basename_wrapper(wrapper: &Path) -> Result<PathBuf> {
         None => return Ok(wrapper.to_path_buf()),
     };
 
-    let staging = tempfile::Builder::new()
-        .prefix(".ouch-staging-")
-        .tempdir_in(parent)?;
+    let staging = tempfile::Builder::new().prefix(".ouch-staging-").tempdir_in(parent)?;
     let staging_target = staging.path().join(wrapper_name);
     fs::rename(&inner_path, &staging_target)?;
     fs::remove_dir(wrapper)?;
