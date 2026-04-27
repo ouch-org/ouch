@@ -1283,15 +1283,16 @@ fn yes_flag_merges_into_nonempty_dir() {
         "--yes wiped the output directory instead of merging"
     );
     assert!(
-        output.join("src").join("new_file.txt").exists(),
-        "archive contents were not extracted"
+        output.join("archive").join("src").join("new_file.txt").exists(),
+        "archive contents were not extracted into the basename subdir"
     );
 }
 
-/// Regression test for the CWD-extraction bug: `ouch d archive` in a non-empty CWD
-/// should merge into the CWD without prompting, but ask for confirmation otherwise
+/// `ouch d archive` with no `-d`/`--here` should extract into a basename-derived
+/// subdirectory of the CWD (`./archive/`), not directly into the CWD. Pre-existing
+/// CWD contents stay intact.
 #[test]
-fn decompress_into_cwd_merges_without_prompt() {
+fn decompress_default_creates_basename_subdir() {
     let (_tempdir, dir) = testdir().unwrap();
 
     let src = dir.join("src");
@@ -1300,13 +1301,11 @@ fn decompress_into_cwd_merges_without_prompt() {
     let archive = dir.join("archive.tar.gz");
     ouch!("-A", "c", &src, &archive);
 
-    // CWD already contains the archive itself plus an unrelated file
     let cwd = dir.join("cwd");
     fs::create_dir_all(&cwd).unwrap();
     fs::write(cwd.join("important.txt"), "keep this").unwrap();
     fs::copy(&archive, cwd.join("archive.tar.gz")).unwrap();
 
-    // Decompress with no `-d`; nothing typed on stdin
     crate::utils::cargo_bin()
         .current_dir(&cwd)
         .arg("decompress")
@@ -1316,8 +1315,82 @@ fn decompress_into_cwd_merges_without_prompt() {
 
     assert!(cwd.join("important.txt").exists(), "pre-existing file was lost");
     assert!(
+        cwd.join("archive").join("src").join("file.txt").exists(),
+        "archive contents were not extracted into the basename subdir"
+    );
+    assert!(
+        !cwd.join("src").join("file.txt").exists(),
+        "archive contents leaked directly into the CWD instead of the subdir"
+    );
+}
+
+/// When the archive's single root entry has the same name as the wrapper directory
+/// (e.g. `testing.tar.gz` containing `testing/`), the duplicate is flattened: the
+/// user gets `cwd/testing/...` rather than `cwd/testing/testing/...`.
+#[test]
+fn decompress_default_flattens_duplicate_basename_wrapper() {
+    let (_tempdir, dir) = testdir().unwrap();
+
+    let src = dir.join("testing");
+    fs::create_dir_all(&src).unwrap();
+    fs::write(src.join("file.txt"), "content").unwrap();
+    let archive = dir.join("testing.tar.gz");
+    ouch!("-A", "c", &src, &archive);
+
+    let cwd = dir.join("cwd");
+    fs::create_dir_all(&cwd).unwrap();
+    fs::copy(&archive, cwd.join("testing.tar.gz")).unwrap();
+
+    crate::utils::cargo_bin()
+        .current_dir(&cwd)
+        .arg("decompress")
+        .arg("testing.tar.gz")
+        .assert()
+        .success();
+
+    assert!(
+        cwd.join("testing").join("file.txt").exists(),
+        "flattened content not present"
+    );
+    assert!(
+        !cwd.join("testing").join("testing").exists(),
+        "duplicate basename wrapper was not flattened"
+    );
+}
+
+/// `--here` extracts directly into the current directory, like `tar -xf` and `unzip`.
+/// No wrapper folder, no flatten, no overwrite prompt for pre-existing CWD contents.
+#[test]
+fn decompress_here_flag_extracts_into_cwd() {
+    let (_tempdir, dir) = testdir().unwrap();
+
+    let src = dir.join("src");
+    fs::create_dir_all(&src).unwrap();
+    fs::write(src.join("file.txt"), "content").unwrap();
+    let archive = dir.join("archive.tar.gz");
+    ouch!("-A", "c", &src, &archive);
+
+    let cwd = dir.join("cwd");
+    fs::create_dir_all(&cwd).unwrap();
+    fs::write(cwd.join("important.txt"), "keep this").unwrap();
+    fs::copy(&archive, cwd.join("archive.tar.gz")).unwrap();
+
+    crate::utils::cargo_bin()
+        .current_dir(&cwd)
+        .arg("decompress")
+        .arg("archive.tar.gz")
+        .arg("--here")
+        .assert()
+        .success();
+
+    assert!(cwd.join("important.txt").exists(), "pre-existing file was lost");
+    assert!(
         cwd.join("src").join("file.txt").exists(),
-        "archive contents were not extracted"
+        "--here did not extract directly into CWD"
+    );
+    assert!(
+        !cwd.join("archive").exists(),
+        "--here unexpectedly created a wrapper subdirectory"
     );
 }
 

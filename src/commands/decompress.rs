@@ -30,13 +30,19 @@ pub struct DecompressOptions<'a> {
     pub output_dir: &'a Path,
     /// Used when extracting single file formats and not archive formats
     pub output_file_path: PathBuf,
+    /// Whether the user passed `--dir` explicitly. When false (and `here` is false),
+    /// archives are extracted into a basename-derived subdirectory of the CWD.
+    pub output_dir_was_explicit: bool,
+    /// `--here`: extract directly into the current directory like `tar -xf`.
+    /// Only meaningful when `output_dir_was_explicit` is false.
+    pub here: bool,
     pub question_policy: QuestionPolicy,
     pub password: Option<&'a [u8]>,
     pub remove: bool,
 }
 
 enum DecompressionSummary {
-    Archive { files_unpacked: u64 },
+    Archive { files_unpacked: u64, output_path: PathBuf },
     NonArchive { output_path: PathBuf },
 }
 
@@ -87,6 +93,18 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
         Ok(reader)
     };
 
+    // Decide where archives extract:
+    //   --dir <X>     -> extract into <X>, no wrapper, no flatten
+    //   --here        -> extract into CWD (output_dir), no wrapper
+    //   default       -> extract into a basename-derived subdirectory; flatten the
+    //                    duplicate when the wrapper would contain exactly one entry
+    //                    whose name equals the basename
+    let archive_output_dir: &Path = if options.output_dir_was_explicit || options.here {
+        options.output_dir
+    } else {
+        &options.output_file_path
+    };
+
     let control_flow = match first_extension {
         Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {
             let reader = create_decoder_up_to_first_extension()?;
@@ -108,7 +126,7 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
         }
         Tar => unpack_archive(
             |output_dir| crate::archive::tar::unpack_archive(create_decoder_up_to_first_extension()?, output_dir),
-            options.output_dir,
+            archive_output_dir,
             options.question_policy,
         )?,
         Zip | SevenZip => {
@@ -153,7 +171,7 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
 
             unpack_archive(
                 |output_dir| unpack_fn(reader, output_dir, options.password),
-                options.output_dir,
+                archive_output_dir,
                 options.question_policy,
             )?
         }
@@ -171,7 +189,7 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
                 })
             };
 
-            unpack_archive(unpack_fn, options.output_dir, options.question_policy)?
+            unpack_archive(unpack_fn, archive_output_dir, options.question_policy)?
         }
         #[cfg(not(feature = "unrar"))]
         Rar => {
@@ -184,8 +202,17 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
     };
 
     match decompression_summary {
-        DecompressionSummary::Archive { files_unpacked } => {
-            info_accessible!("Successfully decompressed archive to {}", PathFmt(options.output_dir));
+        DecompressionSummary::Archive { files_unpacked, output_path } => {
+            // In default mode (no --dir, no --here), if the wrapper subdir we created
+            // ended up containing exactly one entry whose name matches the wrapper itself
+            // (e.g. `archive.zip` contained a single `archive/` root), flatten that
+            // duplicate so the user sees `./archive/...` not `./archive/archive/...`.
+            let final_path = if !options.output_dir_was_explicit && !options.here {
+                deduplicate_basename_wrapper(&output_path)?
+            } else {
+                output_path
+            };
+            info_accessible!("Successfully decompressed archive to {}", PathFmt(&final_path));
             info_accessible!("Files unpacked: {files_unpacked}");
         }
         DecompressionSummary::NonArchive { output_path } => {
@@ -241,5 +268,61 @@ fn unpack_archive(
 
     let files_unpacked = unpack_fn(&output_dir_cleaned)?;
 
-    Ok(ControlFlow::Continue(DecompressionSummary::Archive { files_unpacked }))
+    Ok(ControlFlow::Continue(DecompressionSummary::Archive {
+        files_unpacked,
+        output_path: output_dir_cleaned,
+    }))
+}
+
+/// If `wrapper` is a directory containing exactly one entry whose name matches the
+/// wrapper's own basename (e.g. extracting `archive.zip` produced `archive/archive/`),
+/// flatten it: move the inner entry up one level and remove the empty wrapper.
+///
+/// Returns the resulting path the user should see. If anything goes wrong with the
+/// flattening, leaves the wrapper in place — extraction has already succeeded, the
+/// content is intact, just one directory level deeper than ideal — and returns the
+/// original `wrapper` path.
+fn deduplicate_basename_wrapper(wrapper: &Path) -> Result<PathBuf> {
+    let wrapper_name = match wrapper.file_name() {
+        Some(n) => n,
+        None => return Ok(wrapper.to_path_buf()),
+    };
+
+    // Read at most two entries. A single-entry directory has exactly one.
+    let mut entries = fs::read_dir(wrapper)?;
+    let first = match entries.next().transpose()? {
+        Some(e) => e,
+        None => return Ok(wrapper.to_path_buf()),
+    };
+    if entries.next().transpose()?.is_some() {
+        return Ok(wrapper.to_path_buf());
+    }
+    drop(entries);
+
+    if first.file_name() != wrapper_name {
+        return Ok(wrapper.to_path_buf());
+    }
+
+    // The wrapper duplicates the inner entry's name. Promote the inner entry by:
+    //   1. moving it into a sibling staging directory
+    //   2. removing the now-empty wrapper
+    //   3. moving it back to the wrapper's path
+    // Each step leaves the filesystem in a consistent state, and a failure midway
+    // leaves the user with valid extracted content (just nested one level).
+    let inner_path = first.path();
+    let parent = match wrapper.parent() {
+        Some(p) => p,
+        None => return Ok(wrapper.to_path_buf()),
+    };
+
+    let staging = tempfile::Builder::new()
+        .prefix(".ouch-staging-")
+        .tempdir_in(parent)?;
+    let staging_target = staging.path().join(wrapper_name);
+    fs::rename(&inner_path, &staging_target)?;
+    fs::remove_dir(wrapper)?;
+    fs::rename(&staging_target, wrapper)?;
+    // The (empty) staging directory is cleaned up when `staging` drops.
+
+    Ok(wrapper.to_path_buf())
 }
