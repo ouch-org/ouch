@@ -342,11 +342,7 @@ mod tests {
             if let Ok(entries) = std_fs::read_dir(p) {
                 for entry in entries.flatten() {
                     let path = entry.path();
-                    let rel = path
-                        .strip_prefix(base)
-                        .unwrap()
-                        .to_string_lossy()
-                        .replace('\\', "/");
+                    let rel = path.strip_prefix(base).unwrap().to_string_lossy().replace('\\', "/");
                     if path.is_dir() {
                         out.push(format!("{rel}/"));
                         walk(&path, base, out);
@@ -458,9 +454,6 @@ mod tests {
         assert_eq!(result, wrapper);
         // After one flatten, `testing/testing/file` should remain — the algorithm only
         // collapses the outer wrapper exactly once.
-        assert_eq!(
-            list_tree(&wrapper),
-            vec!["testing/", "testing/file"]
-        );
+        assert_eq!(list_tree(&wrapper), vec!["testing/", "testing/file"]);
     }
 }
