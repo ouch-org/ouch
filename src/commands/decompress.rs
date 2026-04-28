@@ -277,14 +277,11 @@ fn unpack_archive(
     }))
 }
 
-/// If `wrapper` is a directory containing exactly one entry whose name matches the
-/// wrapper's own basename (e.g. extracting `archive.zip` produced `archive/archive/`),
-/// flatten it: move the inner entry up one level and remove the empty wrapper.
+/// Expects `wrapper` to be a just-decompressed archive output directory, if
+/// `wrapper` contains exactly one entry with the same name (e.g. extracting
+/// `archive.zip` produced `archive/archive/...`), then flatten it to `archive/...`.
 ///
-/// Returns the resulting path the user should see. If anything goes wrong with the
-/// flattening, leaves the wrapper in place — extraction has already succeeded, the
-/// content is intact, just one directory level deeper than ideal — and returns the
-/// original `wrapper` path.
+/// Returns the resulting path the user should see. If reads fail,
 fn deduplicate_basename_wrapper(wrapper: &Path) -> Result<PathBuf> {
     let Some(wrapper_name) = wrapper.file_name() else {
         return Ok(wrapper.to_path_buf());
