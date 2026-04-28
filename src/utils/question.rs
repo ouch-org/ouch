@@ -263,10 +263,8 @@ impl<'a, T: Default> ChoicePrompt<'a, T> {
             answer.make_ascii_lowercase();
             let answer = answer.trim();
 
-            if answer.is_empty() {
-                if !self.choises.is_empty() {
-                    return Ok(self.choises.remove(0).value);
-                }
+            if answer.is_empty() && !self.choises.is_empty() {
+                return Ok(self.choises.remove(0).value);
             }
 
             let chosen_index = self.choises.iter().position(|choise| choise.label.starts_with(answer));
