@@ -338,31 +338,10 @@ fn deduplicate_basename_wrapper(wrapper: &Path) -> Result<()> {
 mod tests {
     use std::fs as std_fs;
 
+    use fs_tree::{FsTree, tree};
     use tempfile::tempdir;
 
     use super::*;
-
-    /// Helper: collect the relative paths of every entry under `root`, sorted.
-    fn list_tree(root: &Path) -> Vec<String> {
-        fn walk(p: &Path, base: &Path, out: &mut Vec<String>) {
-            if let Ok(entries) = std_fs::read_dir(p) {
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    let rel = path.strip_prefix(base).unwrap().to_string_lossy().replace('\\', "/");
-                    if path.is_dir() {
-                        out.push(format!("{rel}/"));
-                        walk(&path, base, out);
-                    } else {
-                        out.push(rel);
-                    }
-                }
-            }
-        }
-        let mut out = Vec::new();
-        walk(root, root, &mut out);
-        out.sort();
-        out
-    }
 
     /// The main case: wrapper contains exactly one entry whose name equals the wrapper's
     /// name. The inner entry should be promoted up one level.
@@ -376,7 +355,13 @@ mod tests {
         std_fs::write(inner.join("b.txt"), "b").unwrap();
 
         deduplicate_basename_wrapper(&wrapper).unwrap();
-        assert_eq!(list_tree(&wrapper), vec!["a.txt", "b.txt"]);
+        assert_eq!(
+            FsTree::read_at(&wrapper).unwrap(),
+            tree! {
+                "a.txt"
+                "b.txt"
+            }
+        );
     }
 
     /// Wrapper contains a single entry, but its name differs from the wrapper's name.
@@ -390,7 +375,14 @@ mod tests {
         std_fs::write(inner.join("file.txt"), "x").unwrap();
 
         deduplicate_basename_wrapper(&wrapper).unwrap();
-        assert_eq!(list_tree(&wrapper), vec!["mytool/", "mytool/file.txt"]);
+        assert_eq!(
+            FsTree::read_at(&wrapper).unwrap(),
+            tree! {
+                mytool: [
+                    "file.txt"
+                ]
+            }
+        );
     }
 
     /// Wrapper contains two or more entries — no flatten regardless of names.
@@ -403,7 +395,13 @@ mod tests {
         std_fs::write(wrapper.join("b.txt"), "b").unwrap();
 
         deduplicate_basename_wrapper(&wrapper).unwrap();
-        assert_eq!(list_tree(&wrapper), vec!["a.txt", "b.txt"]);
+        assert_eq!(
+            FsTree::read_at(&wrapper).unwrap(),
+            tree! {
+                "a.txt"
+                "b.txt"
+            }
+        );
     }
 
     /// Empty wrapper — nothing to flatten, no-op.
@@ -415,7 +413,7 @@ mod tests {
 
         deduplicate_basename_wrapper(&wrapper).unwrap();
         assert!(wrapper.is_dir());
-        assert_eq!(list_tree(&wrapper), Vec::<String>::new());
+        assert_eq!(FsTree::read_at(&wrapper).unwrap(), tree! {});
     }
 
     /// Edge case: the single inner entry is a *file* (not a directory) whose name
@@ -448,6 +446,13 @@ mod tests {
         deduplicate_basename_wrapper(&wrapper).unwrap();
         // After one flatten, `testing/testing/file` should remain — the algorithm only
         // collapses the outer wrapper exactly once.
-        assert_eq!(list_tree(&wrapper), vec!["testing/", "testing/file"]);
+        assert_eq!(
+            FsTree::read_at(&wrapper).unwrap(),
+            tree! {
+                testing: [
+                    file
+                ]
+            }
+        );
     }
 }
