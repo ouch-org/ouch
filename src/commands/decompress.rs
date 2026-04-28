@@ -210,12 +210,10 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
             // ended up containing exactly one entry whose name matches the wrapper itself
             // (e.g. `archive.zip` contained a single `archive/` root), flatten that
             // duplicate so the user sees `./archive/...` not `./archive/archive/...`.
-            let final_path = if !options.output_dir_was_explicit && !options.here {
-                deduplicate_basename_wrapper(&output_path)?
-            } else {
-                output_path
-            };
-            info_accessible!("Successfully decompressed archive to {}", PathFmt(&final_path));
+            if !options.output_dir_was_explicit && !options.here {
+                deduplicate_basename_wrapper(&output_path)?;
+            }
+            info_accessible!("Successfully decompressed archive to {}", PathFmt(&output_path));
             info_accessible!("Files unpacked: {files_unpacked}");
         }
         DecompressionSummary::NonArchive { output_path } => {
@@ -282,27 +280,27 @@ fn unpack_archive(
 /// `archive.zip` produced `archive/archive/...`), then flatten it to `archive/...`.
 ///
 /// Returns the resulting path the user should see. If reads fail,
-fn deduplicate_basename_wrapper(wrapper: &Path) -> Result<PathBuf> {
+fn deduplicate_basename_wrapper(wrapper: &Path) -> Result<()> {
     let Some(wrapper_name) = wrapper.file_name() else {
-        return Ok(wrapper.to_path_buf());
+        return Ok(());
     };
 
     let only_file_in_dir = {
         // Read at most two entries. A single-entry directory has exactly one.
         let mut entries = fs::read_dir(wrapper)?;
         let Some(first_file) = entries.next().transpose()? else {
-            return Ok(wrapper.to_path_buf());
+            return Ok(());
         };
         // More than one entry, don't deduplicate
         if entries.next().transpose()?.is_some() {
-            return Ok(wrapper.to_path_buf());
+            return Ok(());
         }
         first_file
     };
 
     // name doesn't match, nothing to deduplicate
     if only_file_in_dir.file_name() != wrapper_name {
-        return Ok(wrapper.to_path_buf());
+        return Ok(());
     }
 
     // The wrapper duplicates the inner entry's name. Promote the inner entry by:
@@ -313,7 +311,7 @@ fn deduplicate_basename_wrapper(wrapper: &Path) -> Result<PathBuf> {
     // leaves the user with valid extracted content (just nested one level).
     let inner_path = only_file_in_dir.path();
     let Some(parent) = wrapper.parent() else {
-        return Ok(wrapper.to_path_buf());
+        return Ok(());
     };
 
     // Create the sibling
@@ -333,7 +331,7 @@ fn deduplicate_basename_wrapper(wrapper: &Path) -> Result<PathBuf> {
     // Delete the temporary sibling
     fs::remove_dir(sibling_path)?;
 
-    Ok(wrapper.to_path_buf())
+    Ok(())
 }
 
 #[cfg(test)]
@@ -377,9 +375,7 @@ mod tests {
         std_fs::write(inner.join("a.txt"), "a").unwrap();
         std_fs::write(inner.join("b.txt"), "b").unwrap();
 
-        let result = deduplicate_basename_wrapper(&wrapper).unwrap();
-
-        assert_eq!(result, wrapper);
+        deduplicate_basename_wrapper(&wrapper).unwrap();
         assert_eq!(list_tree(&wrapper), vec!["a.txt", "b.txt"]);
     }
 
@@ -393,9 +389,7 @@ mod tests {
         std_fs::create_dir_all(&inner).unwrap();
         std_fs::write(inner.join("file.txt"), "x").unwrap();
 
-        let result = deduplicate_basename_wrapper(&wrapper).unwrap();
-
-        assert_eq!(result, wrapper);
+        deduplicate_basename_wrapper(&wrapper).unwrap();
         assert_eq!(list_tree(&wrapper), vec!["mytool/", "mytool/file.txt"]);
     }
 
@@ -408,9 +402,7 @@ mod tests {
         std_fs::write(wrapper.join("a.txt"), "a").unwrap();
         std_fs::write(wrapper.join("b.txt"), "b").unwrap();
 
-        let result = deduplicate_basename_wrapper(&wrapper).unwrap();
-
-        assert_eq!(result, wrapper);
+        deduplicate_basename_wrapper(&wrapper).unwrap();
         assert_eq!(list_tree(&wrapper), vec!["a.txt", "b.txt"]);
     }
 
@@ -421,9 +413,7 @@ mod tests {
         let wrapper = dir.path().join("archive");
         std_fs::create_dir(&wrapper).unwrap();
 
-        let result = deduplicate_basename_wrapper(&wrapper).unwrap();
-
-        assert_eq!(result, wrapper);
+        deduplicate_basename_wrapper(&wrapper).unwrap();
         assert!(wrapper.is_dir());
         assert_eq!(list_tree(&wrapper), Vec::<String>::new());
     }
@@ -437,9 +427,7 @@ mod tests {
         std_fs::create_dir(&wrapper).unwrap();
         std_fs::write(wrapper.join("archive"), "data").unwrap();
 
-        let result = deduplicate_basename_wrapper(&wrapper).unwrap();
-
-        assert_eq!(result, wrapper);
+        deduplicate_basename_wrapper(&wrapper).unwrap();
         assert!(wrapper.is_file(), "wrapper should now be a file, not a directory");
         assert_eq!(std_fs::read(&wrapper).unwrap(), b"data");
     }
@@ -457,9 +445,7 @@ mod tests {
         std_fs::create_dir_all(&nested).unwrap();
         std_fs::write(nested.join("file"), "deep").unwrap();
 
-        let result = deduplicate_basename_wrapper(&wrapper).unwrap();
-
-        assert_eq!(result, wrapper);
+        deduplicate_basename_wrapper(&wrapper).unwrap();
         // After one flatten, `testing/testing/file` should remain — the algorithm only
         // collapses the outer wrapper exactly once.
         assert_eq!(list_tree(&wrapper), vec!["testing/", "testing/file"]);
