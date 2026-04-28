@@ -141,6 +141,7 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
         Subcommand::Decompress {
             files,
             output_dir,
+            here,
             remove,
         } => {
             let mut files_output_paths: Vec<_> = vec![];
@@ -181,6 +182,7 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
 
             // The directory that will contain the output files
             // We default to the current directory if the user didn't specify an output directory with --dir
+            let output_dir_was_explicit = output_dir.is_some();
             let output_dir = if let Some(dir) = output_dir {
                 utils::create_dir_if_non_existent(&dir)?;
                 // If not canonicalized, strip_prefix won't work and logs will break
@@ -207,6 +209,8 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                         formats,
                         output_dir: &output_dir,
                         output_file_path,
+                        output_dir_was_explicit,
+                        here,
                         question_policy,
                         password: args.password.as_deref().map(|str| {
                             <[u8] as ByteSlice>::from_os_str(str).expect("convert password to bytes failed")
