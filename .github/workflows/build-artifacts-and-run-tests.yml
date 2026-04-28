@@ -151,9 +151,9 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ inputs.artifact_upload_mode }}" == "none" ]]; then
-            echo "profile=--profile fast" >> $GITHUB_OUTPUT
+            echo "profile=fast" >> $GITHUB_OUTPUT
           else
-            echo "profile=--release" >> $GITHUB_OUTPUT
+            echo "profile=release" >> $GITHUB_OUTPUT
           fi
 
       - name: Install Rust
@@ -168,7 +168,7 @@ jobs:
         # there's no way to run tests for ARM64 Windows for now
         if: matrix.target != 'aarch64-pc-windows-msvc'
         run: |
-          ${{ env.CARGO }} +stable test --locked ${{ steps.test-profile.outputs.profile }} --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
+          ${{ env.CARGO }} +stable test --locked --profile ${{ steps.test-profile.outputs.profile }} --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
 
       - name: Build release artifacts (binary and completions)
         if: ${{ inputs.artifact_upload_mode != 'none' }}
