@@ -1422,6 +1422,140 @@ fn decompress_concatenated_bzip2_streams() {
     });
 }
 
+/// When decompressing with `--dir out`, first `ouch` should create the new
+/// folder, on a second call, it fails and asks whether or not it should be
+/// overwritten, a third call with `--yes` should succeed.
+#[test]
+fn decompress_dir_flag_to_another_dir_and_overwrite() {
+    let (_tempdir, dir) = testdir().unwrap();
+    let input_folder = dir.join("folder");
+    let input_file = input_folder.join("file");
+    let output_file = dir.join("out/folder/file");
+    let archive = dir.join("archive.zip");
+
+    fs::create_dir(&input_folder).unwrap();
+    fs::write(&input_file, "first write").unwrap();
+
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .arg(&input_folder)
+        .arg(&archive)
+        .assert()
+        .success();
+
+    // First decompress with `--dir out` — should succeed
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(&archive)
+        .args(["--dir", "out"])
+        .current_dir(dir)
+        .assert()
+        .success();
+
+    assert_eq!("first write", fs::read_to_string(&output_file).unwrap());
+
+    // Recreate archive, in case unpacking succeeds we'll see the new archive
+    // contents instead
+    fs::remove_file(&archive).unwrap();
+    fs::remove_dir_all(&input_folder).unwrap();
+    fs::create_dir(&input_folder).unwrap();
+    fs::write(&input_file, "second write").unwrap();
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .arg(&input_folder)
+        .arg(&archive)
+        .assert()
+        .success();
+
+    // Decompressing again with `--dir out` — this fails due to directory
+    // conflict, we also didn't pass `--yes`.
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(&archive)
+        .args(["--dir", "out"])
+        .current_dir(dir)
+        .assert()
+        .failure();
+
+    assert_eq!("first write", fs::read_to_string(&output_file).unwrap());
+
+    // Third decompress attempt, now pass `--yes` to accept overwriting.
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(&archive)
+        .args(["--dir", "out", "--yes"])
+        .current_dir(dir)
+        .assert()
+        .success();
+
+    assert_eq!("second write", fs::read_to_string(&output_file).unwrap());
+}
+
+/// This test ensures the current behavior isn't modified by accident, even
+/// if it's not the ideal behavior.
+///
+/// Decompressing with `--dir .` succeeds without asking questions once.
+///
+/// Non-ideal part: it also succeeds on the second call, without asking to
+/// overwrite files, which is inconsistent with the behavior of `--dir` when
+/// the given path is not `.` (or absolute path for CWD).
+#[test]
+fn decompress_dir_flag_current_dir_and_overwrite() {
+    let (_tempdir, dir) = testdir().unwrap();
+    let input_folder = dir.join("folder");
+    let input_file = input_folder.join("file");
+    // Decompressing with `--dir .` means the file will be overwritten at the same path
+    let output_file = &input_file;
+    let archive = dir.join("archive.zip");
+
+    fs::create_dir(&input_folder).unwrap();
+    fs::write(&input_file, "first write").unwrap();
+
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .arg(&input_folder)
+        .arg(&archive)
+        .assert()
+        .success();
+
+    // First decompress with `--dir .` — should succeed
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(&archive)
+        .args(["--dir", "."])
+        .current_dir(dir)
+        .assert()
+        .success();
+
+    assert_eq!("first write", fs::read_to_string(output_file).unwrap());
+
+    // Recreate archive, in case unpacking succeeds we'll see the new archive
+    // contents instead
+    fs::remove_file(&archive).unwrap();
+    fs::remove_dir_all(&input_folder).unwrap();
+    fs::create_dir(&input_folder).unwrap();
+    fs::write(&input_file, "second write").unwrap();
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .arg(&input_folder)
+        .arg(&archive)
+        .assert()
+        .success();
+
+    // Decompressing again with `--dir .` — this succeeds for now, and it's
+    // inconsistent with other `--dir PATH` usages, this test ensure this isn't
+    // changed by accident.
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(&archive)
+        .args(["--dir", "."])
+        .current_dir(dir)
+        .assert()
+        .success();
+
+    assert_eq!("second write", fs::read_to_string(output_file).unwrap());
+}
+
 /// Test that concatenated lz4 frames are fully decompressed (related to issue #855)
 #[test]
 fn decompress_concatenated_lz4_frames() {
