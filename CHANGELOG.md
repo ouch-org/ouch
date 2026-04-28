@@ -15,23 +15,30 @@ Categories Used:
 
 **Bullet points in chronological order by PR**
 
-## [Unreleased](https://github.com/ouch-org/ouch/compare/0.7.0...HEAD)
-
-### Removals
+## [Unreleased](https://github.com/ouch-org/ouch/compare/0.7.1...HEAD)
 
 ### New Features
 
-- List: show symlink targets (for tar and zip) (https://github.com/ouch-org/ouch/pull/934)
+- Unpack into new folder by default (https://github.com/ouch-org/ouch/pull/962).
+- Add `--here` flag to unpack into current directory (https://github.com/ouch-org/ouch/pull/962).
 
 ### Improvements
 
 - Report mtime-set errors for `.7z` as warnings (https://github.com/ouch-org/ouch/pull/950)
+- `list`: also display symlink targets (https://github.com/ouch-org/ouch/pull/934)
 
 ### Bug Fixes
 
 - Fix various panics not handled gracefully (https://github.com/ouch-org/ouch/pull/950)
 
 ### Tweaks
+
+
+## [0.7.1](https://github.com/ouch-org/ouch/releases/tag/0.7.1)
+
+### Bug Fixes
+
+- Fix `ouch --version` being outdated.
 
 ## [0.7.0](https://github.com/ouch-org/ouch/releases/tag/0.7.0)
 
