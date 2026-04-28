@@ -24,8 +24,13 @@ pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;
 
 /// Current directory, canonicalized for consistent path comparisons across platforms
 static INITIAL_CURRENT_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
-    let dir = env::current_dir().expect("can't read current directory");
-    utils::canonicalize(&dir).expect("can't canonicalize current directory")
+    // Bail out cleanly rather than panicking if the CWD has been deleted or is unreadable
+    let bail = |err: &dyn std::fmt::Display| -> ! {
+        eprintln!("ouch: cannot read current directory: {err}");
+        std::process::exit(EXIT_FAILURE);
+    };
+    let dir = env::current_dir().unwrap_or_else(|e| bail(&e));
+    utils::canonicalize(&dir).unwrap_or_else(|e| bail(&e))
 });
 
 fn main() {

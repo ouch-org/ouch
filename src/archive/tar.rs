@@ -150,7 +150,7 @@ where
         let iter = file_visibility_policy.workaround_build_walker_or_broken_link_path(explicit_path, filename);
 
         for entry in iter {
-            let path = entry.unwrap();
+            let path = entry?;
 
             // Avoid compressing the output file into itself
             if let Ok(handle) = output_handle.as_ref()

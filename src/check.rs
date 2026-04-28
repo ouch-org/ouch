@@ -257,17 +257,22 @@ pub fn check_invalid_compression_with_non_archive_format(
             format!("From: --format {formats}"),
             format!("To:   --format tar.{formats}"),
         )
-    } else {
+    } else if let Some(suggested_output_path) = build_archive_file_suggestion(output_path, ".tar") {
         // This piece of code creates a suggestion for compressing multiple files
         // It says:
         // Change from file.bz.xz
         // To          file.tar.bz.xz
-        let suggested_output_path = build_archive_file_suggestion(output_path, ".tar")
-            .expect("output path should contain a compression format");
-
         (
             format!("From: {}", PathFmt(output_path)),
             format!("To:   \"{suggested_output_path}\""),
+        )
+    } else {
+        // Could not build a suggestion (output path has no recognized compression extension)
+        // Fall back to generic hints
+        (
+            format!("From: {}", PathFmt(output_path)),
+            "To:   insert an archive format like '.tar.', '.zip.' or '.7z.' before the compression extension"
+                .to_string(),
         )
     };
 

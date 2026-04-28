@@ -49,11 +49,12 @@ fn warn_user_about_loading_sevenz_in_memory() {
 ///
 /// There are a lot of custom errors to give enough error description and explanation.
 pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_policy: FileVisibilityPolicy) -> Result<()> {
-    if let Some(threads) = args.threads {
+    // Skip --threads 0 ("auto") to match cli::mod.rs, and propagate pool-init errors
+    if let Some(threads) = args.threads.filter(|&t| t != 0) {
         rayon::ThreadPoolBuilder::new()
             .num_threads(threads)
             .build_global()
-            .unwrap();
+            .map_err(|e| FinalError::with_title("Failed to initialize thread pool").detail(e.to_string()))?;
     }
 
     match args.cmd {

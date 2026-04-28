@@ -50,13 +50,15 @@ where
                 io::copy(reader, &mut writer)?;
 
                 use filetime_creation as ft;
-                ft::set_file_handle_times(
+                // Surface mtime-set failures as warnings so users know timestamps weren't preserved
+                if let Err(e) = ft::set_file_handle_times(
                     writer.get_ref().file(),
                     Some(ft::FileTime::from_system_time(entry.access_date().into())),
                     Some(ft::FileTime::from_system_time(entry.last_modified_date().into())),
                     Some(ft::FileTime::from_system_time(entry.creation_date().into())),
-                )
-                .unwrap_or_default();
+                ) {
+                    warning!("could not set timestamps on {}: {e}", PathFmt(&file_path));
+                }
             }
 
             files_unpacked += 1;
