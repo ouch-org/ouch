@@ -225,17 +225,19 @@ impl<'a, T: Default> ChoicePrompt<'a, T> {
                 let choises = self
                     .choises
                     .iter()
-                    .map(|choise| {
-                        format!(
-                            "{}{}{}",
-                            choise.color,
-                            choise
-                                .label
-                                .chars()
-                                .nth(0)
-                                .expect("dev error, should be reported, we checked this won't happen"),
-                            *colors::RESET
-                        )
+                    .enumerate()
+                    .map(|(index, choise)| {
+                        let mut chars = choise.label.chars();
+                        let first = chars
+                            .next()
+                            .expect("dev error, should be reported, we checked this won't happen");
+                        let first_formatted = if index == 0 {
+                            first.to_ascii_uppercase().to_string()
+                        } else {
+                            first.to_string()
+                        };
+                        let rest: String = chars.collect();
+                        format!("{}({}){}{}", choise.color, first_formatted, rest, *colors::RESET)
                     })
                     .collect::<Vec<_>>()
                     .join("/");
@@ -260,6 +262,10 @@ impl<'a, T: Default> ChoicePrompt<'a, T> {
 
             answer.make_ascii_lowercase();
             let answer = answer.trim();
+
+            if answer.is_empty() && !self.choises.is_empty() {
+                return Ok(self.choises.remove(0).value);
+            }
 
             let chosen_index = self.choises.iter().position(|choise| choise.label.starts_with(answer));
 
