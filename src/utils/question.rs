@@ -227,7 +227,10 @@ impl<'a, T: Default> ChoicePrompt<'a, T> {
                     .iter()
                     .map(|choise| {
                         let mut chars = choise.label.chars();
-                        let first = chars.next().unwrap().to_ascii_uppercase();
+                        let first = chars
+                            .next()
+                            .expect("dev error, should be reported, we checked this won't happen")
+                            .to_ascii_uppercase();
                         let rest: String = chars.collect();
                         format!("{}({}){}{}", choise.color, first, rest, *colors::RESET)
                     })
