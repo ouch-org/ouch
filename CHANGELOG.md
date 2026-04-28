@@ -25,10 +25,13 @@ Categories Used:
 
 ### Improvements
 
+- Report mtime-set errors for `.7z` as warnings (https://github.com/ouch-org/ouch/pull/950)
+
 ### Bug Fixes
 
-### Tweaks
+- Fix various panics not handled gracefully (https://github.com/ouch-org/ouch/pull/950)
 
+### Tweaks
 
 ## [0.7.0](https://github.com/ouch-org/ouch/releases/tag/0.7.0)
 
