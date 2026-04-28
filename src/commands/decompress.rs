@@ -286,23 +286,25 @@ fn unpack_archive(
 /// content is intact, just one directory level deeper than ideal — and returns the
 /// original `wrapper` path.
 fn deduplicate_basename_wrapper(wrapper: &Path) -> Result<PathBuf> {
-    let wrapper_name = match wrapper.file_name() {
-        Some(n) => n,
-        None => return Ok(wrapper.to_path_buf()),
-    };
-
-    // Read at most two entries. A single-entry directory has exactly one.
-    let mut entries = fs::read_dir(wrapper)?;
-    let first = match entries.next().transpose()? {
-        Some(e) => e,
-        None => return Ok(wrapper.to_path_buf()),
-    };
-    if entries.next().transpose()?.is_some() {
+    let Some(wrapper_name) = wrapper.file_name() else {
         return Ok(wrapper.to_path_buf());
-    }
-    drop(entries);
+    };
 
-    if first.file_name() != wrapper_name {
+    let only_file_in_dir = {
+        // Read at most two entries. A single-entry directory has exactly one.
+        let mut entries = fs::read_dir(wrapper)?;
+        let Some(first_file) = entries.next().transpose()? else {
+            return Ok(wrapper.to_path_buf());
+        };
+        // More than one entry, don't deduplicate
+        if entries.next().transpose()?.is_some() {
+            return Ok(wrapper.to_path_buf());
+        }
+        first_file
+    };
+
+    // name doesn't match, nothing to deduplicate
+    if only_file_in_dir.file_name() != wrapper_name {
         return Ok(wrapper.to_path_buf());
     }
 
@@ -312,13 +314,12 @@ fn deduplicate_basename_wrapper(wrapper: &Path) -> Result<PathBuf> {
     //   3. moving it back to the wrapper's path
     // Each step leaves the filesystem in a consistent state, and a failure midway
     // leaves the user with valid extracted content (just nested one level).
-    let inner_path = first.path();
-    let parent = match wrapper.parent() {
-        Some(p) => p,
-        None => return Ok(wrapper.to_path_buf()),
+    let inner_path = only_file_in_dir.path();
+    let Some(parent) = wrapper.parent() else {
+        return Ok(wrapper.to_path_buf());
     };
 
-    let staging = tempfile::Builder::new().prefix(".ouch-staging-").tempdir_in(parent)?;
+    let staging = tempfile::Builder::new().prefix("temporary-").tempdir_in(parent)?;
     let staging_target = staging.path().join(wrapper_name);
     fs::rename(&inner_path, &staging_target)?;
     fs::remove_dir(wrapper)?;
