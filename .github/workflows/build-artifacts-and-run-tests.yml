@@ -146,19 +146,29 @@ jobs:
           if [[ -n "$FEATURES" ]]; then FLAGS+=" --features $FEATURES"; fi
           echo "EXTRA_CARGO_FLAGS=$FLAGS" >> $GITHUB_ENV
 
+      - name: Set test profile
+        id: test-profile
+        shell: bash
+        run: |
+          if [[ "${{ inputs.artifact_upload_mode }}" == "none" ]]; then
+            echo "profile=fast" >> $GITHUB_OUTPUT
+          else
+            echo "profile=release" >> $GITHUB_OUTPUT
+          fi
+
       - name: Install Rust
         run: |
           rustup toolchain install stable --profile minimal -t ${{ matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
         with:
-          key: "${{ matrix.target }}-${{ matrix.feature-unrar }}-${{ matrix.feature-use-zlib }}-${{ matrix.feature-use-zstd-thin }}-${{ matrix.feature-bzip3 }}"
+          key: "${{ matrix.target }}-${{ matrix.feature-unrar }}-${{ matrix.feature-use-zlib }}-${{ matrix.feature-use-zstd-thin }}-${{ matrix.feature-bzip3 }}-${{ steps.test-profile.outputs.profile }}"
 
       - name: Test on stable
         # there's no way to run tests for ARM64 Windows for now
         if: matrix.target != 'aarch64-pc-windows-msvc'
         run: |
-          ${{ env.CARGO }} +stable test --locked --profile fast --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
+          ${{ env.CARGO }} +stable test --locked --profile ${{ steps.test-profile.outputs.profile }} --target ${{ matrix.target }} $EXTRA_CARGO_FLAGS
 
       - name: Build release artifacts (binary and completions)
         if: ${{ inputs.artifact_upload_mode != 'none' }}
