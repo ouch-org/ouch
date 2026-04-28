@@ -309,7 +309,7 @@ fn deduplicate_basename_wrapper(wrapper: &Path) -> Result<PathBuf> {
     }
 
     // The wrapper duplicates the inner entry's name. Promote the inner entry by:
-    //   1. moving it into a sibling staging directory
+    //   1. moving it into a sibling temporary directory
     //   2. removing the now-empty wrapper
     //   3. moving it back to the wrapper's path
     // Each step leaves the filesystem in a consistent state, and a failure midway
@@ -319,12 +319,22 @@ fn deduplicate_basename_wrapper(wrapper: &Path) -> Result<PathBuf> {
         return Ok(wrapper.to_path_buf());
     };
 
-    let staging = tempfile::Builder::new().prefix("temporary-").tempdir_in(parent)?;
-    let staging_target = staging.path().join(wrapper_name);
-    fs::rename(&inner_path, &staging_target)?;
+    // Create the sibling
+    let sibling_path = parent.join("ouch-temporary");
+    fs::create_dir(&sibling_path)?;
+
+    // Move child inside the sibling
+    let path_inside_sibling = sibling_path.join(wrapper_name);
+    fs::rename(&inner_path, &path_inside_sibling)?;
+
+    // Delete old parent
     fs::remove_dir(wrapper)?;
-    fs::rename(&staging_target, wrapper)?;
-    // The (empty) staging directory is cleaned up when `staging` drops.
+
+    // Move child to its dead parent place
+    fs::rename(&path_inside_sibling, wrapper)?;
+
+    // Delete the temporary sibling
+    fs::remove_dir(sibling_path)?;
 
     Ok(wrapper.to_path_buf())
 }
