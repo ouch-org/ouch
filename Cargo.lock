@@ -706,16 +706,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fs-tree"
-version = "0.8.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5082380dac47b23b39a145837120bd0e7a9597ca8e70677d804f356034f55fbb"
-dependencies = [
- "file_type_enum",
- "fs-err 3.3.0",
-]
-
-[[package]]
 name = "futures-core"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1185,7 +1175,6 @@ dependencies = [
  "filetime_creation",
  "flate2",
  "fs-err 2.11.0",
- "fs-tree",
  "glob",
  "gzp",
  "ignore",

@@ -54,7 +54,6 @@ zstd = { version = "0.13.2", default-features = false, features = ["zstdmt"] }
 [dev-dependencies]
 anyhow = "1.0.102"
 assert_cmd = "2.0.14"
-fs-tree = "0.8.4"
 glob = "0.3.2"
 infer = "0.16.0"
 insta = { version = "1.40.0", features = ["filters"] }
