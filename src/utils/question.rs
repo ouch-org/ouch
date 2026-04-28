@@ -226,16 +226,10 @@ impl<'a, T: Default> ChoicePrompt<'a, T> {
                     .choises
                     .iter()
                     .map(|choise| {
-                        format!(
-                            "{}{}{}",
-                            choise.color,
-                            choise
-                                .label
-                                .chars()
-                                .nth(0)
-                                .expect("dev error, should be reported, we checked this won't happen"),
-                            *colors::RESET
-                        )
+                        let mut chars = choise.label.chars();
+                        let first = chars.next().unwrap().to_ascii_uppercase();
+                        let rest: String = chars.collect();
+                        format!("{}({}){}{}", choise.color, first, rest, *colors::RESET)
                     })
                     .collect::<Vec<_>>()
                     .join("/");
