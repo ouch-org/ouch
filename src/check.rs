@@ -257,8 +257,7 @@ pub fn check_invalid_compression_with_non_archive_format(
             format!("From: --format {formats}"),
             format!("To:   --format tar.{formats}"),
         )
-    } else if let Some(suggested_output_path) = build_archive_file_suggestion(output_path, ".tar")
-    {
+    } else if let Some(suggested_output_path) = build_archive_file_suggestion(output_path, ".tar") {
         // This piece of code creates a suggestion for compressing multiple files
         // It says:
         // Change from file.bz.xz
