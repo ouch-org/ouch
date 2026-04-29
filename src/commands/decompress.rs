@@ -65,7 +65,7 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
             Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
             Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
             Brotli => Box::new(brotli::Decompressor::new(decoder, BUFFER_CAPACITY)),
-            Tar | Zip | Rar | SevenZip => unreachable!(),
+            Tar | Zip | Rar | SevenZip | Ar => unreachable!(),
         };
         Ok(decoder)
     };
@@ -157,6 +157,11 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
                 options.question_policy,
             )?
         }
+        Ar => unpack_archive(
+            |output_dir| crate::archive::ar::unpack_archive(create_decoder_up_to_first_extension()?, output_dir),
+            options.output_dir,
+            options.question_policy,
+        )?,
         #[cfg(feature = "unrar")]
         Rar => {
             let unpack_fn: Box<dyn FnOnce(&Path) -> Result<u64>> = if options.formats.len() > 1 || input_is_stdin {

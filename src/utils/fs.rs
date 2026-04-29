@@ -203,6 +203,10 @@ pub fn try_infer_format(path: &Path) -> Option<CompressionFormat> {
     fn is_sevenz(buf: &[u8]) -> bool {
         buf.starts_with(&[0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C])
     }
+    fn is_ar(buf: &[u8]) -> bool {
+        // Unix ar archives start with "!<arch>\n"
+        buf.starts_with(b"!<arch>\n")
+    }
 
     let buf = {
         let mut buf = [0; 270];
@@ -243,6 +247,8 @@ pub fn try_infer_format(path: &Path) -> Option<CompressionFormat> {
         Some(CompressionFormat::Rar)
     } else if is_sevenz(&buf) {
         Some(CompressionFormat::SevenZip)
+    } else if is_ar(&buf) {
+        Some(CompressionFormat::Ar)
     } else {
         None
     }

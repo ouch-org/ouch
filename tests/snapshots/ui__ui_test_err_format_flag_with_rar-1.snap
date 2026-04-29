@@ -1,11 +1,12 @@
 ---
 source: tests/ui.rs
+assertion_line: 90
 expression: "run_ouch(\"ouch compress input output --format tar.gz.unknown\", dir)"
 ---
 [ERROR] Failed to parse `--format tar.gz.unknown`
  - Unsupported extension 'unknown'
 
-hint: Supported extensions are: tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, lz, sz, zst, rar, 7z
+hint: Supported extensions are: tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, lz, sz, zst, rar, 7z, a, deb
 hint: Supported aliases are: tgz, tbz, tlz4, txz, tlzma, tsz, tzst, tlz, cbt, cbz, cb7, cbr
 hint: 
 hint: Examples:

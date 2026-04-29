@@ -87,6 +87,7 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                 formats_from_flag.as_deref(),
             )?;
             check::check_archive_formats_position(&formats, &output_path)?;
+            check::check_deb_compression(&output_path)?;
 
             let (output_file, output_path) = match utils::create_file_or_prompt_on_conflict(
                 &output_path,
