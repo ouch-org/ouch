@@ -4,7 +4,6 @@
 use std::os::unix::fs::MetadataExt;
 use std::{
     collections::HashMap,
-    env,
     io::{self, prelude::*},
     ops::Not,
     path::{Path, PathBuf},
@@ -20,7 +19,7 @@ use crate::{
     list::{FileInArchive, ListFileType},
     utils::{
         self, BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, create_symlink, is_same_file_as_output,
-        read_file_type, set_permission_mode,
+        read_file_type, sanitize_archive_mode, set_permission_mode, validate_entry_path, validate_symlink_target,
     },
     warning,
 };
@@ -38,22 +37,27 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> Result<u64> {
 
         match entry.header().entry_type() {
             tar::EntryType::Symlink => {
-                let relative_path = entry.path()?;
-                let full_path = output_folder.join(&relative_path);
+                let raw_path = entry.path()?.into_owned();
+                let safe_relpath = validate_entry_path(&raw_path)?;
+                let full_path = output_folder.join(&safe_relpath);
                 let target = entry
                     .link_name()?
                     .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Missing symlink target"))?;
 
+                validate_symlink_target(&safe_relpath, &target)?;
                 create_symlink(&target, &full_path)?;
             }
             tar::EntryType::Link => {
-                let link_path = entry.path()?;
-                let target = entry
+                let raw_link = entry.path()?.into_owned();
+                let safe_link_path = validate_entry_path(&raw_link)?;
+                let raw_target = entry
                     .link_name()?
-                    .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Missing hardlink target"))?;
+                    .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Missing hardlink target"))?
+                    .into_owned();
+                let safe_target = validate_entry_path(&raw_target)?;
 
-                let full_link_path = output_folder.join(&link_path);
-                let full_target_path = output_folder.join(&target);
+                let full_link_path = output_folder.join(&safe_link_path);
+                let full_target_path = output_folder.join(&safe_target);
 
                 fs::hard_link(&full_target_path, &full_link_path)?;
             }
@@ -71,10 +75,11 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> Result<u64> {
                     // We unpacked a read-only directory, make it writeable so that we can
                     // create the files inside of it, by the end, restore the original mode
                     let original_path = entry.path()?.to_path_buf();
-                    let unpacked = output_folder.join(&original_path);
-                    set_permission_mode(&unpacked, original_mode | 0o200)?;
+                    let safe_relpath = validate_entry_path(&original_path)?;
+                    let unpacked = output_folder.join(&safe_relpath);
+                    set_permission_mode(&unpacked, sanitize_archive_mode(original_mode) | 0o200)?;
 
-                    read_only_dirs_and_modes.push((original_path, original_mode));
+                    read_only_dirs_and_modes.push((original_path, sanitize_archive_mode(original_mode)));
                 }
             }
             _ => continue,
@@ -146,6 +151,7 @@ where
 
     for explicit_path in explicit_paths {
         let previous_location = utils::cd_into_same_dir_as(explicit_path)?;
+        let _cwd_guard = utils::CwdGuard::new(previous_location);
 
         // Unwrap expectation:
         //   paths should be canonicalized by now, and the root directory rejected.
@@ -231,7 +237,6 @@ where
                 }
             }
         }
-        env::set_current_dir(previous_location)?;
     }
 
     Ok(builder.into_inner()?)

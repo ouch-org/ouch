@@ -1,5 +1,6 @@
 use std::io::{self, StderrLock, StdoutLock, Write, stderr, stdout};
 
+#[cfg(unix)]
 use fs_err as fs;
 
 use crate::utils::logger;

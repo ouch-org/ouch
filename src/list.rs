@@ -7,7 +7,11 @@ use std::{
 };
 
 use self::tree::Tree;
-use crate::{Result, accessible::is_running_in_accessible_mode, utils::PathFmt};
+use crate::{
+    Result,
+    accessible::is_running_in_accessible_mode,
+    utils::{NoQuotePathFmt, PathFmt},
+};
 
 /// Options controlling how archive contents should be listed
 #[derive(Debug, Clone, Copy)]
@@ -56,7 +60,7 @@ pub fn list_files(
     } else {
         for file in files {
             let FileInArchive { path, file_type } = file?;
-            print_entry(&mut out, path.display(), &file_type, list_options.quiet);
+            print_entry(&mut out, NoQuotePathFmt(&path), &file_type, list_options.quiet);
         }
     }
     Ok(())
@@ -129,7 +133,7 @@ mod tree {
     use linked_hash_map::LinkedHashMap;
 
     use super::{FileInArchive, ListFileType};
-    use crate::{utils::NoQuotePathFmt, warning};
+    use crate::warning;
 
     /// Directory tree
     #[derive(Debug, Default)]
@@ -165,7 +169,7 @@ mod tree {
                     Some(file) => {
                         warning!(
                             "multiple files with the same name in a single directory ({})",
-                            NoQuotePathFmt(&file.path),
+                            super::NoQuotePathFmt(&file.path),
                         );
                     }
                 }

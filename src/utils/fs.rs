@@ -118,6 +118,116 @@ pub fn create_dir_if_non_existent(path: &Path) -> Result<()> {
 }
 
 /// Ensures the parent directory of a file path exists, creating it if necessary.
+/// Lexically normalize a relative path; returns None on absolute or escape via `..`.
+pub fn normalize_safe_path(path: &Path) -> Option<PathBuf> {
+    let mut out = PathBuf::new();
+    for comp in path.components() {
+        match comp {
+            std::path::Component::Normal(c) => out.push(c),
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                if !out.pop() {
+                    return None;
+                }
+            }
+            std::path::Component::Prefix(_) | std::path::Component::RootDir => return None,
+        }
+    }
+    Some(out)
+}
+
+/// Reject ZipSlip-style entry paths; returns the lexically-normalized safe form.
+pub fn validate_entry_path(path: &Path) -> Result<PathBuf> {
+    normalize_safe_path(path).ok_or_else(|| {
+        FinalError::with_title("refusing to extract archive entry with unsafe path")
+            .detail(format!("entry: {}", path.display()))
+            .into()
+    })
+}
+
+/// Reject symlink targets whose relative path would escape the extraction root.
+pub fn validate_symlink_target(link_relpath: &Path, target: &Path) -> Result<()> {
+    if target.is_absolute() {
+        return Ok(());
+    }
+    let parent = link_relpath.parent().unwrap_or(Path::new(""));
+    if normalize_safe_path(&parent.join(target)).is_none() {
+        return Err(
+            FinalError::with_title("refusing to create symlink escaping extraction root")
+                .detail(format!(
+                    "link: {}  target: {}",
+                    link_relpath.display(),
+                    target.display()
+                ))
+                .into(),
+        );
+    }
+    Ok(())
+}
+
+pub const DEFAULT_MAX_DECOMPRESSED_BYTES: u64 = 32 * 1024 * 1024 * 1024;
+
+/// LZMA/XZ dictionary memory cap (256 MiB). Bounds malformed-stream allocations
+pub const LZMA_MEMLIMIT_BYTES: u32 = 256 * 1024 * 1024;
+
+pub fn max_decompressed_bytes() -> u64 {
+    env::var("OUCH_MAX_DECOMPRESSED_BYTES")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(DEFAULT_MAX_DECOMPRESSED_BYTES)
+}
+
+pub struct LimitedReader<R> {
+    inner: R,
+    remaining: u64,
+}
+
+impl<R: Read> LimitedReader<R> {
+    pub fn new(inner: R, limit: u64) -> Self {
+        Self {
+            inner,
+            remaining: limit,
+        }
+    }
+}
+
+impl<R: Read> Read for LimitedReader<R> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        if self.remaining == 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "decompression output exceeded configured limit (see OUCH_MAX_DECOMPRESSED_BYTES)",
+            ));
+        }
+        let cap = usize::try_from(self.remaining).unwrap_or(usize::MAX).min(buf.len());
+        let n = self.inner.read(&mut buf[..cap])?;
+        self.remaining = self.remaining.saturating_sub(n as u64);
+        Ok(n)
+    }
+}
+
+/// Strip setuid/setgid/sticky bits from an archive-supplied mode.
+pub fn sanitize_archive_mode(mode: u32) -> u32 {
+    mode & 0o0777
+}
+
+/// RAII guard that restores the process CWD on drop.
+pub struct CwdGuard(Option<PathBuf>);
+
+impl CwdGuard {
+    pub fn new(previous: PathBuf) -> Self {
+        Self(Some(previous))
+    }
+}
+
+impl Drop for CwdGuard {
+    fn drop(&mut self) {
+        if let Some(p) = self.0.take() {
+            let _ = env::set_current_dir(&p);
+        }
+    }
+}
+
 pub fn ensure_parent_dir_exists(file_path: &Path) -> io::Result<()> {
     if let Some(parent) = file_path.parent() {
         if !parent.fs_err_try_exists()? {

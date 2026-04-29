@@ -16,9 +16,9 @@ use crate::{
     info, info_accessible,
     non_archive::lz4::MultiFrameLz4Decoder,
     utils::{
-        self, BytesFmt, PathFmt, file_size,
+        self, BytesFmt, LZMA_MEMLIMIT_BYTES, LimitedReader, PathFmt, file_size,
         io::{ReadSeek, lock_and_flush_output_stdio},
-        is_path_stdin, resolve_path_conflict, user_wants_to_continue,
+        is_path_stdin, max_decompressed_bytes, resolve_path_conflict, user_wants_to_continue,
     },
 };
 
@@ -59,7 +59,11 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
                 Box::new(bzip3::read::Bz3Decoder::new(decoder)?)
             }
             Lz4 => Box::new(MultiFrameLz4Decoder::new(decoder)),
-            Lzma => Box::new(lzma_rust2::LzmaReader::new_mem_limit(decoder, u32::MAX, None)?),
+            Lzma => Box::new(lzma_rust2::LzmaReader::new_mem_limit(
+                decoder,
+                LZMA_MEMLIMIT_BYTES,
+                None,
+            )?),
             Xz => Box::new(lzma_rust2::XzReader::new(decoder, true)),
             Lzip => Box::new(lzma_rust2::LzipReader::new(decoder)?),
             Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
@@ -90,7 +94,9 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
     let control_flow = match first_extension {
         Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {
             let reader = create_decoder_up_to_first_extension()?;
-            let mut reader = chain_reader_decoder(&first_extension, reader)?;
+            let reader = chain_reader_decoder(&first_extension, reader)?;
+            // Bomb cap: abort if decompressed output exceeds OUCH_MAX_DECOMPRESSED_BYTES
+            let mut reader = LimitedReader::new(reader, max_decompressed_bytes());
 
             let (mut writer, final_output_path) = match utils::create_file_or_prompt_on_conflict(
                 &options.output_file_path,
@@ -142,7 +148,9 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
                 drop(locks);
 
                 let mut vec = vec![];
-                io::copy(&mut create_decoder_up_to_first_extension()?, &mut vec)?;
+                // Bomb cap: abort if the in-memory decompressed image exceeds the limit
+                let mut reader = LimitedReader::new(create_decoder_up_to_first_extension()?, max_decompressed_bytes());
+                io::copy(&mut reader, &mut vec)?;
                 Box::new(io::Cursor::new(vec))
             } else {
                 Box::new(BufReader::with_capacity(

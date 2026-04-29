@@ -1,7 +1,6 @@
 //! SevenZip archive format compress function
 
 use std::{
-    env,
     io::{self, BufWriter, Read, Seek, Write},
     path::{Path, PathBuf},
 };
@@ -18,7 +17,8 @@ use crate::{
     info,
     list::{FileInArchive, ListFileType},
     utils::{
-        BytesFmt, FileVisibilityPolicy, PathFmt, cd_into_same_dir_as, ensure_parent_dir_exists, is_same_file_as_output,
+        BytesFmt, FileVisibilityPolicy, PathFmt, SanitizedStr, cd_into_same_dir_as, ensure_parent_dir_exists,
+        is_same_file_as_output, validate_entry_path,
     },
     warning,
 };
@@ -33,10 +33,22 @@ where
         |entry: &ArchiveEntry, reader: &mut dyn Read, path: &PathBuf| -> Result<bool, sevenz_rust2::Error> {
             // Manually handle writing all files from 7z archive (the library defaults ignore empty files)
 
-            let file_path = output_path.join(entry.name());
+            let name_as_path = std::path::Path::new(entry.name());
+            let safe_relpath = match validate_entry_path(name_as_path) {
+                Ok(p) => p,
+                Err(e) => {
+                    warning!("skipping unsafe 7z entry {}: {}", PathFmt(name_as_path), e);
+                    return Ok(true);
+                }
+            };
+            let file_path = output_path.join(&safe_relpath);
 
             if entry.is_directory() {
-                info!("File {} extracted to {}", entry.name(), PathFmt(&file_path));
+                info!(
+                    "File {} extracted to {}",
+                    SanitizedStr(entry.name()),
+                    PathFmt(&file_path)
+                );
                 if !path.fs_err_try_exists()? {
                     fs::create_dir_all(path)?;
                 }
@@ -136,6 +148,7 @@ where
 
     for filename in files {
         let previous_location = cd_into_same_dir_as(filename)?;
+        let _cwd_guard = crate::utils::CwdGuard::new(previous_location);
 
         // Unwrap safety:
         //   paths should be canonicalized by now, and the root directory rejected.
@@ -172,8 +185,6 @@ where
 
             writer.push_archive_entry::<fs::File>(entry, entry_data)?;
         }
-
-        env::set_current_dir(previous_location)?;
     }
 
     let bytes = writer.finish()?;

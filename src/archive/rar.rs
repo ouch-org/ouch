@@ -8,7 +8,7 @@ use crate::{
     error::{Error, Result},
     info,
     list::{FileInArchive, ListFileType},
-    utils::BytesFmt,
+    utils::{BytesFmt, PathFmt},
 };
 
 /// Unpacks the archive given by `archive_path` into the folder given by `output_folder`.
@@ -28,7 +28,7 @@ pub fn unpack_archive(archive_path: &Path, output_folder: &Path, password: Optio
             info!(
                 "extracted ({}) {}",
                 BytesFmt(entry.unpacked_size),
-                entry.filename.display(),
+                PathFmt(&entry.filename),
             );
             files_unpacked += 1;
             header.extract_with_base(output_folder)?
