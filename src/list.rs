@@ -101,12 +101,9 @@ fn print_entry(out: &mut impl Write, name: impl fmt::Display, file_type: &ListFi
             let name_str = name.to_string();
             let display_name = name_str.strip_suffix('/').unwrap_or(&name_str);
 
-            let output = if BLUE.is_empty() {
-                // Colors are deactivated, print final / to mark directories
+            let output = if *DISABLE_COLORED_TEXT || is_running_in_accessible_mode() {
+                // Don't use colors and print trailing slash to mark directories
                 format!("{display_name}/")
-            } else if is_running_in_accessible_mode() {
-                // Accessible mode: use colors but print final / for screen readers
-                format!("{}{}{}/{}", *BLUE, *STYLE_BOLD, display_name, *ALL_RESET)
             } else {
                 // Normal mode: use colors without trailing slash
                 format!("{}{}{}{}", *BLUE, *STYLE_BOLD, display_name, *ALL_RESET)
