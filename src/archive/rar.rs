@@ -1,11 +1,14 @@
 //! Contains RAR-specific building and unpacking functions
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-use unrar::Archive;
+use unrar::{
+    Archive, ExtractEvent,
+    error::{Code, UnrarError, When},
+};
 
 use crate::{
-    error::{Error, Result},
+    error::{Error, FinalError, Result},
     info,
     list::{FileInArchive, ListFileType},
     utils::BytesFmt,
@@ -19,24 +22,49 @@ pub fn unpack_archive(archive_path: &Path, output_folder: &Path, password: Optio
         None => Archive::new(archive_path),
     };
 
-    let mut archive = archive.open_for_processing()?;
-    let mut files_unpacked = 0;
+    let archive = archive.open_for_processing()?;
 
-    while let Some(header) = archive.read_header()? {
-        let entry = header.entry();
-        archive = if entry.is_file() {
-            info!(
-                "extracted ({}) {}",
-                BytesFmt(entry.unpacked_size),
-                entry.filename.display(),
-            );
+    let mut files_unpacked: u64 = 0;
+    let mut first_err: Option<(PathBuf, i32)> = None;
+
+    let cb_result = archive.extract_all_with_callback(output_folder, |event| match event {
+        ExtractEvent::Start { filename, size } => {
+            info!("extracted ({}) {}", BytesFmt(size), filename.display());
+            true
+        }
+        ExtractEvent::Ok { .. } => {
             files_unpacked += 1;
-            header.extract_with_base(output_folder)?
-        } else {
-            header.skip()?
-        };
-    }
+            true
+        }
+        ExtractEvent::Err { filename, error_code } => {
+            first_err = Some((filename, error_code));
+            // Returning false cancels the rest of the extraction so any
+            // additional per-file errors don't get silently swallowed.
+            false
+        }
+        ExtractEvent::LargeDictWarning {
+            dict_size_kb,
+            max_dict_size_kb,
+        } => {
+            info!(
+                "archive requires {} KiB dictionary; this build supports up to {} KiB",
+                dict_size_kb, max_dict_size_kb,
+            );
+            // Reject the oversized dictionary so the DLL fails the
+            // operation with Code::LargeDict instead of silently
+            // proceeding with a result it cannot actually produce.
+            false
+        }
+        _ => true,
+    });
 
+    if let Some((path, code)) = first_err {
+        let inner = UnrarError::from(Code::from(code), When::Process).to_string();
+        return Err(Error::Custom {
+            reason: FinalError::with_title(format!("failed to extract {}", path.display())).detail(inner),
+        });
+    }
+    let _status = cb_result?;
     Ok(files_unpacked)
 }
 
