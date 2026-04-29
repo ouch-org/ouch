@@ -18,7 +18,7 @@ description = "A command-line utility for easily compressing and decompressing f
 brotli = "7.0.0"
 bstr = { version = "1.10.0", default-features = false, features = ["std"] }
 bytesize = "1.3.0"
-bzip2 = "0.4.4"
+bzip2 = "0.6.1"
 bzip3 = { version = "0.9.0", features = ["bundled"], optional = true }
 clap = { version = "4.5.20", features = ["derive", "env"] }
 file_type_enum = "3.0.1"
@@ -77,7 +77,7 @@ clap_mangen = "0.2.24"
 
 [features]
 default = ["unrar", "use_zlib", "use_zstd_thin", "bzip3"]
-use_zlib = ["flate2/zlib", "gzp/deflate_zlib", "zip/deflate-flate2-zlib"]
+use_zlib = ["flate2/zlib-rs", "gzp/deflate_rust", "zip/deflate-flate2-zlib-rs"]
 use_zstd_thin = ["zstd/thin"]
 
 # For generating binaries for releases
