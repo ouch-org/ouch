@@ -33,6 +33,8 @@ Categories Used:
 
 ### Tweaks
 
+- Unify directory extraction message for zip and tar archives (https://github.com/ouch-org/ouch/pull/937)
+
 ## [0.7.0](https://github.com/ouch-org/ouch/releases/tag/0.7.0)
 
 ### Removals
