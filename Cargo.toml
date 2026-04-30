@@ -86,6 +86,9 @@ lto = true
 codegen-units = 1
 opt-level = 3
 strip = true
+# remove absolute build paths from the binary so builds are reproducible
+# regardless of where the source is checked out. requires rustc 1.81+.
+trim-paths = "all"
 
 # When we need a fast binary that compiles slightly faster `release` (useful for CI)
 [profile.fast]

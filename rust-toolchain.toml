@@ -1,0 +1,5 @@
+# pinned toolchain for reproducible builds.
+# bump deliberately, not on every "stable" release.
+[toolchain]
+channel = "1.91.0"
+profile = "minimal"
