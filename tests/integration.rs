@@ -92,7 +92,7 @@ fn create_random_files(dir: impl Into<PathBuf>, depth: u8, rng: &mut SmallRng) {
     let dir = &dir.into();
 
     // create 0 to 4 random files
-    for _ in 0..rng.gen_range(0..=4u32) {
+    for _ in 0..rng.random_range(0..=4u32) {
         write_random_content(
             &mut tempfile::Builder::new().tempfile_in(dir).unwrap().keep().unwrap().0,
             rng,
@@ -100,7 +100,7 @@ fn create_random_files(dir: impl Into<PathBuf>, depth: u8, rng: &mut SmallRng) {
     }
 
     // create more random files in 0 to 2 new directories
-    for _ in 0..rng.gen_range(0..=2u32) {
+    for _ in 0..rng.random_range(0..=2u32) {
         create_random_files(tempfile::tempdir_in(dir).unwrap().into_path(), depth - 1, rng);
     }
 }
@@ -156,7 +156,7 @@ fn single_file(
     let after = &dir.join("after");
     write_random_content(
         &mut fs::File::create(before_file).unwrap(),
-        &mut SmallRng::from_entropy(),
+        &mut SmallRng::from_os_rng(),
     );
     if let Some(level) = level {
         ouch!("-A", "c", "-l", level.to_string(), before_file, archive);
@@ -186,7 +186,7 @@ fn single_file_stdin(
     let after = &dir.join("after");
     write_random_content(
         &mut fs::File::create(before_file).unwrap(),
-        &mut SmallRng::from_entropy(),
+        &mut SmallRng::from_os_rng(),
     );
     if let Some(level) = level {
         ouch!("-A", "c", "-l", level.to_string(), before_file, archive);
@@ -223,7 +223,7 @@ fn multiple_files(
     fs::create_dir_all(before_dir).unwrap();
     let archive = &dir.join(format!("archive.{}", merge_extensions(ext, &extra_extensions)));
     let after = &dir.join("after");
-    create_random_files(before_dir, depth, &mut SmallRng::from_entropy());
+    create_random_files(before_dir, depth, &mut SmallRng::from_os_rng());
     ouch!("-A", "c", before_dir, archive);
     ouch!("-A", "d", archive, "-d", after);
     assert_same_directory(before, after, !matches!(ext, DirectoryExtension::Zip));
@@ -240,12 +240,12 @@ fn multiple_files_with_conflict_and_choice_to_overwrite(
     let before = &dir.join("before");
     let before_dir = &before.join("dir");
     fs::create_dir_all(before_dir).unwrap();
-    create_random_files(before_dir, depth, &mut SmallRng::from_entropy());
+    create_random_files(before_dir, depth, &mut SmallRng::from_os_rng());
 
     let after = &dir.join("after");
     let after_dir = &after.join("dir");
     fs::create_dir_all(after_dir).unwrap();
-    create_random_files(after_dir, depth, &mut SmallRng::from_entropy());
+    create_random_files(after_dir, depth, &mut SmallRng::from_os_rng());
 
     let archive = &dir.join(format!("archive.{}", merge_extensions(ext, &extra_extensions)));
     ouch!("-A", "c", before_dir, archive);
@@ -273,7 +273,7 @@ fn multiple_files_with_conflict_and_choice_to_not_overwrite(
     let before = &dir.join("before");
     let before_dir = &before.join("dir");
     fs::create_dir_all(before_dir).unwrap();
-    create_random_files(before_dir, depth, &mut SmallRng::from_entropy());
+    create_random_files(before_dir, depth, &mut SmallRng::from_os_rng());
 
     let after = &dir.join("after");
     let after_dir = &after.join("dir");
@@ -311,12 +311,12 @@ fn multiple_files_with_conflict_and_choice_to_rename(
 
     let src_files_path = root_path.join("src_files");
     fs::create_dir_all(&src_files_path).unwrap();
-    create_n_random_files(5, &src_files_path, &mut SmallRng::from_entropy());
+    create_n_random_files(5, &src_files_path, &mut SmallRng::from_os_rng());
 
     // Make destiny already filled to force a conflict
     let dest_files_path = root_path.join("dest_files");
     fs::create_dir_all(&dest_files_path).unwrap();
-    create_n_random_files(5, &dest_files_path, &mut SmallRng::from_entropy());
+    create_n_random_files(5, &dest_files_path, &mut SmallRng::from_os_rng());
 
     let archive = &root_path.join(format!("archive.{}", merge_extensions(ext, &extra_extensions)));
     ouch!("-A", "c", &src_files_path, archive);
@@ -345,16 +345,16 @@ fn multiple_files_with_conflict_and_choice_to_rename_with_already_a_renamed(
 
     let src_files_path = root_path.join("src_files");
     fs::create_dir_all(&src_files_path).unwrap();
-    create_n_random_files(5, &src_files_path, &mut SmallRng::from_entropy());
+    create_n_random_files(5, &src_files_path, &mut SmallRng::from_os_rng());
 
     // Make destiny already filled and destiny with '_1'
     let dest_files_path = root_path.join("dest_files");
     fs::create_dir_all(&dest_files_path).unwrap();
-    create_n_random_files(5, &dest_files_path, &mut SmallRng::from_entropy());
+    create_n_random_files(5, &dest_files_path, &mut SmallRng::from_os_rng());
 
     let dest_files_path_1 = root_path.join("dest_files_1");
     fs::create_dir_all(&dest_files_path_1).unwrap();
-    create_n_random_files(5, &dest_files_path_1, &mut SmallRng::from_entropy());
+    create_n_random_files(5, &dest_files_path_1, &mut SmallRng::from_os_rng());
 
     let archive = &root_path.join(format!("archive.{}", merge_extensions(ext, &extra_extensions)));
     ouch!("-A", "c", &src_files_path, archive);
