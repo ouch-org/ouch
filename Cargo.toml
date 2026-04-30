@@ -62,9 +62,10 @@ memchr = "2.7.4"
 parse-display = "0.9.1"
 pretty_assertions = "1.4.1"
 proptest = "1.5.0"
-rand = { version = "0.8.5", default-features = false, features = [
+rand = { version = "0.9.4", default-features = false, features = [
     "small_rng",
     "std",
+    "os_rng",
 ] }
 regex = "1.10.4"
 test-strategy = "0.4.0"
