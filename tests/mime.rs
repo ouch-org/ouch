@@ -14,7 +14,7 @@ fn sanity_check_through_mime() {
     let temp_dir_path = temp_dir.path();
 
     let test_file = &mut NamedTempFile::new_in(temp_dir_path).expect("to be able to build a temporary file");
-    write_random_content(test_file, &mut SmallRng::from_entropy());
+    write_random_content(test_file, &mut SmallRng::from_os_rng());
 
     let formats = [
         ("7z", "application/x-7z-compressed"),
