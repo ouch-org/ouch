@@ -11,7 +11,7 @@ use crate::{
     error::{Error, FinalError, Result},
     info,
     list::{FileInArchive, ListFileType},
-    utils::BytesFmt,
+    utils::{BytesFmt, PathFmt},
 };
 
 /// Unpacks the archive given by `archive_path` into the folder given by `output_folder`.
@@ -29,7 +29,7 @@ pub fn unpack_archive(archive_path: &Path, output_folder: &Path, password: Optio
 
     let cb_result = archive.extract_all_with_callback(output_folder, |event| match event {
         ExtractEvent::Ok { filename, size } => {
-            info!("extracted ({}) {}", BytesFmt(size), filename.display());
+            info!("extracted ({}) {}", BytesFmt(size), PathFmt(&filename));
             files_unpacked += 1;
             true
         }
@@ -58,7 +58,7 @@ pub fn unpack_archive(archive_path: &Path, output_folder: &Path, password: Optio
     if let Some((path, code)) = first_err {
         let inner = UnrarError::from(Code::from(code), When::Process).to_string();
         return Err(Error::Custom {
-            reason: FinalError::with_title(format!("failed to extract {}", path.display())).detail(inner),
+            reason: FinalError::with_title(format!("failed to extract {}", PathFmt(&path))).detail(inner),
         });
     }
     let _status = cb_result?;
