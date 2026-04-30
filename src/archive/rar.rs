@@ -26,13 +26,15 @@ pub fn unpack_archive(archive_path: &Path, output_folder: &Path, password: Optio
 
     let mut files_unpacked: u64 = 0;
     let mut first_err: Option<(PathBuf, i32)> = None;
+    let mut pending_size: u64 = 0;
 
     let cb_result = archive.extract_all_with_callback(output_folder, |event| match event {
-        ExtractEvent::Start { filename, size } => {
-            info!("extracted ({}) {}", BytesFmt(size), filename.display());
+        ExtractEvent::Start { size, .. } => {
+            pending_size = size;
             true
         }
-        ExtractEvent::Ok { .. } => {
+        ExtractEvent::Ok { filename } => {
+            info!("extracted ({}) {}", BytesFmt(pending_size), filename.display());
             files_unpacked += 1;
             true
         }
