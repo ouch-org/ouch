@@ -34,6 +34,7 @@ Categories Used:
 ### Tweaks
 
 - Unify directory extraction message for zip and tar archives (https://github.com/ouch-org/ouch/pull/937)
+- Drop unused `xz2` and `bytesize` deps, replace unmaintained `linked-hash-map` with `indexmap`, bump remaining deps to current
 
 ## [0.7.0](https://github.com/ouch-org/ouch/releases/tag/0.7.0)
 
