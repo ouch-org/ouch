@@ -43,7 +43,7 @@ strum = { version = "0.28.0", features = ["derive"] }
 tar = "0.4.42"
 tempfile = "3.10.1"
 time = { version = "0.3.36", default-features = false }
-unrar = { package = "unrar-ng", version = "0.7.4", optional = true }
+unrar = { package = "unrar-ng", version = "0.7.5", optional = true }
 xz2 = "0.1.7"
 zip = { version = "6", default-features = false, features = [
     "time",
