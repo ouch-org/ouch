@@ -36,6 +36,7 @@ Categories Used:
 ### Tweaks
 
 - Unify directory extraction message for zip and tar archives (https://github.com/ouch-org/ouch/pull/937)
+- Drop unused `xz2` and `bytesize` deps, replace unmaintained `linked-hash-map` with `indexmap`, bump remaining deps to current
 - Bump `zip` from 6 to 8, raising MSRV from 1.85 to 1.88 (https://github.com/ouch-org/ouch/pull/971)
 - On conflict prompts, default to renaming over overwriting (https://github.com/ouch-org/ouch/pull/976)
 - Update conflict prompts options to "rename/overwrite/merge/skip" (https://github.com/ouch-org/ouch/pull/976)
