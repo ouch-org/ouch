@@ -25,7 +25,7 @@ file_type_enum = "3.0.1"
 filetime_creation = "0.2"
 flate2 = { version = "1.0.30", default-features = false }
 fs-err = "2.11.0"
-gzp = { version = "2.0.1", default-features = true, features = [
+gzp = { version = "2.0.1", default-features = false, features = [
     "snappy_default",
 ] }
 ignore = "0.4.25"
