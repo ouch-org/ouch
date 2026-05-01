@@ -183,20 +183,6 @@ Check the [releases page](https://github.com/ouch-org/ouch/releases).
 
 Check the [wiki guide on compiling](https://github.com/ouch-org/ouch/wiki/Compiling-and-installing-from-source-code).
 
-# Runtime Dependencies
-
-If running `ouch` results in a linking error, it means you're missing a runtime dependency.
-
-If you're downloading binaries from the [releases page](https://github.com/ouch-org/ouch/releases), try the `musl` variants, those are static binaries that require no runtime dependencies.
-
-Otherwise, you'll need these libraries installed on your system:
-
-* [libbz2](https://www.sourceware.org/bzip2)
-* [libbz3](https://github.com/kspalaiologos/bzip3)
-* [libz](https://www.zlib.net)
-
-These should be available in your system's package manager.
-
 # Benchmarks
 
 Benchmark results are available [here](benchmarks/results.md).
