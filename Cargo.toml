@@ -15,64 +15,62 @@ categories = ["command-line-utilities", "compression", "encoding"]
 description = "A command-line utility for easily compressing and decompressing files and directories."
 
 [dependencies]
-brotli = "7.0.0"
-bstr = { version = "1.10.0", default-features = false, features = ["std"] }
-bytesize = "1.3.0"
+brotli = "8.0.2"
+bstr = { version = "1.12.1", default-features = false, features = ["std"] }
 bzip2 = "0.4.4"
-bzip3 = { version = "0.9.0", features = ["bundled"], optional = true }
-clap = { version = "4.5.20", features = ["derive", "env"] }
+bzip3 = { version = "0.12.0", features = ["bundled"], optional = true }
+clap = { version = "4.6.1", features = ["derive", "env"] }
 file_type_enum = "3.0.1"
 filetime_creation = "0.2"
-flate2 = { version = "1.0.30", default-features = false }
-fs-err = "2.11.0"
-gzp = { version = "2.0.1", default-features = true, features = [
+flate2 = { version = "1.1.9", default-features = false }
+fs-err = "3.3.0"
+gzp = { version = "2.0.2", default-features = true, features = [
     "snappy_default",
 ] }
 ignore = "0.4.25"
+indexmap = "2"
 is_executable = "1.0.5"
-libc = "0.2.155"
-linked-hash-map = "0.5.6"
-lz4_flex = "0.11.6"
-lzma-rust2 = "0.14.2"
-num_cpus = "1.16.0"
-rayon = "1.10.0"
+libc = "0.2.186"
+lz4_flex = "0.13.0"
+lzma-rust2 = "0.16.2"
+num_cpus = "1.17.0"
+rayon = "1.12.0"
 same-file = "1.0.6"
-sevenz-rust2 = { version = "0.19.1", features = ["compress", "aes256"] }
+sevenz-rust2 = { version = "0.21.0", features = ["compress", "aes256"] }
 snap = "1.1.1"
 strum = { version = "0.28.0", features = ["derive"] }
-tar = "0.4.42"
-tempfile = "3.10.1"
-time = { version = "0.3.36", default-features = false }
-unrar = { version = "0.5.7", optional = true }
-xz2 = "0.1.7"
+tar = "0.4.45"
+tempfile = "3.27.0"
+time = { version = "0.3.47", default-features = false }
+unrar = { version = "0.5.8", optional = true }
 zip = { version = "6", default-features = false, features = [
     "time",
     "aes-crypto",
 ] }
-zstd = { version = "0.13.2", default-features = false, features = ["zstdmt"] }
+zstd = { version = "0.13.3", default-features = false, features = ["zstdmt"] }
 
 [dev-dependencies]
 anyhow = "1.0.102"
-assert_cmd = "2.0.14"
-glob = "0.3.2"
+assert_cmd = "2.2.1"
+glob = "0.3.3"
 infer = "0.16.0"
-insta = { version = "1.40.0", features = ["filters"] }
+insta = { version = "1.47.2", features = ["filters"] }
 itertools = "0.14.0"
-memchr = "2.7.4"
+memchr = "2.8.0"
 parse-display = "0.9.1"
 pretty_assertions = "1.4.1"
-proptest = "1.5.0"
+proptest = "1.11.0"
 rand = { version = "0.8.5", default-features = false, features = [
     "small_rng",
     "std",
 ] }
-regex = "1.10.4"
-test-strategy = "0.4.0"
+regex = "1.12.3"
+test-strategy = "0.4.5"
 
 [build-dependencies]
-clap = { version = "4.5.20", features = ["derive", "env", "string"] }
-clap_complete = "4.5.28"
-clap_complete_nushell = "4.5.5"
+clap = { version = "4.6.1", features = ["derive", "env", "string"] }
+clap_complete = "4.6.3"
+clap_complete_nushell = "4.6.0"
 clap_mangen = "0.2.24"
 
 [features]

@@ -59,7 +59,7 @@ pub fn list_archive_contents(
                 Lz4 => Box::new(MultiFrameLz4Decoder::new(decoder)),
                 Lzma => Box::new(lzma_rust2::LzmaReader::new_mem_limit(decoder, u32::MAX, None)?),
                 Xz => Box::new(lzma_rust2::XzReader::new(decoder, true)),
-                Lzip => Box::new(lzma_rust2::LzipReader::new(decoder)?),
+                Lzip => Box::new(lzma_rust2::LzipReader::new(decoder)),
                 Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
                 Zstd => Box::new(zstd::stream::Decoder::new(decoder)?),
                 Brotli => Box::new(brotli::Decompressor::new(decoder, BUFFER_CAPACITY)),
