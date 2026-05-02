@@ -16,6 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     needs: call-workflow-build-artifacts-and-run-tests
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,6 +32,11 @@ jobs:
 
       - name: Package release assets
         run: scripts/package-release-assets.sh
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: "output_assets/ouch-*"
 
       - name: Create release
         uses: softprops/action-gh-release@v2
