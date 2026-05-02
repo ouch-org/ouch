@@ -18,7 +18,7 @@ use crate::{
     list::{FileInArchive, ListFileType},
     utils::{
         BytesFmt, FileVisibilityPolicy, PathFmt, SanitizedStr, cd_into_same_dir_as, ensure_parent_dir_exists,
-        is_same_file_as_output, validate_entry_path,
+        is_same_file_as_output, validate_dest_inside_root, validate_entry_path,
     },
     warning,
 };
@@ -42,6 +42,11 @@ where
                 }
             };
             let file_path = output_path.join(&safe_relpath);
+
+            if let Err(e) = validate_dest_inside_root(output_path, &file_path) {
+                warning!("skipping 7z entry {}: {}", PathFmt(&file_path), e);
+                return Ok(true);
+            }
 
             if entry.is_directory() {
                 info!(

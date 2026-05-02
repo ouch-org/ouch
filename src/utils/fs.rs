@@ -145,19 +145,10 @@ pub fn validate_entry_path(path: &Path) -> Result<PathBuf> {
     })
 }
 
-/// Reject symlink targets that escape the extraction root.
-/// Absolute targets are also rejected: a `link -> /etc` symlink combined with a later `link/file` entry would write through the symlink.
+/// Reject symlink targets whose relative path would escape the extraction root.
 pub fn validate_symlink_target(link_relpath: &Path, target: &Path) -> Result<()> {
     if target.is_absolute() {
-        return Err(
-            FinalError::with_title("refusing to create symlink with absolute target")
-                .detail(format!(
-                    "link: {}  target: {}",
-                    link_relpath.display(),
-                    target.display()
-                ))
-                .into(),
-        );
+        return Ok(());
     }
     let parent = link_relpath.parent().unwrap_or(Path::new(""));
     if normalize_safe_path(&parent.join(target)).is_none() {
@@ -170,6 +161,28 @@ pub fn validate_symlink_target(link_relpath: &Path, target: &Path) -> Result<()>
                 ))
                 .into(),
         );
+    }
+    Ok(())
+}
+
+/// Refuse to write through an on-disk symlink created by an earlier entry.
+/// Walks every existing prefix between root and dest and errors if any component is a symlink.
+pub fn validate_dest_inside_root(root: &Path, dest: &Path) -> Result<()> {
+    let rel = dest.strip_prefix(root).map_err(|_| {
+        FinalError::with_title("refusing to write outside extraction root")
+            .detail(format!("dest: {}", dest.display()))
+    })?;
+    let mut probe = root.to_path_buf();
+    for comp in rel.components() {
+        probe.push(comp);
+        match fs::symlink_metadata(&probe) {
+            Ok(md) if md.file_type().is_symlink() => {
+                return Err(FinalError::with_title("refusing to traverse on-disk symlink during extraction")
+                    .detail(format!("path: {}", probe.display()))
+                    .into());
+            }
+            _ => {}
+        }
     }
     Ok(())
 }

@@ -24,7 +24,7 @@ use crate::{
     utils::{
         BytesFmt, FileType, FileVisibilityPolicy, PathFmt, SanitizedStr, canonicalize, cd_into_same_dir_as,
         create_symlink, ensure_parent_dir_exists, get_invalid_utf8_paths, is_same_file_as_output,
-        pretty_format_list_of_paths, read_file_type, strip_cur_dir, validate_symlink_target,
+        pretty_format_list_of_paths, read_file_type, strip_cur_dir, validate_dest_inside_root, validate_symlink_target,
     },
     warning,
 };
@@ -52,6 +52,8 @@ where
         };
 
         let file_path = output_folder.join(&relpath);
+
+        validate_dest_inside_root(output_folder, &file_path)?;
 
         display_zip_comment_if_exists(&file);
 

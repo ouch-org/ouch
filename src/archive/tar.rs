@@ -19,7 +19,8 @@ use crate::{
     list::{FileInArchive, ListFileType},
     utils::{
         self, BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, create_symlink, is_same_file_as_output,
-        read_file_type, sanitize_archive_mode, set_permission_mode, validate_entry_path, validate_symlink_target,
+        read_file_type, sanitize_archive_mode, set_permission_mode, validate_dest_inside_root, validate_entry_path,
+        validate_symlink_target,
     },
     warning,
 };
@@ -45,6 +46,7 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> Result<u64> {
                     .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Missing symlink target"))?;
 
                 validate_symlink_target(&safe_relpath, &target)?;
+                validate_dest_inside_root(output_folder, &full_path)?;
                 create_symlink(&target, &full_path)?;
             }
             tar::EntryType::Link => {
@@ -59,6 +61,8 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> Result<u64> {
                 let full_link_path = output_folder.join(&safe_link_path);
                 let full_target_path = output_folder.join(&safe_target);
 
+                validate_dest_inside_root(output_folder, &full_link_path)?;
+                validate_dest_inside_root(output_folder, &full_target_path)?;
                 fs::hard_link(&full_target_path, &full_link_path)?;
             }
             tar::EntryType::Regular => {
