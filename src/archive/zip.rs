@@ -12,7 +12,7 @@ use filetime_creation::{FileTime, set_file_mtime};
 use fs_err as fs;
 use is_executable::is_executable;
 use same_file::Handle;
-use time::OffsetDateTime;
+use time::{OffsetDateTime, PrimitiveDateTime};
 use zip::{self, DateTime, ZipArchive, read::ZipFile};
 
 use crate::{
@@ -284,7 +284,11 @@ fn get_last_modified_time(file: &fs::File) -> DateTime {
     file.metadata()
         .and_then(|metadata| metadata.modified())
         .ok()
-        .and_then(|time| DateTime::try_from(OffsetDateTime::from(time)).ok())
+        .and_then(|time| {
+            // zip stores timezone-naive DOS times, so drop the tz from OffsetDateTime
+            let odt = OffsetDateTime::from(time);
+            DateTime::try_from(PrimitiveDateTime::new(odt.date(), odt.time())).ok()
+        })
         .unwrap_or_default()
 }
 
@@ -292,10 +296,10 @@ fn set_last_modified_time<R: Read>(zip_file: &ZipFile<'_, R>, path: &Path) -> Re
     // Extract modification time from zip file and convert to FileTime
     let file_time = zip_file
         .last_modified()
-        .and_then(|datetime| OffsetDateTime::try_from(datetime).ok())
-        .map(|time| {
+        .and_then(|datetime| PrimitiveDateTime::try_from(datetime).ok())
+        .map(|pdt| {
             // Zip does not support nanoseconds, so we can assume zero here
-            FileTime::from_unix_time(time.unix_timestamp(), 0)
+            FileTime::from_unix_time(pdt.assume_utc().unix_timestamp(), 0)
         });
 
     // Set the modification time if available

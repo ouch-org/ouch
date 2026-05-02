@@ -6,7 +6,7 @@ authors = [
     "Vinícius Rodrigues Miguel <vrmiguel99@gmail.com>",
 ]
 edition = "2024"
-rust-version = "1.85.0"
+rust-version = "1.88.0"
 readme = "README.md"
 repository = "https://github.com/ouch-org/ouch"
 license = "MIT"
@@ -45,7 +45,7 @@ tempfile = "3.10.1"
 time = { version = "0.3.36", default-features = false }
 unrar = { version = "0.5.7", optional = true }
 xz2 = "0.1.7"
-zip = { version = "6", default-features = false, features = [
+zip = { version = "8.6.0", default-features = false, features = [
     "time",
     "aes-crypto",
 ] }
