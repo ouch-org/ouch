@@ -113,7 +113,10 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
             })
         }
         Tar => unpack_archive(
-            |output_dir| crate::archive::tar::unpack_archive(create_decoder_up_to_first_extension()?, output_dir),
+            |output_dir| {
+                let reader = LimitedReader::new(create_decoder_up_to_first_extension()?, max_decompressed_bytes());
+                crate::archive::tar::unpack_archive(reader, output_dir)
+            },
             options.output_dir,
             options.question_policy,
         )?,
@@ -169,7 +172,9 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
         Rar => {
             let unpack_fn: Box<dyn FnOnce(&Path) -> Result<u64>> = if options.formats.len() > 1 || input_is_stdin {
                 let mut temp_file = tempfile::NamedTempFile::new()?;
-                io::copy(&mut create_decoder_up_to_first_extension()?, &mut temp_file)?;
+                let mut limited =
+                    LimitedReader::new(create_decoder_up_to_first_extension()?, max_decompressed_bytes());
+                io::copy(&mut limited, &mut temp_file)?;
                 Box::new(move |output_dir| {
                     crate::archive::rar::unpack_archive(temp_file.path(), output_dir, options.password)
                 })
