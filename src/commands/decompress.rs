@@ -172,8 +172,7 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
         Rar => {
             let unpack_fn: Box<dyn FnOnce(&Path) -> Result<u64>> = if options.formats.len() > 1 || input_is_stdin {
                 let mut temp_file = tempfile::NamedTempFile::new()?;
-                let mut limited =
-                    LimitedReader::new(create_decoder_up_to_first_extension()?, max_decompressed_bytes());
+                let mut limited = LimitedReader::new(create_decoder_up_to_first_extension()?, max_decompressed_bytes());
                 io::copy(&mut limited, &mut temp_file)?;
                 Box::new(move |output_dir| {
                     crate::archive::rar::unpack_archive(temp_file.path(), output_dir, options.password)
