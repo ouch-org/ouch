@@ -7,7 +7,11 @@ use std::{
 };
 
 use self::tree::Tree;
-use crate::{Result, accessible::is_running_in_accessible_mode, utils::PathFmt};
+use crate::{
+    Result,
+    accessible::is_running_in_accessible_mode,
+    utils::{NoQuotePathFmt, PathFmt},
+};
 
 /// Options controlling how archive contents should be listed
 #[derive(Debug, Clone, Copy)]
@@ -56,7 +60,7 @@ pub fn list_files(
     } else {
         for file in files {
             let FileInArchive { path, file_type } = file?;
-            print_entry(&mut out, path.display(), &file_type, list_options.quiet);
+            print_entry(&mut out, NoQuotePathFmt(&path), &file_type, list_options.quiet);
         }
     }
     Ok(())
@@ -86,14 +90,14 @@ fn print_entry(out: &mut impl Write, name: impl fmt::Display, file_type: &ListFi
             };
 
             if is_running_in_accessible_mode() {
-                let _ = writeln!(out, "{name} -> {}{suffix}", target.display());
+                let _ = writeln!(out, "{name} -> {}{suffix}", NoQuotePathFmt(target));
             } else {
                 let _ = writeln!(
                     out,
                     "{c}{name}{r} {c}-> {c}{target}{suffix}{r}",
                     c = *CYAN,
                     r = *ALL_RESET,
-                    target = target.display()
+                    target = NoQuotePathFmt(target)
                 );
             }
         }
@@ -125,11 +129,10 @@ mod tree {
         path,
     };
 
-    use bstr::{ByteSlice, ByteVec};
     use linked_hash_map::LinkedHashMap;
 
     use super::{FileInArchive, ListFileType};
-    use crate::{utils::NoQuotePathFmt, warning};
+    use crate::warning;
 
     /// Directory tree
     #[derive(Debug, Default)]
@@ -165,7 +168,7 @@ mod tree {
                     Some(file) => {
                         warning!(
                             "multiple files with the same name in a single directory ({})",
-                            NoQuotePathFmt(&file.path),
+                            super::NoQuotePathFmt(&file.path),
                         );
                     }
                 }
@@ -195,7 +198,7 @@ mod tree {
             };
             super::print_entry(
                 out,
-                <Vec<u8> as ByteVec>::from_os_str_lossy(name).as_bstr(),
+                super::NoQuotePathFmt(path::Path::new(name)),
                 &file_type,
                 false, // Always show targets in tree view, regardless of --quiet flag
             );

@@ -8,7 +8,8 @@ use crate::{
     error::{Error, Result},
     info,
     list::{FileInArchive, ListFileType},
-    utils::BytesFmt,
+    utils::{BytesFmt, PathFmt, validate_entry_path},
+    warning,
 };
 
 /// Unpacks the archive given by `archive_path` into the folder given by `output_folder`.
@@ -25,13 +26,18 @@ pub fn unpack_archive(archive_path: &Path, output_folder: &Path, password: Optio
     while let Some(header) = archive.read_header()? {
         let entry = header.entry();
         archive = if entry.is_file() {
-            info!(
-                "extracted ({}) {}",
-                BytesFmt(entry.unpacked_size),
-                entry.filename.display(),
-            );
-            files_unpacked += 1;
-            header.extract_with_base(output_folder)?
+            if let Err(e) = validate_entry_path(&entry.filename) {
+                warning!("skipping unsafe rar entry {}: {}", PathFmt(&entry.filename), e);
+                header.skip()?
+            } else {
+                info!(
+                    "extracted ({}) {}",
+                    BytesFmt(entry.unpacked_size),
+                    PathFmt(&entry.filename),
+                );
+                files_unpacked += 1;
+                header.extract_with_base(output_folder)?
+            }
         } else {
             header.skip()?
         };

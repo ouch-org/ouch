@@ -42,6 +42,8 @@ Options:
 
   -p, --password <PASSWORD>
           Decompress or list with password
+          
+          [env: OUCH_PASSWORD=]
 
   -c, --threads <THREADS>
           Concurrent working threads
