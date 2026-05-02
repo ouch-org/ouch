@@ -30,6 +30,7 @@ Categories Used:
 ### Bug Fixes
 
 - Fix various panics not handled gracefully (https://github.com/ouch-org/ouch/pull/950)
+- Handle GNUSparse archive entries during tar decompression (https://github.com/ouch-org/ouch/pull/975)
 
 ### Tweaks
 
