@@ -17,8 +17,9 @@ use crate::{
     info,
     list::{FileInArchive, ListFileType},
     utils::{
-        BytesFmt, FileVisibilityPolicy, PathFmt, SanitizedStr, cd_into_same_dir_as, ensure_parent_dir_exists,
-        is_same_file_as_output, validate_dest_inside_root, validate_entry_path,
+        BytesFmt, FileVisibilityPolicy, LimitedReader, PathFmt, SanitizedStr, cd_into_same_dir_as,
+        ensure_parent_dir_exists, is_same_file_as_output, max_decompressed_bytes, validate_dest_inside_root,
+        validate_entry_path,
     },
     warning,
 };
@@ -64,7 +65,8 @@ where
 
                 let file = fs::File::create(path)?;
                 let mut writer = BufWriter::new(file);
-                io::copy(reader, &mut writer)?;
+                let mut limited = LimitedReader::new(reader, max_decompressed_bytes());
+                io::copy(&mut limited, &mut writer)?;
 
                 use filetime_creation as ft;
                 // Surface mtime-set failures as warnings so users know timestamps weren't preserved

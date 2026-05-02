@@ -140,7 +140,7 @@ pub fn normalize_safe_path(path: &Path) -> Option<PathBuf> {
 pub fn validate_entry_path(path: &Path) -> Result<PathBuf> {
     normalize_safe_path(path).ok_or_else(|| {
         FinalError::with_title("refusing to extract archive entry with unsafe path")
-            .detail(format!("entry: {}", path.display()))
+            .detail(format!("entry: {}", PathFmt(path)))
             .into()
     })
 }
@@ -154,11 +154,7 @@ pub fn validate_symlink_target(link_relpath: &Path, target: &Path) -> Result<()>
     if normalize_safe_path(&parent.join(target)).is_none() {
         return Err(
             FinalError::with_title("refusing to create symlink escaping extraction root")
-                .detail(format!(
-                    "link: {}  target: {}",
-                    link_relpath.display(),
-                    target.display()
-                ))
+                .detail(format!("link: {}  target: {}", PathFmt(link_relpath), PathFmt(target)))
                 .into(),
         );
     }
@@ -169,7 +165,7 @@ pub fn validate_symlink_target(link_relpath: &Path, target: &Path) -> Result<()>
 /// Walks every existing prefix between root and dest and errors if any component is a symlink.
 pub fn validate_dest_inside_root(root: &Path, dest: &Path) -> Result<()> {
     let rel = dest.strip_prefix(root).map_err(|_| {
-        FinalError::with_title("refusing to write outside extraction root").detail(format!("dest: {}", dest.display()))
+        FinalError::with_title("refusing to write outside extraction root").detail(format!("dest: {}", PathFmt(dest)))
     })?;
     let mut probe = root.to_path_buf();
     for comp in rel.components() {
@@ -178,7 +174,7 @@ pub fn validate_dest_inside_root(root: &Path, dest: &Path) -> Result<()> {
             Ok(md) if md.file_type().is_symlink() => {
                 return Err(
                     FinalError::with_title("refusing to traverse on-disk symlink during extraction")
-                        .detail(format!("path: {}", probe.display()))
+                        .detail(format!("path: {}", PathFmt(&probe)))
                         .into(),
                 );
             }

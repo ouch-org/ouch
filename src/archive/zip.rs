@@ -22,9 +22,10 @@ use crate::{
     info, info_accessible,
     list::{FileInArchive, ListFileType},
     utils::{
-        BytesFmt, FileType, FileVisibilityPolicy, PathFmt, SanitizedStr, canonicalize, cd_into_same_dir_as,
-        create_symlink, ensure_parent_dir_exists, get_invalid_utf8_paths, is_same_file_as_output,
-        pretty_format_list_of_paths, read_file_type, strip_cur_dir, validate_dest_inside_root, validate_symlink_target,
+        BytesFmt, FileType, FileVisibilityPolicy, LimitedReader, PathFmt, SanitizedStr, canonicalize,
+        cd_into_same_dir_as, create_symlink, ensure_parent_dir_exists, get_invalid_utf8_paths, is_same_file_as_output,
+        max_decompressed_bytes, pretty_format_list_of_paths, read_file_type, strip_cur_dir, validate_dest_inside_root,
+        validate_symlink_target,
     },
     warning,
 };
@@ -106,7 +107,10 @@ where
                     };
                     #[cfg(not(unix))]
                     let mut output_file = fs::File::create(file_path)?;
-                    io::copy(&mut file, &mut output_file)?;
+                    {
+                        let mut limited = LimitedReader::new(&mut file, max_decompressed_bytes());
+                        io::copy(&mut limited, &mut output_file)?;
+                    }
                     set_last_modified_time(&file, file_path)?;
                     #[cfg(unix)]
                     unix_set_permissions(file_path, &file)?;

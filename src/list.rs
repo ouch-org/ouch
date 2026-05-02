@@ -90,14 +90,14 @@ fn print_entry(out: &mut impl Write, name: impl fmt::Display, file_type: &ListFi
             };
 
             if is_running_in_accessible_mode() {
-                let _ = writeln!(out, "{name} -> {}{suffix}", target.display());
+                let _ = writeln!(out, "{name} -> {}{suffix}", NoQuotePathFmt(target));
             } else {
                 let _ = writeln!(
                     out,
                     "{c}{name}{r} {c}-> {c}{target}{suffix}{r}",
                     c = *CYAN,
                     r = *ALL_RESET,
-                    target = target.display()
+                    target = NoQuotePathFmt(target)
                 );
             }
         }
@@ -129,7 +129,6 @@ mod tree {
         path,
     };
 
-    use bstr::{ByteSlice, ByteVec};
     use linked_hash_map::LinkedHashMap;
 
     use super::{FileInArchive, ListFileType};
@@ -199,7 +198,7 @@ mod tree {
             };
             super::print_entry(
                 out,
-                <Vec<u8> as ByteVec>::from_os_str_lossy(name).as_bstr(),
+                super::NoQuotePathFmt(path::Path::new(name)),
                 &file_type,
                 false, // Always show targets in tree view, regardless of --quiet flag
             );
