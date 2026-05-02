@@ -86,9 +86,8 @@ lto = true
 codegen-units = 1
 opt-level = 3
 strip = true
-# remove absolute build paths from the binary so builds are reproducible
-# regardless of where the source is checked out. requires rustc 1.81+.
-trim-paths = "all"
+# trim-paths is still nightly-only (rust-lang/cargo#12137); using
+# --remap-path-prefix via RUSTFLAGS in CI as the stable workaround.
 
 # When we need a fast binary that compiles slightly faster `release` (useful for CI)
 [profile.fast]

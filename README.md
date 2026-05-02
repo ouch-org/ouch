@@ -188,6 +188,7 @@ git clone https://github.com/ouch-org/ouch
 cd ouch
 git checkout <tag>
 export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
+export RUSTFLAGS="--remap-path-prefix=$(pwd)=."
 cargo build --locked --release --target <triple>
 ```
 
