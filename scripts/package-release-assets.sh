@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -e
 
+# use the commit timestamp as SOURCE_DATE_EPOCH so packaging is reproducible.
+# tar/gzip/zip honour this when set.
+if [ -z "${SOURCE_DATE_EPOCH:-}" ]; then
+    SOURCE_DATE_EPOCH=$(git -C .. log -1 --pretty=%ct)
+    export SOURCE_DATE_EPOCH
+fi
+echo "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH"
+
 mkdir output_assets
 echo "created folder 'output_assets/'"
 ls -lA -w 1
@@ -40,18 +48,29 @@ for platform in "${PLATFORMS[@]}"; do
     mv "$path"/man-page-and-completions-artifacts/* "$path/completions"
     rm -r "$path/man-page-and-completions-artifacts"
 
+    # normalise mtimes so tar/zip output is reproducible
+    find "$path" -exec touch -h -d "@${SOURCE_DATE_EPOCH}" {} +
+
     if [[ "$platform" == *"-windows-"* ]]; then
         mv "$path/target/$platform/release/ouch.exe" "$path"
         rm -rf "$path/target"
 
-        zip -r "../output_assets/${path}.zip" "$path"
+        # -X strips extra fields (uid/gid/timestamps) that vary between runs
+        (cd "$(dirname "$path")" && find "$(basename "$path")" | LC_ALL=C sort | \
+            zip -X -@ "../output_assets/${path}.zip")
         echo "Created output_assets/${path}.zip"
     else
         mv "$path/target/$platform/release/ouch" "$path"
         rm -rf "$path/target"
         chmod +x "$path/ouch"
 
-        tar czf "../output_assets/${path}.tar.gz" "$path"
+        # --sort=name pins file order, --owner/--group/--numeric-owner pin uids,
+        # --mtime pins timestamps. piping through gzip -n drops the gzip header
+        # timestamp and original-name field.
+        tar --sort=name \
+            --owner=0 --group=0 --numeric-owner \
+            --mtime="@${SOURCE_DATE_EPOCH}" \
+            -cf - "$path" | gzip -n -9 > "../output_assets/${path}.tar.gz"
         echo "Created output_assets/${path}.tar.gz"
     fi
 done
