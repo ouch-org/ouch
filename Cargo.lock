@@ -1837,9 +1837,9 @@ checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
 
 [[package]]
 name = "unrar-ng"
-version = "0.7.5"
+version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce040dcf1c5a2ffa16abc251813a0766fdf753afe468d6015800368cf1913b07"
+checksum = "7881a7cefee603cdd23e6acd424ee62c64e088d39688f60d20649d978de55f41"
 dependencies = [
  "bitflags",
  "regex",
@@ -1849,9 +1849,9 @@ dependencies = [
 
 [[package]]
 name = "unrar-ng-sys"
-version = "0.7.5"
+version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a121a227a18dfd67638398304b5a0544c7e328912d0c314cd2f80b4b504b51a7"
+checksum = "afa06861a15d69012d3c1035510e9ca416031ae37b6d27bb7e3ab1a2984e1230"
 dependencies = [
  "cc",
  "libc",
