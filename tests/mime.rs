@@ -17,7 +17,7 @@ fn sanity_check_through_mime() {
     write_random_content(test_file, &mut SmallRng::from_entropy());
 
     let formats = [
-        "7z", "cb7", "tar", "cbt", "zip", "cbz", "tar.gz", "tgz", "tbz", "tbz2", "txz", "tzst", "tar.bz", "tar.bz2",
+        "7z", "cb7", "tar", "cbt", "zip", "cbz", "epub", "tar.gz", "tgz", "tbz", "tbz2", "txz", "tzst", "tar.bz", "tar.bz2",
         "tar.xz", "tar.zst",
     ];
 
@@ -26,6 +26,7 @@ fn sanity_check_through_mime() {
         "application/x-7z-compressed",
         "application/x-tar",
         "application/x-tar",
+        "application/zip",
         "application/zip",
         "application/zip",
         "application/gzip",

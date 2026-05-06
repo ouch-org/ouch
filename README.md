@@ -128,7 +128,7 @@ by building without the `unrar` feature.
 
 Aliases for these formats are also supported:
 - `tar`: `tgz`, `tbz`, `tbz2`, `tlz4`, `txz`, `tlzma`, `tsz`, `tzst`, `tlz`, `cbt`
-- `zip`: `cbz`
+- `zip`: `cbz`, `epub`
 - `7z`: `cb7`
 - `rar`: `cbr`
 
