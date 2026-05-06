@@ -255,7 +255,7 @@ fn multiple_files_with_conflict_and_choice_to_overwrite(
         .arg(archive)
         .arg("-d")
         .arg(after)
-        .write_stdin("y")
+        .write_stdin("o")
         .assert()
         .success();
 
