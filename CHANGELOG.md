@@ -22,6 +22,7 @@ Categories Used:
 ### New Features
 
 - List: show symlink targets (for tar and zip) (https://github.com/ouch-org/ouch/pull/934)
+- Add aliases for ebooks (`.epub`) (https://github.com/ouch-org/ouch/pull/977)
 
 ### Improvements
 
