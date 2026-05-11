@@ -2,9 +2,9 @@
 source: tests/ui.rs
 expression: "lines.join(\"\\n\")"
 ---
+[INFO] Directory "output/input" created
 [INFO] Files unpacked: 4
 [INFO] Successfully decompressed archive to "output"
-[INFO] extracted ( [SIZE]) "output/input"
 [INFO] extracted ( [SIZE]) "output/input/input"
 [INFO] extracted ( [SIZE]) "output/input/input2"
 [INFO] extracted ( [SIZE]) "output/input/input3"

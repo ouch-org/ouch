@@ -9,7 +9,7 @@ use std::{
     sync::LazyLock,
 };
 
-static DISABLE_COLORED_TEXT: LazyLock<bool> = LazyLock::new(|| {
+pub static DISABLE_COLORED_TEXT: LazyLock<bool> = LazyLock::new(|| {
     io::stdout().is_terminal().not() || io::stderr().is_terminal().not() || env::var_os("NO_COLOR").is_some()
 });
 

@@ -30,7 +30,7 @@ pub const SUPPORTED_EXTENSIONS: &[&str] = &[
 ];
 
 pub const SUPPORTED_ALIASES: &[&str] = &[
-    "tgz", "tbz", "tlz4", "txz", "tlzma", "tsz", "tzst", "tlz", "cbt", "cbz", "cb7", "cbr",
+    "tgz", "tbz", "tlz4", "txz", "tlzma", "tsz", "tzst", "tlz", "cbt", "cbz", "epub", "cb7", "cbr",
 ];
 
 #[cfg(not(feature = "unrar"))]
@@ -38,7 +38,7 @@ pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, bz3, gz, lz4, 
 #[cfg(feature = "unrar")]
 pub const PRETTY_SUPPORTED_EXTENSIONS: &str = "tar, zip, bz, bz2, bz3, gz, lz4, xz, lzma, lz, sz, zst, rar, 7z";
 
-pub const PRETTY_SUPPORTED_ALIASES: &str = "tgz, tbz, tlz4, txz, tlzma, tsz, tzst, tlz, cbt, cbz, cb7, cbr";
+pub const PRETTY_SUPPORTED_ALIASES: &str = "tgz, tbz, tlz4, txz, tlzma, tsz, tzst, tlz, cbt, cbz, epub, cb7, cbr";
 
 /// A wrapper around `CompressionFormat` that allows combinations like `tgz`
 #[derive(Debug, Clone)]
@@ -109,7 +109,7 @@ pub enum CompressionFormat {
     Tar,
     /// .zst
     Zstd,
-    /// .zip, .cbz
+    /// .zip, .cbz, .epub
     Zip,
     /// .rar, .cbr
     Rar,
@@ -160,7 +160,7 @@ fn slice_to_extension(ext: &[u8]) -> Option<Extension> {
         b"tlz" => [Tar, Lzip].as_slice(),
         b"tsz" => [Tar, Snappy].as_slice(),
         b"tzst" => [Tar, Zstd].as_slice(),
-        b"zip" | b"cbz" => [Zip].as_slice(),
+        b"zip" | b"cbz" | b"epub" => [Zip].as_slice(),
         b"bz" | b"bz2" => [Bzip].as_slice(),
         b"bz3" => [Bzip3].as_slice(),
         b"gz" => [Gzip].as_slice(),

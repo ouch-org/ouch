@@ -21,11 +21,14 @@ Categories Used:
 
 - Unpack into new folder by default (https://github.com/ouch-org/ouch/pull/962).
 - Add `--here` flag to unpack into current directory (https://github.com/ouch-org/ouch/pull/962).
+- List: show symlink targets (for tar and zip) (https://github.com/ouch-org/ouch/pull/934)
+- Add aliases for ebooks (`.epub`) (https://github.com/ouch-org/ouch/pull/981)
 
 ### Improvements
 
 - Report mtime-set errors for `.7z` as warnings (https://github.com/ouch-org/ouch/pull/950)
 - `list`: also display symlink targets (https://github.com/ouch-org/ouch/pull/934)
+- Improve man pages for subcommands (https://github.com/ouch-org/ouch/pull/980)
 
 ### Bug Fixes
 
@@ -39,6 +42,10 @@ Categories Used:
 ### Bug Fixes
 
 - Fix `ouch --version` being outdated.
+- Unify directory extraction message for zip and tar archives (https://github.com/ouch-org/ouch/pull/937)
+- Bump `zip` from 6 to 8, raising MSRV from 1.85 to 1.88 (https://github.com/ouch-org/ouch/pull/971)
+- On conflict prompts, default to renaming over overwriting (https://github.com/ouch-org/ouch/pull/976)
+- Update conflict prompts options to "rename/overwrite/merge/skip" (https://github.com/ouch-org/ouch/pull/976)
 
 ## [0.7.0](https://github.com/ouch-org/ouch/releases/tag/0.7.0)
 
