@@ -17,33 +17,26 @@ fn sanity_check_through_mime() {
     write_random_content(test_file, &mut SmallRng::from_entropy());
 
     let formats = [
-        "7z", "cb7", "tar", "cbt", "zip", "cbz", "epub", "tar.gz", "tgz", "tbz", "tbz2", "txz", "tzst", "tar.bz", "tar.bz2",
-        "tar.xz", "tar.zst",
+        ("7z", "application/x-7z-compressed"),
+        ("cb7", "application/x-7z-compressed"),
+        ("tar", "application/x-tar"),
+        ("cbt", "application/x-tar"),
+        ("zip", "application/zip"),
+        ("cbz", "application/zip"),
+        ("epub", "application/zip"),
+        ("tar.gz", "application/gzip"),
+        ("tgz", "application/gzip"),
+        ("tbz", "application/x-bzip2"),
+        ("tbz2", "application/x-bzip2"),
+        ("txz", "application/x-xz"),
+        ("tzst", "application/zstd"),
+        ("tar.bz", "application/x-bzip2"),
+        ("tar.bz2", "application/x-bzip2"),
+        ("tar.xz", "application/x-xz"),
+        ("tar.zst", "application/zstd"),
     ];
 
-    let expected_mimes = [
-        "application/x-7z-compressed",
-        "application/x-7z-compressed",
-        "application/x-tar",
-        "application/x-tar",
-        "application/zip",
-        "application/zip",
-        "application/zip",
-        "application/gzip",
-        "application/gzip",
-        "application/x-bzip2",
-        "application/x-bzip2",
-        "application/x-xz",
-        "application/zstd",
-        "application/x-bzip2",
-        "application/x-bzip2",
-        "application/x-xz",
-        "application/zstd",
-    ];
-
-    assert_eq!(formats.len(), expected_mimes.len());
-
-    for (format, expected_mime) in formats.iter().zip(expected_mimes.iter()) {
+    for (format, expected_mime) in formats {
         let path_to_compress = test_file.path();
 
         let compressed_file_path = &format!("{}.{}", path_to_compress.display(), format);
@@ -53,6 +46,6 @@ fn sanity_check_through_mime() {
             .expect("the file to be read")
             .expect("the MIME to be found");
 
-        assert_eq!(&sniffed.mime_type(), expected_mime);
+        assert_eq!(sniffed.mime_type(), expected_mime);
     }
 }
