@@ -11,16 +11,11 @@
 /// All completion files will be generated inside of the folder "man-page-and-completions-artifacts".
 ///
 /// If the folder does not exist, it will be created.
-use std::{
-    env,
-    fs::{File, create_dir_all},
-    path::Path,
-};
+use std::{env, fs::create_dir_all, path::Path};
 
 use clap::{CommandFactory, ValueEnum};
 use clap_complete::{Shell, generate_to};
 use clap_complete_nushell::Nushell;
-use clap_mangen::Man;
 
 include!("src/cli/args.rs");
 
@@ -32,16 +27,7 @@ fn main() {
         create_dir_all(out).unwrap();
         let cmd = &mut CliArgs::command();
 
-        Man::new(cmd.clone())
-            .render(&mut File::create(out.join("ouch.1")).unwrap())
-            .unwrap();
-
-        for subcmd in cmd.get_subcommands() {
-            let name = format!("ouch-{}", subcmd.get_name());
-            Man::new(subcmd.clone().name(&name))
-                .render(&mut File::create(out.join(format!("{name}.1"))).unwrap())
-                .unwrap();
-        }
+        clap_mangen::generate_to(cmd.clone(), out).unwrap();
 
         for shell in Shell::value_variants() {
             generate_to(*shell, cmd, "ouch", out).unwrap();

@@ -26,6 +26,7 @@ Categories Used:
 ### Improvements
 
 - Report mtime-set errors for `.7z` as warnings (https://github.com/ouch-org/ouch/pull/950)
+- Improve man pages for subcommands (https://github.com/ouch-org/ouch/pull/980)
 
 ### Bug Fixes
 
