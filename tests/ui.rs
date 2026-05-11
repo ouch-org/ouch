@@ -238,6 +238,6 @@ fn ui_test_err_decompress_output_file_exists() {
     run_ouch("ouch compress input out.gz", dir);
 
     // Try to decompress out.gz, which would extract to "out" (already exists)
-    // Answer "n" to the overwrite prompt
-    ui!(run_ouch_with_stdin("ouch decompress out.gz", dir, Some("n\n")));
+    // Answer "s" (skip) to the conflict prompt
+    ui!(run_ouch_with_stdin("ouch decompress out.gz", dir, Some("s\n")));
 }

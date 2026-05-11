@@ -74,7 +74,7 @@ pub fn user_wants_to_overwrite(
     }
 }
 
-/// Ask the user if they want to overwrite or rename the &Path
+/// Ask the user how to resolve a file or folder conflict.
 pub fn prompt_user_for_file_conflict_resolution(
     path: &Path,
     question_action: QuestionAction,
@@ -83,21 +83,21 @@ pub fn prompt_user_for_file_conflict_resolution(
 
     match question_action {
         QuestionAction::Compression => ChoicePrompt::new(
-            format!("Do you want to overwrite {}?", PathFmt(path)),
+            format!("Handle file conflict for {}:", PathFmt(path)),
             [
-                ("yes", Op::Overwrite, *colors::GREEN),
-                ("no", Op::Cancel, *colors::RED),
                 ("rename", Op::Rename, *colors::BLUE),
+                ("overwrite", Op::Overwrite, *colors::GREEN),
+                ("skip", Op::Cancel, *colors::RED),
             ],
         )
         .ask(),
         QuestionAction::Decompression => ChoicePrompt::new(
-            format!("Do you want to overwrite {}?", PathFmt(path)),
+            format!("Handle file conflict for {}:", PathFmt(path)),
             [
-                ("yes", Op::Overwrite, *colors::GREEN),
-                ("no", Op::Cancel, *colors::RED),
                 ("rename", Op::Rename, *colors::BLUE),
                 ("merge", Op::Merge, *colors::ORANGE),
+                ("overwrite", Op::Overwrite, *colors::GREEN),
+                ("skip", Op::Cancel, *colors::RED),
             ],
         )
         .ask(),
