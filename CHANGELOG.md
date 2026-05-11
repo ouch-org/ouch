@@ -34,6 +34,7 @@ Categories Used:
 ### Tweaks
 
 - Unify directory extraction message for zip and tar archives (https://github.com/ouch-org/ouch/pull/937)
+- Bump `zip` from 6 to 8, raising MSRV from 1.85 to 1.88
 
 ## [0.7.0](https://github.com/ouch-org/ouch/releases/tag/0.7.0)
 
