@@ -1384,6 +1384,6 @@ fn decompress_into_cwd() {
         .arg(&compressed_archive)
         .arg("--yes")
         .assert()
-    .success();
+        .success();
     assert_same_directory(before, &after.join("before"), false);
 }
