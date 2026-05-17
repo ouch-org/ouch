@@ -1362,3 +1362,28 @@ fn decompress_concatenated_lz4_frames() {
         encoder.finish().unwrap()
     });
 }
+
+#[test]
+fn decompress_into_cwd() {
+    let (_tempdir, dir) = testdir().unwrap();
+    let before = &dir.join("before");
+    let after = &dir.join("after");
+    fs::create_dir_all(before).unwrap();
+    fs::create_dir_all(after).unwrap();
+    create_random_files(before, 2, &mut SmallRng::from_os_rng());
+    let compressed_archive = dir.join(format!("archive.zip"));
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .arg(&before)
+        .arg(&compressed_archive)
+        .assert()
+        .success();
+    crate::utils::cargo_bin()
+        .current_dir(&after)
+        .arg("decompress")
+        .arg(&compressed_archive)
+        .arg("--yes")
+        .assert()
+    .success();
+    assert_same_directory(before, &after.join("before"), false);
+}
