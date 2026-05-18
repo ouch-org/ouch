@@ -25,7 +25,7 @@ It's a CLI tool for compressing and decompressing various formats.
 1. Easy to use.
 2. Fast.
 3. Great error message feedback.
-4. No runtime dependencies (when using the Linux static binary).
+4. No runtime dependencies.
 5. Accessibility mode ([see more](https://github.com/ouch-org/ouch/wiki/Accessibility)).
 6. Shell completions and man pages.
 
