@@ -4,7 +4,7 @@ set -e
 # use the commit timestamp as SOURCE_DATE_EPOCH so packaging is reproducible.
 # tar/gzip/zip honour this when set.
 if [ -z "${SOURCE_DATE_EPOCH:-}" ]; then
-    SOURCE_DATE_EPOCH=$(git -C .. log -1 --pretty=%ct)
+    SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
     export SOURCE_DATE_EPOCH
 fi
 echo "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH"
