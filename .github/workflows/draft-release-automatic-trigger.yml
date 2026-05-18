@@ -34,7 +34,7 @@ jobs:
         run: scripts/package-release-assets.sh
 
       - name: Attest build provenance
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: "output_assets/ouch-*"
 
