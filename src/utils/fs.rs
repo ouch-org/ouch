@@ -52,18 +52,18 @@ pub fn resolve_path_conflict(
 
 pub fn remove_file_or_dir(path: &Path) -> Result<()> {
     if path.is_dir() {
-        if let Ok(cwd) = env::current_dir() {
-            if matches!(
+        if let Ok(cwd) = env::current_dir()
+            && matches!(
                 (Handle::from_path(path), Handle::from_path(&cwd)),
                 (Ok(a), Ok(b)) if a == b
-            ) {
-                return Err(
-                    FinalError::with_title("Refusing to delete the current working directory")
-                        .detail(format!("Path {} is the current directory", PathFmt(path)))
-                        .hint("Use a different output directory with `--dir` / `-d`")
-                        .into(),
-                );
-            }
+            )
+        {
+            return Err(
+                FinalError::with_title("Refusing to delete the current working directory")
+                    .detail(format!("Path {} is the current directory", PathFmt(path)))
+                    .hint("Use a different output directory with `--dir` / `-d`")
+                    .into(),
+            );
         }
         fs::remove_dir_all(path)?;
     } else if path.is_file() {
@@ -119,10 +119,10 @@ pub fn create_dir_if_non_existent(path: &Path) -> Result<()> {
 
 /// Ensures the parent directory of a file path exists, creating it if necessary.
 pub fn ensure_parent_dir_exists(file_path: &Path) -> io::Result<()> {
-    if let Some(parent) = file_path.parent() {
-        if !parent.fs_err_try_exists()? {
-            fs::create_dir_all(parent)?;
-        }
+    if let Some(parent) = file_path.parent()
+        && !parent.fs_err_try_exists()?
+    {
+        fs::create_dir_all(parent)?;
     }
     Ok(())
 }

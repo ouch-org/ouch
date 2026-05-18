@@ -128,7 +128,7 @@ by building without the `unrar` feature.
 
 Aliases for these formats are also supported:
 - `tar`: `tgz`, `tbz`, `tbz2`, `tlz4`, `txz`, `tlzma`, `tsz`, `tzst`, `tlz`, `cbt`
-- `zip`: `cbz`
+- `zip`: `cbz`, `epub`
 - `7z`: `cb7`
 - `rar`: `cbr`
 
@@ -178,6 +178,12 @@ cargo install ouch
 ## Download the latest release bundle
 
 Check the [releases page](https://github.com/ouch-org/ouch/releases).
+
+Release binaries are signed with [Sigstore](https://sigstore.dev) via GitHub's artifact attestations. Verify a downloaded binary with the GitHub CLI:
+
+```
+gh attestation verify ouch-x86_64-unknown-linux-musl --repo ouch-org/ouch
+```
 
 ### Reproducing a release build
 

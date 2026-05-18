@@ -173,7 +173,7 @@ impl From<Error> for FinalError {
             Error::PermissionDenied { error_title } => Self::with_title(error_title).detail("Permission denied"),
             Error::UnsupportedZipArchive(reason) => Self::with_title("Unsupported zip archive").detail(reason),
             Error::InvalidFormatFlag { reason, text } => {
-                Self::with_title(format!("Failed to parse `--format {}`", &text))
+                Self::with_title(format!("Failed to parse `--format {}`", text))
                     .detail(reason)
                     .hint_all_supported_formats()
                     .hint("")
