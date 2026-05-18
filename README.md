@@ -25,7 +25,7 @@ It's a CLI tool for compressing and decompressing various formats.
 1. Easy to use.
 2. Fast.
 3. Great error message feedback.
-4. No runtime dependencies (when using the Linux static binary).
+4. No runtime dependencies.
 5. Accessibility mode ([see more](https://github.com/ouch-org/ouch/wiki/Accessibility)).
 6. Shell completions and man pages.
 
@@ -128,7 +128,7 @@ by building without the `unrar` feature.
 
 Aliases for these formats are also supported:
 - `tar`: `tgz`, `tbz`, `tbz2`, `tlz4`, `txz`, `tlzma`, `tsz`, `tzst`, `tlz`, `cbt`
-- `zip`: `cbz`
+- `zip`: `cbz`, `epub`
 - `7z`: `cb7`
 - `rar`: `cbr`
 
@@ -179,23 +179,30 @@ cargo install ouch
 
 Check the [releases page](https://github.com/ouch-org/ouch/releases).
 
+Release binaries are signed with [Sigstore](https://sigstore.dev) via GitHub's artifact attestations. Verify a downloaded binary with the GitHub CLI:
+
+```
+gh attestation verify ouch-x86_64-unknown-linux-musl --repo ouch-org/ouch
+```
+
+### Reproducing a release build
+
+Release builds are reproducible. Given the source at a tagged commit, anyone can rebuild the same binary and check that it matches what we shipped. Steps:
+
+```
+git clone https://github.com/ouch-org/ouch
+cd ouch
+git checkout <tag>
+export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
+export RUSTFLAGS="--remap-path-prefix=$(pwd)=."
+cargo build --locked --release --target <triple>
+```
+
+The toolchain version is pinned in `rust-toolchain.toml` and rustup will install it automatically. Cross-compiled targets (anything using `cross-rs/cross`) inherit the cross Docker image's toolchain, which is not pinned by digest yet, so those targets are bit-for-bit reproducible only against the same `cross` image release.
+
 ## Compiling from source code
 
 Check the [wiki guide on compiling](https://github.com/ouch-org/ouch/wiki/Compiling-and-installing-from-source-code).
-
-# Runtime Dependencies
-
-If running `ouch` results in a linking error, it means you're missing a runtime dependency.
-
-If you're downloading binaries from the [releases page](https://github.com/ouch-org/ouch/releases), try the `musl` variants, those are static binaries that require no runtime dependencies.
-
-Otherwise, you'll need these libraries installed on your system:
-
-* [libbz2](https://www.sourceware.org/bzip2)
-* [libbz3](https://github.com/kspalaiologos/bzip3)
-* [libz](https://www.zlib.net)
-
-These should be available in your system's package manager.
 
 # Benchmarks
 

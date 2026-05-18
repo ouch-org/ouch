@@ -72,6 +72,8 @@ fn insta_filter_settings() -> insta::Settings {
     settings.add_filter(r"(Usage:.*\b)ouch(\.exe)?\b", "${1}[OUCH_BIN]");
     // Windows paths use `\` instead of `/`
     settings.add_filter(r"\\", "/");
+    // Normalise OS-specific io::Error text in fs-err messages
+    settings.add_filter(r": [^\n]*\(os error \d+\)", ": [OS_ERROR]");
     settings
 }
 
@@ -238,6 +240,6 @@ fn ui_test_err_decompress_output_file_exists() {
     run_ouch("ouch compress input out.gz", dir);
 
     // Try to decompress out.gz, which would extract to "out" (already exists)
-    // Answer "n" to the overwrite prompt
-    ui!(run_ouch_with_stdin("ouch decompress out.gz", dir, Some("n\n")));
+    // Answer "s" (skip) to the conflict prompt
+    ui!(run_ouch_with_stdin("ouch decompress out.gz", dir, Some("s\n")));
 }
