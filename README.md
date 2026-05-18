@@ -25,7 +25,7 @@ It's a CLI tool for compressing and decompressing various formats.
 1. Easy to use.
 2. Fast.
 3. Great error message feedback.
-4. No runtime dependencies (when using the Linux static binary).
+4. No runtime dependencies.
 5. Accessibility mode ([see more](https://github.com/ouch-org/ouch/wiki/Accessibility)).
 6. Shell completions and man pages.
 
@@ -203,20 +203,6 @@ The toolchain version is pinned in `rust-toolchain.toml` and rustup will install
 ## Compiling from source code
 
 Check the [wiki guide on compiling](https://github.com/ouch-org/ouch/wiki/Compiling-and-installing-from-source-code).
-
-# Runtime Dependencies
-
-If running `ouch` results in a linking error, it means you're missing a runtime dependency.
-
-If you're downloading binaries from the [releases page](https://github.com/ouch-org/ouch/releases), try the `musl` variants, those are static binaries that require no runtime dependencies.
-
-Otherwise, you'll need these libraries installed on your system:
-
-* [libbz2](https://www.sourceware.org/bzip2)
-* [libbz3](https://github.com/kspalaiologos/bzip3)
-* [libz](https://www.zlib.net)
-
-These should be available in your system's package manager.
 
 # Benchmarks
 

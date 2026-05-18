@@ -17,14 +17,14 @@ description = "A command-line utility for easily compressing and decompressing f
 [dependencies]
 brotli = "8.0.2"
 bstr = { version = "1.12.1", default-features = false, features = ["std"] }
-bzip2 = "0.4.4"
+bzip2 = "0.6.1"
 bzip3 = { version = "0.12.0", features = ["bundled"], optional = true }
 clap = { version = "4.6.1", features = ["derive", "env"] }
 file_type_enum = "3.0.1"
 filetime_creation = "0.2"
 flate2 = { version = "1.1.9", default-features = false }
 fs-err = "3.3.0"
-gzp = { version = "2.0.2", default-features = true, features = [
+gzp = { version = "2.0.2", default-features = false, features = [
     "snappy_default",
 ] }
 ignore = "0.4.25"
@@ -76,7 +76,7 @@ clap_mangen = "0.2.24"
 
 [features]
 default = ["unrar", "use_zlib", "use_zstd_thin", "bzip3"]
-use_zlib = ["flate2/zlib", "gzp/deflate_zlib", "zip/deflate-flate2-zlib"]
+use_zlib = ["flate2/zlib-rs", "gzp/deflate_rust", "zip/deflate-flate2-zlib-rs"]
 use_zstd_thin = ["zstd/thin"]
 
 # For generating binaries for releases
