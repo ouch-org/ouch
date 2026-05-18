@@ -32,7 +32,7 @@ updates:
     commit-message:
       prefix: "ci"
     groups:
-      gha-patch-and-minor:
-        update-types:
-          - "patch"
-          - "minor"
+      # We are less likely to be affected by breaking changes in GitHub Actions
+      # So Major bumps are accepted to reduce the amount of pull requests
+      github-actions:
+        patterns: ["*"]
