@@ -72,6 +72,8 @@ fn insta_filter_settings() -> insta::Settings {
     settings.add_filter(r"(Usage:.*\b)ouch(\.exe)?\b", "${1}[OUCH_BIN]");
     // Windows paths use `\` instead of `/`
     settings.add_filter(r"\\", "/");
+    // Normalise OS-specific io::Error text in fs-err messages
+    settings.add_filter(r": [^\n]*\(os error \d+\)", ": [OS_ERROR]");
     settings
 }
 

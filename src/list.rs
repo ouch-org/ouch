@@ -126,7 +126,7 @@ mod tree {
     };
 
     use bstr::{ByteSlice, ByteVec};
-    use linked_hash_map::LinkedHashMap;
+    use indexmap::IndexMap;
 
     use super::{FileInArchive, ListFileType};
     use crate::{utils::NoQuotePathFmt, warning};
@@ -135,7 +135,7 @@ mod tree {
     #[derive(Debug, Default)]
     pub struct Tree {
         file: Option<FileInArchive>,
-        children: LinkedHashMap<OsString, Tree>,
+        children: IndexMap<OsString, Tree>,
     }
 
     impl Tree {

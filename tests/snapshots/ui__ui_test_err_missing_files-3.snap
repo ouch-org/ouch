@@ -2,5 +2,5 @@
 source: tests/ui.rs
 expression: "run_ouch(\"ouch list a b\", dir)"
 ---
-[ERROR] failed to canonicalize path `a`
+[ERROR] failed to canonicalize path `a`: [OS_ERROR]
  - File not found
