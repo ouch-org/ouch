@@ -65,12 +65,13 @@ for platform in "${PLATFORMS[@]}"; do
         rm -rf "$path/target"
         chmod +x "$path/ouch"
 
-        # Portable single-file AppImage for the glibc Linux targets.
+        # Portable single-file AppImage from the static musl binaries
+        # (zero shared-library dependencies, runs on any Linux).
         case "$platform" in
-            x86_64-unknown-linux-gnu)
+            x86_64-unknown-linux-musl)
                 ../scripts/build-appimage.sh "$path/ouch" x86_64 "../output_assets/${path}.AppImage"
                 ;;
-            aarch64-unknown-linux-gnu)
+            aarch64-unknown-linux-musl)
                 ../scripts/build-appimage.sh "$path/ouch" aarch64 "../output_assets/${path}.AppImage"
                 ;;
         esac
