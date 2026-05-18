@@ -179,6 +179,12 @@ cargo install ouch
 
 Check the [releases page](https://github.com/ouch-org/ouch/releases).
 
+Release binaries are signed with [Sigstore](https://sigstore.dev) via GitHub's artifact attestations. Verify a downloaded binary with the GitHub CLI:
+
+```
+gh attestation verify ouch-x86_64-unknown-linux-musl --repo ouch-org/ouch
+```
+
 ## Compiling from source code
 
 Check the [wiki guide on compiling](https://github.com/ouch-org/ouch/wiki/Compiling-and-installing-from-source-code).
