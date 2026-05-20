@@ -184,7 +184,13 @@ pub fn validate_dest_inside_root(root: &Path, dest: &Path) -> Result<()> {
     Ok(())
 }
 
-pub const DEFAULT_MAX_DECOMPRESSED_BYTES: u64 = 32 * 1024 * 1024 * 1024;
+// TODO: pick a sensible default cap. No mainstream extractor (GNU tar,
+// bsdtar, unzip, 7z, gzip, xz, zstd) imposes one; 32 GiB broke legitimate
+// large archives (VM images, database dumps, ML datasets, backups). Until
+// we have a value that's bomb-resistant without breaking real use, the
+// cap is opt-in via OUCH_MAX_DECOMPRESSED_BYTES.
+// pub const DEFAULT_MAX_DECOMPRESSED_BYTES: u64 = 32 * 1024 * 1024 * 1024;
+pub const DEFAULT_MAX_DECOMPRESSED_BYTES: u64 = u64::MAX;
 
 /// LZMA/XZ dictionary memory cap (256 MiB). Bounds malformed-stream allocations
 pub const LZMA_MEMLIMIT_BYTES: u32 = 256 * 1024 * 1024;
