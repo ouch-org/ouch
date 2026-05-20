@@ -43,7 +43,7 @@ pub struct CliArgs {
     pub format: Option<String>,
 
     /// Decompress or list with password
-    #[arg(short, long = "password", aliases = ["pass", "pw"], global = true)]
+    #[arg(short, long = "password", aliases = ["pass", "pw"], env = "OUCH_PASSWORD", global = true)]
     pub password: Option<OsString>,
 
     /// Concurrent working threads

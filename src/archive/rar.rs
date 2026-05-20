@@ -11,7 +11,8 @@ use crate::{
     error::{Error, FinalError, Result},
     info,
     list::{FileInArchive, ListFileType},
-    utils::{BytesFmt, PathFmt},
+    utils::{BytesFmt, PathFmt, validate_entry_path},
+    warning,
 };
 
 /// Unpacks the archive given by `archive_path` into the folder given by `output_folder`.
@@ -26,8 +27,18 @@ pub fn unpack_archive(archive_path: &Path, output_folder: &Path, password: Optio
 
     let mut files_unpacked: u64 = 0;
     let mut first_err: Option<(PathBuf, i32)> = None;
+    let mut unsafe_path: Option<(PathBuf, String)> = None;
 
     let cb_result = archive.extract_all_with_callback(output_folder, |event| match event {
+        ExtractEvent::Start { filename, .. } => {
+            if let Err(e) = validate_entry_path(&filename) {
+                warning!("refusing unsafe rar entry {}: {}", PathFmt(&filename), e);
+                unsafe_path = Some((filename, e.to_string()));
+                false
+            } else {
+                true
+            }
+        }
         ExtractEvent::Ok { filename, size } => {
             info!("extracted ({}) {}", BytesFmt(size), PathFmt(&filename));
             files_unpacked += 1;
@@ -54,6 +65,13 @@ pub fn unpack_archive(archive_path: &Path, output_folder: &Path, password: Optio
         }
         _ => true,
     });
+
+    if let Some((path, reason)) = unsafe_path {
+        return Err(Error::Custom {
+            reason: FinalError::with_title(format!("refusing to extract unsafe rar entry {}", PathFmt(&path)))
+                .detail(reason),
+        });
+    }
 
     if let Some((path, code)) = first_err {
         let inner = UnrarError::from(Code::from(code), When::Process).to_string();

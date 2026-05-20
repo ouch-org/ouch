@@ -279,9 +279,8 @@ mod logger_thread {
 
     fn flush_logs_to_stderr(buffer: &mut Vec<u8>) {
         if !buffer.is_empty() {
-            if let Err(err) = stderr().write_all(buffer) {
-                panic!("Failed to write to STDERR: {err}");
-            }
+            // Ignore stderr write failures (broken pipe, closed terminal) instead of panicking
+            let _ = stderr().write_all(buffer);
             buffer.clear();
         }
     }
