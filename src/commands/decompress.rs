@@ -315,7 +315,10 @@ fn deduplicate_basename_wrapper(wrapper: &Path) -> Result<()> {
         let name = entry.file_name();
         if name == wrapper_name {
             // Stage under a random name to avoid colliding with the still-existing inner dir.
-            let tmp = tempfile::Builder::new().prefix(".ouch-").tempfile_in(wrapper)?.into_temp_path();
+            let tmp = tempfile::Builder::new()
+                .prefix(".ouch-")
+                .tempfile_in(wrapper)?
+                .into_temp_path();
             fs::remove_file(&tmp)?;
             fs::rename(entry.path(), &tmp)?;
             staged = Some(tmp);
@@ -378,7 +381,10 @@ mod tests {
         deduplicate_basename_wrapper(&wrapper).unwrap();
         assert_eq!(list_tree(&wrapper), vec!["a.txt", "b.txt"]);
         // Parent must be untouched: only `wrapper` itself should be visible there.
-        let parent_entries: Vec<_> = std_fs::read_dir(dir.path()).unwrap().map(|e| e.unwrap().file_name()).collect();
+        let parent_entries: Vec<_> = std_fs::read_dir(dir.path())
+            .unwrap()
+            .map(|e| e.unwrap().file_name())
+            .collect();
         assert_eq!(parent_entries, vec![std::ffi::OsString::from("archive")]);
     }
 
