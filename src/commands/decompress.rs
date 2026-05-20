@@ -278,8 +278,6 @@ fn unpack_archive(
 /// Expects `wrapper` to be a just-decompressed archive output directory, if
 /// `wrapper` contains exactly one entry with the same name (e.g. extracting
 /// `archive.zip` produced `archive/archive/...`), then flatten it to `archive/...`.
-///
-/// Returns the resulting path the user should see. If reads fail,
 fn deduplicate_basename_wrapper(wrapper: &Path) -> Result<()> {
     let Some(wrapper_name) = wrapper.file_name() else {
         return Ok(());
@@ -303,33 +301,34 @@ fn deduplicate_basename_wrapper(wrapper: &Path) -> Result<()> {
         return Ok(());
     }
 
-    // The wrapper duplicates the inner entry's name. Promote the inner entry by:
-    //   1. moving it into a sibling temporary directory
-    //   2. removing the now-empty wrapper
-    //   3. moving it back to the wrapper's path
-    // Each step leaves the filesystem in a consistent state, and a failure midway
-    // leaves the user with valid extracted content (just nested one level).
-    let inner_path = only_file_in_dir.path();
-    let Some(parent) = wrapper.parent() else {
+    // Only collapse when the inner duplicate is itself a directory.
+    if !only_file_in_dir.file_type()?.is_dir() {
         return Ok(());
-    };
+    }
 
-    // Create the sibling
-    let sibling_path = parent.join("ouch-temporary");
-    fs::create_dir(&sibling_path)?;
+    // Promote inner entries one level up, all writes stay inside `wrapper`.
+    let inner_dir = only_file_in_dir.path();
 
-    // Move child inside the sibling
-    let path_inside_sibling = sibling_path.join(wrapper_name);
-    fs::rename(&inner_path, &path_inside_sibling)?;
+    let mut staged: Option<tempfile::TempPath> = None;
+    for entry in fs::read_dir(&inner_dir)? {
+        let entry = entry?;
+        let name = entry.file_name();
+        if name == wrapper_name {
+            // Stage under a random name to avoid colliding with the still-existing inner dir.
+            let tmp = tempfile::Builder::new().prefix(".ouch-").tempfile_in(wrapper)?.into_temp_path();
+            fs::remove_file(&tmp)?;
+            fs::rename(entry.path(), &tmp)?;
+            staged = Some(tmp);
+        } else {
+            fs::rename(entry.path(), wrapper.join(name))?;
+        }
+    }
 
-    // Delete old parent
-    fs::remove_dir(wrapper)?;
-
-    // Move child to its dead parent place
-    fs::rename(&path_inside_sibling, wrapper)?;
-
-    // Delete the temporary sibling
-    fs::remove_dir(sibling_path)?;
+    fs::remove_dir(&inner_dir)?;
+    if let Some(tmp) = staged {
+        fs::rename(&tmp, wrapper.join(wrapper_name))?;
+        let _ = tmp.keep();
+    }
 
     Ok(())
 }
@@ -365,7 +364,8 @@ mod tests {
     }
 
     /// The main case: wrapper contains exactly one entry whose name equals the wrapper's
-    /// name. The inner entry should be promoted up one level.
+    /// name. The inner entry should be promoted up one level. The flatten must not
+    /// create or touch anything in the wrapper's parent directory.
     #[test]
     fn deduplicate_flattens_when_inner_dir_matches_wrapper_name() {
         let dir = tempdir().unwrap();
@@ -377,6 +377,9 @@ mod tests {
 
         deduplicate_basename_wrapper(&wrapper).unwrap();
         assert_eq!(list_tree(&wrapper), vec!["a.txt", "b.txt"]);
+        // Parent must be untouched: only `wrapper` itself should be visible there.
+        let parent_entries: Vec<_> = std_fs::read_dir(dir.path()).unwrap().map(|e| e.unwrap().file_name()).collect();
+        assert_eq!(parent_entries, vec![std::ffi::OsString::from("archive")]);
     }
 
     /// Wrapper contains a single entry, but its name differs from the wrapper's name.
@@ -418,18 +421,38 @@ mod tests {
         assert_eq!(list_tree(&wrapper), Vec::<String>::new());
     }
 
-    /// Edge case: the single inner entry is a *file* (not a directory) whose name
-    /// equals the wrapper's name. The wrapper directory should be replaced with that file.
+    /// Wrapper contains a single entry, but it's a file (not a directory).
+    /// No flatten should happen — the wrapper survives and the file stays inside.
     #[test]
-    fn deduplicate_promotes_single_inner_file_with_matching_name() {
+    fn deduplicate_keeps_wrapper_when_inner_is_file() {
         let dir = tempdir().unwrap();
         let wrapper = dir.path().join("archive");
         std_fs::create_dir(&wrapper).unwrap();
         std_fs::write(wrapper.join("archive"), "data").unwrap();
 
         deduplicate_basename_wrapper(&wrapper).unwrap();
-        assert!(wrapper.is_file(), "wrapper should now be a file, not a directory");
-        assert_eq!(std_fs::read(&wrapper).unwrap(), b"data");
+        assert!(wrapper.is_dir(), "wrapper must remain a directory");
+        assert_eq!(list_tree(&wrapper), vec!["archive".to_string()]);
+        assert_eq!(std_fs::read(wrapper.join("archive")).unwrap(), b"data");
+    }
+
+    /// Inner dir's children include one that shares the wrapper's name. The
+    /// in-place flatten must stage it under a random name to avoid the collision
+    /// and end with `wrapper/archive` containing the collision's contents.
+    #[test]
+    fn deduplicate_handles_inner_entry_named_like_wrapper() {
+        let dir = tempdir().unwrap();
+        let wrapper = dir.path().join("archive");
+        let inner = wrapper.join("archive");
+        let collision = inner.join("archive");
+        std_fs::create_dir_all(&collision).unwrap();
+        std_fs::write(collision.join("inside"), "x").unwrap();
+        std_fs::write(inner.join("other.txt"), "o").unwrap();
+
+        deduplicate_basename_wrapper(&wrapper).unwrap();
+        assert_eq!(list_tree(&wrapper), vec!["archive/", "archive/inside", "other.txt"]);
+        assert_eq!(std_fs::read(wrapper.join("archive").join("inside")).unwrap(), b"x");
+        assert_eq!(std_fs::read(wrapper.join("other.txt")).unwrap(), b"o");
     }
 
     /// The flatten only collapses *one* level: nested same-name directories produced
