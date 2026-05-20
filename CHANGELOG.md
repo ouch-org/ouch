@@ -19,7 +19,7 @@ Categories Used:
 
 ### New Features
 
-- Unpack into new folder by default (https://github.com/ouch-org/ouch/pull/962).
+- Unpack into new folder by default (https://github.com/ouch-org/ouch/pull/962) and (https://github.com/ouch-org/ouch/pull/996).
 - Add `--here` flag to unpack into current directory (https://github.com/ouch-org/ouch/pull/962).
 - List: show symlink targets (for tar and zip) (https://github.com/ouch-org/ouch/pull/934)
 - Add aliases for ebooks (`.epub`) (https://github.com/ouch-org/ouch/pull/981)
