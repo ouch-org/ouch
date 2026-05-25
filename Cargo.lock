@@ -1197,7 +1197,7 @@ dependencies = [
  "tempfile",
  "test-strategy",
  "time",
- "unrar",
+ "unrar-ng",
  "zip",
  "zstd",
 ]
@@ -1836,22 +1836,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
 
 [[package]]
-name = "unrar"
-version = "0.5.8"
+name = "unrar-ng"
+version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92ec61343a630d2b50d13216dea5125e157d3fc180a7d3f447d22fe146b648fc"
+checksum = "7881a7cefee603cdd23e6acd424ee62c64e088d39688f60d20649d978de55f41"
 dependencies = [
  "bitflags",
  "regex",
- "unrar_sys",
+ "unrar-ng-sys",
  "widestring",
 ]
 
 [[package]]
-name = "unrar_sys"
-version = "0.5.8"
+name = "unrar-ng-sys"
+version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b77675b883cfbe6bf41e6b7a5cd6008e0a83ba497de3d96e41a064bbeead765"
+checksum = "afa06861a15d69012d3c1035510e9ca416031ae37b6d27bb7e3ab1a2984e1230"
 dependencies = [
  "cc",
  "libc",
