@@ -57,7 +57,7 @@ infer = "0.19.0"
 insta = { version = "1.47.2", features = ["filters"] }
 itertools = "0.14.0"
 memchr = "2.8.0"
-parse-display = "0.9.1"
+parse-display = "0.11.0"
 pretty_assertions = "1.4.1"
 proptest = "1.11.0"
 rand = { version = "0.9.4", default-features = false, features = [
