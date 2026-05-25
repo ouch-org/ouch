@@ -7,7 +7,7 @@ use std::{
 use fs_err::{self as fs, PathExt};
 
 use crate::{
-    BUFFER_CAPACITY, QuestionAction, QuestionPolicy, Result,
+    BUFFER_CAPACITY, INITIAL_CURRENT_DIR, QuestionAction, QuestionPolicy, Result,
     commands::{warn_user_about_loading_sevenz_in_memory, warn_user_about_loading_zip_in_memory},
     extension::{
         CompressionFormat::{self, *},
@@ -30,13 +30,19 @@ pub struct DecompressOptions<'a> {
     pub output_dir: &'a Path,
     /// Used when extracting single file formats and not archive formats
     pub output_file_path: PathBuf,
+    /// Whether the user passed `--dir` explicitly. When false (and `here` is false),
+    /// archives are extracted into a basename-derived subdirectory of the CWD.
+    pub output_dir_was_explicit: bool,
+    /// `--here`: extract directly into the current directory like `tar -xf`.
+    /// Only meaningful when `output_dir_was_explicit` is false.
+    pub here: bool,
     pub question_policy: QuestionPolicy,
     pub password: Option<&'a [u8]>,
     pub remove: bool,
 }
 
 enum DecompressionSummary {
-    Archive { files_unpacked: u64 },
+    Archive { files_unpacked: u64, output_path: PathBuf },
     NonArchive { output_path: PathBuf },
 }
 
@@ -87,6 +93,18 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
         Ok(reader)
     };
 
+    // Decide where archives extract:
+    //   --dir <X>     -> extract into <X>, no wrapper, no flatten
+    //   --here        -> extract into CWD (output_dir), no wrapper
+    //   default       -> extract into a basename-derived subdirectory; flatten the
+    //                    duplicate when the wrapper would contain exactly one entry
+    //                    whose name equals the basename
+    let archive_output_dir: &Path = if options.output_dir_was_explicit || options.here {
+        options.output_dir
+    } else {
+        &options.output_file_path
+    };
+
     let control_flow = match first_extension {
         Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {
             let reader = create_decoder_up_to_first_extension()?;
@@ -108,7 +126,7 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
         }
         Tar => unpack_archive(
             |output_dir| crate::archive::tar::unpack_archive(create_decoder_up_to_first_extension()?, output_dir),
-            options.output_dir,
+            archive_output_dir,
             options.question_policy,
         )?,
         Zip | SevenZip => {
@@ -153,7 +171,7 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
 
             unpack_archive(
                 |output_dir| unpack_fn(reader, output_dir, options.password),
-                options.output_dir,
+                archive_output_dir,
                 options.question_policy,
             )?
         }
@@ -171,7 +189,7 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
                 })
             };
 
-            unpack_archive(unpack_fn, options.output_dir, options.question_policy)?
+            unpack_archive(unpack_fn, archive_output_dir, options.question_policy)?
         }
         #[cfg(not(feature = "unrar"))]
         Rar => {
@@ -184,8 +202,18 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
     };
 
     match decompression_summary {
-        DecompressionSummary::Archive { files_unpacked } => {
-            info_accessible!("Successfully decompressed archive to {}", PathFmt(options.output_dir));
+        DecompressionSummary::Archive {
+            files_unpacked,
+            output_path,
+        } => {
+            // In default mode (no --dir, no --here), if the wrapper subdir we created
+            // ended up containing exactly one entry whose name matches the wrapper itself
+            // (e.g. `archive.zip` contained a single `archive/` root), flatten that
+            // duplicate so the user sees `./archive/...` not `./archive/archive/...`.
+            if !options.output_dir_was_explicit && !options.here {
+                deduplicate_basename_wrapper(&output_path)?;
+            }
+            info_accessible!("Successfully decompressed archive to {}", PathFmt(&output_path));
             info_accessible!("Files unpacked: {files_unpacked}");
         }
         DecompressionSummary::NonArchive { output_path } => {
@@ -215,13 +243,17 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
 /// directory or replace it if it already exists. The `output_dir` needs to be empty
 /// - If `output_dir` does not exist OR is a empty directory, it will unpack there
 /// - If `output_dir` exist OR is a directory not empty, the user will be asked what to do
+/// - If `output_dir` is the current working directory, files are extracted directly without prompting
 fn unpack_archive(
     unpack_fn: impl FnOnce(&Path) -> Result<u64>,
     output_dir: &Path,
     question_policy: QuestionPolicy,
 ) -> Result<ControlFlow<(), DecompressionSummary>> {
+    // Extracting into the CWD is a merge into the user's workspace and should not prompt,
+    // matching the behaviour of `tar xf` and `unzip` when no destination is given.
+    let is_cwd = output_dir == *INITIAL_CURRENT_DIR;
     let is_valid_output_dir =
-        !output_dir.fs_err_try_exists()? || (output_dir.is_dir() && output_dir.read_dir()?.next().is_none());
+        is_cwd || !output_dir.fs_err_try_exists()? || (output_dir.is_dir() && output_dir.read_dir()?.next().is_none());
 
     let output_dir_cleaned = if is_valid_output_dir {
         output_dir.to_owned()
@@ -237,5 +269,185 @@ fn unpack_archive(
 
     let files_unpacked = unpack_fn(&output_dir_cleaned)?;
 
-    Ok(ControlFlow::Continue(DecompressionSummary::Archive { files_unpacked }))
+    Ok(ControlFlow::Continue(DecompressionSummary::Archive {
+        files_unpacked,
+        output_path: output_dir_cleaned,
+    }))
+}
+
+/// Expects `wrapper` to be a just-decompressed archive output directory, if
+/// `wrapper` contains exactly one entry with the same name (e.g. extracting
+/// `archive.zip` produced `archive/archive/...`), then flatten it to `archive/...`.
+///
+/// Returns the resulting path the user should see. If reads fail,
+fn deduplicate_basename_wrapper(wrapper: &Path) -> Result<()> {
+    let Some(wrapper_name) = wrapper.file_name() else {
+        return Ok(());
+    };
+
+    let only_file_in_dir = {
+        // Read at most two entries. A single-entry directory has exactly one.
+        let mut entries = fs::read_dir(wrapper)?;
+        let Some(first_file) = entries.next().transpose()? else {
+            return Ok(());
+        };
+        // More than one entry, don't deduplicate
+        if entries.next().transpose()?.is_some() {
+            return Ok(());
+        }
+        first_file
+    };
+
+    // name doesn't match, nothing to deduplicate
+    if only_file_in_dir.file_name() != wrapper_name {
+        return Ok(());
+    }
+
+    // The wrapper duplicates the inner entry's name. Promote the inner entry by:
+    //   1. moving it into a sibling temporary directory
+    //   2. removing the now-empty wrapper
+    //   3. moving it back to the wrapper's path
+    // Each step leaves the filesystem in a consistent state, and a failure midway
+    // leaves the user with valid extracted content (just nested one level).
+    let inner_path = only_file_in_dir.path();
+    let Some(parent) = wrapper.parent() else {
+        return Ok(());
+    };
+
+    // Create the sibling
+    let sibling_path = parent.join("ouch-temporary");
+    fs::create_dir(&sibling_path)?;
+
+    // Move child inside the sibling
+    let path_inside_sibling = sibling_path.join(wrapper_name);
+    fs::rename(&inner_path, &path_inside_sibling)?;
+
+    // Delete old parent
+    fs::remove_dir(wrapper)?;
+
+    // Move child to its dead parent place
+    fs::rename(&path_inside_sibling, wrapper)?;
+
+    // Delete the temporary sibling
+    fs::remove_dir(sibling_path)?;
+
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs as std_fs;
+
+    use tempfile::tempdir;
+
+    use super::*;
+
+    /// Helper: collect the relative paths of every entry under `root`, sorted.
+    fn list_tree(root: &Path) -> Vec<String> {
+        fn walk(p: &Path, base: &Path, out: &mut Vec<String>) {
+            if let Ok(entries) = std_fs::read_dir(p) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    let rel = path.strip_prefix(base).unwrap().to_string_lossy().replace('\\', "/");
+                    if path.is_dir() {
+                        out.push(format!("{rel}/"));
+                        walk(&path, base, out);
+                    } else {
+                        out.push(rel);
+                    }
+                }
+            }
+        }
+        let mut out = Vec::new();
+        walk(root, root, &mut out);
+        out.sort();
+        out
+    }
+
+    /// The main case: wrapper contains exactly one entry whose name equals the wrapper's
+    /// name. The inner entry should be promoted up one level.
+    #[test]
+    fn deduplicate_flattens_when_inner_dir_matches_wrapper_name() {
+        let dir = tempdir().unwrap();
+        let wrapper = dir.path().join("archive");
+        let inner = wrapper.join("archive");
+        std_fs::create_dir_all(&inner).unwrap();
+        std_fs::write(inner.join("a.txt"), "a").unwrap();
+        std_fs::write(inner.join("b.txt"), "b").unwrap();
+
+        deduplicate_basename_wrapper(&wrapper).unwrap();
+        assert_eq!(list_tree(&wrapper), vec!["a.txt", "b.txt"]);
+    }
+
+    /// Wrapper contains a single entry, but its name differs from the wrapper's name.
+    /// No flatten should happen — the wrapper survives and the inner entry stays nested.
+    #[test]
+    fn deduplicate_keeps_wrapper_when_inner_name_differs() {
+        let dir = tempdir().unwrap();
+        let wrapper = dir.path().join("archive");
+        let inner = wrapper.join("mytool");
+        std_fs::create_dir_all(&inner).unwrap();
+        std_fs::write(inner.join("file.txt"), "x").unwrap();
+
+        deduplicate_basename_wrapper(&wrapper).unwrap();
+        assert_eq!(list_tree(&wrapper), vec!["mytool/", "mytool/file.txt"]);
+    }
+
+    /// Wrapper contains two or more entries — no flatten regardless of names.
+    #[test]
+    fn deduplicate_keeps_wrapper_when_multiple_entries() {
+        let dir = tempdir().unwrap();
+        let wrapper = dir.path().join("archive");
+        std_fs::create_dir_all(&wrapper).unwrap();
+        std_fs::write(wrapper.join("a.txt"), "a").unwrap();
+        std_fs::write(wrapper.join("b.txt"), "b").unwrap();
+
+        deduplicate_basename_wrapper(&wrapper).unwrap();
+        assert_eq!(list_tree(&wrapper), vec!["a.txt", "b.txt"]);
+    }
+
+    /// Empty wrapper — nothing to flatten, no-op.
+    #[test]
+    fn deduplicate_is_noop_on_empty_wrapper() {
+        let dir = tempdir().unwrap();
+        let wrapper = dir.path().join("archive");
+        std_fs::create_dir(&wrapper).unwrap();
+
+        deduplicate_basename_wrapper(&wrapper).unwrap();
+        assert!(wrapper.is_dir());
+        assert_eq!(list_tree(&wrapper), Vec::<String>::new());
+    }
+
+    /// Edge case: the single inner entry is a *file* (not a directory) whose name
+    /// equals the wrapper's name. The wrapper directory should be replaced with that file.
+    #[test]
+    fn deduplicate_promotes_single_inner_file_with_matching_name() {
+        let dir = tempdir().unwrap();
+        let wrapper = dir.path().join("archive");
+        std_fs::create_dir(&wrapper).unwrap();
+        std_fs::write(wrapper.join("archive"), "data").unwrap();
+
+        deduplicate_basename_wrapper(&wrapper).unwrap();
+        assert!(wrapper.is_file(), "wrapper should now be a file, not a directory");
+        assert_eq!(std_fs::read(&wrapper).unwrap(), b"data");
+    }
+
+    /// The flatten only collapses *one* level: nested same-name directories produced
+    /// by the archive itself stay intact. For example, an archive whose layout is
+    /// `testing/testing/file` extracted into `./testing/` should leave the user with
+    /// `./testing/testing/file`, not `./testing/file`.
+    #[test]
+    fn deduplicate_only_flattens_outer_wrapper_not_inner_duplicates() {
+        let dir = tempdir().unwrap();
+        let wrapper = dir.path().join("testing");
+        let outer_inner = wrapper.join("testing");
+        let nested = outer_inner.join("testing");
+        std_fs::create_dir_all(&nested).unwrap();
+        std_fs::write(nested.join("file"), "deep").unwrap();
+
+        deduplicate_basename_wrapper(&wrapper).unwrap();
+        // After one flatten, `testing/testing/file` should remain — the algorithm only
+        // collapses the outer wrapper exactly once.
+        assert_eq!(list_tree(&wrapper), vec!["testing/", "testing/file"]);
+    }
 }
