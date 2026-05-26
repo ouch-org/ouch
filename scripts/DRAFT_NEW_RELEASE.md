@@ -50,11 +50,11 @@ The script will:
    <https://github.com/ouch-org/ouch/releases>
 4. Open the drafted release for the RC tag.
 5. Continue polishing the release notes/changelog if needed.
-6. Push the version bump commit to `main` with `git push` (the script creates the commit, but only pushes the RC tag).
-7. Publish to crates.io:
+6. Publish to crates.io:
    ```sh
    cargo publish
    ```
+7. Push the version bump commit to `main` with `git push` (the script creates the commit, but only pushes the RC tag).
 8. In GitHub, edit the release:
    - mark it as the final release instead of a pre-release
    - confirm the title/body/assets are correct
