@@ -19,6 +19,7 @@ Categories Used:
 
 ### New Features
 
+- Releases: add Apple Silicon macOS (`aarch64-apple-darwin`) to assets.
 - Unpack into new folder by default (https://github.com/ouch-org/ouch/pull/962).
 - Add `--here` flag to unpack into current directory (https://github.com/ouch-org/ouch/pull/962).
 - List: show symlink targets (for tar and zip) (https://github.com/ouch-org/ouch/pull/934)
