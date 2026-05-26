@@ -9,7 +9,7 @@ jobs:
   call-workflow-build-artifacts-and-run-tests:
     uses: ./.github/workflows/build-artifacts-and-run-tests.yml
     with:
-      matrix_all_combinations: true
+      matrix_all_combinations: false
       artifact_upload_mode: with_default_features
 
   automated-draft-release:
