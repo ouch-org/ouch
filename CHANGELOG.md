@@ -15,10 +15,22 @@ Categories Used:
 
 **Bullet points in chronological order by PR**
 
-## [Unreleased](https://github.com/ouch-org/ouch/compare/0.7.1...HEAD)
+## [Unreleased](https://github.com/ouch-org/ouch/compare/0.8.0...HEAD)
 
 ### New Features
 
+### Improvements
+
+### Bug Fixes
+
+### Tweaks
+
+
+## [0.8.0](https://github.com/ouch-org/ouch/compare/0.7.1...0.8.0)
+
+### New Features
+
+- Releases: add Apple Silicon macOS (`aarch64-apple-darwin`) to assets.
 - Unpack into new folder by default (https://github.com/ouch-org/ouch/pull/962).
 - Add `--here` flag to unpack into current directory (https://github.com/ouch-org/ouch/pull/962).
 - List: show symlink targets (for tar and zip) (https://github.com/ouch-org/ouch/pull/934)
