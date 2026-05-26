@@ -22,8 +22,8 @@ use crate::{
     info, info_accessible,
     list::{FileInArchive, ListFileType},
     utils::{
-        BytesFmt, FileType, FileVisibilityPolicy, LimitedReader, PathFmt, SanitizedStr, canonicalize,
-        cd_into_same_dir_as, create_symlink, ensure_parent_dir_exists, get_invalid_utf8_paths, is_same_file_as_output,
+        BytesFmt, FileType, FileVisibilityPolicy, LimitedReader, PathFmt, canonicalize, cd_into_same_dir_as,
+        create_symlink, ensure_parent_dir_exists, get_invalid_utf8_paths, is_same_file_as_output,
         max_decompressed_bytes, pretty_format_list_of_paths, read_file_type, strip_cur_dir, validate_dest_inside_root,
         validate_symlink_target,
     },
@@ -47,7 +47,7 @@ where
         let relpath = match file.enclosed_name() {
             Some(path) => path.to_owned(),
             None => {
-                warning!("skipping entry {} with unsafe name: {}", idx, SanitizedStr(file.name()));
+                warning!("skipping entry {} with unsafe name: {}", idx, file.name());
                 continue;
             }
         };
@@ -69,7 +69,7 @@ where
                     let mut target = String::new();
                     file.read_to_string(&mut target)?;
 
-                    validate_symlink_target(&relpath, std::path::Path::new(&target))?;
+                    validate_symlink_target(&relpath, Path::new(&target))?;
                     #[cfg(unix)]
                     std::os::unix::fs::symlink(&target, &file_path)?;
                     #[cfg(windows)]
@@ -89,8 +89,8 @@ where
                     let mut target = String::new();
                     file.read_to_string(&mut target)?;
 
-                    validate_symlink_target(&relpath, std::path::Path::new(&target))?;
-                    info!("linking {} -> \"{}\"", PathFmt(file_path), SanitizedStr(&target));
+                    validate_symlink_target(&relpath, Path::new(&target))?;
+                    info!("linking {} -> \"{}\"", PathFmt(file_path), target);
 
                     create_symlink(Path::new(&target), file_path)?;
                 } else {
@@ -299,11 +299,7 @@ fn display_zip_comment_if_exists<R: Read>(file: &ZipFile<'_, R>) {
         // the future, maybe asking the user if he wants to display the comment
         // (informing him of its size) would be sensible for both normal and
         // accessibility mode..
-        info_accessible!(
-            "Found comment in {}: {}",
-            SanitizedStr(file.name()),
-            SanitizedStr(comment)
-        );
+        info_accessible!("Found comment in {}: {}", file.name(), comment);
     }
 }
 

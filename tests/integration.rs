@@ -377,7 +377,7 @@ fn multiple_files_with_conflict_and_choice_to_rename_with_already_a_renamed(
 #[cfg(feature = "unrar")]
 #[test]
 fn unpack_rar() -> Result<(), Box<dyn std::error::Error>> {
-    fn test_unpack_rar_single(input: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+    fn test_unpack_rar_single(input: &Path) -> Result<(), Box<dyn std::error::Error>> {
         let (_tempdir, dirpath) = testdir()?;
         let unpacked_path = &dirpath.join("testfile.txt");
         ouch!("-A", "d", input, "-d", dirpath);
@@ -399,7 +399,7 @@ fn unpack_rar() -> Result<(), Box<dyn std::error::Error>> {
 #[cfg(feature = "unrar")]
 #[test]
 fn unpack_rar_stdin() -> Result<(), Box<dyn std::error::Error>> {
-    fn test_unpack_rar_single(input: &std::path::Path, format: &str) -> Result<(), Box<dyn std::error::Error>> {
+    fn test_unpack_rar_single(input: &Path, format: &str) -> Result<(), Box<dyn std::error::Error>> {
         let (_tempdir, dirpath) = testdir()?;
         let unpacked_path = &dirpath.join("testfile.txt");
         crate::utils::cargo_bin()

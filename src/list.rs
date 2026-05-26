@@ -198,7 +198,7 @@ mod tree {
             };
             super::print_entry(
                 out,
-                super::NoQuotePathFmt(path::Path::new(name)),
+                super::NoQuotePathFmt(name.as_ref()),
                 &file_type,
                 false, // Always show targets in tree view, regardless of --quiet flag
             );

@@ -103,7 +103,7 @@ pub struct NoQuotePathFmt<'a>(pub &'a Path);
 /// Covers C0 controls, DEL, C1 controls (U+0080..U+009F), line/paragraph separators,
 /// BiDi formatting characters (Trojan Source, CVE-2021-42574), and zero-width
 /// / invisible characters used for homoglyph or hidden-content attacks
-fn is_unsafe_display_char(ch: char) -> bool {
+pub fn is_unsafe_display_char(ch: char) -> bool {
     match ch {
         c if c.is_control() => true,
         '\u{2028}' | '\u{2029}' => true,
@@ -114,32 +114,30 @@ fn is_unsafe_display_char(ch: char) -> bool {
     }
 }
 
-/// Write a char to a formatter, replacing unsafe chars with U+FFFD
-fn write_sanitized_char(ch: char, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    if is_unsafe_display_char(ch) {
-        f.write_char('\u{FFFD}')
-    } else {
-        f.write_char(ch)
+pub fn contains_unsafe_display_char(text: &str) -> bool {
+    text.chars().any(is_unsafe_display_char)
+}
+
+pub fn sanitize_for_display(text: &str) -> Cow<'_, str> {
+    if !contains_unsafe_display_char(text) {
+        return Cow::Borrowed(text);
     }
+
+    let mut sanitized = String::with_capacity(text.len());
+    for ch in text.chars() {
+        if is_unsafe_display_char(ch) {
+            sanitized.push('\u{FFFD}');
+        } else {
+            sanitized.push(ch);
+        }
+    }
+    Cow::Owned(sanitized)
 }
 
 /// Same as NoQuotePathFmt, but surrounded by "".
 impl<'a> fmt::Display for PathFmt<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "\"{}\"", NoQuotePathFmt(self.0))
-    }
-}
-
-/// Wrapper that writes a string to a formatter, replacing unsafe chars
-/// Use for any archive-derived string that doesn't flow through PathFmt
-pub struct SanitizedStr<'a>(pub &'a str);
-
-impl<'a> fmt::Display for SanitizedStr<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for ch in self.0.chars() {
-            write_sanitized_char(ch, f)?;
-        }
-        Ok(())
     }
 }
 
@@ -160,10 +158,7 @@ impl<'a> fmt::Display for NoQuotePathFmt<'a> {
             path
         };
 
-        for ch in path.display().to_string().chars() {
-            write_sanitized_char(ch, f)?;
-        }
-        Ok(())
+        f.write_str(&sanitize_for_display(&path.display().to_string()))
     }
 }
 

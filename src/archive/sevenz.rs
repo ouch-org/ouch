@@ -17,9 +17,8 @@ use crate::{
     info,
     list::{FileInArchive, ListFileType},
     utils::{
-        BytesFmt, FileVisibilityPolicy, LimitedReader, PathFmt, SanitizedStr, cd_into_same_dir_as,
-        ensure_parent_dir_exists, is_same_file_as_output, max_decompressed_bytes, validate_dest_inside_root,
-        validate_entry_path,
+        BytesFmt, FileVisibilityPolicy, LimitedReader, PathFmt, cd_into_same_dir_as, ensure_parent_dir_exists,
+        is_same_file_as_output, max_decompressed_bytes, validate_dest_inside_root, validate_entry_path,
     },
     warning,
 };
@@ -34,7 +33,7 @@ where
         |entry: &ArchiveEntry, reader: &mut dyn Read, path: &PathBuf| -> Result<bool, sevenz_rust2::Error> {
             // Manually handle writing all files from 7z archive (the library defaults ignore empty files)
 
-            let name_as_path = std::path::Path::new(entry.name());
+            let name_as_path = Path::new(entry.name());
             let safe_relpath = match validate_entry_path(name_as_path) {
                 Ok(p) => p,
                 Err(e) => {
@@ -50,11 +49,7 @@ where
             }
 
             if entry.is_directory() {
-                info!(
-                    "File {} extracted to {}",
-                    SanitizedStr(entry.name()),
-                    PathFmt(&file_path)
-                );
+                info!("File {} extracted to {}", entry.name(), PathFmt(&file_path));
                 if !path.fs_err_try_exists()? {
                     fs::create_dir_all(path)?;
                 }
