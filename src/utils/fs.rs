@@ -184,14 +184,6 @@ pub fn validate_dest_inside_root(root: &Path, dest: &Path) -> Result<()> {
     Ok(())
 }
 
-// TODO: pick a sensible default cap. No mainstream extractor (GNU tar,
-// bsdtar, unzip, 7z, gzip, xz, zstd) imposes one; 32 GiB broke legitimate
-// large archives (VM images, database dumps, ML datasets, backups). Until
-// we have a value that's bomb-resistant without breaking real use, the
-// cap is opt-in via OUCH_MAX_DECOMPRESSED_BYTES.
-// pub const DEFAULT_MAX_DECOMPRESSED_BYTES: u64 = 32 * 1024 * 1024 * 1024;
-pub const DEFAULT_MAX_DECOMPRESSED_BYTES: u64 = u64::MAX;
-
 /// LZMA/XZ dictionary memory cap (256 MiB). Bounds malformed-stream allocations
 pub const LZMA_MEMLIMIT_BYTES: u32 = 256 * 1024 * 1024;
 
@@ -199,7 +191,7 @@ pub fn max_decompressed_bytes() -> u64 {
     env::var("OUCH_MAX_DECOMPRESSED_BYTES")
         .ok()
         .and_then(|v| v.parse().ok())
-        .unwrap_or(DEFAULT_MAX_DECOMPRESSED_BYTES)
+        .unwrap_or(u64::MAX)
 }
 
 pub struct LimitedReader<R> {
@@ -218,16 +210,22 @@ impl<R: Read> LimitedReader<R> {
 
 impl<R: Read> Read for LimitedReader<R> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        if buf.is_empty() {
+            return Ok(0);
+        }
+
         if self.remaining == 0 {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "decompression output exceeded configured limit (see OUCH_MAX_DECOMPRESSED_BYTES)",
             ));
         }
-        let cap = usize::try_from(self.remaining).unwrap_or(usize::MAX).min(buf.len());
-        let n = self.inner.read(&mut buf[..cap])?;
-        self.remaining = self.remaining.saturating_sub(n as u64);
-        Ok(n)
+
+        let bytes_to_ready = usize::try_from(self.remaining).unwrap_or(usize::MAX).min(buf.len());
+        let bytes_read = self.inner.read(&mut buf[..bytes_to_ready])?;
+
+        self.remaining = self.remaining.saturating_sub(bytes_read as u64);
+        Ok(bytes_read)
     }
 }
 
