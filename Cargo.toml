@@ -39,7 +39,7 @@ same-file = "1.0.6"
 sevenz-rust2 = { version = "0.21.0", features = ["compress", "aes256"] }
 snap = "1.1.1"
 strum = { version = "0.28.0", features = ["derive"] }
-tar = "0.4.45"
+tar = "0.4.46"
 tempfile = "3.27.0"
 time = { version = "0.3.47", default-features = false }
 unrar = { package = "unrar-ng", version = "0.7.6", optional = true }
