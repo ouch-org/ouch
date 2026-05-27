@@ -12,6 +12,7 @@ Categories Used:
 - Tweaks - anything that doesn't fit into other categories, small typo fixes, most CI stuff,
   meta changes (e.g. README updates), etc.
 - Removals - removal of a feature (and most likely a breaking change)
+- Safety - Changes focused on preventing malicious attacks
 
 **Bullet points in chronological order by PR**
 
@@ -20,6 +21,16 @@ Categories Used:
 ### New Features
 
 ### Improvements
+
+- Add `OUCH_PASSWORD` env var as alternative to `--password` (https://github.com/ouch-org/ouch/pull/951).
+- Add `OUCH_MAX_DECOMPRESSED_BYTES` to optionally cap decompressed output size and listing (https://github.com/ouch-org/ouch/pull/951).
+
+### Safety
+
+- Limit LZMA/XZ decoder size limit to 256 MiB to prevent OOM attacks from malicious inputs (https://github.com/ouch-org/ouch/pull/951).
+- Prevent path traversal and symlink/hardlink escape attacks in tar, zip, 7z, and rar entries (https://github.com/ouch-org/ouch/pull/951).
+- Sanitize archive-controlled filenames, comments, symlink targets, and error text before printing to the terminal (https://github.com/ouch-org/ouch/pull/951).
+- Strip special permission bits from archive-supplied file modes and create zip outputs with final sanitized permissions immediately (https://github.com/ouch-org/ouch/pull/951).
 
 ### Bug Fixes
 
@@ -46,9 +57,6 @@ Categories Used:
 
 - Fix various panics not handled gracefully (https://github.com/ouch-org/ouch/pull/950)
 - Handle GNUSparse archive entries during tar decompression (https://github.com/ouch-org/ouch/pull/975)
-
-### Tweaks
-
 
 ## [0.7.1](https://github.com/ouch-org/ouch/releases/tag/0.7.1)
 
