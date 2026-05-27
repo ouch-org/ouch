@@ -21,9 +21,9 @@ use crate::{
     info, info_accessible,
     list::{FileInArchive, ListFileType},
     utils::{
-        BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, cd_into_same_dir_as, create_symlink,
-        ensure_parent_dir_exists, get_invalid_utf8_paths, is_same_file_as_output, pretty_format_list_of_paths,
-        read_file_type, strip_cur_dir,
+        BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, cd_into_same_dir_as, common_ancestor,
+        create_symlink, ensure_parent_dir_exists, get_invalid_utf8_paths, has_duplicate_basenames,
+        is_same_file_as_output, pretty_format_list_of_paths, read_file_type, strip_cur_dir,
     },
     warning,
 };
@@ -180,14 +180,35 @@ where
         return Err(error.into());
     }
 
+    // When multiple inputs share the same basename, archive entry names would collide.
+    // In that case, use the common ancestor of all paths and store entries relative to it,
+    // including enough parent path components to disambiguate.
+    let use_common_ancestor = input_filenames.len() > 1 && has_duplicate_basenames(input_filenames);
+    let common_ancestor = if use_common_ancestor {
+        Some(common_ancestor(input_filenames))
+    } else {
+        None
+    };
+
     for explicit_path in input_filenames {
-        let previous_location = cd_into_same_dir_as(explicit_path)?;
+        let previous_location = if let Some(ref ancestor) = common_ancestor {
+            let previous = env::current_dir()?;
+            env::set_current_dir(ancestor)?;
+            previous
+        } else {
+            cd_into_same_dir_as(explicit_path)?
+        };
 
         // Unwrap safety:
         //   paths should be canonicalized by now, and the root directory rejected.
-        let filename = explicit_path.file_name().unwrap();
+        // When using common ancestor, include enough parent path to avoid collisions.
+        let walker_root = if let Some(ref ancestor) = common_ancestor {
+            explicit_path.strip_prefix(ancestor).unwrap().as_os_str()
+        } else {
+            explicit_path.file_name().unwrap()
+        };
 
-        let iter = file_visibility_policy.workaround_build_walker_or_broken_link_path(explicit_path, filename);
+        let iter = file_visibility_policy.workaround_build_walker_or_broken_link_path(explicit_path, walker_root);
 
         for entry in iter {
             let path = entry?;

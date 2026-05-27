@@ -144,14 +144,35 @@ where
     let output_handle = Handle::from_path(output_path);
     let mut seen_inode: HashMap<(u64, u64), PathBuf> = HashMap::new();
 
+    // When multiple inputs share the same basename, archive entry names would collide.
+    // In that case, use the common ancestor of all paths and store entries relative to it,
+    // including enough parent path components to disambiguate.
+    let use_common_ancestor = explicit_paths.len() > 1 && utils::has_duplicate_basenames(explicit_paths);
+    let common_ancestor = if use_common_ancestor {
+        Some(utils::common_ancestor(explicit_paths))
+    } else {
+        None
+    };
+
     for explicit_path in explicit_paths {
-        let previous_location = utils::cd_into_same_dir_as(explicit_path)?;
+        let previous_location = if let Some(ref ancestor) = common_ancestor {
+            let previous = env::current_dir()?;
+            env::set_current_dir(ancestor)?;
+            previous
+        } else {
+            utils::cd_into_same_dir_as(explicit_path)?
+        };
 
         // Unwrap expectation:
         //   paths should be canonicalized by now, and the root directory rejected.
-        let filename = explicit_path.file_name().unwrap();
+        // When using common ancestor, include enough parent path to avoid collisions.
+        let walker_root = if let Some(ref ancestor) = common_ancestor {
+            explicit_path.strip_prefix(ancestor).unwrap().as_os_str()
+        } else {
+            explicit_path.file_name().unwrap()
+        };
 
-        let iter = file_visibility_policy.workaround_build_walker_or_broken_link_path(explicit_path, filename);
+        let iter = file_visibility_policy.workaround_build_walker_or_broken_link_path(explicit_path, walker_root);
 
         for entry in iter {
             let path = entry?;
