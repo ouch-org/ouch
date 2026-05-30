@@ -2352,6 +2352,7 @@ dependencies = [
  "indexmap",
  "memchr",
  "pbkdf2",
+ "ppmd-rust",
  "sha1",
  "time",
  "typed-path",
