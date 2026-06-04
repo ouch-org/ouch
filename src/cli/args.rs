@@ -94,9 +94,13 @@ pub enum Subcommand {
         #[arg(required = true, num_args = 1.., value_hint = ValueHint::FilePath)]
         files: Vec<PathBuf>,
 
-        /// Decompress inside OUTPUT_DIR instead of current directory
-        #[arg(short = 'd', long = "dir", value_hint = ValueHint::FilePath)]
+        /// Decompress inside OUTPUT_DIR instead of the basename-derived subdirectory
+        #[arg(short = 'd', long = "dir", value_hint = ValueHint::FilePath, conflicts_with = "here")]
         output_dir: Option<PathBuf>,
+
+        /// Extract directly into the current directory, like `tar -xf` and `unzip` do
+        #[arg(long = "here")]
+        here: bool,
 
         /// Remove the source file after successful decompression
         #[arg(short = 'r', long)]
@@ -156,6 +160,7 @@ mod tests {
                 // Put a crazy value here so no test can assert it unintentionally
                 files: vec!["\x00\x11\x22".into()],
                 output_dir: None,
+                here: false,
                 remove: false,
             },
         }
@@ -169,6 +174,7 @@ mod tests {
                 cmd: Subcommand::Decompress {
                     files: to_paths(["file.tar.gz"]),
                     output_dir: None,
+                    here: false,
                     remove: false,
                 },
                 ..mock_cli_args()
@@ -180,6 +186,7 @@ mod tests {
                 cmd: Subcommand::Decompress {
                     files: to_paths(["file.tar.gz"]),
                     output_dir: None,
+                    here: false,
                     remove: false,
                 },
                 ..mock_cli_args()
@@ -191,6 +198,7 @@ mod tests {
                 cmd: Subcommand::Decompress {
                     files: to_paths(["a", "b", "c"]),
                     output_dir: None,
+                    here: false,
                     remove: false,
                 },
                 ..mock_cli_args()

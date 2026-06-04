@@ -109,7 +109,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
       - name: Install cross
         if: matrix.use-cross
@@ -182,7 +182,7 @@ jobs:
           ${{ inputs.artifact_upload_mode != 'none' &&
              (inputs.artifact_upload_mode == 'all' ||
               (matrix.feature-unrar && matrix.feature-use-zlib && matrix.feature-use-zstd-thin && matrix.feature-bzip3)) }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ouch-${{ matrix.target }}${{ steps.concat-features.outputs.FEATURES_PLUS != '' && format('-{0}', steps.concat-features.outputs.FEATURES_PLUS) || '' }}
           path: |

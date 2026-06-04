@@ -57,7 +57,7 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> Result<u64> {
 
                 fs::hard_link(&full_target_path, &full_link_path)?;
             }
-            tar::EntryType::Regular => {
+            tar::EntryType::Regular | tar::EntryType::GNUSparse => {
                 entry.unpack_in(output_folder)?;
             }
             tar::EntryType::Directory => {

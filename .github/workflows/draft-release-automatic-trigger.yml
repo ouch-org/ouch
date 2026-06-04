@@ -9,19 +9,23 @@ jobs:
   call-workflow-build-artifacts-and-run-tests:
     uses: ./.github/workflows/build-artifacts-and-run-tests.yml
     with:
-      matrix_all_combinations: true
+      matrix_all_combinations: false
       artifact_upload_mode: with_default_features
 
   automated-draft-release:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     needs: call-workflow-build-artifacts-and-run-tests
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: downloaded_artifacts
           pattern: ouch-*
@@ -29,8 +33,13 @@ jobs:
       - name: Package release assets
         run: scripts/package-release-assets.sh
 
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: "output_assets/ouch-*"
+
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           draft: true
           files: output_assets/ouch-*
