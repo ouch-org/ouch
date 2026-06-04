@@ -20,3 +20,5 @@ artifacts/
 # IDE-specific setting
 .vscode
 .idea
+
+__pycache__

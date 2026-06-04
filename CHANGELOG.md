@@ -15,12 +15,24 @@ Categories Used:
 
 **Bullet points in chronological order by PR**
 
-## [Unreleased](https://github.com/ouch-org/ouch/compare/0.7.0...HEAD)
-
-### Removals
+## [Unreleased](https://github.com/ouch-org/ouch/compare/0.8.0...HEAD)
 
 ### New Features
 
+### Improvements
+
+### Bug Fixes
+
+### Tweaks
+
+
+## [0.8.0](https://github.com/ouch-org/ouch/compare/0.7.1...0.8.0)
+
+### New Features
+
+- Releases: add Apple Silicon macOS (`aarch64-apple-darwin`) to assets.
+- Unpack into new folder by default (https://github.com/ouch-org/ouch/pull/962).
+- Add `--here` flag to unpack into current directory (https://github.com/ouch-org/ouch/pull/962).
 - List: show symlink targets (for tar and zip) (https://github.com/ouch-org/ouch/pull/934)
 - Add aliases for ebooks (`.epub`) (https://github.com/ouch-org/ouch/pull/981)
 - Add appimage binary to releases (https://github.com/ouch-org/ouch/pull/992)
@@ -28,6 +40,7 @@ Categories Used:
 ### Improvements
 
 - Report mtime-set errors for `.7z` as warnings (https://github.com/ouch-org/ouch/pull/950)
+- `list`: also display symlink targets (https://github.com/ouch-org/ouch/pull/934)
 - Improve man pages for subcommands (https://github.com/ouch-org/ouch/pull/980)
 
 ### Bug Fixes
@@ -37,6 +50,12 @@ Categories Used:
 
 ### Tweaks
 
+
+## [0.7.1](https://github.com/ouch-org/ouch/releases/tag/0.7.1)
+
+### Bug Fixes
+
+- Fix `ouch --version` being outdated.
 - Unify directory extraction message for zip and tar archives (https://github.com/ouch-org/ouch/pull/937)
 - Drop unused `xz2` and `bytesize` deps, replace unmaintained `linked-hash-map` with `indexmap`, bump remaining deps to current
 - Bump `zip` from 6 to 8, raising MSRV from 1.85 to 1.88 (https://github.com/ouch-org/ouch/pull/971)

@@ -1283,15 +1283,16 @@ fn yes_flag_merges_into_nonempty_dir() {
         "--yes wiped the output directory instead of merging"
     );
     assert!(
-        output.join("src").join("new_file.txt").exists(),
-        "archive contents were not extracted"
+        output.join("archive").join("src").join("new_file.txt").exists(),
+        "archive contents were not extracted into the basename subdir"
     );
 }
 
-/// Regression test: the CWD guard must block `remove_dir_all` on the current working directory
-/// even when the user explicitly selects the overwrite option interactively.
+/// `ouch d archive` with no `-d`/`--here` should extract into a basename-derived
+/// subdirectory of the CWD (`./archive/`), not directly into the CWD. Pre-existing
+/// CWD contents stay intact.
 #[test]
-fn cwd_guard_blocks_explicit_overwrite() {
+fn decompress_default_creates_basename_subdir() {
     let (_tempdir, dir) = testdir().unwrap();
 
     let src = dir.join("src");
@@ -1300,24 +1301,96 @@ fn cwd_guard_blocks_explicit_overwrite() {
     let archive = dir.join("archive.tar.gz");
     ouch!("-A", "c", &src, &archive);
 
-    // Give the "CWD" a pre-existing file to trigger a conflict on the output directory
     let cwd = dir.join("cwd");
     fs::create_dir_all(&cwd).unwrap();
     fs::write(cwd.join("important.txt"), "keep this").unwrap();
+    fs::copy(&archive, cwd.join("archive.tar.gz")).unwrap();
 
-    // User explicitly answers "y" (overwrite); the guard should block deletion and fail
     crate::utils::cargo_bin()
         .current_dir(&cwd)
         .arg("decompress")
-        .arg(&archive)
-        .write_stdin("y")
+        .arg("archive.tar.gz")
         .assert()
-        .failure();
+        .success();
 
-    assert!(cwd.exists(), "CWD was deleted despite guard");
+    assert!(cwd.join("important.txt").exists(), "pre-existing file was lost");
     assert!(
-        cwd.join("important.txt").exists(),
-        "CWD contents were deleted despite guard"
+        cwd.join("archive").join("src").join("file.txt").exists(),
+        "archive contents were not extracted into the basename subdir"
+    );
+    assert!(
+        !cwd.join("src").join("file.txt").exists(),
+        "archive contents leaked directly into the CWD instead of the subdir"
+    );
+}
+
+/// When the archive's single root entry has the same name as the wrapper directory
+/// (e.g. `testing.tar.gz` containing `testing/`), the duplicate is flattened: the
+/// user gets `cwd/testing/...` rather than `cwd/testing/testing/...`.
+#[test]
+fn decompress_default_flattens_duplicate_basename_wrapper() {
+    let (_tempdir, dir) = testdir().unwrap();
+
+    let src = dir.join("testing");
+    fs::create_dir_all(&src).unwrap();
+    fs::write(src.join("file.txt"), "content").unwrap();
+    let archive = dir.join("testing.tar.gz");
+    ouch!("-A", "c", &src, &archive);
+
+    let cwd = dir.join("cwd");
+    fs::create_dir_all(&cwd).unwrap();
+    fs::copy(&archive, cwd.join("testing.tar.gz")).unwrap();
+
+    crate::utils::cargo_bin()
+        .current_dir(&cwd)
+        .arg("decompress")
+        .arg("testing.tar.gz")
+        .assert()
+        .success();
+
+    assert!(
+        cwd.join("testing").join("file.txt").exists(),
+        "flattened content not present"
+    );
+    assert!(
+        !cwd.join("testing").join("testing").exists(),
+        "duplicate basename wrapper was not flattened"
+    );
+}
+
+/// `--here` extracts directly into the current directory, like `tar -xf` and `unzip`.
+/// No wrapper folder, no flatten, no overwrite prompt for pre-existing CWD contents.
+#[test]
+fn decompress_here_flag_extracts_into_cwd() {
+    let (_tempdir, dir) = testdir().unwrap();
+
+    let src = dir.join("src");
+    fs::create_dir_all(&src).unwrap();
+    fs::write(src.join("file.txt"), "content").unwrap();
+    let archive = dir.join("archive.tar.gz");
+    ouch!("-A", "c", &src, &archive);
+
+    let cwd = dir.join("cwd");
+    fs::create_dir_all(&cwd).unwrap();
+    fs::write(cwd.join("important.txt"), "keep this").unwrap();
+    fs::copy(&archive, cwd.join("archive.tar.gz")).unwrap();
+
+    crate::utils::cargo_bin()
+        .current_dir(&cwd)
+        .arg("decompress")
+        .arg("archive.tar.gz")
+        .arg("--here")
+        .assert()
+        .success();
+
+    assert!(cwd.join("important.txt").exists(), "pre-existing file was lost");
+    assert!(
+        cwd.join("src").join("file.txt").exists(),
+        "--here did not extract directly into CWD"
+    );
+    assert!(
+        !cwd.join("archive").exists(),
+        "--here unexpectedly created a wrapper subdirectory"
     );
 }
 
@@ -1347,6 +1420,140 @@ fn decompress_concatenated_bzip2_streams() {
         encoder.write_all(data).unwrap();
         encoder.finish().unwrap()
     });
+}
+
+/// When decompressing with `--dir out`, first `ouch` should create the new
+/// folder, on a second call, it fails and asks whether or not it should be
+/// overwritten, a third call with `--yes` should succeed.
+#[test]
+fn decompress_dir_flag_to_another_dir_and_overwrite() {
+    let (_tempdir, dir) = testdir().unwrap();
+    let input_folder = dir.join("folder");
+    let input_file = input_folder.join("file");
+    let output_file = dir.join("out/folder/file");
+    let archive = dir.join("archive.zip");
+
+    fs::create_dir(&input_folder).unwrap();
+    fs::write(&input_file, "first write").unwrap();
+
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .arg(&input_folder)
+        .arg(&archive)
+        .assert()
+        .success();
+
+    // First decompress with `--dir out` — should succeed
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(&archive)
+        .args(["--dir", "out"])
+        .current_dir(dir)
+        .assert()
+        .success();
+
+    assert_eq!("first write", fs::read_to_string(&output_file).unwrap());
+
+    // Recreate archive, in case unpacking succeeds we'll see the new archive
+    // contents instead
+    fs::remove_file(&archive).unwrap();
+    fs::remove_dir_all(&input_folder).unwrap();
+    fs::create_dir(&input_folder).unwrap();
+    fs::write(&input_file, "second write").unwrap();
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .arg(&input_folder)
+        .arg(&archive)
+        .assert()
+        .success();
+
+    // Decompressing again with `--dir out` — this fails due to directory
+    // conflict, we also didn't pass `--yes`.
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(&archive)
+        .args(["--dir", "out"])
+        .current_dir(dir)
+        .assert()
+        .failure();
+
+    assert_eq!("first write", fs::read_to_string(&output_file).unwrap());
+
+    // Third decompress attempt, now pass `--yes` to accept overwriting.
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(&archive)
+        .args(["--dir", "out", "--yes"])
+        .current_dir(dir)
+        .assert()
+        .success();
+
+    assert_eq!("second write", fs::read_to_string(&output_file).unwrap());
+}
+
+/// This test ensures the current behavior isn't modified by accident, even
+/// if it's not the ideal behavior.
+///
+/// Decompressing with `--dir .` succeeds without asking questions once.
+///
+/// Non-ideal part: it also succeeds on the second call, without asking to
+/// overwrite files, which is inconsistent with the behavior of `--dir` when
+/// the given path is not `.` (or absolute path for CWD).
+#[test]
+fn decompress_dir_flag_current_dir_and_overwrite() {
+    let (_tempdir, dir) = testdir().unwrap();
+    let input_folder = dir.join("folder");
+    let input_file = input_folder.join("file");
+    // Decompressing with `--dir .` means the file will be overwritten at the same path
+    let output_file = &input_file;
+    let archive = dir.join("archive.zip");
+
+    fs::create_dir(&input_folder).unwrap();
+    fs::write(&input_file, "first write").unwrap();
+
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .arg(&input_folder)
+        .arg(&archive)
+        .assert()
+        .success();
+
+    // First decompress with `--dir .` — should succeed
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(&archive)
+        .args(["--dir", "."])
+        .current_dir(dir)
+        .assert()
+        .success();
+
+    assert_eq!("first write", fs::read_to_string(output_file).unwrap());
+
+    // Recreate archive, in case unpacking succeeds we'll see the new archive
+    // contents instead
+    fs::remove_file(&archive).unwrap();
+    fs::remove_dir_all(&input_folder).unwrap();
+    fs::create_dir(&input_folder).unwrap();
+    fs::write(&input_file, "second write").unwrap();
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .arg(&input_folder)
+        .arg(&archive)
+        .assert()
+        .success();
+
+    // Decompressing again with `--dir .` — this succeeds for now, and it's
+    // inconsistent with other `--dir PATH` usages, this test ensure this isn't
+    // changed by accident.
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(&archive)
+        .args(["--dir", "."])
+        .current_dir(dir)
+        .assert()
+        .success();
+
+    assert_eq!("second write", fs::read_to_string(output_file).unwrap());
 }
 
 /// Test that concatenated lz4 frames are fully decompressed (related to issue #855)
