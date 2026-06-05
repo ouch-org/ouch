@@ -1,6 +1,6 @@
 [package]
 name = "ouch"
-version = "1.0.0"
+version = "0.8.0"
 authors = [
     "João Marcos <marcospb19@hotmail.com>",
     "Vinícius Rodrigues Miguel <vrmiguel99@gmail.com>",
@@ -32,17 +32,17 @@ indexmap = "2"
 is_executable = "1.0.5"
 libc = "0.2.186"
 lz4_flex = "0.13.0"
-lzma-rust2 = "0.16.2"
+lzma-rust2 = "0.16.3"
 num_cpus = "1.17.0"
 rayon = "1.12.0"
 same-file = "1.0.6"
 sevenz-rust2 = { version = "0.21.0", features = ["compress", "aes256"] }
 snap = "1.1.1"
 strum = { version = "0.28.0", features = ["derive"] }
-tar = "0.4.45"
+tar = "0.4.46"
 tempfile = "3.27.0"
 time = { version = "0.3.47", default-features = false }
-unrar = { version = "0.5.8", optional = true }
+unrar = { package = "unrar-ng", version = "0.7.6", optional = true }
 zip = { version = "8.6.0", default-features = false, features = [
     "time",
     "aes-crypto",
@@ -56,8 +56,8 @@ glob = "0.3.3"
 infer = "0.19.0"
 insta = { version = "1.47.2", features = ["filters"] }
 itertools = "0.14.0"
-memchr = "2.8.0"
-parse-display = "0.9.1"
+memchr = "2.8.1"
+parse-display = "0.11.0"
 pretty_assertions = "1.4.1"
 proptest = "1.11.0"
 rand = { version = "0.9.4", default-features = false, features = [
