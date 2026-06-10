@@ -12,7 +12,11 @@ use filetime_creation::{FileTime, set_file_mtime};
 use fs_err as fs;
 use is_executable::is_executable;
 use same_file::Handle;
-use time::{OffsetDateTime, PrimitiveDateTime};
+use time::{OffsetDateTime, PrimitiveDateTime, UtcOffset};
+
+fn local_offset() -> UtcOffset {
+    UtcOffset::current_local_offset().unwrap_or(UtcOffset::UTC)
+}
 use zip::{self, DateTime, ZipArchive, read::ZipFile};
 
 use crate::{
@@ -285,21 +289,33 @@ fn get_last_modified_time(file: &fs::File) -> DateTime {
         .and_then(|metadata| metadata.modified())
         .ok()
         .and_then(|time| {
-            // zip stores timezone-naive DOS times, so drop the tz from OffsetDateTime
+            // DOS timestamps are timezone-naive and conventionally store local time.
+            // Convert from UTC (filesystem) to local time so other ZIP tools
+            // interpret the DOS field correctly.
             let odt = OffsetDateTime::from(time);
-            DateTime::try_from(PrimitiveDateTime::new(odt.date(), odt.time())).ok()
+            let local = odt.to_offset(local_offset());
+            DateTime::try_from(PrimitiveDateTime::new(local.date(), local.time())).ok()
         })
         .unwrap_or_default()
 }
 
 fn set_last_modified_time<R: Read>(zip_file: &ZipFile<'_, R>, path: &Path) -> Result<()> {
-    // Extract modification time from zip file and convert to FileTime
+    // Prefer the extended timestamp (Unix UTC seconds) when available,
+    // since DOS timestamps are timezone-naive and only have 2-second resolution.
     let file_time = zip_file
-        .last_modified()
-        .and_then(|datetime| PrimitiveDateTime::try_from(datetime).ok())
-        .map(|pdt| {
-            // Zip does not support nanoseconds, so we can assume zero here
-            FileTime::from_unix_time(pdt.assume_utc().unix_timestamp(), 0)
+        .extra_data_fields()
+        .find_map(|field| match field {
+            zip::extra_fields::ExtraField::ExtendedTimestamp(ext) => ext.mod_time(),
+            _ => None,
+        })
+        .map(|unix_secs| FileTime::from_unix_time(unix_secs as i64, 0))
+        .or_else(|| {
+            // Fall back to DOS time, interpreting it as local time
+            zip_file.last_modified().and_then(|datetime| {
+                PrimitiveDateTime::try_from(datetime).ok().map(|pdt| {
+                    FileTime::from_unix_time(pdt.assume_offset(local_offset()).unix_timestamp(), 0)
+                })
+            })
         });
 
     // Set the modification time if available
