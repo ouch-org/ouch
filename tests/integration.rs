@@ -229,6 +229,87 @@ fn multiple_files(
     assert_same_directory(before, after, !matches!(ext, DirectoryExtension::Zip));
 }
 
+#[test]
+fn archive_dir_extracts_next_to_archive_when_output_dir_is_omitted() {
+    let (_tempdir, dir) = testdir().unwrap();
+    let before = dir.join("before");
+    let input = before.join("payload");
+    let archive_dir = dir.join("archives");
+    let archive = archive_dir.join("bundle.tar");
+    let expected = archive_dir.join("bundle");
+
+    fs::create_dir_all(&input).unwrap();
+    fs::create_dir_all(&archive_dir).unwrap();
+    fs::write(input.join("file.txt"), "hello").unwrap();
+
+    ouch!("-A", "c", &input, &archive);
+    crate::utils::cargo_bin()
+        .arg("-A")
+        .arg("decompress")
+        .arg(&archive)
+        .arg("-a")
+        .current_dir(&dir)
+        .assert()
+        .success();
+
+    assert!(!dir.join("bundle").exists());
+    assert_same_directory(&before, &expected, false);
+}
+
+#[test]
+fn archive_dir_extracts_inside_named_folder_under_output_dir() {
+    let (_tempdir, dir) = testdir().unwrap();
+    let before = dir.join("before");
+    let input = before.join("payload");
+    let archive = dir.join("bundle.tar");
+    let output = dir.join("output");
+    let expected = output.join("bundle");
+
+    fs::create_dir_all(&input).unwrap();
+    fs::write(input.join("file.txt"), "hello").unwrap();
+
+    ouch!("-A", "c", &input, &archive);
+    crate::utils::cargo_bin()
+        .arg("-A")
+        .arg("decompress")
+        .arg(&archive)
+        .arg("--archive-dir")
+        .arg("--dir")
+        .arg(&output)
+        .assert()
+        .success();
+
+    assert_same_directory(&before, &expected, false);
+}
+
+#[test]
+fn archive_dir_does_not_move_single_file_output_next_to_input() {
+    let (_tempdir, dir) = testdir().unwrap();
+    let before = dir.join("before");
+    let input = before.join("file");
+    let archive_dir = dir.join("archives");
+    let archive = archive_dir.join("file.gz");
+    let cwd = dir.join("cwd");
+
+    fs::create_dir_all(&before).unwrap();
+    fs::create_dir_all(&archive_dir).unwrap();
+    fs::create_dir_all(&cwd).unwrap();
+    fs::write(&input, "hello").unwrap();
+
+    ouch!("-A", "c", &input, &archive);
+    crate::utils::cargo_bin()
+        .arg("-A")
+        .arg("decompress")
+        .arg(&archive)
+        .arg("-a")
+        .current_dir(&cwd)
+        .assert()
+        .success();
+
+    assert_eq!(fs::read_to_string(cwd.join("file")).unwrap(), "hello");
+    assert!(!archive_dir.join("file").exists());
+}
+
 #[proptest(cases = 25)]
 fn multiple_files_with_conflict_and_choice_to_overwrite(
     ext: DirectoryExtension,

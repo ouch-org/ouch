@@ -60,6 +60,12 @@ The `-d/--dir` flag can be used to redirect decompression results to another dir
 ```sh
 # Decompress 'summer_vacation.zip' inside of new folder 'pictures'
 ouch decompress summer_vacation.zip --dir pictures
+
+# Create 'summer_vacation/' next to the archive and decompress there
+ouch decompress summer_vacation.zip -a
+
+# Create 'pictures/summer_vacation/' and decompress there
+ouch decompress summer_vacation.zip -a --dir pictures
 ```
 
 ## Compressing

@@ -36,6 +36,9 @@ pub struct DecompressOptions<'a> {
     /// `--here`: extract directly into the current directory like `tar -xf`.
     /// Only meaningful when `output_dir_was_explicit` is false.
     pub here: bool,
+    /// `--archive-dir`: extract archives into a basename-derived subdirectory,
+    /// either next to the archive or inside the explicit output directory.
+    pub archive_dir: bool,
     pub question_policy: QuestionPolicy,
     pub password: Option<&'a [u8]>,
     pub remove: bool,
@@ -94,12 +97,13 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
     };
 
     // Decide where archives extract:
-    //   --dir <X>     -> extract into <X>, no wrapper, no flatten
-    //   --here        -> extract into CWD (output_dir), no wrapper
-    //   default       -> extract into a basename-derived subdirectory; flatten the
-    //                    duplicate when the wrapper would contain exactly one entry
-    //                    whose name equals the basename
-    let archive_output_dir: &Path = if options.output_dir_was_explicit || options.here {
+    //   --dir <X>             -> extract into <X>, no wrapper, no flatten
+    //   --here                -> extract into CWD (output_dir), no wrapper
+    //   --archive-dir [-d X]  -> extract into a basename-derived subdirectory
+    //   default               -> extract into a basename-derived subdirectory; flatten the
+    //                            duplicate when the wrapper would contain exactly one entry
+    //                            whose name equals the basename
+    let archive_output_dir: &Path = if options.here || (options.output_dir_was_explicit && !options.archive_dir) {
         options.output_dir
     } else {
         &options.output_file_path
@@ -206,11 +210,11 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
             files_unpacked,
             output_path,
         } => {
-            // In default mode (no --dir, no --here), if the wrapper subdir we created
-            // ended up containing exactly one entry whose name matches the wrapper itself
+            // In wrapper-directory modes, if the wrapper subdir we created ended up
+            // containing exactly one entry whose name matches the wrapper itself
             // (e.g. `archive.zip` contained a single `archive/` root), flatten that
             // duplicate so the user sees `./archive/...` not `./archive/archive/...`.
-            if !options.output_dir_was_explicit && !options.here {
+            if !options.here && (!options.output_dir_was_explicit || options.archive_dir) {
                 deduplicate_basename_wrapper(&output_path)?;
             }
             info_accessible!("Successfully decompressed archive to {}", PathFmt(&output_path));

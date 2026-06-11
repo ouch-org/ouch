@@ -102,6 +102,10 @@ pub enum Subcommand {
         #[arg(long = "here")]
         here: bool,
 
+        /// Extract each archive into a directory named after the archive
+        #[arg(short = 'a', long = "archive-dir", conflicts_with = "here")]
+        archive_dir: bool,
+
         /// Remove the source file after successful decompression
         #[arg(short = 'r', long)]
         remove: bool,
@@ -161,6 +165,7 @@ mod tests {
                 files: vec!["\x00\x11\x22".into()],
                 output_dir: None,
                 here: false,
+                archive_dir: false,
                 remove: false,
             },
         }
@@ -175,6 +180,7 @@ mod tests {
                     files: to_paths(["file.tar.gz"]),
                     output_dir: None,
                     here: false,
+                    archive_dir: false,
                     remove: false,
                 },
                 ..mock_cli_args()
@@ -187,6 +193,7 @@ mod tests {
                     files: to_paths(["file.tar.gz"]),
                     output_dir: None,
                     here: false,
+                    archive_dir: false,
                     remove: false,
                 },
                 ..mock_cli_args()
@@ -199,6 +206,33 @@ mod tests {
                     files: to_paths(["a", "b", "c"]),
                     output_dir: None,
                     here: false,
+                    archive_dir: false,
+                    remove: false,
+                },
+                ..mock_cli_args()
+            }
+        );
+        test!(
+            "ouch d file.tar.gz -a",
+            CliArgs {
+                cmd: Subcommand::Decompress {
+                    files: to_paths(["file.tar.gz"]),
+                    output_dir: None,
+                    here: false,
+                    archive_dir: true,
+                    remove: false,
+                },
+                ..mock_cli_args()
+            }
+        );
+        test!(
+            "ouch d file.tar.gz -a --dir out",
+            CliArgs {
+                cmd: Subcommand::Decompress {
+                    files: to_paths(["file.tar.gz"]),
+                    output_dir: Some(PathBuf::from("out")),
+                    here: false,
+                    archive_dir: true,
                     remove: false,
                 },
                 ..mock_cli_args()

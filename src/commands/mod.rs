@@ -142,6 +142,7 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
             files,
             output_dir,
             here,
+            archive_dir,
             remove,
         } => {
             let mut files_output_paths: Vec<_> = vec![];
@@ -197,11 +198,19 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                 .zip(files_extensions)
                 .zip(files_output_paths)
                 .try_for_each(|((input_path, formats), file_name)| {
+                    let is_archive = formats.first().is_some_and(|format| format.is_archive());
+                    let output_base_dir =
+                        if output_dir_was_explicit || !archive_dir || !is_archive || is_path_stdin(input_path) {
+                            &output_dir
+                        } else {
+                            input_path.parent().unwrap_or(&output_dir)
+                        };
+
                     // Path used by single file format archives
                     let output_file_path = if is_path_stdin(&file_name) {
-                        output_dir.join("ouch-output")
+                        output_base_dir.join("ouch-output")
                     } else {
-                        output_dir.join(file_name)
+                        output_base_dir.join(file_name)
                     };
 
                     decompress_file(DecompressOptions {
@@ -211,6 +220,7 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                         output_file_path,
                         output_dir_was_explicit,
                         here,
+                        archive_dir,
                         question_policy,
                         password: args.password.as_deref().map(|str| {
                             <[u8] as ByteSlice>::from_os_str(str).expect("convert password to bytes failed")
