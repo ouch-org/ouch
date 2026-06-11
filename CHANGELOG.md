@@ -19,6 +19,8 @@ Categories Used:
 
 ### New Features
 
+- Add `--archive-dir` / `-a` option to decompress archives into a directory named after the archive.
+
 ### Improvements
 
 ### Bug Fixes
