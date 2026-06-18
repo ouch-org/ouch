@@ -56,17 +56,28 @@ exec "$HERE/usr/bin/ouch" "$@"
 EOF
 chmod +x "$APPDIR/AppRun"
 
+# appimagetool runs on the build host, so download it for the host arch
+case "$(uname -m)" in
+    x86_64) TOOL_ARCH="x86_64" ;;
+    aarch64 | arm64) TOOL_ARCH="aarch64" ;;
+    *)
+        echo "unsupported host arch for appimagetool: $(uname -m)" >&2
+        exit 1
+        ;;
+esac
+
 APPIMAGETOOL="$WORKDIR/appimagetool"
 wget -q -O "$APPIMAGETOOL" \
-    "https://github.com/AppImage/appimagetool/releases/download/${APPIMAGETOOL_VERSION}/appimagetool-x86_64.AppImage"
+    "https://github.com/AppImage/appimagetool/releases/download/${APPIMAGETOOL_VERSION}/appimagetool-${TOOL_ARCH}.AppImage"
 chmod +x "$APPIMAGETOOL"
 
 RUNTIME="$WORKDIR/runtime-$APPIMAGE_ARCH"
 wget -q -O "$RUNTIME" \
     "https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-$APPIMAGE_ARCH"
 
-# extract-and-run: no FUSE in CI. SOURCE_DATE_EPOCH: reproducible squashfs.
-ARCH="$APPIMAGE_ARCH" APPIMAGE_EXTRACT_AND_RUN=1 "$APPIMAGETOOL" \
+# no FUSE needed in CI; unset SOURCE_DATE_EPOCH or mksquashfs aborts (appimagetool sets its own timestamp)
+env -u SOURCE_DATE_EPOCH \
+    ARCH="$APPIMAGE_ARCH" APPIMAGE_EXTRACT_AND_RUN=1 "$APPIMAGETOOL" \
     --no-appstream \
     --runtime-file "$RUNTIME" \
     "$APPDIR" "$OUTPUT"
