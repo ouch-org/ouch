@@ -1569,3 +1569,87 @@ fn decompress_concatenated_lz4_frames() {
         encoder.finish().unwrap()
     });
 }
+
+/// Test that compressing multiple directories with the same basename works correctly.
+/// This is the fix for issue #978: when two input directories share the same name
+/// (e.g., `/a/parent1/Scripts` and `/a/parent2/Scripts`), ouch should include enough
+/// parent path to disambiguate them in the archive, rather than collapsing both into
+/// a single "Scripts" entry.
+#[test]
+fn compress_dirs_with_same_basename_tar() {
+    let (_tempdir, dir) = testdir().unwrap();
+
+    // Create two directories with the same basename but different parents
+    let dir_a = dir.join("parent1").join("Scripts");
+    let dir_b = dir.join("parent2").join("Scripts");
+    fs::create_dir_all(&dir_a).unwrap();
+    fs::create_dir_all(&dir_b).unwrap();
+
+    // Create distinct files in each
+    fs::write(dir_a.join("a.txt"), "content from A").unwrap();
+    fs::write(dir_b.join("b.txt"), "content from B").unwrap();
+
+    let archive = dir.join("archive.tar");
+    ouch!("-A", "c", &dir_a, &dir_b, &archive);
+
+    let after = dir.join("after");
+    ouch!("-A", "d", &archive, "-d", &after);
+
+    // Both directories should be present with their parent disambiguators
+    assert!(
+        after.join("parent1").join("Scripts").join("a.txt").exists(),
+        "parent1/Scripts/a.txt missing from archive"
+    );
+    assert!(
+        after.join("parent2").join("Scripts").join("b.txt").exists(),
+        "parent2/Scripts/b.txt missing from archive"
+    );
+
+    // Verify file contents
+    assert_eq!(
+        "content from A",
+        fs::read_to_string(after.join("parent1").join("Scripts").join("a.txt")).unwrap()
+    );
+    assert_eq!(
+        "content from B",
+        fs::read_to_string(after.join("parent2").join("Scripts").join("b.txt")).unwrap()
+    );
+}
+
+/// Same as above but for zip format
+#[test]
+fn compress_dirs_with_same_basename_zip() {
+    let (_tempdir, dir) = testdir().unwrap();
+
+    let dir_a = dir.join("parent1").join("Scripts");
+    let dir_b = dir.join("parent2").join("Scripts");
+    fs::create_dir_all(&dir_a).unwrap();
+    fs::create_dir_all(&dir_b).unwrap();
+
+    fs::write(dir_a.join("a.txt"), "content from A").unwrap();
+    fs::write(dir_b.join("b.txt"), "content from B").unwrap();
+
+    let archive = dir.join("archive.zip");
+    ouch!("-A", "c", &dir_a, &dir_b, &archive);
+
+    let after = dir.join("after");
+    ouch!("-A", "d", &archive, "-d", &after);
+
+    assert!(
+        after.join("parent1").join("Scripts").join("a.txt").exists(),
+        "parent1/Scripts/a.txt missing from zip archive"
+    );
+    assert!(
+        after.join("parent2").join("Scripts").join("b.txt").exists(),
+        "parent2/Scripts/b.txt missing from zip archive"
+    );
+
+    assert_eq!(
+        "content from A",
+        fs::read_to_string(after.join("parent1").join("Scripts").join("a.txt")).unwrap()
+    );
+    assert_eq!(
+        "content from B",
+        fs::read_to_string(after.join("parent2").join("Scripts").join("b.txt")).unwrap()
+    );
+}

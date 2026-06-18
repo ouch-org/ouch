@@ -18,7 +18,8 @@ use crate::{
     info,
     list::{FileInArchive, ListFileType},
     utils::{
-        BytesFmt, FileVisibilityPolicy, PathFmt, cd_into_same_dir_as, ensure_parent_dir_exists, is_same_file_as_output,
+        BytesFmt, FileVisibilityPolicy, PathFmt, cd_into_same_dir_as, common_ancestor, ensure_parent_dir_exists,
+        has_duplicate_basenames, is_same_file_as_output,
     },
     warning,
 };
@@ -134,14 +135,35 @@ where
     let mut writer = sevenz_rust2::ArchiveWriter::new(writer)?;
     let output_handle = Handle::from_path(output_path);
 
+    // When multiple inputs share the same basename, archive entry names would collide.
+    // In that case, use the common ancestor of all paths and store entries relative to it,
+    // including enough parent path components to disambiguate.
+    let use_common_ancestor = files.len() > 1 && has_duplicate_basenames(files);
+    let common_ancestor = if use_common_ancestor {
+        Some(common_ancestor(files))
+    } else {
+        None
+    };
+
     for filename in files {
-        let previous_location = cd_into_same_dir_as(filename)?;
+        let previous_location = if let Some(ref ancestor) = common_ancestor {
+            let previous = env::current_dir()?;
+            env::set_current_dir(ancestor)?;
+            previous
+        } else {
+            cd_into_same_dir_as(filename)?
+        };
 
         // Unwrap safety:
         //   paths should be canonicalized by now, and the root directory rejected.
-        let filename = filename.file_name().unwrap();
+        // When using common ancestor, include enough parent path to avoid collisions.
+        let walker_root = if let Some(ref ancestor) = common_ancestor {
+            filename.strip_prefix(ancestor).unwrap().to_path_buf()
+        } else {
+            PathBuf::from(filename.file_name().unwrap())
+        };
 
-        for entry in file_visibility_policy.build_walker(filename) {
+        for entry in file_visibility_policy.build_walker(&walker_root) {
             let entry = entry?;
             let path = entry.path();
 

@@ -138,6 +138,56 @@ pub fn cd_into_same_dir_as(filename: &Path) -> Result<PathBuf> {
     Ok(previous_location)
 }
 
+/// Check if any of the given paths share the same basename (file_name).
+///
+/// Returns `true` if there are duplicate basenames among the paths.
+/// Used to detect when archive entry names would collide.
+pub fn has_duplicate_basenames(paths: &[PathBuf]) -> bool {
+    use std::{collections::HashSet, ffi::OsStr};
+
+    let basenames: Vec<&OsStr> = paths.iter().filter_map(|p| p.file_name()).collect();
+
+    let mut seen = HashSet::new();
+    for name in &basenames {
+        if !seen.insert(name) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Compute the longest common ancestor directory shared by all given paths.
+///
+/// All paths should be absolute (canonicalized). Returns the longest path
+/// prefix that is a common ancestor of all input paths.
+///
+/// For example:
+/// - `/a/b/Scripts` and `/c/d/Scripts` → `/`
+/// - `/home/user/a/Scripts` and `/home/user/b/Scripts` → `/home/user`
+pub fn common_ancestor(paths: &[PathBuf]) -> PathBuf {
+    use std::path::Component;
+
+    if paths.is_empty() {
+        return PathBuf::new();
+    }
+
+    let components: Vec<Vec<Component>> = paths.iter().map(|p| p.components().collect()).collect();
+
+    let min_len = components.iter().map(|c| c.len()).min().unwrap_or(0);
+
+    let mut common = PathBuf::new();
+    for i in 0..min_len {
+        let component = components[0][i];
+        if components.iter().all(|c| c[i] == component) {
+            common.push(component.as_os_str());
+        } else {
+            break;
+        }
+    }
+
+    common
+}
+
 /// Check if a path refers to the same file as the output handle.
 pub fn is_same_file_as_output(path: &Path, output_handle: &Handle) -> bool {
     if matches!(Handle::from_path(path), Ok(x) if &x == output_handle) {
