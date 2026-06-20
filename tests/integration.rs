@@ -1569,3 +1569,37 @@ fn decompress_concatenated_lz4_frames() {
         encoder.finish().unwrap()
     });
 }
+
+/// A conflict that cannot be resolved because stdin is /dev/null must fail, not exit 0.
+#[test]
+fn decompress_conflict_with_dev_null_stdin_exits_nonzero() {
+    use std::process::Stdio;
+
+    let (_tempdir, dir) = testdir().unwrap();
+    fs::create_dir(dir.join("d")).unwrap();
+    fs::write(dir.join("d").join("f.txt"), b"hi").unwrap();
+
+    crate::utils::cargo_bin()
+        .current_dir(dir)
+        .args(["compress", "d", "a.zip", "--yes"])
+        .assert()
+        .success();
+    // first extraction creates ./a, so the next run hits a conflict
+    crate::utils::cargo_bin()
+        .current_dir(dir)
+        .args(["decompress", "a.zip", "--yes"])
+        .assert()
+        .success();
+
+    // stdin is /dev/null so the conflict cannot be answered; the run must fail instead of exiting 0
+    let status = crate::utils::cargo_bin_command()
+        .current_dir(dir)
+        .args(["decompress", "a.zip"])
+        .stdin(Stdio::null())
+        .status()
+        .unwrap();
+    assert!(
+        !status.success(),
+        "decompress with an unresolvable conflict on /dev/null stdin must exit non-zero"
+    );
+}
