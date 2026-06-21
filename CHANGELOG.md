@@ -19,6 +19,8 @@ Categories Used:
 
 ### New Features
 
+- Add PPMd support for ZIP archives.
+
 ### Improvements
 
 ### Bug Fixes
