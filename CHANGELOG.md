@@ -23,6 +23,8 @@ Categories Used:
 
 ### Bug Fixes
 
+- Decompress: exit with a non-zero code when a file conflict can't be resolved on non-interactive stdin, instead of silently skipping and reporting success (https://github.com/ouch-org/ouch/pull/1011)
+
 ### Tweaks
 
 

@@ -23,16 +23,21 @@ macro_rules! ouch {
 }
 
 pub fn cargo_bin() -> Command {
+    Command::from_std(cargo_bin_command())
+}
+
+/// Like [`cargo_bin`] but returns a `std::process::Command`, so callers can set stdin/stdout.
+pub fn cargo_bin_command() -> std::process::Command {
+    let bin = assert_cmd::cargo::cargo_bin("ouch");
     env::vars()
-        .find_map(|(k, v)| {
-            (k.starts_with("CARGO_TARGET_") && k.ends_with("_RUNNER")).then(|| {
-                let mut runner = v.split_whitespace();
-                let mut cmd = Command::new(runner.next().unwrap());
-                cmd.args(runner).arg(assert_cmd::cargo::cargo_bin("ouch"));
-                cmd
-            })
+        .find(|(k, _)| k.starts_with("CARGO_TARGET_") && k.ends_with("_RUNNER"))
+        .map(|(_, runner)| {
+            let mut parts = runner.split_whitespace();
+            let mut cmd = std::process::Command::new(parts.next().unwrap());
+            cmd.args(parts).arg(&bin);
+            cmd
         })
-        .unwrap_or_else(|| Command::cargo_bin("ouch").expect("Failed to find ouch executable"))
+        .unwrap_or_else(|| std::process::Command::new(&bin))
 }
 
 pub fn testdir() -> io::Result<(tempfile::TempDir, &'static Path)> {
