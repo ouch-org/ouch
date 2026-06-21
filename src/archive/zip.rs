@@ -3,7 +3,6 @@
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::{
-    env,
     io::{self, prelude::*},
     path::{Path, PathBuf},
 };
@@ -15,15 +14,18 @@ use same_file::Handle;
 use time::{OffsetDateTime, PrimitiveDateTime};
 use zip::{self, DateTime, ZipArchive, read::ZipFile};
 
+#[cfg(unix)]
+use crate::utils::sanitize_archive_mode;
 use crate::{
     Result,
     error::FinalError,
     info, info_accessible,
     list::{FileInArchive, ListFileType},
     utils::{
-        BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, cd_into_same_dir_as, create_symlink,
-        ensure_parent_dir_exists, get_invalid_utf8_paths, is_same_file_as_output, pretty_format_list_of_paths,
-        read_file_type, strip_cur_dir,
+        BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, cd_into_same_dir_as,
+        copy_limited_decompression, create_symlink, ensure_parent_dir_exists, get_invalid_utf8_paths,
+        is_same_file_as_output, pretty_format_list_of_paths, read_file_type, strip_cur_dir, validate_dest_inside_root,
+        validate_symlink_target,
     },
     warning,
 };
@@ -42,12 +44,17 @@ where
             Some(password) => archive.by_index_decrypt(idx, password)?,
             None => archive.by_index(idx)?,
         };
-        let file_path = match file.enclosed_name() {
+        let relpath = match file.enclosed_name() {
             Some(path) => path.to_owned(),
-            None => continue,
+            None => {
+                warning!("skipping entry {} with unsafe name: {}", idx, file.name());
+                continue;
+            }
         };
 
-        let file_path = output_folder.join(file_path);
+        let file_path = output_folder.join(&relpath);
+
+        validate_dest_inside_root(output_folder, &file_path)?;
 
         display_zip_comment_if_exists(&file);
 
@@ -62,6 +69,7 @@ where
                     let mut target = String::new();
                     file.read_to_string(&mut target)?;
 
+                    validate_symlink_target(&relpath, Path::new(&target))?;
                     #[cfg(unix)]
                     std::os::unix::fs::symlink(&target, &file_path)?;
                     #[cfg(windows)]
@@ -81,12 +89,27 @@ where
                     let mut target = String::new();
                     file.read_to_string(&mut target)?;
 
+                    validate_symlink_target(&relpath, Path::new(&target))?;
                     info!("linking {} -> \"{}\"", PathFmt(file_path), target);
 
                     create_symlink(Path::new(&target), file_path)?;
                 } else {
+                    #[cfg(unix)]
+                    let mut output_file = {
+                        use fs_err::os::unix::fs::OpenOptionsExt;
+                        let mode = file.unix_mode().map(sanitize_archive_mode).unwrap_or(0o644);
+                        fs::OpenOptions::new()
+                            .write(true)
+                            .create(true)
+                            .truncate(true)
+                            .mode(mode)
+                            .open(file_path)?
+                    };
+                    #[cfg(not(unix))]
                     let mut output_file = fs::File::create(file_path)?;
-                    io::copy(&mut file, &mut output_file)?;
+                    {
+                        copy_limited_decompression(&mut file, &mut output_file)?;
+                    }
                     set_last_modified_time(&file, file_path)?;
                     #[cfg(unix)]
                     unix_set_permissions(file_path, &file)?;
@@ -182,6 +205,7 @@ where
 
     for explicit_path in input_filenames {
         let previous_location = cd_into_same_dir_as(explicit_path)?;
+        let _cwd_guard = crate::utils::CwdGuard::new(previous_location);
 
         // Unwrap safety:
         //   paths should be canonicalized by now, and the root directory rejected.
@@ -255,8 +279,6 @@ where
                 }
             }
         }
-
-        env::set_current_dir(previous_location)?;
     }
 
     let bytes = writer.finish()?;
@@ -315,7 +337,7 @@ fn unix_set_permissions<R: Read>(file_path: &Path, file: &ZipFile<'_, R>) -> Res
     use std::fs::Permissions;
 
     if let Some(mode) = file.unix_mode() {
-        fs::set_permissions(file_path, Permissions::from_mode(mode))?;
+        fs::set_permissions(file_path, Permissions::from_mode(sanitize_archive_mode(mode)))?;
     }
 
     Ok(())

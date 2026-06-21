@@ -99,6 +99,41 @@ pub fn append_ascii_suffix_to_os_str(os_str: &OsStr, ascii_suffix: &str) -> OsSt
 pub struct PathFmt<'a>(pub &'a Path);
 pub struct NoQuotePathFmt<'a>(pub &'a Path);
 
+/// Returns true for bytes/chars that must be stripped before hitting a terminal
+/// Covers C0 controls, DEL, C1 controls (U+0080..U+009F), line/paragraph separators,
+/// BiDi formatting characters (Trojan Source, CVE-2021-42574), and zero-width
+/// / invisible characters used for homoglyph or hidden-content attacks
+pub fn is_unsafe_display_char(ch: char) -> bool {
+    match ch {
+        c if c.is_control() => true,
+        '\u{2028}' | '\u{2029}' => true,
+        '\u{202A}'..='\u{202E}' => true,
+        '\u{2066}'..='\u{2069}' => true,
+        '\u{200B}' | '\u{200C}' | '\u{200D}' | '\u{FEFF}' | '\u{00AD}' | '\u{180E}' | '\u{034F}' | '\u{061C}' => true,
+        _ => false,
+    }
+}
+
+pub fn contains_unsafe_display_char(text: &str) -> bool {
+    text.chars().any(is_unsafe_display_char)
+}
+
+pub fn sanitize_for_display(text: &str) -> Cow<'_, str> {
+    if !contains_unsafe_display_char(text) {
+        return Cow::Borrowed(text);
+    }
+
+    let mut sanitized = String::with_capacity(text.len());
+    for ch in text.chars() {
+        if is_unsafe_display_char(ch) {
+            sanitized.push('\u{FFFD}');
+        } else {
+            sanitized.push(ch);
+        }
+    }
+    Cow::Owned(sanitized)
+}
+
 /// Same as NoQuotePathFmt, but surrounded by "".
 impl<'a> fmt::Display for PathFmt<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -107,6 +142,7 @@ impl<'a> fmt::Display for PathFmt<'a> {
 }
 
 /// Same as `path.display()` but try to strip some common noise prefixes
+/// Also strips control bytes and BiDi/zero-width chars to prevent terminal injection
 impl<'a> fmt::Display for NoQuotePathFmt<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let path = self.0;
@@ -122,7 +158,7 @@ impl<'a> fmt::Display for NoQuotePathFmt<'a> {
             path
         };
 
-        write!(f, "{}", path.display())
+        f.write_str(&sanitize_for_display(&path.display().to_string()))
     }
 }
 

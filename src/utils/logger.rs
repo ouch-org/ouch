@@ -6,7 +6,10 @@ use std::{
 
 pub use logger_thread::spawn_logger_thread;
 
-use super::colors::{GREEN, ORANGE, RESET};
+use super::{
+    colors::{GREEN, ORANGE, RESET},
+    formatting::{contains_unsafe_display_char, sanitize_for_display},
+};
 use crate::accessible::is_running_in_accessible_mode;
 
 #[macro_export]
@@ -261,7 +264,7 @@ mod logger_thread {
                 LoggerCommand::Print(msg) => {
                     // Append message to buffer
                     if msg.should_display() {
-                        writeln!(buffer, "{msg}").unwrap();
+                        write_message_to_buffer(&mut buffer, &msg);
                     }
                 }
                 LoggerCommand::Flush { finished_barrier } => {
@@ -277,11 +280,23 @@ mod logger_thread {
         }
     }
 
+    fn write_message_to_buffer(buffer: &mut Vec<u8>, msg: &PrintMessage) {
+        if !contains_unsafe_display_char(&msg.contents) {
+            writeln!(buffer, "{msg}").unwrap();
+        } else {
+            let msg = PrintMessage {
+                contents: sanitize_for_display(&msg.contents).into_owned(),
+                accessible: msg.accessible,
+                level: msg.level,
+            };
+            writeln!(buffer, "{msg}").unwrap();
+        }
+    }
+
     fn flush_logs_to_stderr(buffer: &mut Vec<u8>) {
         if !buffer.is_empty() {
-            if let Err(err) = stderr().write_all(buffer) {
-                panic!("Failed to write to STDERR: {err}");
-            }
+            // Ignore stderr write failures (broken pipe, closed terminal) instead of panicking
+            let _ = stderr().write_all(buffer);
             buffer.clear();
         }
     }
