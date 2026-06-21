@@ -3,7 +3,7 @@
 use std::{
     borrow::Cow,
     env,
-    io::{self, Read},
+    io::{self, Read, Write},
     path::{Path, PathBuf},
 };
 
@@ -200,12 +200,17 @@ pub struct LimitedReader<R> {
 }
 
 impl<R: Read> LimitedReader<R> {
-    pub fn new(inner: R, limit: u64) -> Self {
+    pub fn new(inner: R) -> Self {
         Self {
             inner,
-            remaining: limit,
+            remaining: max_decompressed_bytes(),
         }
     }
+}
+
+pub fn copy_limited_decompression<R: Read, W: Write>(reader: R, writer: &mut W) -> io::Result<u64> {
+    let mut limited = LimitedReader::new(reader);
+    io::copy(&mut limited, writer)
 }
 
 impl<R: Read> Read for LimitedReader<R> {

@@ -12,7 +12,7 @@ use crate::{
     list::{self, FileInArchive, ListOptions},
     non_archive::lz4::MultiFrameLz4Decoder,
     utils::{
-        LZMA_MEMLIMIT_BYTES, LimitedReader, io::lock_and_flush_output_stdio, max_decompressed_bytes,
+        LZMA_MEMLIMIT_BYTES, LimitedReader, copy_limited_decompression, io::lock_and_flush_output_stdio,
         user_wants_to_continue,
     },
 };
@@ -87,7 +87,7 @@ pub fn list_archive_contents(
     let archive_format = misplaced_archive_format.unwrap_or(formats[0]);
     let files: Box<dyn Iterator<Item = Result<FileInArchive>>> = match archive_format {
         Tar => {
-            let limited = LimitedReader::new(reader, max_decompressed_bytes());
+            let limited = LimitedReader::new(reader);
             Box::new(crate::archive::tar::list_archive(tar::Archive::new(limited))?)
         }
         Zip => {
@@ -103,8 +103,7 @@ pub fn list_archive_contents(
 
             let mut vec = vec![];
             // Bomb cap: abort if the in-memory decompressed image exceeds the limit
-            let mut limited = LimitedReader::new(&mut reader, max_decompressed_bytes());
-            io::copy(&mut limited, &mut vec)?;
+            copy_limited_decompression(&mut reader, &mut vec)?;
             let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
 
             Box::new(crate::archive::zip::list_archive(zip_archive, password))
@@ -114,8 +113,7 @@ pub fn list_archive_contents(
             if formats.len() > 1 {
                 let mut temp_file = tempfile::NamedTempFile::new()?;
                 // Bomb cap: abort if decompressed output to tempfile exceeds the limit
-                let mut limited = LimitedReader::new(&mut reader, max_decompressed_bytes());
-                io::copy(&mut limited, &mut temp_file)?;
+                copy_limited_decompression(&mut reader, &mut temp_file)?;
                 Box::new(crate::archive::rar::list_archive(temp_file.path(), password)?)
             } else {
                 Box::new(crate::archive::rar::list_archive(archive_path, password)?)
@@ -137,8 +135,7 @@ pub fn list_archive_contents(
 
                 let mut vec = vec![];
                 // Bomb cap: abort if the in-memory decompressed image exceeds the limit
-                let mut limited = LimitedReader::new(&mut reader, max_decompressed_bytes());
-                io::copy(&mut limited, &mut vec)?;
+                copy_limited_decompression(&mut reader, &mut vec)?;
 
                 Box::new(archive::sevenz::list_archive(io::Cursor::new(vec), password)?)
             } else {
