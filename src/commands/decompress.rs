@@ -16,7 +16,7 @@ use crate::{
     info, info_accessible,
     non_archive::lz4::MultiFrameLz4Decoder,
     utils::{
-        self, BytesFmt, PathFmt, file_size,
+        self, BytesFmt, LZMA_MEMLIMIT_BYTES, LimitedReader, PathFmt, copy_limited_decompression, file_size,
         io::{ReadSeek, lock_and_flush_output_stdio},
         is_path_stdin, resolve_path_conflict, user_wants_to_continue,
     },
@@ -65,7 +65,11 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
                 Box::new(bzip3::read::Bz3Decoder::new(decoder)?)
             }
             Lz4 => Box::new(MultiFrameLz4Decoder::new(decoder)),
-            Lzma => Box::new(lzma_rust2::LzmaReader::new_mem_limit(decoder, u32::MAX, None)?),
+            Lzma => Box::new(lzma_rust2::LzmaReader::new_mem_limit(
+                decoder,
+                LZMA_MEMLIMIT_BYTES,
+                None,
+            )?),
             Xz => Box::new(lzma_rust2::XzReader::new(decoder, true)),
             Lzip => Box::new(lzma_rust2::LzipReader::new(decoder)),
             Snappy => Box::new(snap::read::FrameDecoder::new(decoder)),
@@ -108,7 +112,9 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
     let control_flow = match first_extension {
         Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {
             let reader = create_decoder_up_to_first_extension()?;
-            let mut reader = chain_reader_decoder(&first_extension, reader)?;
+            let reader = chain_reader_decoder(&first_extension, reader)?;
+            // Bomb cap: abort if decompressed output exceeds OUCH_MAX_DECOMPRESSED_BYTES
+            let mut reader = LimitedReader::new(reader);
 
             let (mut writer, final_output_path) = match utils::create_file_or_prompt_on_conflict(
                 &options.output_file_path,
@@ -125,7 +131,10 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
             })
         }
         Tar => unpack_archive(
-            |output_dir| crate::archive::tar::unpack_archive(create_decoder_up_to_first_extension()?, output_dir),
+            |output_dir| {
+                let reader = LimitedReader::new(create_decoder_up_to_first_extension()?);
+                crate::archive::tar::unpack_archive(reader, output_dir)
+            },
             archive_output_dir,
             options.question_policy,
         )?,
@@ -160,7 +169,8 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
                 drop(locks);
 
                 let mut vec = vec![];
-                io::copy(&mut create_decoder_up_to_first_extension()?, &mut vec)?;
+                // Bomb cap: abort if the in-memory decompressed image exceeds the limit
+                copy_limited_decompression(create_decoder_up_to_first_extension()?, &mut vec)?;
                 Box::new(io::Cursor::new(vec))
             } else {
                 Box::new(BufReader::with_capacity(
@@ -179,7 +189,7 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
         Rar => {
             let unpack_fn: Box<dyn FnOnce(&Path) -> Result<u64>> = if options.formats.len() > 1 || input_is_stdin {
                 let mut temp_file = tempfile::NamedTempFile::new()?;
-                io::copy(&mut create_decoder_up_to_first_extension()?, &mut temp_file)?;
+                copy_limited_decompression(create_decoder_up_to_first_extension()?, &mut temp_file)?;
                 Box::new(move |output_dir| {
                     crate::archive::rar::unpack_archive(temp_file.path(), output_dir, options.password)
                 })

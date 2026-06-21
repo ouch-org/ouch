@@ -205,9 +205,12 @@ impl<'a, T: Default> ChoicePrompt<'a, T> {
         let message = self.prompt;
 
         if is_stdin_dev_null()? {
-            eprintln!("{message}");
-            eprintln!("Stdin is null, can't read user input (bypass with --yes, but be careful)");
-            return Ok(T::default());
+            // stdin is /dev/null so the conflict prompt cannot be answered; fail instead of silently skipping
+            let error = FinalError::with_title("Cannot read input to resolve file conflict")
+                .detail(format!("Tried to ask: \"{message}\""))
+                .detail("Stdin is connected to /dev/null, so the prompt cannot be answered.")
+                .hint("If using Ouch in scripting, consider using `--yes` and `--no`.");
+            return Err(error.into());
         }
 
         let _locks = lock_and_flush_output_stdio()?;

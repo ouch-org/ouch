@@ -1,5 +1,6 @@
 ---
 source: tests/ui.rs
+assertion_line: 192
 expression: "output_to_string(ouch!(\"-h\"))"
 ---
 A command-line utility for easily compressing and decompressing files and directories.
@@ -20,7 +21,7 @@ Options:
   -q, --quiet                Silence output
   -g, --gitignore            Ignore files matched by git's ignore files
   -f, --format <FORMAT>      Specify the format of the archive
-  -p, --password <PASSWORD>  Decompress or list with password
+  -p, --password <PASSWORD>  Decompress or list with password [env: OUCH_PASSWORD=]
   -c, --threads <THREADS>    Concurrent working threads
   -h, --help                 Print help (see more with '--help')
   -V, --version              Print version
