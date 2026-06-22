@@ -48,6 +48,7 @@ Categories Used:
 - Add `--here` flag to unpack into current directory (https://github.com/ouch-org/ouch/pull/962).
 - List: show symlink targets (for tar and zip) (https://github.com/ouch-org/ouch/pull/934)
 - Add aliases for ebooks (`.epub`) (https://github.com/ouch-org/ouch/pull/981)
+- Add appimage binary to releases (https://github.com/ouch-org/ouch/pull/992)
 
 ### Improvements
 
