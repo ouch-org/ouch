@@ -1,4 +1,6 @@
 use std::{
+    collections::HashSet,
+    ffi::OsString,
     io::{self, BufReader, Read},
     ops::ControlFlow,
     path::{Path, PathBuf},
@@ -16,7 +18,7 @@ use crate::{
     info, info_accessible,
     non_archive::lz4::MultiFrameLz4Decoder,
     utils::{
-        self, BytesFmt, LZMA_MEMLIMIT_BYTES, LimitedReader, PathFmt, copy_limited_decompression, file_size,
+        BytesFmt, LZMA_MEMLIMIT_BYTES, LimitedReader, PathFmt, copy_limited_decompression, file_size,
         io::{ReadSeek, lock_and_flush_output_stdio},
         is_path_stdin, resolve_path_conflict, user_wants_to_continue,
     },
@@ -28,8 +30,6 @@ pub struct DecompressOptions<'a> {
     /// Example: [Gz, Tar] (notice it's ordered in decompression order)
     pub formats: Vec<Extension>,
     pub output_dir: &'a Path,
-    /// Used when extracting single file formats and not archive formats
-    pub output_file_path: PathBuf,
     /// Whether the user passed `--dir` explicitly. When false (and `here` is false),
     /// archives are extracted into a basename-derived subdirectory of the CWD.
     pub output_dir_was_explicit: bool,
@@ -39,6 +39,61 @@ pub struct DecompressOptions<'a> {
     pub question_policy: QuestionPolicy,
     pub password: Option<&'a [u8]>,
     pub remove: bool,
+    /// Resolved target prepared upfront (before sandbox is applied).
+    pub prepared: PreparedTarget,
+}
+
+/// Per-input decision made before the sandbox is applied.
+/// file_name is the single output file for non-archives and None for archives.
+pub enum PreparedTarget {
+    Target { dir: PathBuf, file_name: Option<OsString> },
+    Cancelled,
+}
+
+/// Resolve conflicts and create the output directory before the sandbox starts.
+/// claimed_targets holds directories already taken by earlier inputs of this run.
+pub fn prepare_decompress_target(
+    formats: &[Extension],
+    output_dir: &Path,
+    output_file_path: &Path,
+    output_dir_was_explicit: bool,
+    here: bool,
+    question_policy: QuestionPolicy,
+    claimed_targets: &mut HashSet<PathBuf>,
+) -> Result<PreparedTarget> {
+    let (first_extension, _) = split_first_compression_format(formats);
+    let is_archive = matches!(first_extension, Tar | Zip | Rar | SevenZip);
+
+    // --dir and --here unpack into output_dir as is
+    // default mode makes a new directory named after the archive so report.txt.gz becomes report/report.txt
+    let target = if output_dir_was_explicit || here {
+        output_dir.to_path_buf()
+    } else if is_archive {
+        output_file_path.to_path_buf()
+    } else {
+        output_file_path.with_extension("")
+    };
+    let is_cwd = target == *INITIAL_CURRENT_DIR;
+    // merging several inputs into the CWD is intentional so the claimed check skips it
+    let claimed_by_earlier_input = !is_cwd && claimed_targets.contains(&target);
+    let is_valid = !claimed_by_earlier_input
+        && (is_cwd || !target.fs_err_try_exists()? || (target.is_dir() && target.read_dir()?.next().is_none()));
+
+    let resolved = if is_valid {
+        target
+    } else if let Some(p) = resolve_path_conflict(&target, question_policy, QuestionAction::Decompression)? {
+        p
+    } else {
+        return Ok(PreparedTarget::Cancelled);
+    };
+
+    if !resolved.fs_err_try_exists()? {
+        fs::create_dir(&resolved)?;
+    }
+    claimed_targets.insert(resolved.clone());
+
+    let file_name = (!is_archive).then(|| output_file_path.file_name().unwrap_or_default().to_os_string());
+    Ok(PreparedTarget::Target { dir: resolved, file_name })
 }
 
 enum DecompressionSummary {
@@ -97,18 +152,6 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
         Ok(reader)
     };
 
-    // Decide where archives extract:
-    //   --dir <X>     -> extract into <X>, no wrapper, no flatten
-    //   --here        -> extract into CWD (output_dir), no wrapper
-    //   default       -> extract into a basename-derived subdirectory; flatten the
-    //                    duplicate when the wrapper would contain exactly one entry
-    //                    whose name equals the basename
-    let archive_output_dir: &Path = if options.output_dir_was_explicit || options.here {
-        options.output_dir
-    } else {
-        &options.output_file_path
-    };
-
     let control_flow = match first_extension {
         Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {
             let reader = create_decoder_up_to_first_extension()?;
@@ -116,28 +159,33 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
             // Bomb cap: abort if decompressed output exceeds OUCH_MAX_DECOMPRESSED_BYTES
             let mut reader = LimitedReader::new(reader);
 
-            let (mut writer, final_output_path) = match utils::create_file_or_prompt_on_conflict(
-                &options.output_file_path,
-                options.question_policy,
-                QuestionAction::Decompression,
-            )? {
-                Some(file) => file,
-                None => return Ok(()),
+            let PreparedTarget::Target {
+                dir,
+                file_name: Some(file_name),
+            } = options.prepared
+            else {
+                return Ok(());
             };
 
+            let final_output_path = dir.join(file_name);
+            let mut writer = fs::File::create(&final_output_path)?;
             io::copy(&mut reader, &mut writer)?;
             ControlFlow::Continue(DecompressionSummary::NonArchive {
                 output_path: final_output_path,
             })
         }
-        Tar => unpack_archive(
-            |output_dir| {
-                let reader = LimitedReader::new(create_decoder_up_to_first_extension()?);
-                crate::archive::tar::unpack_archive(reader, output_dir)
-            },
-            archive_output_dir,
-            options.question_policy,
-        )?,
+        Tar => {
+            let PreparedTarget::Target { dir, .. } = options.prepared else {
+                return Ok(());
+            };
+            unpack_archive(
+                |output_dir| {
+                    let reader = LimitedReader::new(create_decoder_up_to_first_extension()?);
+                    crate::archive::tar::unpack_archive(reader, output_dir)
+                },
+                dir,
+            )?
+        }
         Zip | SevenZip => {
             let unpack_fn = match first_extension {
                 Zip => crate::archive::zip::unpack_archive,
@@ -179,16 +227,19 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
                 ))
             };
 
-            unpack_archive(
-                |output_dir| unpack_fn(reader, output_dir, options.password),
-                archive_output_dir,
-                options.question_policy,
-            )?
+            let PreparedTarget::Target { dir, .. } = options.prepared else {
+                return Ok(());
+            };
+            unpack_archive(|output_dir| unpack_fn(reader, output_dir, options.password), dir)?
         }
         #[cfg(feature = "unrar")]
         Rar => {
+            let PreparedTarget::Target { dir, .. } = options.prepared else {
+                return Ok(());
+            };
             let unpack_fn: Box<dyn FnOnce(&Path) -> Result<u64>> = if options.formats.len() > 1 || input_is_stdin {
-                let mut temp_file = tempfile::NamedTempFile::new()?;
+                // unrar's C API needs a path; spill the decoded stream into the wrapper dir.
+                let mut temp_file = tempfile::Builder::new().prefix(".ouch-rar-").tempfile_in(&dir)?;
                 copy_limited_decompression(create_decoder_up_to_first_extension()?, &mut temp_file)?;
                 Box::new(move |output_dir| {
                     crate::archive::rar::unpack_archive(temp_file.path(), output_dir, options.password)
@@ -199,7 +250,7 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
                 })
             };
 
-            unpack_archive(unpack_fn, archive_output_dir, options.question_policy)?
+            unpack_archive(unpack_fn, dir)?
         }
         #[cfg(not(feature = "unrar"))]
         Rar => {
@@ -220,8 +271,9 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
             // ended up containing exactly one entry whose name matches the wrapper itself
             // (e.g. `archive.zip` contained a single `archive/` root), flatten that
             // duplicate so the user sees `./archive/...` not `./archive/archive/...`.
+            // Leave the nested layout if the rename fails.
             if !options.output_dir_was_explicit && !options.here {
-                deduplicate_basename_wrapper(&output_path)?;
+                let _ = deduplicate_basename_wrapper(&output_path);
             }
             info_accessible!("Successfully decompressed archive to {}", PathFmt(&output_path));
             info_accessible!("Files unpacked: {files_unpacked}");
@@ -249,39 +301,15 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
     Ok(())
 }
 
-/// Unpacks an archive creating the output directory, this function will create the output_dir
-/// directory or replace it if it already exists. The `output_dir` needs to be empty
-/// - If `output_dir` does not exist OR is a empty directory, it will unpack there
-/// - If `output_dir` exist OR is a directory not empty, the user will be asked what to do
-/// - If `output_dir` is the current working directory, files are extracted directly without prompting
+/// Run the format-specific unpack closure against an already-prepared target dir.
 fn unpack_archive(
     unpack_fn: impl FnOnce(&Path) -> Result<u64>,
-    output_dir: &Path,
-    question_policy: QuestionPolicy,
+    output_dir: PathBuf,
 ) -> Result<ControlFlow<(), DecompressionSummary>> {
-    // Extracting into the CWD is a merge into the user's workspace and should not prompt,
-    // matching the behaviour of `tar xf` and `unzip` when no destination is given.
-    let is_cwd = output_dir == *INITIAL_CURRENT_DIR;
-    let is_valid_output_dir =
-        is_cwd || !output_dir.fs_err_try_exists()? || (output_dir.is_dir() && output_dir.read_dir()?.next().is_none());
-
-    let output_dir_cleaned = if is_valid_output_dir {
-        output_dir.to_owned()
-    } else if let Some(path) = resolve_path_conflict(output_dir, question_policy, QuestionAction::Decompression)? {
-        path
-    } else {
-        return Ok(ControlFlow::Break(()));
-    };
-
-    if !output_dir_cleaned.fs_err_try_exists()? {
-        fs::create_dir(&output_dir_cleaned)?;
-    }
-
-    let files_unpacked = unpack_fn(&output_dir_cleaned)?;
-
+    let files_unpacked = unpack_fn(&output_dir)?;
     Ok(ControlFlow::Continue(DecompressionSummary::Archive {
         files_unpacked,
-        output_path: output_dir_cleaned,
+        output_path: output_dir,
     }))
 }
 
@@ -299,14 +327,14 @@ fn deduplicate_basename_wrapper(wrapper: &Path) -> Result<()> {
         let Some(first_file) = entries.next().transpose()? else {
             return Ok(());
         };
-        // More than one entry, don't deduplicate
+        // More than one entry so do not deduplicate.
         if entries.next().transpose()?.is_some() {
             return Ok(());
         }
         first_file
     };
 
-    // name doesn't match, nothing to deduplicate
+    // Name does not match so nothing to deduplicate.
     if only_file_in_dir.file_name() != wrapper_name {
         return Ok(());
     }
@@ -354,7 +382,7 @@ mod tests {
 
     use super::*;
 
-    /// Helper: collect the relative paths of every entry under `root`, sorted.
+    /// Collect sorted relative paths of every entry under root.
     fn list_tree(root: &Path) -> Vec<String> {
         fn walk(p: &Path, base: &Path, out: &mut Vec<String>) {
             if let Ok(entries) = std_fs::read_dir(p) {
@@ -398,8 +426,7 @@ mod tests {
         assert_eq!(parent_entries, vec![std::ffi::OsString::from("archive")]);
     }
 
-    /// Wrapper contains a single entry, but its name differs from the wrapper's name.
-    /// No flatten should happen — the wrapper survives and the inner entry stays nested.
+    /// A single inner entry with a different name stays nested.
     #[test]
     fn deduplicate_keeps_wrapper_when_inner_name_differs() {
         let dir = tempdir().unwrap();
@@ -412,7 +439,7 @@ mod tests {
         assert_eq!(list_tree(&wrapper), vec!["mytool/", "mytool/file.txt"]);
     }
 
-    /// Wrapper contains two or more entries — no flatten regardless of names.
+    /// More than one entry means no flatten.
     #[test]
     fn deduplicate_keeps_wrapper_when_multiple_entries() {
         let dir = tempdir().unwrap();
@@ -425,7 +452,7 @@ mod tests {
         assert_eq!(list_tree(&wrapper), vec!["a.txt", "b.txt"]);
     }
 
-    /// Empty wrapper — nothing to flatten, no-op.
+    /// An empty wrapper is left alone.
     #[test]
     fn deduplicate_is_noop_on_empty_wrapper() {
         let dir = tempdir().unwrap();
@@ -471,10 +498,7 @@ mod tests {
         assert_eq!(std_fs::read(wrapper.join("other.txt")).unwrap(), b"o");
     }
 
-    /// The flatten only collapses *one* level: nested same-name directories produced
-    /// by the archive itself stay intact. For example, an archive whose layout is
-    /// `testing/testing/file` extracted into `./testing/` should leave the user with
-    /// `./testing/testing/file`, not `./testing/file`.
+    /// Only the outer wrapper collapses and nested same-name folders stay.
     #[test]
     fn deduplicate_only_flattens_outer_wrapper_not_inner_duplicates() {
         let dir = tempdir().unwrap();
@@ -485,8 +509,7 @@ mod tests {
         std_fs::write(nested.join("file"), "deep").unwrap();
 
         deduplicate_basename_wrapper(&wrapper).unwrap();
-        // After one flatten, `testing/testing/file` should remain — the algorithm only
-        // collapses the outer wrapper exactly once.
+        // After one flatten testing/testing/file remains since only the outer wrapper collapses.
         assert_eq!(list_tree(&wrapper), vec!["testing/", "testing/file"]);
     }
 }

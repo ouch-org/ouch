@@ -23,5 +23,6 @@ Options:
   -f, --format <FORMAT>      Specify the format of the archive
   -p, --password <PASSWORD>  Decompress or list with password [env: OUCH_PASSWORD=]
   -c, --threads <THREADS>    Concurrent working threads
+      --no-sandbox           Disable the process sandbox
   -h, --help                 Print help (see more with '--help')
   -V, --version              Print version

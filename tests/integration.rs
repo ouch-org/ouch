@@ -495,7 +495,9 @@ fn symlink_pack_and_unpack() -> Result<()> {
         fs::remove_file(archive)?;
         fs::remove_dir_all(&dest_files_path)?;
 
+        // follow-symlinks is rejected under the sandbox so keep it off here.
         crate::utils::cargo_bin()
+            .env("OUCH_NO_SANDBOX", "1")
             .arg("compress")
             .arg("--follow-symlinks")
             .args(files_path)
@@ -587,7 +589,9 @@ fn broken_symlink_error_when_compressing_with_follow_symlinks() {
 
         let archive = dir.join(format!("archive.{ext}"));
 
+        // follow-symlinks is rejected under the sandbox so keep it off here.
         crate::utils::cargo_bin()
+            .env("OUCH_NO_SANDBOX", "1")
             .arg("compress")
             .arg("--follow-symlinks")
             .arg(&input)
@@ -628,6 +632,8 @@ fn symlink_treatment_inside_nested_dirs_with_follow_symlinks_flag() {
         let archive = dir.join(format!("archive.{ext}"));
 
         let mut cmd = crate::utils::cargo_bin();
+        // follow-symlinks is rejected under the sandbox so keep it off here.
+        cmd.env("OUCH_NO_SANDBOX", "1");
         cmd.arg("compress");
         if follow_symlinks_flag {
             cmd.arg("--follow-symlinks");
@@ -1617,6 +1623,201 @@ fn missing_file_type_unix_permissions() {
         );
         assert_eq!(mode & 0o7000, 0, "Should not have sticky, setuid, or setgid bits");
     }
+}
+
+// Default mode decompression without --dir or --here is not tested elsewhere
+// These lock in the layout where output goes into a new directory named after the archive
+
+#[test]
+fn decompress_single_file_default_mode_creates_named_directory() {
+    let (_tempdir, dir) = testdir().unwrap();
+
+    fs::write(dir.join("report.txt"), b"hello").unwrap();
+    crate::utils::cargo_bin()
+        .args(["compress", "report.txt", "report.txt.gz", "--yes"])
+        .current_dir(dir)
+        .assert()
+        .success();
+    fs::remove_file(dir.join("report.txt")).unwrap();
+
+    crate::utils::cargo_bin()
+        .args(["decompress", "report.txt.gz", "--yes"])
+        .current_dir(dir)
+        .assert()
+        .success();
+
+    // report.txt.gz becomes report/report.txt so the directory has no extension and the file keeps it
+    assert!(dir.join("report").is_dir());
+    assert_eq!(
+        "hello",
+        fs::read_to_string(dir.join("report").join("report.txt")).unwrap()
+    );
+    assert!(!dir.join("report.txt").is_dir());
+}
+
+#[test]
+fn decompress_archive_default_mode_creates_named_directory() {
+    let (_tempdir, dir) = testdir().unwrap();
+
+    fs::create_dir(dir.join("payload")).unwrap();
+    fs::write(dir.join("payload").join("a.txt"), b"a").unwrap();
+    crate::utils::cargo_bin()
+        .args(["compress", "payload", "bundle.tar", "--yes"])
+        .current_dir(dir)
+        .assert()
+        .success();
+
+    crate::utils::cargo_bin()
+        .args(["decompress", "bundle.tar", "--yes"])
+        .current_dir(dir)
+        .assert()
+        .success();
+
+    assert!(dir.join("bundle").is_dir());
+    assert_eq!(
+        "a",
+        fs::read_to_string(dir.join("bundle").join("payload").join("a.txt")).unwrap()
+    );
+}
+
+// An archive whose only entry matches the wrapper name must not nest
+// test.zip with a test/ folder must unpack to test/ and not test/test/
+#[test]
+fn decompress_archive_default_mode_does_not_duplicate_directory() {
+    let (_tempdir, dir) = testdir().unwrap();
+
+    fs::create_dir(dir.join("test")).unwrap();
+    fs::write(dir.join("test").join("inner.txt"), b"y").unwrap();
+    crate::utils::cargo_bin()
+        .args(["compress", "test", "test.zip", "--yes"])
+        .current_dir(dir)
+        .assert()
+        .success();
+    fs::remove_dir_all(dir.join("test")).unwrap();
+
+    crate::utils::cargo_bin()
+        .args(["decompress", "test.zip", "--yes"])
+        .current_dir(dir)
+        .assert()
+        .success();
+
+    assert!(dir.join("test").join("inner.txt").is_file());
+    assert!(!dir.join("test").join("test").exists());
+}
+
+// One run with the sandbox disabled. Checks basic functions and that the sandbox is really off.
+#[cfg(target_os = "linux")]
+#[test]
+fn without_sandbox_runs_and_confirms_sandbox_is_off() {
+    let (_tempdir, dir) = testdir().unwrap();
+    let input = dir.join("data.txt");
+    fs::write(&input, "no sandbox").unwrap();
+
+    // Basic functions still work with the sandbox disabled.
+    let archive = dir.join("out.tar.gz");
+    crate::utils::cargo_bin()
+        .arg("--no-sandbox")
+        .arg("compress")
+        .arg(&input)
+        .arg(&archive)
+        .arg("--yes")
+        .assert()
+        .success();
+    let output = dir.join("out");
+    crate::utils::cargo_bin()
+        .arg("--no-sandbox")
+        .arg("decompress")
+        .arg(&archive)
+        .arg("--dir")
+        .arg(&output)
+        .arg("--yes")
+        .assert()
+        .success();
+    assert_eq!("no sandbox", fs::read_to_string(output.join("data.txt")).unwrap());
+
+    // Sandbox is really off. With it active --follow-symlinks aborts so success proves it is disabled.
+    crate::utils::cargo_bin()
+        .arg("--no-sandbox")
+        .arg("compress")
+        .arg("--follow-symlinks")
+        .arg(&input)
+        .arg(dir.join("follow.tar"))
+        .arg("--yes")
+        .assert()
+        .success();
+}
+
+// two inputs with the same basename must not silently merge into one target
+
+#[test]
+fn decompress_duplicate_basenames_skips_second_with_no() {
+    let (_tempdir, dir) = testdir().unwrap();
+
+    for (sub, content) in [("a", "AAA"), ("b", "BBB")] {
+        fs::create_dir(dir.join(sub)).unwrap();
+        fs::write(dir.join(sub).join("x.txt"), content).unwrap();
+        crate::utils::cargo_bin()
+            .args(["compress", "x.txt", "x.tar.gz", "--yes"])
+            .current_dir(dir.join(sub))
+            .assert()
+            .success();
+    }
+
+    // the no flag answers the second conflict with skip
+    crate::utils::cargo_bin()
+        .args(["decompress", "a/x.tar.gz", "b/x.tar.gz", "--no"])
+        .current_dir(dir)
+        .assert()
+        .success();
+
+    // only the first input extracted and its content is intact
+    assert_eq!("AAA", fs::read_to_string(dir.join("x").join("x.txt")).unwrap());
+    assert!(!dir.join("x_1").exists());
+}
+
+#[test]
+fn decompress_duplicate_basenames_prompts_and_renames() {
+    let (_tempdir, dir) = testdir().unwrap();
+
+    for (sub, content) in [("a", "AAA"), ("b", "BBB")] {
+        fs::create_dir(dir.join(sub)).unwrap();
+        fs::write(dir.join(sub).join("x.txt"), content).unwrap();
+        crate::utils::cargo_bin()
+            .args(["compress", "x.txt", "x.tar.gz", "--yes"])
+            .current_dir(dir.join(sub))
+            .assert()
+            .success();
+    }
+
+    // the second input must hit the conflict question and get renamed
+    crate::utils::cargo_bin()
+        .args(["decompress", "a/x.tar.gz", "b/x.tar.gz"])
+        .current_dir(dir)
+        .write_stdin("r")
+        .assert()
+        .success();
+
+    assert_eq!("AAA", fs::read_to_string(dir.join("x").join("x.txt")).unwrap());
+    assert_eq!("BBB", fs::read_to_string(dir.join("x_1").join("x.txt")).unwrap());
+}
+
+// follow symlinks only passes when the sandbox is off so success proves gitignore disabled it
+#[cfg(target_os = "linux")]
+#[test]
+fn gitignore_disables_sandbox_and_unlocks_follow_symlinks() {
+    let (_tempdir, dir) = testdir().unwrap();
+    let input = dir.join("data.txt");
+    fs::write(&input, "tracked").unwrap();
+
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .arg("--gitignore")
+        .arg("--follow-symlinks")
+        .arg(&input)
+        .arg(dir.join("out.tar"))
+        .arg("--yes")
+        .assert()
+        .success();
 }
 
 /// A conflict that cannot be resolved because stdin is /dev/null must fail, not exit 0.

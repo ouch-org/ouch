@@ -48,6 +48,7 @@ Categories Used:
 - Add `--here` flag to unpack into current directory (https://github.com/ouch-org/ouch/pull/962).
 - List: show symlink targets (for tar and zip) (https://github.com/ouch-org/ouch/pull/934)
 - Add aliases for ebooks (`.epub`) (https://github.com/ouch-org/ouch/pull/981)
+- Add a Landlock sandbox on Linux for `compress`/`decompress`/`list` that restricts filesystem access and, where the kernel supports it, blocks new TCP connections, abstract-socket use, and signals to processes outside the sandbox (disable with `--no-sandbox` or the `OUCH_NO_SANDBOX` environment variable) (https://github.com/ouch-org/ouch/pull/995)
 
 ### Improvements
 

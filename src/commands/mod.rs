@@ -4,8 +4,10 @@ mod compress;
 mod decompress;
 mod list;
 
+use std::path::PathBuf;
+
 use bstr::ByteSlice;
-use decompress::DecompressOptions;
+use decompress::{DecompressOptions, PreparedTarget, prepare_decompress_target};
 use rayon::prelude::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use utils::colors;
 
@@ -16,12 +18,14 @@ use crate::{
     commands::{compress::compress_files, decompress::decompress_file, list::list_archive_contents},
     error::{Error, FinalError},
     extension::{self, parse_format_flag},
-    info_accessible,
+    info, info_accessible,
     list::ListOptions,
+    sandbox::{self, SandboxPolicy},
     utils::{
         self, BytesFmt, FileVisibilityPolicy, NoQuotePathFmt, PathFmt, QuestionAction, canonicalize, colors::*,
         file_size, is_path_stdin,
     },
+    warning,
 };
 
 /// Warn the user that (de)compressing this .zip archive might freeze their system.
@@ -49,13 +53,8 @@ fn warn_user_about_loading_sevenz_in_memory() {
 ///
 /// There are a lot of custom errors to give enough error description and explanation.
 pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_policy: FileVisibilityPolicy) -> Result<()> {
-    // Skip --threads 0 ("auto") to match cli::mod.rs, and propagate pool-init errors
-    if let Some(threads) = args.threads.filter(|&t| t != 0) {
-        rayon::ThreadPoolBuilder::new()
-            .num_threads(threads)
-            .build_global()
-            .map_err(|e| FinalError::with_title("Failed to initialize thread pool").detail(e.to_string()))?;
-    }
+    // No global pool here because Landlock only confines threads created after it is applied
+    // Decompression builds its pool after the sandbox so the workers are confined
 
     match args.cmd {
         Subcommand::Compress {
@@ -69,6 +68,18 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
             // After cleaning, if there are no input files left, exit
             if files.is_empty() {
                 return Err(FinalError::with_title("No files to compress").into());
+            }
+
+            // gitignore and follow_symlinks both read paths outside the declared input set so the
+            // sandbox cannot confine them; run unsandboxed and say why
+            let sandbox_disabled = sandbox::disabled_by_request(args.no_sandbox) || args.gitignore || follow_symlinks;
+            if cfg!(target_os = "linux") && !sandbox::disabled_by_request(args.no_sandbox) {
+                if args.gitignore {
+                    info!("Sandbox: disabled because --gitignore reads git configuration outside the input files");
+                }
+                if follow_symlinks {
+                    info!("Sandbox: disabled because --follow-symlinks may read files outside the input set");
+                }
             }
 
             // Formats from path extension, like "file.tar.gz.xz" -> vec![Tar, Gzip, Lzma]
@@ -97,6 +108,17 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                 None => return Ok(()),
             };
 
+            // Read on inputs. The output FD is held already so no write-path grant is needed, and
+            // the sandbox is deliberately not widened to let compression delete files in the
+            // output directory.
+            let sandbox_active = {
+                let mut policy = SandboxPolicy::new();
+                for f in &files {
+                    policy.allow_read(sandbox::canonicalize_for_sandbox(f));
+                }
+                policy.set_disabled(sandbox_disabled).apply()
+            };
+
             let level = if fast {
                 Some(1) // Lowest level of compression
             } else if slow {
@@ -119,18 +141,28 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
             if let Ok(true) = compress_result {
                 info_accessible!("Output file size: {}", BytesFmt(file_size(&output_path)?));
                 info_accessible!("Successfully compressed to {}", PathFmt(&output_path));
-            } else {
-                // If Ok(false) or Err() occurred, delete incomplete file at `output_path`
-                //
-                // if deleting fails, print an extra alert message pointing
-                // out that we left a possibly CORRUPTED file at `output_path`
-                if utils::remove_file_or_dir(&output_path).is_err() {
-                    eprintln!("{red}FATAL ERROR:\n", red = *colors::RED);
-                    eprintln!("  Ouch failed to delete the file {}", PathFmt(&output_path));
-                    eprintln!("  Please delete it manually.");
-                    eprintln!("  This file is corrupted if compression didn't finished.");
-
-                    if compress_result.is_err() {
+            } else if let Ok(false) = compress_result {
+                // user cancelled; remove the partial output where the sandbox permits it
+                if !sandbox_active {
+                    let _ = utils::remove_file_or_dir(&output_path);
+                }
+            } else if compress_result.is_err() {
+                let deleted = !sandbox_active && utils::remove_file_or_dir(&output_path).is_ok();
+                if !deleted {
+                    if sandbox_active {
+                        // Not a cleanup failure: the sandbox intentionally does not grant removal
+                        // in the output directory, so the partial file is left in place.
+                        warning!(
+                            "Compression did not finish; the partial file at {} was left because the sandbox does not permit removing it. Delete it manually.",
+                            PathFmt(&output_path)
+                        );
+                    } else {
+                        eprintln!("{red}FATAL ERROR:\n", red = *colors::RED);
+                        eprintln!(
+                            "  Compression did not finish; the partial file at {} may be corrupted.",
+                            PathFmt(&output_path)
+                        );
+                        eprintln!("  Please delete it manually.");
                         eprintln!("  Compression failed for reasons below.");
                     }
                 }
@@ -192,42 +224,136 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                 INITIAL_CURRENT_DIR.clone()
             };
 
-            files
-                .par_iter()
-                .zip(files_extensions)
-                .zip(files_output_paths)
-                .try_for_each(|((input_path, formats), file_name)| {
-                    // Path used by single file format archives
-                    let output_file_path = if is_path_stdin(&file_name) {
+            // Per-input output paths for single-file outputs and archive wrapper dirs.
+            let output_file_paths: Vec<PathBuf> = files_output_paths
+                .iter()
+                .map(|file_name| {
+                    if is_path_stdin(file_name) {
                         output_dir.join("ouch-output")
                     } else {
                         output_dir.join(file_name)
-                    };
-
-                    decompress_file(DecompressOptions {
-                        input_file_path: input_path,
-                        formats,
-                        output_dir: &output_dir,
-                        output_file_path,
-                        output_dir_was_explicit,
-                        here,
-                        question_policy,
-                        password: args.password.as_deref().map(|str| {
-                            <[u8] as ByteSlice>::from_os_str(str).expect("convert password to bytes failed")
-                        }),
-                        remove,
-                    })
-                    .map_err(|err| match err {
-                        Error::IoError { reason } => Error::Custom {
-                            reason: FinalError::with_title(format!(
-                                "Failed to decompress {}",
-                                NoQuotePathFmt(input_path)
-                            ))
-                            .detail(reason),
-                        },
-                        other => other,
-                    })
+                    }
                 })
+                .collect();
+
+            // Resolve conflicts and create output dirs before the sandbox applies.
+            // claimed targets make duplicate basenames conflict instead of silently merging
+            let mut claimed_targets = std::collections::HashSet::new();
+            let mut prepared: Vec<PreparedTarget> = Vec::with_capacity(files.len());
+            for (formats, output_file_path) in files_extensions.iter().zip(&output_file_paths) {
+                prepared.push(prepare_decompress_target(
+                    formats,
+                    &output_dir,
+                    output_file_path,
+                    output_dir_was_explicit,
+                    here,
+                    question_policy,
+                    &mut claimed_targets,
+                )?);
+            }
+
+            // Read on inputs and read-write on each output directory.
+            {
+                let mut policy = SandboxPolicy::new();
+                for f in &files {
+                    if !is_path_stdin(f) {
+                        policy.allow_read(sandbox::canonicalize_for_sandbox(f));
+                    }
+                }
+
+                // Collect the directories the warnings refer to while building the policy.
+                // The warnings are printed only when the sandbox is actually enforced.
+                let mut home_targets: Vec<PathBuf> = Vec::new();
+                for p in &prepared {
+                    if let PreparedTarget::Target { dir, .. } = p {
+                        let canon = sandbox::canonicalize_for_sandbox(dir);
+                        // Only --dir or --here can point the grant at $HOME
+                        // default mode always makes a fresh subdirectory
+                        if (output_dir_was_explicit || here) && sandbox::is_home_or_ancestor(&canon) {
+                            home_targets.push(canon.clone());
+                        }
+                        policy.allow_read_write(canon);
+                    }
+                }
+
+                let mut remove_parents: Vec<PathBuf> = Vec::new();
+                if remove {
+                    // Collect unique parents so each directory grants and warns once.
+                    for f in &files {
+                        if is_path_stdin(f) {
+                            continue;
+                        }
+                        // Grant in the directory that actually holds the input. For a symlinked
+                        // input that is the symlink's own directory, not the target's, because
+                        // --remove unlinks the symlink itself.
+                        let input_dir = match f.parent() {
+                            Some(p) if !p.as_os_str().is_empty() => sandbox::canonicalize_for_sandbox(p),
+                            _ => sandbox::canonicalize_for_sandbox(std::path::Path::new(".")),
+                        };
+                        if !remove_parents.contains(&input_dir) {
+                            remove_parents.push(input_dir);
+                        }
+                    }
+                    // The decompressor can delete the input archive but not write nearby.
+                    for parent in &remove_parents {
+                        policy.allow_remove_in(parent.clone());
+                    }
+                }
+
+                // Apply once and warn only about what a real sandbox cannot confine.
+                let enforced = policy.set_disabled(args.no_sandbox).apply();
+                if enforced {
+                    for target in home_targets {
+                        warning!(
+                            "Sandbox: extraction target {} is $HOME or an ancestor of it; the sandbox cannot meaningfully confine writes",
+                            PathFmt(&target)
+                        );
+                    }
+                    for parent in remove_parents {
+                        warning!(
+                            "Sandbox: the extractor can delete any file in {}, not just the archive",
+                            PathFmt(&parent)
+                        );
+                    }
+                }
+            }
+
+            // Build the pool after the sandbox so its worker threads are confined by it
+            // --threads 0 means auto and lets rayon pick one thread per core
+            let pool = rayon::ThreadPoolBuilder::new()
+                .num_threads(args.threads.filter(|&t| t != 0).unwrap_or(0))
+                .build()
+                .map_err(|e| FinalError::with_title("Failed to initialize thread pool").detail(e.to_string()))?;
+
+            pool.install(move || {
+                files.par_iter().zip(files_extensions).zip(prepared).try_for_each(
+                    |((input_path, formats), prepared)| {
+                        decompress_file(DecompressOptions {
+                            input_file_path: input_path,
+                            formats,
+                            output_dir: &output_dir,
+                            output_dir_was_explicit,
+                            here,
+                            question_policy,
+                            password: args.password.as_deref().map(|str| {
+                                <[u8] as ByteSlice>::from_os_str(str).expect("convert password to bytes failed")
+                            }),
+                            remove,
+                            prepared,
+                        })
+                        .map_err(|err| match err {
+                            Error::IoError { reason } => Error::Custom {
+                                reason: FinalError::with_title(format!(
+                                    "Failed to decompress {}",
+                                    NoQuotePathFmt(input_path)
+                                ))
+                                .detail(reason),
+                            },
+                            other => other,
+                        })
+                    },
+                )
+            })
         }
         Subcommand::List { archives: files, tree } => {
             let mut formats = vec![];
@@ -256,16 +382,68 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
             // Ensure we were not told to list the content of a non-archive compressed file
             check::check_for_non_archive_formats(&files, &formats)?;
 
+            // Flatten the per-file formats up front so the next step can inspect them.
+            let flat_formats: Vec<Vec<extension::CompressionFormat>> = formats
+                .iter()
+                .map(|f| extension::flatten_compression_formats(f))
+                .collect();
+            // Open RAR spill tempfiles up front so unrar can read from them under the sandbox.
+            // The archive format sits at the front so match there not at the end.
+            let needs_spill = |formats: &[extension::CompressionFormat]| {
+                formats.len() > 1 && matches!(formats.first(), Some(extension::CompressionFormat::Rar))
+            };
+
+            // all spills share one private temp dir so the sandbox can allow their cleanup
+            let rar_spill_dir = if flat_formats.iter().any(|fs| needs_spill(fs)) {
+                Some(tempfile::tempdir()?)
+            } else {
+                None
+            };
+            let mut rar_spill_tempfiles: Vec<Option<tempfile::NamedTempFile>> = Vec::with_capacity(flat_formats.len());
+            for fs in &flat_formats {
+                let spill = if needs_spill(fs) {
+                    let dir = rar_spill_dir
+                        .as_ref()
+                        .expect("spill dir is created when any input needs a spill");
+                    Some(tempfile::Builder::new().prefix(".ouch-rar-").tempfile_in(dir.path())?)
+                } else {
+                    None
+                };
+                rar_spill_tempfiles.push(spill);
+            }
+
+            {
+                let mut policy = SandboxPolicy::new();
+                for f in &files {
+                    policy.allow_read(sandbox::canonicalize_for_sandbox(f));
+                }
+                if let Some(spill_dir) = &rar_spill_dir {
+                    let canon = sandbox::canonicalize_for_sandbox(spill_dir.path());
+                    // unrar reopens the spill files by path
+                    policy.allow_read(canon.clone());
+                    // each NamedTempFile unlinks its spill file on drop
+                    policy.allow_remove_in(canon.clone());
+                    // No RemoveDir grant on the parent: granting it would cover the whole temp
+                    // directory. The empty spill directory may be left behind if a failure stops
+                    // the TempDir from removing itself under the sandbox, which is the safer trade.
+                }
+                policy.set_disabled(args.no_sandbox).apply();
+            }
+
             let list_options = ListOptions {
                 tree,
                 quiet: args.quiet,
             };
 
-            for (i, (archive_path, formats)) in files.iter().zip(formats).enumerate() {
+            for (i, ((archive_path, formats), spill)) in files
+                .iter()
+                .zip(flat_formats)
+                .zip(rar_spill_tempfiles.iter_mut())
+                .enumerate()
+            {
                 if i > 0 && !args.quiet {
                     println!();
                 }
-                let formats = extension::flatten_compression_formats(&formats);
                 list_archive_contents(
                     archive_path,
                     formats,
@@ -274,6 +452,7 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                     args.password
                         .as_deref()
                         .map(|str| <[u8] as ByteSlice>::from_os_str(str).expect("convert password to bytes failed")),
+                    spill.take(),
                 )?;
             }
 

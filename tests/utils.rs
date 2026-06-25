@@ -29,7 +29,7 @@ pub fn cargo_bin() -> Command {
 /// Like [`cargo_bin`] but returns a `std::process::Command`, so callers can set stdin/stdout.
 pub fn cargo_bin_command() -> std::process::Command {
     let bin = assert_cmd::cargo::cargo_bin("ouch");
-    env::vars()
+    let mut cmd = env::vars()
         .find(|(k, _)| k.starts_with("CARGO_TARGET_") && k.ends_with("_RUNNER"))
         .map(|(_, runner)| {
             let mut parts = runner.split_whitespace();
@@ -37,7 +37,11 @@ pub fn cargo_bin_command() -> std::process::Command {
             cmd.args(parts).arg(&bin);
             cmd
         })
-        .unwrap_or_else(|| std::process::Command::new(&bin))
+        .unwrap_or_else(|| std::process::Command::new(&bin));
+    // Run the whole suite with the sandbox enabled.
+    // Clear any inherited OUCH_NO_SANDBOX so a stray value cannot disable it.
+    cmd.env_remove("OUCH_NO_SANDBOX");
+    cmd
 }
 
 pub fn testdir() -> io::Result<(tempfile::TempDir, &'static Path)> {
