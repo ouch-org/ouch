@@ -93,7 +93,10 @@ pub fn prepare_decompress_target(
     claimed_targets.insert(resolved.clone());
 
     let file_name = (!is_archive).then(|| output_file_path.file_name().unwrap_or_default().to_os_string());
-    Ok(PreparedTarget::Target { dir: resolved, file_name })
+    Ok(PreparedTarget::Target {
+        dir: resolved,
+        file_name,
+    })
 }
 
 enum DecompressionSummary {
