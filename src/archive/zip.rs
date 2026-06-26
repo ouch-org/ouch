@@ -337,7 +337,15 @@ fn unix_set_permissions<R: Read>(file_path: &Path, file: &ZipFile<'_, R>) -> Res
     use std::fs::Permissions;
 
     if let Some(mode) = file.unix_mode() {
-        fs::set_permissions(file_path, Permissions::from_mode(sanitize_archive_mode(mode)))?;
+        // Zip crate may return invalid Unix modes derived from MS-DOS attributes.
+        // Valid Unix modes contain the file type bits (S_IFMT, 0o170000).
+        // If these bits are missing, the mode is likely invalid and should be ignored.
+        // Also, we mask out the setuid, setgid, and sticky bits (0o7777 -> 0o0777)
+        // for security reasons when decompressing.
+        if mode & 0o170000 != 0 {
+            let safe_mode = mode & 0o777;
+            fs::set_permissions(file_path, Permissions::from_mode(sanitize_archive_mode(safe_mode)))?;
+        }
     }
 
     Ok(())

@@ -1570,6 +1570,55 @@ fn decompress_concatenated_lz4_frames() {
     });
 }
 
+/// Ensure extracting zip archives lacking correct UNIX file type bits (e.g. MS-DOS attributes mapped poorly)
+/// won't wrongly apply setuid/setgid bits.
+#[test]
+fn missing_file_type_unix_permissions() {
+    let (_tempdir, test_dir) = testdir().unwrap();
+
+    let bad_perms_zip = test_dir.join("bad_perms.zip");
+
+    {
+        use zip::write::SimpleFileOptions;
+
+        let file = std::fs::File::create(&bad_perms_zip).unwrap();
+        let mut zip = zip::ZipWriter::new(file);
+
+        // Use an invalid mode: 0o7700 (missing S_IFMT)
+        let options = SimpleFileOptions::default().unix_permissions(0o7700);
+        zip.start_file("test_file.txt", options).unwrap();
+        zip.write_all(b"hello world").unwrap();
+        zip.finish().unwrap();
+    }
+
+    let out_dir = test_dir.join("out");
+
+    let mut cmd = crate::utils::cargo_bin();
+    cmd.arg("d")
+        .arg(&bad_perms_zip)
+        .arg("-d")
+        .arg(&out_dir)
+        .assert()
+        .success();
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let file_path = out_dir.join("test_file.txt");
+        let metadata = std::fs::metadata(&file_path).unwrap();
+        let mode = metadata.permissions().mode();
+
+        // Default permission should be applied since 0o7700 does not have file type bits.
+        // It definitely shouldn't be 0o7700 or have sticky/setuid bits.
+        assert_ne!(
+            mode & 0o7777,
+            0o7700,
+            "Should have fallen back to default file permissions"
+        );
+        assert_eq!(mode & 0o7000, 0, "Should not have sticky, setuid, or setgid bits");
+    }
+}
+
 /// A conflict that cannot be resolved because stdin is /dev/null must fail, not exit 0.
 #[test]
 fn decompress_conflict_with_dev_null_stdin_exits_nonzero() {
