@@ -74,6 +74,11 @@ fn insta_filter_settings() -> insta::Settings {
     settings.add_filter(r"\\", "/");
     // Normalise OS-specific io::Error text in fs-err messages
     settings.add_filter(r": [^\n]*\(os error \d+\)", ": [OS_ERROR]");
+    // Some CI targets cannot enable Landlock; it is unrelated to the UI assertions.
+    settings.add_filter(
+        r"(?m)^\[WARNING\] Sandbox: could not enable Landlock; running without a sandbox\. This requires the Landlock LSM to be enabled and a kernel with ABI v6 \(Linux 6\.12 or newer\)\r?\n?",
+        "",
+    );
     settings
 }
 
