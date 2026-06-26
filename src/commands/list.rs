@@ -26,7 +26,7 @@ pub fn list_archive_contents(
     question_policy: QuestionPolicy,
     password: Option<&[u8]>,
     // Pre-opened tempfile FD for multi-format RAR list under the sandbox.
-    rar_spill_tempfile: Option<tempfile::NamedTempFile>,
+    #[allow(unused_variables)] rar_spill_tempfile: Option<tempfile::NamedTempFile>,
 ) -> Result<()> {
     let reader = fs::File::open(archive_path)?;
 
