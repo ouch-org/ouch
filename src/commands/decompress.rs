@@ -64,6 +64,30 @@ pub fn prepare_decompress_target(
     let (first_extension, _) = split_first_compression_format(formats);
     let is_archive = matches!(first_extension, Tar | Zip | Rar | SevenZip);
 
+    // For a single file in an explicit directory, resolve the conflict on the file, not the directory
+    if !is_archive && (output_dir_was_explicit || here) {
+        let name = output_file_path.file_name().unwrap_or_default().to_os_string();
+        let file_target = output_dir.join(&name);
+        let claimed = claimed_targets.contains(&file_target);
+        let resolved = if !claimed && !file_target.fs_err_try_exists()? {
+            file_target
+        } else if let Some(p) = resolve_path_conflict(&file_target, question_policy, QuestionAction::Decompression)? {
+            p
+        } else {
+            return Ok(PreparedTarget::Cancelled);
+        };
+        claimed_targets.insert(resolved.clone());
+        let file_name = resolved.file_name().unwrap_or_default().to_os_string();
+        let dir = resolved
+            .parent()
+            .map(|p| p.to_path_buf())
+            .unwrap_or_else(|| output_dir.to_path_buf());
+        return Ok(PreparedTarget::Target {
+            dir,
+            file_name: Some(file_name),
+        });
+    }
+
     // --dir and --here unpack into output_dir as is
     // default mode makes a new directory named after the archive so report.txt.gz becomes report/report.txt
     let target = if output_dir_was_explicit || here {
@@ -155,6 +179,11 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
         Ok(reader)
     };
 
+    // Return early on a cancelled target
+    let PreparedTarget::Target { dir, file_name } = options.prepared else {
+        return Ok(());
+    };
+
     let control_flow = match first_extension {
         Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {
             let reader = create_decoder_up_to_first_extension()?;
@@ -162,12 +191,10 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
             // Bomb cap: abort if decompressed output exceeds OUCH_MAX_DECOMPRESSED_BYTES
             let mut reader = LimitedReader::new(reader);
 
-            let PreparedTarget::Target {
-                dir,
-                file_name: Some(file_name),
-            } = options.prepared
-            else {
-                return Ok(());
+            // Non-archive targets always have a file name
+            let file_name = match file_name {
+                Some(file_name) => file_name,
+                None => unreachable!("a non-archive target always has a file name"),
             };
 
             let final_output_path = dir.join(file_name);
@@ -177,18 +204,13 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
                 output_path: final_output_path,
             })
         }
-        Tar => {
-            let PreparedTarget::Target { dir, .. } = options.prepared else {
-                return Ok(());
-            };
-            unpack_archive(
-                |output_dir| {
-                    let reader = LimitedReader::new(create_decoder_up_to_first_extension()?);
-                    crate::archive::tar::unpack_archive(reader, output_dir)
-                },
-                dir,
-            )?
-        }
+        Tar => unpack_archive(
+            |output_dir| {
+                let reader = LimitedReader::new(create_decoder_up_to_first_extension()?);
+                crate::archive::tar::unpack_archive(reader, output_dir)
+            },
+            dir,
+        )?,
         Zip | SevenZip => {
             let unpack_fn = match first_extension {
                 Zip => crate::archive::zip::unpack_archive,
@@ -230,16 +252,10 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
                 ))
             };
 
-            let PreparedTarget::Target { dir, .. } = options.prepared else {
-                return Ok(());
-            };
             unpack_archive(|output_dir| unpack_fn(reader, output_dir, options.password), dir)?
         }
         #[cfg(feature = "unrar")]
         Rar => {
-            let PreparedTarget::Target { dir, .. } = options.prepared else {
-                return Ok(());
-            };
             let unpack_fn: Box<dyn FnOnce(&Path) -> Result<u64>> = if options.formats.len() > 1 || input_is_stdin {
                 // unrar's C API needs a path; spill the decoded stream into the wrapper dir.
                 let mut temp_file = tempfile::Builder::new().prefix(".ouch-rar-").tempfile_in(&dir)?;

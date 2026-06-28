@@ -423,9 +423,10 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                     policy.allow_read(canon.clone());
                     // each NamedTempFile unlinks its spill file on drop
                     policy.allow_remove_in(canon.clone());
-                    // No RemoveDir grant on the parent: granting it would cover the whole temp
-                    // directory. The empty spill directory may be left behind if a failure stops
-                    // the TempDir from removing itself under the sandbox, which is the safer trade.
+                    // Grant directory removal on the spill directory's parent
+                    if let Some(parent) = canon.parent() {
+                        policy.allow_remove_dir_in(parent.to_path_buf());
+                    }
                 }
                 policy.set_disabled(args.no_sandbox).apply();
             }

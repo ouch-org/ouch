@@ -1497,6 +1497,32 @@ fn decompress_dir_flag_to_another_dir_and_overwrite() {
     assert_eq!("second write", fs::read_to_string(&output_file).unwrap());
 }
 
+/// A single file extracted into an explicit --dir is conflict-checked on the file, not the directory
+#[test]
+fn decompress_single_file_dir_allows_non_empty_output_dir_with_no() {
+    let (_tempdir, dir) = testdir().unwrap();
+
+    fs::write(dir.join("a"), b"alpha").unwrap();
+    crate::utils::cargo_bin()
+        .args(["compress", "a", "a.gz", "--yes"])
+        .current_dir(dir)
+        .assert()
+        .success();
+    fs::remove_file(dir.join("a")).unwrap();
+
+    fs::create_dir(dir.join("out")).unwrap();
+    fs::write(dir.join("out").join("other-file"), b"keep").unwrap();
+
+    crate::utils::cargo_bin()
+        .args(["decompress", "a.gz", "--dir", "out", "--no"])
+        .current_dir(dir)
+        .assert()
+        .success();
+
+    assert_eq!("alpha", fs::read_to_string(dir.join("out").join("a")).unwrap());
+    assert_eq!("keep", fs::read_to_string(dir.join("out").join("other-file")).unwrap());
+}
+
 /// This test ensures the current behavior isn't modified by accident, even
 /// if it's not the ideal behavior.
 ///
