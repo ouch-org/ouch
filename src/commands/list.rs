@@ -25,6 +25,8 @@ pub fn list_archive_contents(
     list_options: ListOptions,
     question_policy: QuestionPolicy,
     password: Option<&[u8]>,
+    // Pre-opened tempfile FD for multi-format RAR list under the sandbox.
+    #[allow(unused_variables)] rar_spill_tempfile: Option<tempfile::NamedTempFile>,
 ) -> Result<()> {
     let reader = fs::File::open(archive_path)?;
 
@@ -111,7 +113,15 @@ pub fn list_archive_contents(
         #[cfg(feature = "unrar")]
         Rar => {
             if formats.len() > 1 {
-                let mut temp_file = tempfile::NamedTempFile::new()?;
+                // The caller pre-opens this tempfile before the sandbox starts.
+                let mut temp_file = match rar_spill_tempfile {
+                    Some(temp_file) => temp_file,
+                    None => {
+                        return Err(crate::error::FinalError::with_title("Failed to list RAR archive")
+                            .detail("the sandbox spill tempfile was not prepared before lockdown")
+                            .into());
+                    }
+                };
                 // Bomb cap: abort if decompressed output to tempfile exceeds the limit
                 copy_limited_decompression(&mut reader, &mut temp_file)?;
                 Box::new(crate::archive::rar::list_archive(temp_file.path(), password)?)

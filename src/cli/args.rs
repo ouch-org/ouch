@@ -50,6 +50,10 @@ pub struct CliArgs {
     #[arg(short = 'c', long, global = true)]
     pub threads: Option<usize>,
 
+    /// Disable the process sandbox.
+    #[arg(long, global = true)]
+    pub no_sandbox: bool,
+
     // Ouch and claps subcommands
     #[command(subcommand)]
     pub cmd: Subcommand,
@@ -156,6 +160,7 @@ mod tests {
             // This is usually replaced in assertion tests
             password: None,
             threads: None,
+            no_sandbox: false,
             cmd: Subcommand::Decompress {
                 // Put a crazy value here so no test can assert it unintentionally
                 files: vec!["\x00\x11\x22".into()],
