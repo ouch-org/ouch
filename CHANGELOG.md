@@ -31,6 +31,7 @@ Categories Used:
 - Prevent path traversal and symlink/hardlink escape attacks in tar, zip, 7z, and rar entries (https://github.com/ouch-org/ouch/pull/951).
 - Sanitize archive-controlled filenames, comments, symlink targets, and error text before printing to the terminal (https://github.com/ouch-org/ouch/pull/951).
 - Strip special permission bits from archive-supplied file modes and create zip outputs with final sanitized permissions immediately (https://github.com/ouch-org/ouch/pull/951).
+- Validate zip unix permissions at file creation, falling back to the default mode when the archive-supplied mode is invalid (https://github.com/ouch-org/ouch/pull/1014).
 
 ### Bug Fixes
 
