@@ -55,7 +55,7 @@ assert_cmd = "2.2.1"
 glob = "0.3.3"
 infer = "0.19.0"
 insta = { version = "1.47.2", features = ["filters"] }
-itertools = "0.14.0"
+itertools = "0.15.0"
 memchr = "2.8.1"
 parse-display = "0.11.0"
 pretty_assertions = "1.4.1"
