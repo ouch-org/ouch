@@ -22,7 +22,7 @@ jobs:
       attestations: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v6.0.3
+        uses: actions/checkout@v7.0.0
 
       - name: Download artifacts
         uses: actions/download-artifact@v8
@@ -34,7 +34,7 @@ jobs:
         run: scripts/package-release-assets.sh
 
       - name: Attest build provenance
-        uses: actions/attest-build-provenance@v4
+        uses: actions/attest-build-provenance@v4.1.0
         with:
           subject-path: "output_assets/ouch-*"
 
