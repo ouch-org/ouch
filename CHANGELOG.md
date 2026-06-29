@@ -1,6 +1,6 @@
-# Changelog
+# Old Changelog
 
-All notable user-facing changes to Ouch should be documented in this file.
+Up until 0.8.0, all notable user-facing changes to Ouch would be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
@@ -16,7 +16,7 @@ Categories Used:
 
 **Bullet points in chronological order by PR**
 
-## [Unreleased](https://github.com/ouch-org/ouch/compare/0.8.0...HEAD)
+## [0.8.1](https://github.com/ouch-org/ouch/compare/0.8.0...0.8.1)
 
 ### New Features
 
