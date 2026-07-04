@@ -49,6 +49,9 @@ zip = { version = "8.6.0", default-features = false, features = [
 ] }
 zstd = { version = "0.13.3", default-features = false, features = ["zstdmt"] }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+landlock = "0.4.5"
+
 [dev-dependencies]
 anyhow = "1.0.102"
 assert_cmd = "2.2.1"

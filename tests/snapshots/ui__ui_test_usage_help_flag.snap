@@ -1,5 +1,6 @@
 ---
 source: tests/ui.rs
+assertion_line: 193
 expression: "output_to_string(ouch!(\"--help\"))"
 ---
 A command-line utility for easily compressing and decompressing files and directories.
@@ -47,6 +48,9 @@ Options:
 
   -c, --threads <THREADS>
           Concurrent working threads
+
+      --no-sandbox
+          Disable the process sandbox
 
   -h, --help
           Print help (see a summary with '-h')
