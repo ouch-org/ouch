@@ -66,10 +66,12 @@ where
                 let is_symlink = mode.is_some_and(|mode| mode & 0o170000 == 0o120000);
 
                 if is_symlink {
-                    let mut target = String::new();
-                    file.read_to_string(&mut target)?;
+                    // Symlink targets are arbitrary bytes on Unix, not guaranteed UTF-8; read as bytes.
+                    let mut target_bytes = Vec::new();
+                    file.read_to_end(&mut target_bytes)?;
+                    let target = symlink_target_from_bytes(&target_bytes);
 
-                    validate_symlink_target(&relpath, Path::new(&target))?;
+                    validate_symlink_target(&relpath, &target)?;
                     #[cfg(unix)]
                     std::os::unix::fs::symlink(&target, &file_path)?;
                     #[cfg(windows)]
@@ -86,13 +88,15 @@ where
                 let is_symlink = mode.is_some_and(|mode| mode & 0o170000 == 0o120000);
 
                 if is_symlink {
-                    let mut target = String::new();
-                    file.read_to_string(&mut target)?;
+                    // Symlink targets are arbitrary bytes on Unix, not guaranteed UTF-8; read as bytes.
+                    let mut target_bytes = Vec::new();
+                    file.read_to_end(&mut target_bytes)?;
+                    let target = symlink_target_from_bytes(&target_bytes);
 
-                    validate_symlink_target(&relpath, Path::new(&target))?;
-                    info!("linking {} -> \"{}\"", PathFmt(file_path), target);
+                    validate_symlink_target(&relpath, &target)?;
+                    info!("linking {} -> \"{}\"", PathFmt(file_path), target.display());
 
-                    create_symlink(Path::new(&target), file_path)?;
+                    create_symlink(&target, file_path)?;
                 } else {
                     #[cfg(unix)]
                     let mut output_file = {
@@ -284,6 +288,19 @@ where
 
     let bytes = writer.finish()?;
     Ok(bytes)
+}
+
+/// Decode a zip symlink target's raw bytes into a path (lossless on Unix, lossy elsewhere).
+fn symlink_target_from_bytes(bytes: &[u8]) -> PathBuf {
+    #[cfg(unix)]
+    {
+        use std::os::unix::ffi::OsStrExt;
+        PathBuf::from(std::ffi::OsStr::from_bytes(bytes))
+    }
+    #[cfg(not(unix))]
+    {
+        PathBuf::from(String::from_utf8_lossy(bytes).into_owned())
+    }
 }
 
 fn display_zip_comment_if_exists<R: Read>(file: &ZipFile<'_, R>) {
