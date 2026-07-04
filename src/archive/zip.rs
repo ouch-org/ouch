@@ -260,7 +260,8 @@ where
                     io::copy(&mut file, &mut writer)?;
                 }
                 FileType::Directory => {
-                    writer.add_directory(entry_name, default_options)?;
+                    // Directory entries have no data and get an invalid size when ZIP64 is forced on
+                    writer.add_directory(entry_name, default_options.large_file(false))?;
                 }
                 FileType::Symlink => {
                     let target_path = path.read_link()?;
