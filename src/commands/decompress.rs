@@ -192,9 +192,8 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
             let mut reader = LimitedReader::new(reader);
 
             // Non-archive targets always have a file name
-            let file_name = match file_name {
-                Some(file_name) => file_name,
-                None => unreachable!("a non-archive target always has a file name"),
+            let Some(file_name) = file_name else {
+                unreachable!("a non-archive target always has a file name");
             };
 
             let final_output_path = dir.join(file_name);
