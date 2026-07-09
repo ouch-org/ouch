@@ -46,6 +46,7 @@ unrar = { package = "unrar-ng", version = "0.7.6", optional = true }
 zip = { version = "8.6.0", default-features = false, features = [
     "time",
     "aes-crypto",
+    "ppmd",
 ] }
 zstd = { version = "0.13.3", default-features = false, features = ["zstdmt"] }
 
