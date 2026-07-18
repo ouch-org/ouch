@@ -42,7 +42,7 @@ jobs:
           subject-path: "output_assets/ouch-*"
 
       - name: Create release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@v3.0.1
         with:
           draft: true
           files: output_assets/ouch-*
