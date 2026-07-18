@@ -30,6 +30,9 @@ jobs:
           path: downloaded_artifacts
           pattern: ouch-*
 
+      - name: Install AppImage dependencies
+        run: sudo apt-get update && sudo apt-get install -y desktop-file-utils
+
       - name: Package release assets
         run: scripts/package-release-assets.sh
 

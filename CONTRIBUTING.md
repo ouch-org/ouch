@@ -23,9 +23,6 @@ Before opening the PR, open an issue to discuss your addition, this increases th
 ## PRs
 
 - Pass all CI checks.
-- After opening the PR, add a [CHANGELOG.md] entry.
-
-[CHANGELOG.md]: https://github.com/ouch-org/ouch
 
 ### CI Tests
 
