@@ -220,10 +220,15 @@ impl<R: Read> Read for LimitedReader<R> {
         }
 
         if self.remaining == 0 {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "decompression output exceeded configured limit (see OUCH_MAX_DECOMPRESSED_BYTES)",
-            ));
+            // Probe one byte to tell exactly-at-limit (EOF) from over-limit; discarded on error.
+            let mut probe = [0u8; 1];
+            return match self.inner.read(&mut probe)? {
+                0 => Ok(0),
+                _ => Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "decompression output exceeded configured limit (see OUCH_MAX_DECOMPRESSED_BYTES)",
+                )),
+            };
         }
 
         let bytes_to_ready = usize::try_from(self.remaining).unwrap_or(usize::MAX).min(buf.len());
