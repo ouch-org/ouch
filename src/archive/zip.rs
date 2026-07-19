@@ -101,7 +101,7 @@ where
                     #[cfg(unix)]
                     let mut output_file = {
                         use fs_err::os::unix::fs::OpenOptionsExt;
-                        let mode = file.unix_mode().map(sanitize_archive_mode).unwrap_or(0o644);
+                        let mode = file.unix_mode().and_then(valid_unix_permissions).unwrap_or(0o644);
                         fs::OpenOptions::new()
                             .write(true)
                             .create(true)
@@ -350,20 +350,19 @@ fn set_last_modified_time<R: Read>(zip_file: &ZipFile<'_, R>, path: &Path) -> Re
     Ok(())
 }
 
+/// A zip mode without Unix file-type bits isn't a real Unix mode, so its permissions are ignored.
+#[cfg(unix)]
+fn valid_unix_permissions(mode: u32) -> Option<u32> {
+    (mode & 0o170000 != 0).then(|| sanitize_archive_mode(mode))
+}
+
 #[cfg(unix)]
 fn unix_set_permissions<R: Read>(file_path: &Path, file: &ZipFile<'_, R>) -> Result<()> {
     use std::fs::Permissions;
 
-    if let Some(mode) = file.unix_mode() {
-        // Zip crate may return invalid Unix modes derived from MS-DOS attributes.
-        // Valid Unix modes contain the file type bits (S_IFMT, 0o170000).
-        // If these bits are missing, the mode is likely invalid and should be ignored.
-        // Also, we mask out the setuid, setgid, and sticky bits (0o7777 -> 0o0777)
-        // for security reasons when decompressing.
-        if mode & 0o170000 != 0 {
-            let safe_mode = mode & 0o777;
-            fs::set_permissions(file_path, Permissions::from_mode(sanitize_archive_mode(safe_mode)))?;
-        }
+    // Apply the entry's permissions only when it carries a valid Unix mode.
+    if let Some(mode) = file.unix_mode().and_then(valid_unix_permissions) {
+        fs::set_permissions(file_path, Permissions::from_mode(mode))?;
     }
 
     Ok(())

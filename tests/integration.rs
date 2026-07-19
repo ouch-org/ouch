@@ -1602,31 +1602,33 @@ fn decompress_concatenated_lz4_frames() {
     });
 }
 
-/// Ensure extracting zip archives lacking correct UNIX file type bits (e.g. MS-DOS attributes mapped poorly)
-/// won't wrongly apply setuid/setgid bits.
+/// Zip entries whose stored mode lacks Unix file-type bits must fall back to default permissions.
 #[test]
 fn missing_file_type_unix_permissions() {
-    let (_tempdir, test_dir) = testdir().unwrap();
+    use std::io::Write;
 
+    let (_tempdir, test_dir) = testdir().unwrap();
     let bad_perms_zip = test_dir.join("bad_perms.zip");
 
+    // The zip crate always ORs in S_IFREG, so write a normal entry first.
     {
         use zip::write::SimpleFileOptions;
-
         let file = std::fs::File::create(&bad_perms_zip).unwrap();
         let mut zip = zip::ZipWriter::new(file);
-
-        // Use an invalid mode: 0o7700 (missing S_IFMT)
-        let options = SimpleFileOptions::default().unix_permissions(0o7700);
-        zip.start_file("test_file.txt", options).unwrap();
+        zip.start_file("test_file.txt", SimpleFileOptions::default()).unwrap();
         zip.write_all(b"hello world").unwrap();
         zip.finish().unwrap();
     }
 
-    let out_dir = test_dir.join("out");
+    // Overwrite external_attributes in the central directory with 0o777<<16: permission bits but no S_IFMT.
+    let mut bytes = std::fs::read(&bad_perms_zip).unwrap();
+    let cd = bytes.windows(4).position(|w| w == [0x50, 0x4b, 0x01, 0x02]).unwrap();
+    bytes[cd + 38..cd + 42].copy_from_slice(&(0o777u32 << 16).to_le_bytes());
+    std::fs::write(&bad_perms_zip, &bytes).unwrap();
 
-    let mut cmd = crate::utils::cargo_bin();
-    cmd.arg("d")
+    let out_dir = test_dir.join("out");
+    crate::utils::cargo_bin()
+        .arg("d")
         .arg(&bad_perms_zip)
         .arg("-d")
         .arg(&out_dir)
@@ -1636,18 +1638,61 @@ fn missing_file_type_unix_permissions() {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        let file_path = out_dir.join("test_file.txt");
-        let metadata = std::fs::metadata(&file_path).unwrap();
-        let mode = metadata.permissions().mode();
+        let mode = std::fs::metadata(out_dir.join("test_file.txt"))
+            .unwrap()
+            .permissions()
+            .mode();
+        // The bogus 0o777 must be ignored, so the extracted file is not owner-executable.
+        assert_eq!(mode & 0o100, 0, "invalid zip mode must not be applied");
+        // And no setuid/setgid/sticky bits leak through.
+        assert_eq!(mode & 0o7000, 0, "special bits must not be applied");
+    }
+}
 
-        // Default permission should be applied since 0o7700 does not have file type bits.
-        // It definitely shouldn't be 0o7700 or have sticky/setuid bits.
-        assert_ne!(
-            mode & 0o7777,
-            0o7700,
-            "Should have fallen back to default file permissions"
-        );
-        assert_eq!(mode & 0o7000, 0, "Should not have sticky, setuid, or setgid bits");
+/// Zip entries carrying setuid/setgid/sticky bits must have them stripped, keeping only permission bits.
+#[test]
+fn zip_special_permission_bits_are_stripped() {
+    use std::io::Write;
+
+    let (_tempdir, test_dir) = testdir().unwrap();
+    let suid_zip = test_dir.join("suid.zip");
+
+    // The zip crate masks special bits away, so write a normal entry then patch the bytes.
+    {
+        use zip::write::SimpleFileOptions;
+        let file = std::fs::File::create(&suid_zip).unwrap();
+        let mut zip = zip::ZipWriter::new(file);
+        zip.start_file("test_file.txt", SimpleFileOptions::default()).unwrap();
+        zip.write_all(b"hello world").unwrap();
+        zip.finish().unwrap();
+    }
+
+    // Set external_attributes to S_IFREG | setuid | setgid | sticky | 0o755.
+    let mut bytes = std::fs::read(&suid_zip).unwrap();
+    let cd = bytes.windows(4).position(|w| w == [0x50, 0x4b, 0x01, 0x02]).unwrap();
+    bytes[cd + 38..cd + 42].copy_from_slice(&((0o100000u32 | 0o7755) << 16).to_le_bytes());
+    std::fs::write(&suid_zip, &bytes).unwrap();
+
+    let out_dir = test_dir.join("out");
+    crate::utils::cargo_bin()
+        .arg("d")
+        .arg(&suid_zip)
+        .arg("-d")
+        .arg(&out_dir)
+        .assert()
+        .success();
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mode = std::fs::metadata(out_dir.join("test_file.txt"))
+            .unwrap()
+            .permissions()
+            .mode();
+        // Permission bits are preserved.
+        assert_eq!(mode & 0o777, 0o755, "permission bits must be preserved");
+        // Setuid, setgid, and sticky bits are removed.
+        assert_eq!(mode & 0o7000, 0, "special bits must be stripped");
     }
 }
 
