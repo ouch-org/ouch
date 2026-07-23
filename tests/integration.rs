@@ -808,7 +808,7 @@ fn unpack_multiple_sources_into_the_same_destination_with_merge(
         .arg(archive1)
         .arg("-d")
         .arg(&out_path)
-        .write_stdin("m")
+        .write_stdin("m\no\n")
         .assert()
         .success();
 
@@ -1550,12 +1550,13 @@ fn decompress_dir_flag_current_dir_and_overwrite() {
         .assert()
         .success();
 
-    // First decompress with `--dir .` — should succeed
+    // First decompress with `--dir .` asks before replacing the file
     crate::utils::cargo_bin()
         .arg("decompress")
         .arg(&archive)
         .args(["--dir", "."])
         .current_dir(dir)
+        .write_stdin("o")
         .assert()
         .success();
 
@@ -1574,14 +1575,14 @@ fn decompress_dir_flag_current_dir_and_overwrite() {
         .assert()
         .success();
 
-    // Decompressing again with `--dir .` — this succeeds for now, and it's
-    // inconsistent with other `--dir PATH` usages, this test ensure this isn't
-    // changed by accident.
+    // Decompressing again with `--dir .` asks before it replaces the file.
+    // Answering overwrite keeps the file replaced.
     crate::utils::cargo_bin()
         .arg("decompress")
         .arg(&archive)
         .args(["--dir", "."])
         .current_dir(dir)
+        .write_stdin("o")
         .assert()
         .success();
 
@@ -1878,4 +1879,48 @@ fn decompress_conflict_with_dev_null_stdin_exits_nonzero() {
         !status.success(),
         "decompress with an unresolvable conflict on /dev/null stdin must exit non-zero"
     );
+}
+
+// Merging into a folder must ask per file instead of replacing files silently.
+#[test]
+fn merging_into_a_folder_asks_before_replacing_each_file() {
+    for ext in MainDirectoryExtension::iter() {
+        let (_tempdir, dir) = testdir().unwrap();
+        let archive = dir.join(format!("archive.{ext}"));
+        let source = dir.join("src");
+        fs::create_dir(&source).unwrap();
+        fs::write(source.join("data.txt"), "from archive").unwrap();
+
+        crate::utils::cargo_bin()
+            .args(["compress", source.join("data.txt").to_str().unwrap()])
+            .arg(&archive)
+            .assert()
+            .success();
+
+        let out = dir.join("out");
+        fs::create_dir(&out).unwrap();
+        fs::write(out.join("data.txt"), "original").unwrap();
+
+        // Merge the folder and then skip the file that is already there.
+        crate::utils::cargo_bin()
+            .arg("decompress")
+            .arg(&archive)
+            .arg("-d")
+            .arg(&out)
+            .write_stdin("m\ns\n")
+            .assert()
+            .success();
+        assert_eq!("original", fs::read_to_string(out.join("data.txt")).unwrap());
+
+        // Answering overwrite replaces it.
+        crate::utils::cargo_bin()
+            .arg("decompress")
+            .arg(&archive)
+            .arg("-d")
+            .arg(&out)
+            .write_stdin("m\no\n")
+            .assert()
+            .success();
+        assert_eq!("from archive", fs::read_to_string(out.join("data.txt")).unwrap());
+    }
 }

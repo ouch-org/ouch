@@ -13,21 +13,21 @@ use fs_err as fs;
 use same_file::Handle;
 
 use crate::{
-    Result,
+    QuestionPolicy, Result,
     error::FinalError,
     info,
     list::{FileInArchive, ListFileType},
     utils::{
         self, BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, create_symlink, is_same_file_as_output,
-        read_file_type, sanitize_archive_mode, set_permission_mode, validate_dest_inside_root, validate_entry_path,
-        validate_symlink_target,
+        read_file_type, resolve_extraction_conflict, sanitize_archive_mode, set_permission_mode,
+        validate_dest_inside_root, validate_entry_path, validate_symlink_target,
     },
     warning,
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `into`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> Result<u64> {
+pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: QuestionPolicy) -> Result<u64> {
     let mut archive = tar::Archive::new(reader);
 
     let mut files_unpacked = 0;
@@ -35,6 +35,9 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> Result<u64> {
 
     for entry in archive.entries()? {
         let mut entry = entry?;
+
+        // Set when the user renamed a file so the log can show the real path.
+        let mut written = None;
 
         match entry.header().entry_type() {
             tar::EntryType::Symlink => {
@@ -66,7 +69,20 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> Result<u64> {
                 fs::hard_link(&full_target_path, &full_link_path)?;
             }
             tar::EntryType::Regular | tar::EntryType::GNUSparse => {
-                entry.unpack_in(output_folder)?;
+                let raw_path = entry.path()?.into_owned();
+                let safe_relpath = validate_entry_path(&raw_path)?;
+                let full_path = output_folder.join(&safe_relpath);
+
+                let Some(dest) = resolve_extraction_conflict(&full_path, question_policy)? else {
+                    continue;
+                };
+
+                if dest == full_path {
+                    entry.unpack_in(output_folder)?;
+                } else {
+                    entry.unpack(&dest)?;
+                }
+                written = Some(dest);
             }
             tar::EntryType::Directory => {
                 let original_mode = entry.header().mode()?;
@@ -90,14 +106,15 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> Result<u64> {
             _ => continue,
         }
 
+        let unpacked_path = match written {
+            Some(path) => path,
+            None => output_folder.join(entry.path()?),
+        };
+
         if entry.header().entry_type().is_dir() {
-            info!("Directory {} created", PathFmt(&output_folder.join(entry.path()?)));
+            info!("Directory {} created", PathFmt(&unpacked_path));
         } else {
-            info!(
-                "extracted ({}) {}",
-                BytesFmt(entry.size()),
-                PathFmt(&output_folder.join(entry.path()?)),
-            );
+            info!("extracted ({}) {}", BytesFmt(entry.size()), PathFmt(&unpacked_path));
         }
         files_unpacked += 1;
     }
