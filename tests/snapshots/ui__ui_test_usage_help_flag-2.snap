@@ -17,9 +17,7 @@ Options:
   -y, --yes                  Skip [Y/n] questions, default to yes
   -n, --no                   Skip [Y/n] questions, default to no
   -A, --accessible           Activate accessibility mode, reducing visual noise [env: ACCESSIBLE=]
-  -H, --hidden               Ignore hidden files
   -q, --quiet                Silence output
-  -g, --gitignore            Ignore files matched by git's ignore files
   -f, --format <FORMAT>      Specify the format of the archive
   -p, --password <PASSWORD>  Decompress or list with password [env: OUCH_PASSWORD=]
   -c, --threads <THREADS>    Concurrent working threads
