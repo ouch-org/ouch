@@ -50,6 +50,21 @@ pub fn resolve_path_conflict(
     }
 }
 
+/// Decide where to extract a file when the path is taken. None means skip it.
+pub fn resolve_extraction_conflict(path: &Path, question_policy: QuestionPolicy) -> Result<Option<PathBuf>> {
+    // Only an existing file clashes. Directories merge and other kinds fail on write.
+    if !path.is_file() {
+        return Ok(Some(path.to_path_buf()));
+    }
+
+    // These choices fit a single file. They are rename or overwrite or skip.
+    match user_wants_to_overwrite(path, question_policy, QuestionAction::Compression)? {
+        FileConflitOperation::Cancel => Ok(None),
+        FileConflitOperation::Rename => Ok(Some(find_available_filename_by_renaming(path)?)),
+        FileConflitOperation::Overwrite | FileConflitOperation::Merge => Ok(Some(path.to_path_buf())),
+    }
+}
+
 pub fn remove_file_or_dir(path: &Path) -> Result<()> {
     if path.is_dir() {
         if let Ok(cwd) = env::current_dir()
