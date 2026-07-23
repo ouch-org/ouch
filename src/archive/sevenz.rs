@@ -12,22 +12,30 @@ use same_file::Handle;
 use sevenz_rust2::ArchiveEntry;
 
 use crate::{
-    Result,
+    QuestionPolicy, Result,
     error::{Error, FinalError},
     info,
     list::{FileInArchive, ListFileType},
     utils::{
         BytesFmt, FileVisibilityPolicy, PathFmt, cd_into_same_dir_as, copy_limited_decompression,
-        ensure_parent_dir_exists, is_same_file_as_output, validate_dest_inside_root, validate_entry_path,
+        ensure_parent_dir_exists, is_same_file_as_output, resolve_extraction_conflict, validate_dest_inside_root,
+        validate_entry_path,
     },
     warning,
 };
 
-pub fn unpack_archive<R>(reader: R, output_path: &Path, password: Option<&[u8]>) -> Result<u64>
+pub fn unpack_archive<R>(
+    reader: R,
+    output_path: &Path,
+    password: Option<&[u8]>,
+    question_policy: QuestionPolicy,
+) -> Result<u64>
 where
     R: Read + Seek,
 {
     let mut files_unpacked = 0;
+    // The closure cannot return an ouch error so it is carried out here.
+    let mut conflict_error = None;
 
     let entry_extract_fn =
         |entry: &ArchiveEntry, reader: &mut dyn Read, path: &PathBuf| -> Result<bool, sevenz_rust2::Error> {
@@ -54,11 +62,20 @@ where
                     fs::create_dir_all(path)?;
                 }
             } else {
-                info!("extracted ({}) {}", BytesFmt(entry.size()), PathFmt(&file_path));
+                let dest = match resolve_extraction_conflict(path, question_policy) {
+                    Ok(Some(dest)) => dest,
+                    Ok(None) => return Ok(true),
+                    Err(err) => {
+                        conflict_error = Some(err);
+                        return Ok(false);
+                    }
+                };
 
-                ensure_parent_dir_exists(path)?;
+                info!("extracted ({}) {}", BytesFmt(entry.size()), PathFmt(&dest));
 
-                let file = fs::File::create(path)?;
+                ensure_parent_dir_exists(&dest)?;
+
+                let file = fs::File::create(&dest)?;
                 let mut writer = BufWriter::new(file);
                 copy_limited_decompression(reader, &mut writer)?;
 
@@ -70,7 +87,7 @@ where
                     Some(ft::FileTime::from_system_time(entry.last_modified_date().into())),
                     Some(ft::FileTime::from_system_time(entry.creation_date().into())),
                 ) {
-                    warning!("could not set timestamps on {}: {e}", PathFmt(&file_path));
+                    warning!("could not set timestamps on {}: {e}", PathFmt(&dest));
                 }
             }
 
@@ -78,7 +95,7 @@ where
             Ok(true) // Always proceed
         };
 
-    match password {
+    let result = match password {
         Some(password) => sevenz_rust2::decompress_with_extract_fn_and_password(
             reader,
             output_path,
@@ -86,9 +103,15 @@ where
                 reason: err.to_string(),
             })?),
             entry_extract_fn,
-        )?,
-        None => sevenz_rust2::decompress_with_extract_fn(reader, output_path, entry_extract_fn)?,
+        ),
+        None => sevenz_rust2::decompress_with_extract_fn(reader, output_path, entry_extract_fn),
+    };
+
+    // Report the prompt failure instead of the library error it caused.
+    if let Some(err) = conflict_error {
+        return Err(err);
     }
+    result?;
 
     Ok(files_unpacked)
 }
