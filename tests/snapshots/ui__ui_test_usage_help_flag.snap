@@ -29,14 +29,8 @@ Options:
           
           [env: ACCESSIBLE=]
 
-  -H, --hidden
-          Ignore hidden files
-
   -q, --quiet
           Silence output
-
-  -g, --gitignore
-          Ignore files matched by git's ignore files
 
   -f, --format <FORMAT>
           Specify the format of the archive
