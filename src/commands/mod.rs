@@ -60,6 +60,8 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
         Subcommand::Compress {
             files,
             output: output_path,
+            hidden: _,
+            gitignore,
             level,
             fast,
             slow,
@@ -72,9 +74,9 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
 
             // gitignore and follow_symlinks both read paths outside the declared input set so the
             // sandbox cannot confine them; run unsandboxed and say why
-            let sandbox_disabled = sandbox::disabled_by_request(args.no_sandbox) || args.gitignore || follow_symlinks;
+            let sandbox_disabled = sandbox::disabled_by_request(args.no_sandbox) || gitignore || follow_symlinks;
             if cfg!(target_os = "linux") && !sandbox::disabled_by_request(args.no_sandbox) {
-                if args.gitignore {
+                if gitignore {
                     info!("Sandbox: disabled because --gitignore reads git configuration outside the input files");
                 }
                 if follow_symlinks {

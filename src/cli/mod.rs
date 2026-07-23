@@ -44,19 +44,21 @@ impl CliArgs {
             (true, true) => unreachable!(),
         };
 
-        let follow_symlinks = matches!(
-            &args.cmd,
+        let (hidden, gitignore, follow_symlinks) = match &args.cmd {
             Subcommand::Compress {
-                follow_symlinks: true,
+                hidden,
+                gitignore,
+                follow_symlinks,
                 ..
-            }
-        );
+            } => (*hidden, *gitignore, *follow_symlinks),
+            Subcommand::Decompress { .. } | Subcommand::List { .. } => (false, false, false),
+        };
 
         let file_visibility_policy = FileVisibilityPolicy::new()
-            .read_git_exclude(args.gitignore)
-            .read_ignore(args.gitignore)
-            .read_git_ignore(args.gitignore)
-            .read_hidden(args.hidden)
+            .read_git_exclude(gitignore)
+            .read_ignore(gitignore)
+            .read_git_ignore(gitignore)
+            .read_hidden(hidden)
             .follow_symlinks(follow_symlinks);
 
         Ok((args, skip_questions_positively, file_visibility_policy))

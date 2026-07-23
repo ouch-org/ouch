@@ -26,17 +26,9 @@ pub struct CliArgs {
     #[arg(short = 'A', long, env = "ACCESSIBLE", global = true)]
     pub accessible: bool,
 
-    /// Ignore hidden files
-    #[arg(short = 'H', long, global = true)]
-    pub hidden: bool,
-
     /// Silence output
     #[arg(short, long, global = true)]
     pub quiet: bool,
-
-    /// Ignore files matched by git's ignore files
-    #[arg(short, long, global = true)]
-    pub gitignore: bool,
 
     /// Specify the format of the archive
     #[arg(short, long, global = true)]
@@ -72,6 +64,14 @@ pub enum Subcommand {
         /// The resulting file. Its extensions can be used to specify the compression formats
         #[arg(required = true, value_hint = ValueHint::FilePath)]
         output: PathBuf,
+
+        /// Ignore hidden files
+        #[arg(short = 'H', long)]
+        hidden: bool,
+
+        /// Ignore files matched by git's ignore files
+        #[arg(short, long)]
+        gitignore: bool,
 
         /// Compression level, applied to all formats
         #[arg(short, long, group = "compression-level")]
@@ -153,9 +153,7 @@ mod tests {
             yes: false,
             no: false,
             accessible: false,
-            hidden: false,
             quiet: false,
-            gitignore: false,
             format: None,
             // This is usually replaced in assertion tests
             password: None,
@@ -216,6 +214,8 @@ mod tests {
                 cmd: Subcommand::Compress {
                     files: to_paths(["file"]),
                     output: PathBuf::from("file.tar.gz"),
+                    hidden: false,
+                    gitignore: false,
                     level: None,
                     fast: false,
                     slow: false,
@@ -230,6 +230,8 @@ mod tests {
                 cmd: Subcommand::Compress {
                     files: to_paths(["a", "b", "c"]),
                     output: PathBuf::from("archive.tar.gz"),
+                    hidden: false,
+                    gitignore: false,
                     level: None,
                     fast: false,
                     slow: false,
@@ -239,11 +241,13 @@ mod tests {
             }
         );
         test!(
-            "ouch compress a b c archive.tar.gz",
+            "ouch compress --hidden --gitignore a b c archive.tar.gz",
             CliArgs {
                 cmd: Subcommand::Compress {
                     files: to_paths(["a", "b", "c"]),
                     output: PathBuf::from("archive.tar.gz"),
+                    hidden: true,
+                    gitignore: true,
                     level: None,
                     fast: false,
                     slow: false,
@@ -269,6 +273,8 @@ mod tests {
                     cmd: Subcommand::Compress {
                         files: to_paths(["a", "b", "c"]),
                         output: PathBuf::from("output"),
+                        hidden: false,
+                        gitignore: false,
                         level: None,
                         fast: false,
                         slow: false,
@@ -287,5 +293,8 @@ mod tests {
         assert!(CliArgs::try_parse_from(args_splitter("ouch c input")).is_err());
         assert!(CliArgs::try_parse_from(args_splitter("ouch d")).is_err());
         assert!(CliArgs::try_parse_from(args_splitter("ouch l")).is_err());
+        assert!(CliArgs::try_parse_from(args_splitter("ouch decompress --hidden file.tar.gz")).is_err());
+        assert!(CliArgs::try_parse_from(args_splitter("ouch list --gitignore file.tar.gz")).is_err());
+        assert!(CliArgs::try_parse_from(args_splitter("ouch --hidden compress file file.tar.gz")).is_err());
     }
 }
