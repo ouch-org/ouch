@@ -16,6 +16,12 @@ Categories Used:
 
 **Bullet points in chronological order by PR**
 
+## [Unreleased](https://github.com/ouch-org/ouch/compare/0.8.1...HEAD)
+
+### Tweaks
+
+- Releases: sign assets with cosign instead of GitHub artifact attestations
+
 ## [0.8.1](https://github.com/ouch-org/ouch/compare/0.8.0...0.8.1)
 
 ### New Features

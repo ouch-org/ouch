@@ -19,7 +19,6 @@ jobs:
     permissions:
       contents: write
       id-token: write
-      attestations: write
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.0
@@ -36,10 +35,14 @@ jobs:
       - name: Package release assets
         run: scripts/package-release-assets.sh
 
-      - name: Attest build provenance
-        uses: actions/attest-build-provenance@v4
-        with:
-          subject-path: "output_assets/ouch-*"
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign release assets with cosign
+        run: |
+          for f in output_assets/ouch-*; do
+            cosign sign-blob --yes --bundle "$f.sigstore.json" "$f"
+          done
 
       - name: Create release
         uses: softprops/action-gh-release@v3.0.1
