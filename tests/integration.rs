@@ -1211,8 +1211,6 @@ fn decompress_with_unknown_extension_should_detect_format_and_ask(
 /// Helper function to test decompression of concatenated streams (issue #855).
 /// Takes a file extension and a compression function that compresses a single chunk.
 fn test_concatenated_streams(extension: &str, compress_chunk: impl Fn(&[u8]) -> Vec<u8>) {
-    use std::io::Write;
-
     let (_tempdir, root_path) = testdir().unwrap();
 
     // Create content for three separate streams
@@ -1397,8 +1395,6 @@ fn decompress_here_flag_extracts_into_cwd() {
 /// Test that concatenated gzip streams are fully decompressed (issue #855)
 #[test]
 fn decompress_concatenated_gzip_streams() {
-    use std::io::Write;
-
     use flate2::{Compression, write::GzEncoder};
 
     test_concatenated_streams("gz", |data| {
@@ -1411,8 +1407,6 @@ fn decompress_concatenated_gzip_streams() {
 /// Test that concatenated bzip2 streams are fully decompressed (related to issue #855)
 #[test]
 fn decompress_concatenated_bzip2_streams() {
-    use std::io::Write;
-
     use bzip2::{Compression, write::BzEncoder};
 
     test_concatenated_streams("bz2", |data| {
@@ -1559,8 +1553,6 @@ fn decompress_dir_flag_current_dir_and_overwrite() {
 /// Test that concatenated lz4 frames are fully decompressed (related to issue #855)
 #[test]
 fn decompress_concatenated_lz4_frames() {
-    use std::io::Write;
-
     use lz4_flex::frame::FrameEncoder;
 
     test_concatenated_streams("lz4", |data| {
@@ -1573,8 +1565,6 @@ fn decompress_concatenated_lz4_frames() {
 /// Zip entries whose stored mode lacks Unix file-type bits must fall back to default permissions.
 #[test]
 fn missing_file_type_unix_permissions() {
-    use std::io::Write;
-
     let (_tempdir, test_dir) = testdir().unwrap();
     let bad_perms_zip = test_dir.join("bad_perms.zip");
 
@@ -1620,8 +1610,6 @@ fn missing_file_type_unix_permissions() {
 /// Zip entries carrying setuid/setgid/sticky bits must have them stripped, keeping only permission bits.
 #[test]
 fn zip_special_permission_bits_are_stripped() {
-    use std::io::Write;
-
     let (_tempdir, test_dir) = testdir().unwrap();
     let suid_zip = test_dir.join("suid.zip");
 
