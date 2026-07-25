@@ -1,6 +1,6 @@
-# Changelog
+# Old Changelog
 
-All notable user-facing changes to Ouch should be documented in this file.
+Up until 0.8.0, all notable user-facing changes to Ouch would be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
@@ -16,7 +16,13 @@ Categories Used:
 
 **Bullet points in chronological order by PR**
 
-## [Unreleased](https://github.com/ouch-org/ouch/compare/0.8.0...HEAD)
+## [Unreleased](https://github.com/ouch-org/ouch/compare/0.8.1...HEAD)
+
+### Tweaks
+
+- Releases: sign assets with cosign instead of GitHub artifact attestations
+
+## [0.8.1](https://github.com/ouch-org/ouch/compare/0.8.0...0.8.1)
 
 ### New Features
 
@@ -48,6 +54,7 @@ Categories Used:
 - Add `--here` flag to unpack into current directory (https://github.com/ouch-org/ouch/pull/962).
 - List: show symlink targets (for tar and zip) (https://github.com/ouch-org/ouch/pull/934)
 - Add aliases for ebooks (`.epub`) (https://github.com/ouch-org/ouch/pull/981)
+- Add a Landlock sandbox on Linux for `compress`/`decompress`/`list` that restricts filesystem access and, where the kernel supports it, blocks new TCP connections, abstract-socket use, and signals to processes outside the sandbox (disable with `--no-sandbox` or the `OUCH_NO_SANDBOX` environment variable) (https://github.com/ouch-org/ouch/pull/995)
 
 ### Improvements
 

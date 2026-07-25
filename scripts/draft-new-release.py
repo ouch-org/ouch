@@ -69,48 +69,6 @@ def update_cargo_toml(version: str) -> None:
     path.write_text(new_text)
 
 
-def update_changelog(new_version: str) -> None:
-    path = Path("CHANGELOG.md")
-    text = path.read_text()
-
-    match = re.search(
-        r"^## \[Unreleased\]\(https://github\.com/ouch-org/ouch/compare/([^)]*)\.\.\.HEAD\)$",
-        text,
-        flags=re.MULTILINE,
-    )
-    if not match:
-        die("Could not find previous version in CHANGELOG.md Unreleased compare link")
-
-    previous = match.group(1)  # pyright: ignore[reportOptionalMemberAccess]
-    old = match.group(0)  # pyright: ignore[reportOptionalMemberAccess]
-    new = (
-        f"## [Unreleased](https://github.com/ouch-org/ouch/compare/{new_version}...HEAD)\n\n"
-        "### New Features\n\n"
-        "### Improvements\n\n"
-        "### Bug Fixes\n\n"
-        "### Tweaks\n\n\n"
-        f"## [{new_version}](https://github.com/ouch-org/ouch/compare/{previous}...{new_version})"
-    )
-    path.write_text(text.replace(old, new, 1))
-
-
-def ask_user_to_review_changelog() -> None:
-    print("CHANGELOG.md was updated.")
-    print("Please review it before continuing.")
-    try:
-        answer = input('Continue? Type "y" to continue: ')
-    except KeyboardInterrupt:
-        die(
-            "Aborted. The script is halting and leaving the workspace dirty; "
-            "restore changes manually before continuing."
-        )
-    if answer != "y":
-        die(
-            "Aborted. The script is halting and leaving the workspace dirty; "
-            "restore changes manually before continuing."
-        )
-
-
 def ensure_no_tracked_changes() -> None:
     status = run("git", "status", "--short", capture=True)
     tracked_changes = [
@@ -172,11 +130,9 @@ def main() -> None:
     ensure_on_origin_main()
     ensure_no_tracked_changes()
     tag = next_rc_tag(args.version)
-    update_changelog(args.version)
-    ask_user_to_review_changelog()
     update_cargo_toml(args.version)
     run("cargo", "test", "--profile", "fast")
-    run("git", "add", "CHANGELOG.md", "Cargo.lock", "Cargo.toml")
+    run("git", "add", "Cargo.lock", "Cargo.toml")
     run("git", "commit", "-m", f"bump version {args.version}")
     run("git", "tag", tag)
     run("git", "push", "origin", tag)

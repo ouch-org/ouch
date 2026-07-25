@@ -65,6 +65,17 @@ for platform in "${PLATFORMS[@]}"; do
         rm -rf "$path/target"
         chmod +x "$path/ouch"
 
+        # Portable single-file AppImage from the static musl binaries
+        # (zero shared-library dependencies, runs on any Linux).
+        case "$platform" in
+            x86_64-unknown-linux-musl)
+                ../scripts/build-appimage.sh "$path/ouch" x86_64 "../output_assets/${path}.AppImage"
+                ;;
+            aarch64-unknown-linux-musl)
+                ../scripts/build-appimage.sh "$path/ouch" aarch64 "../output_assets/${path}.AppImage"
+                ;;
+        esac
+
         # --sort=name pins file order, --owner/--group/--numeric-owner pin uids,
         # --mtime pins timestamps. piping through gzip -n drops the gzip header
         # timestamp and original-name field.

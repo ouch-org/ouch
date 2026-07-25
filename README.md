@@ -179,10 +179,10 @@ cargo install ouch
 
 Check the [releases page](https://github.com/ouch-org/ouch/releases).
 
-Release binaries are signed with [Sigstore](https://sigstore.dev) via GitHub's artifact attestations. Verify a downloaded binary with the GitHub CLI:
+Release binaries are signed with [Sigstore](https://sigstore.dev) using [`cosign`](https://github.com/sigstore/cosign). Download the asset and its `.sigstore.json` bundle from the [releases page](https://github.com/ouch-org/ouch/releases), then verify:
 
 ```
-gh attestation verify ouch-x86_64-unknown-linux-musl --repo ouch-org/ouch
+cosign verify-blob ouch-x86_64-unknown-linux-musl.tar.gz --bundle ouch-x86_64-unknown-linux-musl.tar.gz.sigstore.json --certificate-identity-regexp='^https://github.com/ouch-org/ouch/' --certificate-oidc-issuer=https://token.actions.githubusercontent.com
 ```
 
 ### Reproducing a release build

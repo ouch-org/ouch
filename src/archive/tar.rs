@@ -83,7 +83,8 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path) -> Result<u64> {
                     let unpacked = output_folder.join(&safe_relpath);
                     set_permission_mode(&unpacked, sanitize_archive_mode(original_mode) | 0o200)?;
 
-                    read_only_dirs_and_modes.push((original_path, sanitize_archive_mode(original_mode)));
+                    // Store the absolute path because the restore loop runs without changing directory.
+                    read_only_dirs_and_modes.push((unpacked, sanitize_archive_mode(original_mode)));
                 }
             }
             _ => continue,
