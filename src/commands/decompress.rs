@@ -263,11 +263,21 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
                 let mut temp_file = tempfile::Builder::new().prefix(".ouch-rar-").tempfile_in(&dir)?;
                 copy_limited_decompression(create_decoder_up_to_first_extension()?, &mut temp_file)?;
                 Box::new(move |output_dir| {
-                    crate::archive::rar::unpack_archive(temp_file.path(), output_dir, options.password)
+                    crate::archive::rar::unpack_archive(
+                        temp_file.path(),
+                        output_dir,
+                        options.password,
+                        options.question_policy,
+                    )
                 })
             } else {
                 Box::new(|output_dir| {
-                    crate::archive::rar::unpack_archive(options.input_file_path, output_dir, options.password)
+                    crate::archive::rar::unpack_archive(
+                        options.input_file_path,
+                        output_dir,
+                        options.password,
+                        options.question_policy,
+                    )
                 })
             };
 

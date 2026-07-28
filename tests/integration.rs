@@ -2019,3 +2019,38 @@ fn merging_into_a_folder_asks_before_replacing_each_file() {
         assert_eq!("from archive", fs::read_to_string(out.join("data.txt")).unwrap());
     }
 }
+
+// Merging a rar into a folder must ask before it replaces a file.
+#[cfg(feature = "unrar")]
+#[test]
+fn merging_a_rar_asks_before_replacing_each_file() {
+    let (_tempdir, dir) = testdir().unwrap();
+    let mut archive = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
+    archive.push("tests/data/testfile.rar5.rar");
+
+    let out = dir.join("out");
+    fs::create_dir(&out).unwrap();
+    fs::write(out.join("testfile.txt"), "original").unwrap();
+
+    // Skip the file that is already there.
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(&archive)
+        .arg("-d")
+        .arg(&out)
+        .write_stdin("s\n")
+        .assert()
+        .success();
+    assert_eq!("original", fs::read_to_string(out.join("testfile.txt")).unwrap());
+
+    // Answering overwrite replaces it.
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(&archive)
+        .arg("-d")
+        .arg(&out)
+        .write_stdin("o\n")
+        .assert()
+        .success();
+    assert_eq!("Testing 123\n", fs::read_to_string(out.join("testfile.txt")).unwrap());
+}

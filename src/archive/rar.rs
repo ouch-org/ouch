@@ -2,22 +2,64 @@
 
 use std::path::{Path, PathBuf};
 
+use fs_err as fs;
 use unrar::{
     Archive, ExtractEvent,
     error::{Code, UnrarError, When},
 };
 
 use crate::{
+    QuestionPolicy,
     error::{Error, FinalError, Result},
     info,
     list::{FileInArchive, ListFileType},
-    utils::{BytesFmt, PathFmt, validate_entry_path},
+    utils::{BytesFmt, PathFmt, resolve_extraction_conflict, validate_entry_path},
     warning,
 };
 
-/// Unpacks the archive given by `archive_path` into the folder given by `output_folder`.
-/// Assumes that output_folder is empty
-pub fn unpack_archive(archive_path: &Path, output_folder: &Path, password: Option<&[u8]>) -> Result<u64> {
+/// Unpacks the archive into `output_folder` and asks before replacing files.
+pub fn unpack_archive(
+    archive_path: &Path,
+    output_folder: &Path,
+    password: Option<&[u8]>,
+    question_policy: QuestionPolicy,
+) -> Result<u64> {
+    // Rar reference records need a full extraction pass to resolve.
+    fs::create_dir_all(output_folder)?;
+    let staging = tempfile::Builder::new()
+        .prefix(".ouch-rar-")
+        .tempdir_in(output_folder)?;
+    extract_all(archive_path, staging.path(), password)?;
+    move_into_place(staging.path(), staging.path(), output_folder, question_policy)
+}
+
+/// Move each staged entry into `output_folder` at the same relative path.
+fn move_into_place(root: &Path, dir: &Path, output_folder: &Path, question_policy: QuestionPolicy) -> Result<u64> {
+    let mut files_unpacked = 0;
+    for entry in fs::read_dir(dir)? {
+        let source = entry?.path();
+        let dest = output_folder.join(source.strip_prefix(root).expect("child of staging root"));
+
+        if fs::symlink_metadata(&source)?.is_dir() {
+            std::fs::create_dir_all(&dest).map_err(|err| Error::Custom {
+                reason: FinalError::with_title(format!("failed to create {}", PathFmt(&dest))).detail(err.to_string()),
+            })?;
+            files_unpacked += move_into_place(root, &source, output_folder, question_policy)?;
+        } else if let Some(target) = resolve_extraction_conflict(&dest, question_policy)? {
+            let size = fs::symlink_metadata(&source)?.len();
+            std::fs::rename(&source, &target).map_err(|err| Error::Custom {
+                reason: FinalError::with_title(format!("failed to extract {}", PathFmt(&target)))
+                    .detail(err.to_string()),
+            })?;
+            info!("extracted ({}) {}", BytesFmt(size), PathFmt(&target));
+            files_unpacked += 1;
+        }
+    }
+    Ok(files_unpacked)
+}
+
+/// Extract the whole archive into a staging folder in one pass.
+fn extract_all(archive_path: &Path, output_folder: &Path, password: Option<&[u8]>) -> Result<()> {
     let archive = match password {
         Some(password) => Archive::with_password(archive_path, password),
         None => Archive::new(archive_path),
@@ -25,7 +67,6 @@ pub fn unpack_archive(archive_path: &Path, output_folder: &Path, password: Optio
 
     let archive = archive.open_for_processing()?;
 
-    let mut files_unpacked: u64 = 0;
     let mut first_err: Option<(PathBuf, i32)> = None;
     let mut unsafe_path: Option<(PathBuf, String)> = None;
 
@@ -39,11 +80,7 @@ pub fn unpack_archive(archive_path: &Path, output_folder: &Path, password: Optio
                 true
             }
         }
-        ExtractEvent::Ok { filename, size } => {
-            info!("extracted ({}) {}", BytesFmt(size), PathFmt(&filename));
-            files_unpacked += 1;
-            true
-        }
+        ExtractEvent::Ok { .. } => true,
         ExtractEvent::Err { filename, error_code } => {
             first_err = Some((filename, error_code));
             // Returning false cancels the rest of the extraction so any
@@ -80,7 +117,7 @@ pub fn unpack_archive(archive_path: &Path, output_folder: &Path, password: Optio
         });
     }
     let _status = cb_result?;
-    Ok(files_unpacked)
+    Ok(())
 }
 
 /// List contents of `archive_path`, returning a vector of archive entries
