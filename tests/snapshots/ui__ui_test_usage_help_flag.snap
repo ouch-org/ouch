@@ -1,6 +1,5 @@
 ---
 source: tests/ui.rs
-assertion_line: 193
 expression: "output_to_string(ouch!(\"--help\"))"
 ---
 A command-line utility for easily compressing and decompressing files and directories.
@@ -12,8 +11,8 @@ Repository: https://github.com/ouch-org/ouch
 Usage: [OUCH_BIN] [OPTIONS] <COMMAND>
 
 Commands:
-  compress    Compress one or more files into one output file [aliases: c]
-  decompress  Decompresses one or more files, optionally into another folder [aliases: d]
+  compress    Compress one or more files into one output file [alias: c]
+  decompress  Decompresses one or more files, optionally into another folder [alias: d]
   list        List contents of an archive [aliases: l, ls]
   help        Print this message or the help of the given subcommand(s)
 
