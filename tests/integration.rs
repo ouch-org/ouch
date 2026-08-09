@@ -257,7 +257,7 @@ fn multiple_files(
 }
 
 #[proptest(cases = 25)]
-fn multiple_files_with_conflict_and_choice_to_overwrite(
+fn multiple_files_with_conflict_and_choice_to_merge(
     ext: DirectoryExtension,
     #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
     #[strategy(0u8..3)] depth: u8,
@@ -270,9 +270,9 @@ fn multiple_files_with_conflict_and_choice_to_overwrite(
     create_random_files(before_dir, depth, &mut SmallRng::from_os_rng());
 
     let after = &dir.join("after");
-    let after_dir = &after.join("dir");
-    fs::create_dir_all(after_dir).unwrap();
-    create_random_files(after_dir, depth, &mut SmallRng::from_os_rng());
+    fs::create_dir_all(after).unwrap();
+    let unrelated_file = after.join("unrelated.txt");
+    fs::write(&unrelated_file, "keep this").unwrap();
 
     let archive = &dir.join(format!("archive.{}", merge_extensions(ext, &extra_extensions)));
     ouch!("-A", "c", before_dir, archive);
@@ -282,10 +282,12 @@ fn multiple_files_with_conflict_and_choice_to_overwrite(
         .arg(archive)
         .arg("-d")
         .arg(after)
-        .write_stdin("o")
+        .write_stdin("m")
         .assert()
         .success();
 
+    assert_eq!("keep this", fs::read_to_string(&unrelated_file).unwrap());
+    fs::remove_file(unrelated_file).unwrap();
     assert_same_directory(before, after, false);
 }
 
@@ -1352,6 +1354,47 @@ fn test_concatenated_streams(extension: &str, compress_chunk: impl Fn(&[u8]) -> 
     );
 }
 
+/// Directory conflicts during decompression must not offer the destructive overwrite action.
+/// An invalid overwrite choice should be ignored, allowing the user to choose merge instead.
+#[test]
+fn decompress_directory_conflict_preserves_unrelated_contents() {
+    let (_tempdir, dir) = testdir().unwrap();
+    let input_folder = dir.join("folder");
+    let archive = dir.join("archive.zip");
+    let output_dir = dir.join("out");
+
+    fs::create_dir(&input_folder).unwrap();
+    fs::write(input_folder.join("file"), "archive content").unwrap();
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .arg(&input_folder)
+        .arg(&archive)
+        .assert()
+        .success();
+
+    fs::create_dir(&output_dir).unwrap();
+    fs::write(output_dir.join("important.txt"), "keep this").unwrap();
+
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(&archive)
+        .arg("--dir")
+        .arg(&output_dir)
+        .write_stdin("o\nm\n")
+        .assert()
+        .success();
+
+    assert_eq!(
+        "keep this",
+        fs::read_to_string(output_dir.join("important.txt")).unwrap(),
+        "choosing overwrite removed unrelated destination contents"
+    );
+    assert_eq!(
+        "archive content",
+        fs::read_to_string(output_dir.join("folder").join("file")).unwrap()
+    );
+}
+
 /// Regression test: `--yes` should merge into a non-empty output directory rather than wiping it.
 /// Previously, `--yes` defaulted to `Overwrite`, which would call `remove_dir_all` on the output
 /// directory, including when that directory was `$CWD`.
@@ -1612,6 +1655,32 @@ fn decompress_single_file_dir_allows_non_empty_output_dir_with_no() {
 
     assert_eq!("alpha", fs::read_to_string(dir.join("out").join("a")).unwrap());
     assert_eq!("keep", fs::read_to_string(dir.join("out").join("other-file")).unwrap());
+}
+
+/// Overwrite remains available when decompression conflicts with an actual file.
+#[test]
+fn decompress_single_file_conflict_can_be_overwritten() {
+    let (_tempdir, dir) = testdir().unwrap();
+
+    fs::write(dir.join("a"), "new content").unwrap();
+    crate::utils::cargo_bin()
+        .args(["compress", "a", "a.gz"])
+        .current_dir(dir)
+        .assert()
+        .success();
+    fs::remove_file(dir.join("a")).unwrap();
+
+    fs::create_dir(dir.join("out")).unwrap();
+    fs::write(dir.join("out").join("a"), "old content").unwrap();
+
+    crate::utils::cargo_bin()
+        .args(["decompress", "a.gz", "--dir", "out"])
+        .current_dir(dir)
+        .write_stdin("o\n")
+        .assert()
+        .success();
+
+    assert_eq!("new content", fs::read_to_string(dir.join("out").join("a")).unwrap());
 }
 
 /// This test ensures the current behavior isn't modified by accident, even
