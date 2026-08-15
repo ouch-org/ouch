@@ -167,6 +167,33 @@ fn single_file(
     assert_same_directory(before, after, false);
 }
 
+/// A negative `--level` must clamp to the minimum compression, not the maximum.
+///
+/// Regression test: the level was cast to an unsigned integer before clamping, so
+/// `-1i16 as u32` became 4294967295 and `clamp(0, 9)` returned 9, silently giving
+/// maximum compression instead of minimum.
+#[test]
+fn negative_compression_level_is_not_maximum() {
+    let (_tempdir, dir) = testdir().unwrap();
+    let before_file = &dir.join("file");
+    // Highly compressible content, so the compression level actually changes the output size
+    fs::write(before_file, "ouch".repeat(64 * 1024)).unwrap();
+
+    let compress_with_level = |level: &str, name: &str| {
+        let archive = &dir.join(name);
+        ouch!("-A", "c", format!("--level={level}"), before_file, archive);
+        fs::metadata(archive).unwrap().len()
+    };
+
+    let negative = compress_with_level("-1", "negative.gz");
+    let maximum = compress_with_level("9", "maximum.gz");
+
+    assert_ne!(
+        negative, maximum,
+        "--level=-1 must not produce the same output as --level=9 (maximum compression)"
+    );
+}
+
 /// Compress and decompress a single file over stdin.
 #[proptest(cases = 200)]
 fn single_file_stdin(
