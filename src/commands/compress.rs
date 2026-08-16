@@ -54,7 +54,7 @@ pub fn compress_files(
                 // instead of the regular default that flate2 uses
                 let parz: ParCompress<gzp::deflate::Gzip, _> = ParCompressBuilder::new()
                     .compression_level(
-                        level.map_or_else(Default::default, |l| gzp::Compression::new((l as u32).clamp(0, 9))),
+                        level.map_or_else(Default::default, |l| gzp::Compression::new(l.clamp(0, 9) as u32)),
                     )
                     .num_threads(logical_thread_count())
                     .expect("gpz: num_threads must be greater than 0")
@@ -63,7 +63,7 @@ pub fn compress_files(
             }),
             Bzip => Box::new(bzip2::write::BzEncoder::new(
                 encoder,
-                level.map_or_else(Default::default, |l| bzip2::Compression::new((l as u32).clamp(1, 9))),
+                level.map_or_else(Default::default, |l| bzip2::Compression::new(l.clamp(1, 9) as u32)),
             )),
             Bzip3 => {
                 #[cfg(not(feature = "bzip3"))]
@@ -78,14 +78,14 @@ pub fn compress_files(
             Lz4 => Box::new(lz4_flex::frame::FrameEncoder::new(encoder).auto_finish()),
             Lzma => {
                 let options = level.map_or_else(Default::default, |l| {
-                    lzma_rust2::LzmaOptions::with_preset((l as u32).clamp(0, 9))
+                    lzma_rust2::LzmaOptions::with_preset(l.clamp(0, 9) as u32)
                 });
                 let writer = lzma_rust2::LzmaWriter::new_use_header(encoder, &options, None)?;
                 Box::new(writer.auto_finish())
             }
             Xz => {
                 let mut options = level.map_or_else(Default::default, |l| {
-                    lzma_rust2::XzOptions::with_preset((l as u32).clamp(0, 9))
+                    lzma_rust2::XzOptions::with_preset(l.clamp(0, 9) as u32)
                 });
                 let dict_size = options.lzma_options.dict_size as u64;
                 options.set_block_size(NonZeroU64::new(dict_size));
@@ -95,7 +95,7 @@ pub fn compress_files(
             }
             Lzip => {
                 let options = level.map_or_else(Default::default, |l| {
-                    lzma_rust2::LzipOptions::with_preset((l as u32).clamp(0, 9))
+                    lzma_rust2::LzipOptions::with_preset(l.clamp(0, 9) as u32)
                 });
                 let writer = lzma_rust2::LzipWriter::new(encoder, options);
                 Box::new(writer.auto_finish())
@@ -103,7 +103,7 @@ pub fn compress_files(
             Snappy => Box::new({
                 let parz: ParCompress<gzp::snap::Snap, _> = ParCompressBuilder::new()
                     .compression_level(gzp::par::compress::Compression::new(
-                        level.map_or_else(Default::default, |l| (l as u32).clamp(0, 9)),
+                        level.map_or_else(Default::default, |l| l.clamp(0, 9) as u32),
                     ))
                     .num_threads(logical_thread_count())
                     .expect("gpz: num_threads must be greater than 0")

@@ -175,6 +175,14 @@ cargo install ouch
 
 (If you're on Ubuntu, you might need to install `clang` to build it from crates.io.)
 
+## On Debian via pkg.haus
+
+Set up the [pkg.haus](https://pkg.haus) APT archive per its instructions (packages for Debian stable, testing and unstable, amd64 and arm64, built from source at release tags), then:
+
+```bash
+sudo apt install ouch
+```
+
 ## Download the latest release bundle
 
 Check the [releases page](https://github.com/ouch-org/ouch/releases).
