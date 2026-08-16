@@ -1054,9 +1054,9 @@ checksum = "ca93e534d1142d1d0dcca6d25fe302508a5dfb40b302802904577725ea0b695b"
 
 [[package]]
 name = "lzma-rust2"
-version = "0.17.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f7fea0cc19b4c4aff9c58fe110173878402bdf4227ba308d54ac0f948188ad2e"
+checksum = "12931b17820a3a0c48e46359d2be49ef57b5d50509fd5baba43e6c654977aa66"
 dependencies = [
  "sha2",
 ]
@@ -1168,7 +1168,7 @@ dependencies = [
  "landlock",
  "libc",
  "lz4_flex",
- "lzma-rust2 0.17.0",
+ "lzma-rust2 0.18.0",
  "memchr",
  "num_cpus",
  "parse-display",
