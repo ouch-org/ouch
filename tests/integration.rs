@@ -2089,3 +2089,44 @@ fn merging_a_rar_asks_before_replacing_each_file() {
         .success();
     assert_eq!("Testing 123\n", fs::read_to_string(out.join("testfile.txt")).unwrap());
 }
+
+/// Decompressing with `--format` must not write the output over the input file (issue #442).
+#[test]
+fn decompress_with_format_flag_does_not_overwrite_input() {
+    let (_tempdir, dir) = testdir().unwrap();
+
+    let source = dir.join("file");
+    fs::write(&source, "hello").unwrap();
+    let input = dir.join("file.zst.zst.zst");
+
+    crate::utils::cargo_bin()
+        .current_dir(dir)
+        .args(["compress", "--yes"])
+        .arg(&source)
+        .arg(&input)
+        .assert()
+        .success();
+
+    let archive_before = fs::read(&input).unwrap();
+
+    // Only the outermost `.zst` is undone, so the output name must be `file.zst.zst`.
+    // The exit status is not asserted here: when the output path collides with the input,
+    // the run truncates the input and then fails, and the assertions below must be the
+    // ones that report it.
+    let _ = crate::utils::cargo_bin_command()
+        .current_dir(dir)
+        .args(["decompress", "--yes", "--here", "--format", "zst"])
+        .arg(&input)
+        .status()
+        .unwrap();
+
+    assert_eq!(
+        fs::read(&input).unwrap(),
+        archive_before,
+        "the input archive must not be overwritten by its own decompressed output"
+    );
+    assert!(
+        dir.join("file.zst.zst").exists(),
+        "output should drop one known extension from the input name"
+    );
+}

@@ -187,7 +187,21 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                     let file_name = path.file_name().ok_or_else(|| Error::Custom {
                         reason: FinalError::with_title(format!("{} does not have a file name", PathFmt(path))),
                     })?;
-                    files_output_paths.push(file_name.into());
+                    let output_file_name = match <[u8] as ByteSlice>::from_os_str(file_name) {
+                        Some(bytes) if !is_path_stdin(path) => {
+                            let stripped = extension::strip_known_extensions_from_name(bytes, format.len());
+                            if stripped == bytes {
+                                utils::append_ascii_suffix_to_os_str(file_name, "-output")
+                            } else {
+                                stripped
+                                    .to_os_str()
+                                    .expect("stripped bytes came from an OsStr")
+                                    .to_owned()
+                            }
+                        }
+                        _ => file_name.to_owned(),
+                    };
+                    files_output_paths.push(output_file_name.into());
                     files_extensions.push(format.clone());
                 }
             } else {
