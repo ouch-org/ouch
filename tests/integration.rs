@@ -1067,6 +1067,41 @@ fn sevenz_list_should_not_failed() {
     assert!(res.get_output().stdout.find(b"README.md").is_some());
 }
 
+#[test]
+fn list_show_size_displays_uncompressed_sizes() {
+    let (_tempdir, root_path) = testdir().unwrap();
+    let src_files_path = root_path.join("src_files");
+    fs::create_dir_all(&src_files_path).unwrap();
+
+    let file_path = src_files_path.join("hello.txt");
+    fs::write(&file_path, "hello world").unwrap(); // 11 bytes
+
+    let archive = root_path.join("archive.tar");
+    crate::utils::cargo_bin()
+        .arg("compress")
+        .arg("--yes")
+        .arg(&file_path)
+        .arg(&archive)
+        .assert()
+        .success();
+
+    // With `--show-size`, the pretty-printed size is shown alongside the entry.
+    let with_flag = crate::utils::cargo_bin()
+        .args(["list", "--show-size"])
+        .arg(&archive)
+        .assert()
+        .success();
+    let stdout = with_flag.get_output().stdout.clone();
+    assert!(stdout.find(b"hello.txt").is_some());
+    assert!(stdout.find(b"11.00").is_some());
+
+    // Without the flag, the default output is unchanged and carries no size.
+    let without_flag = crate::utils::cargo_bin().arg("list").arg(&archive).assert().success();
+    let stdout = without_flag.get_output().stdout.clone();
+    assert!(stdout.find(b"hello.txt").is_some());
+    assert!(stdout.find(b"11.00").is_none());
+}
+
 // TODO: for supporting windows hard link easier
 // we should wait for this issue
 // https://github.com/rust-lang/rust/issues/63010

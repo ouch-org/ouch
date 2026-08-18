@@ -10,7 +10,7 @@ use self::tree::Tree;
 use crate::{
     Result,
     accessible::is_running_in_accessible_mode,
-    utils::{NoQuotePathFmt, PathFmt},
+    utils::{BytesFmt, NoQuotePathFmt, PathFmt},
 };
 
 /// Options controlling how archive contents should be listed
@@ -21,6 +21,9 @@ pub struct ListOptions {
 
     /// Whether to suppress extra output like symlink targets (for scripting)
     pub quiet: bool,
+
+    /// Whether to show the (uncompressed) size of each file
+    pub show_size: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -39,6 +42,9 @@ pub struct FileInArchive {
 
     /// The type of file
     pub file_type: ListFileType,
+
+    /// The uncompressed size of the entry, when the format reports it
+    pub size: Option<u64>,
 }
 
 /// Actually print the files
@@ -56,14 +62,36 @@ pub fn list_files(
 
     if list_options.tree {
         let tree = files.into_iter().collect::<Result<Tree>>()?;
-        tree.print(&mut out);
+        tree.print(&mut out, list_options.show_size);
     } else {
         for file in files {
-            let FileInArchive { path, file_type } = file?;
+            let FileInArchive { path, file_type, size } = file?;
+            print_size_column(&mut out, list_options.show_size, &file_type, size);
             print_entry(&mut out, NoQuotePathFmt(&path), &file_type, list_options.quiet);
         }
     }
     Ok(())
+}
+
+/// Print the leading size column used by `--show-size`.
+///
+/// Files get their size formatted like the rest of `ouch`'s output, while
+/// directories (and entries whose size is unknown) get a blank column of the
+/// same width so everything stays aligned.
+fn print_size_column(out: &mut impl Write, show_size: bool, file_type: &ListFileType, size: Option<u64>) {
+    if !show_size {
+        return;
+    }
+
+    match (file_type, size) {
+        (ListFileType::File | ListFileType::Symlink { .. } | ListFileType::Hardlink { .. }, Some(size)) => {
+            let _ = write!(out, "{}  ", BytesFmt(size));
+        }
+        _ => {
+            // `BytesFmt` renders as 10 columns, keep the padding in sync with it.
+            let _ = write!(out, "{:>10}  ", "");
+        }
+    }
 }
 
 /// Print an entry and highlight directories, either by coloring them
@@ -176,13 +204,13 @@ mod tree {
         }
 
         /// Print the file tree using Unicode line characters
-        pub fn print(&self, out: &mut impl Write) {
+        pub fn print(&self, out: &mut impl Write, show_size: bool) {
             for (i, (name, subtree)) in self.children.iter().enumerate() {
-                subtree.print_(out, name, "", i == self.children.len() - 1);
+                subtree.print_(out, name, "", i == self.children.len() - 1, show_size);
             }
         }
         /// Print the tree by traversing it recursively
-        fn print_(&self, out: &mut impl Write, name: &OsStr, prefix: &str, last: bool) {
+        fn print_(&self, out: &mut impl Write, name: &OsStr, prefix: &str, last: bool, show_size: bool) {
             // If there are no further elements in the parent directory, add
             // "└── " to the prefix, otherwise add "├── "
             let final_part = match last {
@@ -190,12 +218,15 @@ mod tree {
                 false => draw::FINAL_BRANCH,
             };
 
-            let _ = write!(out, "{prefix}{final_part}");
             let file_type = match &self.file {
                 Some(FileInArchive { file_type, .. }) => file_type.clone(),
                 // If we don't have a file entry but have children, it's an implicit directory
                 None => ListFileType::Directory,
             };
+            // The size column, if any, comes before the tree branches so entries stay aligned.
+            let size = self.file.as_ref().and_then(|file| file.size);
+            super::print_size_column(out, show_size, &file_type, size);
+            let _ = write!(out, "{prefix}{final_part}");
             super::print_entry(
                 out,
                 super::NoQuotePathFmt(name.as_ref()),
@@ -212,7 +243,7 @@ mod tree {
             });
             // Recursively print all children
             for (i, (name, subtree)) in self.children.iter().enumerate() {
-                subtree.print_(out, name, &prefix, i == self.children.len() - 1);
+                subtree.print_(out, name, &prefix, i == self.children.len() - 1, show_size);
             }
         }
     }
