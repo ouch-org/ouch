@@ -121,7 +121,7 @@ pub enum Subcommand {
         #[arg(short, long)]
         tree: bool,
 
-        /// Only list entries up to this many levels deep
+        /// Only list entries up to this recursion limit
         #[arg(long)]
         depth: Option<u32>,
     },

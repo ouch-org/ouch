@@ -22,7 +22,7 @@ pub struct ListOptions {
     /// Whether to suppress extra output like symlink targets (for scripting)
     pub quiet: bool,
 
-    /// Only list entries up to this many levels deep, or all levels if `None`
+    /// Only list entries up to this recursion limit, `None` means no limit
     pub depth: Option<u32>,
 }
 
