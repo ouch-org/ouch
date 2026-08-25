@@ -1,6 +1,8 @@
 //! CLI related functions, uses the clap argparsing definitions from `args.rs`.
 
 mod args;
+#[cfg(test)]
+mod completion;
 
 use std::path::{Path, PathBuf, absolute};
 
