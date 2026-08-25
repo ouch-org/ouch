@@ -21,6 +21,9 @@ pub struct ListOptions {
 
     /// Whether to suppress extra output like symlink targets (for scripting)
     pub quiet: bool,
+
+    /// Only list entries up to this many levels deep, or all levels if `None`
+    pub depth: Option<u32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -56,10 +59,15 @@ pub fn list_files(
 
     if list_options.tree {
         let tree = files.into_iter().collect::<Result<Tree>>()?;
-        tree.print(&mut out);
+        tree.print(&mut out, list_options.depth);
     } else {
         for file in files {
             let FileInArchive { path, file_type } = file?;
+            if let Some(depth) = list_options.depth
+                && path.components().count() as u32 > depth
+            {
+                continue;
+            }
             print_entry(&mut out, NoQuotePathFmt(&path), &file_type, list_options.quiet);
         }
     }
@@ -176,13 +184,24 @@ mod tree {
         }
 
         /// Print the file tree using Unicode line characters
-        pub fn print(&self, out: &mut impl Write) {
+        ///
+        /// `max_depth` limits how many levels are shown, counting the root's
+        /// children as level 1. `None` prints every level.
+        pub fn print(&self, out: &mut impl Write, max_depth: Option<u32>) {
             for (i, (name, subtree)) in self.children.iter().enumerate() {
-                subtree.print_(out, name, "", i == self.children.len() - 1);
+                subtree.print_(out, name, "", i == self.children.len() - 1, 1, max_depth);
             }
         }
         /// Print the tree by traversing it recursively
-        fn print_(&self, out: &mut impl Write, name: &OsStr, prefix: &str, last: bool) {
+        fn print_(
+            &self,
+            out: &mut impl Write,
+            name: &OsStr,
+            prefix: &str,
+            last: bool,
+            depth: u32,
+            max_depth: Option<u32>,
+        ) {
             // If there are no further elements in the parent directory, add
             // "└── " to the prefix, otherwise add "├── "
             let final_part = match last {
@@ -203,6 +222,11 @@ mod tree {
                 false, // Always show targets in tree view, regardless of --quiet flag
             );
 
+            // Stop before descending past the requested depth
+            if max_depth.is_some_and(|max| depth >= max) {
+                return;
+            }
+
             // Construct prefix for children, adding either a line if this isn't
             // the last entry in the parent dir or empty space if it is.
             let mut prefix = prefix.to_owned();
@@ -212,7 +236,7 @@ mod tree {
             });
             // Recursively print all children
             for (i, (name, subtree)) in self.children.iter().enumerate() {
-                subtree.print_(out, name, &prefix, i == self.children.len() - 1);
+                subtree.print_(out, name, &prefix, i == self.children.len() - 1, depth + 1, max_depth);
             }
         }
     }

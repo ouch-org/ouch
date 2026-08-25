@@ -18,6 +18,10 @@ Categories Used:
 
 ## [Unreleased](https://github.com/ouch-org/ouch/compare/0.8.1...HEAD)
 
+### New Features
+
+- Add `--depth` to `list` to only show entries up to a given number of levels (https://github.com/ouch-org/ouch/pull/1056).
+
 ### Tweaks
 
 - Releases: sign assets with cosign instead of GitHub artifact attestations

@@ -355,7 +355,11 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                 )
             })
         }
-        Subcommand::List { archives: files, tree } => {
+        Subcommand::List {
+            archives: files,
+            tree,
+            depth,
+        } => {
             let mut formats = vec![];
 
             if let Some(format) = args.format {
@@ -434,6 +438,7 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
             let list_options = ListOptions {
                 tree,
                 quiet: args.quiet,
+                depth,
             };
 
             for (i, ((archive_path, formats), spill)) in files

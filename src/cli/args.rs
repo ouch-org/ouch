@@ -120,6 +120,10 @@ pub enum Subcommand {
         /// Show archive contents as a tree
         #[arg(short, long)]
         tree: bool,
+
+        /// Only list entries up to this many levels deep
+        #[arg(long)]
+        depth: Option<u32>,
     },
 }
 
