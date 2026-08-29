@@ -28,6 +28,7 @@ It's a CLI tool for compressing and decompressing various formats.
 4. No runtime dependencies.
 5. Accessibility mode ([see more](https://github.com/ouch-org/ouch/wiki/Accessibility)).
 6. Shell completions and man pages.
+7. Decompression from standard input.
 
 # Usage
 
@@ -60,6 +61,15 @@ The `-d/--dir` flag can be used to redirect decompression results to another dir
 ```sh
 # Decompress 'summer_vacation.zip' inside of new folder 'pictures'
 ouch decompress summer_vacation.zip --dir pictures
+```
+
+Archives can also be decompressed from standard input. Use `-` as the input
+path and specify the archive format with `-f/--format`, since standard input has
+no filename extension.
+
+```sh
+# Decompress an archive from standard input, extracting its contents to the current directory
+cat a.tar.gz | ouch decompress - --format tar.gz
 ```
 
 ## Compressing
