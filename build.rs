@@ -18,6 +18,8 @@ use clap_complete::{Shell, generate_to};
 use clap_complete_nushell::Nushell;
 
 include!("src/cli/args.rs");
+#[path = "src/cli/completion.rs"]
+mod completion;
 
 fn main() {
     println!("cargo:rerun-if-env-changed=OUCH_ARTIFACTS_FOLDER");
@@ -29,6 +31,7 @@ fn main() {
 
         clap_mangen::generate_to(cmd.clone(), out).unwrap();
 
+        let cmd = &mut completion::with_combined_compress_positionals(CliArgs::command());
         for shell in Shell::value_variants() {
             generate_to(*shell, cmd, "ouch", out).unwrap();
         }

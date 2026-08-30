@@ -1102,6 +1102,41 @@ fn list_show_size_displays_uncompressed_sizes() {
     assert!(stdout.find(b"11.00").is_none());
 }
 
+#[test]
+fn list_depth_limits_shown_entries() {
+    let (_tempdir, root_path) = testdir().unwrap();
+    let src = root_path.join("listdir");
+    fs::create_dir_all(src.join("sub")).unwrap();
+    fs::write(src.join("top.txt"), "contents").unwrap();
+    fs::write(src.join("sub").join("deep.txt"), "contents").unwrap();
+
+    let archive = root_path.join("archive.tar.gz");
+    crate::utils::cargo_bin()
+        .args(["compress", src.to_str().unwrap(), archive.to_str().unwrap(), "--yes"])
+        .assert()
+        .success();
+
+    // Without a limit the nested file shows up.
+    let full = crate::utils::cargo_bin()
+        .args(["list", archive.to_str().unwrap(), "--yes"])
+        .assert()
+        .success();
+    assert!(full.get_output().stdout.find(b"deep.txt").is_some());
+
+    // `--depth 1` only keeps the top-level directory.
+    for extra in [&[][..], &["--tree"]] {
+        let limited = crate::utils::cargo_bin()
+            .args(["list", archive.to_str().unwrap(), "--depth", "1", "--yes"])
+            .args(extra)
+            .assert()
+            .success();
+        let stdout = limited.get_output().stdout.clone();
+        assert!(stdout.find(b"listdir").is_some());
+        assert!(stdout.find(b"top.txt").is_none());
+        assert!(stdout.find(b"deep.txt").is_none());
+    }
+}
+
 // TODO: for supporting windows hard link easier
 // we should wait for this issue
 // https://github.com/rust-lang/rust/issues/63010
