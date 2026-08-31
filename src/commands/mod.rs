@@ -360,6 +360,7 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
         Subcommand::List {
             archives: files,
             tree,
+            show_size,
             depth,
         } => {
             let mut formats = vec![];
@@ -440,6 +441,7 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
             let list_options = ListOptions {
                 tree,
                 quiet: args.quiet,
+                show_size,
                 depth,
             };
 
