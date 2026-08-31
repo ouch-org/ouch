@@ -27,19 +27,13 @@ The version must be in `MAJOR.MINOR.PATCH` format.
 
 The script will:
 
-1. Update the top of `CHANGELOG.md`:
-   - point `Unreleased` at `NEW_VERSION...HEAD`
-   - add fresh empty sections for the next development cycle
-   - create a `NEW_VERSION` changelog section comparing the previous version to `NEW_VERSION`
-2. Ask you to review `CHANGELOG.md`.
-   - You should enter `y` to proceed.
-3. Update the package version in `Cargo.toml`.
-4. Run `cargo test --profile fast`, which will also update `Cargo.lock`.
-5. Commit `CHANGELOG.md`, `Cargo.toml`, and `Cargo.lock` with:
+1. Update the package version in `Cargo.toml`.
+2. Run `cargo test --profile fast`, which will also update `Cargo.lock`.
+3. Commit `Cargo.toml` and `Cargo.lock` with new version:
    - Message: `"bump version NEW_VERSION"`.
-6. Create new release candidate tag, like `NEW_VERSION-rc1`, `NEW_VERSION-rc2`, etc.
-7. Push tags.
-8. Print the GitHub Actions URL.
+4. Create new release candidate tag, like `NEW_VERSION-rc1`, `NEW_VERSION-rc2`, etc.
+5. Push tags.
+6. Print the GitHub Actions URL.
 
 ## After the script runs
 
@@ -49,7 +43,7 @@ The script will:
 3. Go to GitHub Releases:
    <https://github.com/ouch-org/ouch/releases>
 4. Open the drafted release for the RC tag.
-5. Continue polishing the release notes/changelog if needed.
+5. Continue polishing the release notes if needed.
 6. Publish to crates.io:
    ```sh
    cargo publish
