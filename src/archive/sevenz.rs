@@ -131,6 +131,7 @@ where
             } else {
                 ListFileType::File
             },
+            size: Some(entry.size()),
         }));
         Ok(true)
     };

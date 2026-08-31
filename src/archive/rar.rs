@@ -133,6 +133,7 @@ pub fn list_archive(
     Ok(archive.open_for_listing()?.map(|item| {
         let item = item?;
         let is_dir = item.is_directory();
+        let size = Some(item.unpacked_size);
         let path = item.filename;
 
         Ok(FileInArchive {
@@ -142,6 +143,7 @@ pub fn list_archive(
             } else {
                 ListFileType::File
             },
+            size,
         })
     }))
 }

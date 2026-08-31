@@ -134,8 +134,9 @@ pub fn list_archive(mut archive: tar::Archive<impl Read>) -> Result<impl Iterato
     let entries = archive.entries()?.map(|file| {
         let file = file?;
         let path = file.path()?.into_owned();
+        let size = file.header().size().ok();
         let file_type = get_file_type(file.header(), &file)?;
-        Ok(FileInArchive { path, file_type })
+        Ok(FileInArchive { path, file_type, size })
     });
 
     Ok(entries.collect::<Vec<_>>().into_iter())

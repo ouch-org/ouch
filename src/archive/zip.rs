@@ -167,6 +167,7 @@ where
         };
 
         let path = file.enclosed_name().unwrap_or_else(|| file.mangled_name()).to_owned();
+        let size = Some(file.size());
 
         let file_type = if file.is_dir() {
             ListFileType::Directory
@@ -185,7 +186,7 @@ where
             ListFileType::File
         };
 
-        Ok(FileInArchive { path, file_type })
+        Ok(FileInArchive { path, file_type, size })
     })
 }
 

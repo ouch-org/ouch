@@ -83,6 +83,9 @@ ouch list archive.zip
 
 # Example with tree formatting
 ouch list source-code.zip --tree
+
+# Show the (uncompressed) size of each file
+ouch list archive.zip --show-size
 ```
 
 Output:

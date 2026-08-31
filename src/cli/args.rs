@@ -121,6 +121,9 @@ pub enum Subcommand {
         #[arg(short, long)]
         tree: bool,
 
+        /// Show the (uncompressed) size of each file
+        #[arg(long)]
+        show_size: bool,
         /// Only list entries up to this recursion limit
         #[arg(long)]
         depth: Option<u32>,
