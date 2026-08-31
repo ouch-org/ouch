@@ -17,22 +17,27 @@ use zip::{self, DateTime, ZipArchive, read::ZipFile};
 #[cfg(unix)]
 use crate::utils::sanitize_archive_mode;
 use crate::{
-    Result,
+    QuestionPolicy, Result,
     error::FinalError,
     info, info_accessible,
     list::{FileInArchive, ListFileType},
     utils::{
         BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, cd_into_same_dir_as,
         copy_limited_decompression, create_symlink, ensure_parent_dir_exists, get_invalid_utf8_paths,
-        is_same_file_as_output, pretty_format_list_of_paths, read_file_type, strip_cur_dir, validate_dest_inside_root,
-        validate_symlink_target,
+        is_same_file_as_output, pretty_format_list_of_paths, read_file_type, resolve_extraction_conflict,
+        strip_cur_dir, validate_dest_inside_root, validate_symlink_target,
     },
     warning,
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `output_folder`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive<R>(reader: R, output_folder: &Path, password: Option<&[u8]>) -> Result<u64>
+pub fn unpack_archive<R>(
+    reader: R,
+    output_folder: &Path,
+    password: Option<&[u8]>,
+    question_policy: QuestionPolicy,
+) -> Result<u64>
 where
     R: Read + Seek,
 {
@@ -86,6 +91,16 @@ where
 
                 let mode = file.unix_mode();
                 let is_symlink = mode.is_some_and(|mode| mode & 0o170000 == 0o120000);
+
+                // Symlink creation fails on its own when the path is taken.
+                let mut resolved = None;
+                if !is_symlink {
+                    let Some(path) = resolve_extraction_conflict(file_path, question_policy)? else {
+                        continue;
+                    };
+                    resolved = Some(path);
+                }
+                let file_path = resolved.as_deref().unwrap_or(file_path);
 
                 if is_symlink {
                     // Symlink targets are arbitrary bytes on Unix, not guaranteed UTF-8; read as bytes.

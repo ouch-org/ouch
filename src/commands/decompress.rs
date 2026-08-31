@@ -206,7 +206,7 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
         Tar => unpack_archive(
             |output_dir| {
                 let reader = LimitedReader::new(create_decoder_up_to_first_extension()?);
-                crate::archive::tar::unpack_archive(reader, output_dir)
+                crate::archive::tar::unpack_archive(reader, output_dir, options.question_policy)
             },
             dir,
         )?,
@@ -251,7 +251,10 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
                 ))
             };
 
-            unpack_archive(|output_dir| unpack_fn(reader, output_dir, options.password), dir)?
+            unpack_archive(
+                |output_dir| unpack_fn(reader, output_dir, options.password, options.question_policy),
+                dir,
+            )?
         }
         #[cfg(feature = "unrar")]
         Rar => {
@@ -260,11 +263,21 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
                 let mut temp_file = tempfile::Builder::new().prefix(".ouch-rar-").tempfile_in(&dir)?;
                 copy_limited_decompression(create_decoder_up_to_first_extension()?, &mut temp_file)?;
                 Box::new(move |output_dir| {
-                    crate::archive::rar::unpack_archive(temp_file.path(), output_dir, options.password)
+                    crate::archive::rar::unpack_archive(
+                        temp_file.path(),
+                        output_dir,
+                        options.password,
+                        options.question_policy,
+                    )
                 })
             } else {
                 Box::new(|output_dir| {
-                    crate::archive::rar::unpack_archive(options.input_file_path, output_dir, options.password)
+                    crate::archive::rar::unpack_archive(
+                        options.input_file_path,
+                        output_dir,
+                        options.password,
+                        options.question_policy,
+                    )
                 })
             };
 
