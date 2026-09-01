@@ -1782,6 +1782,39 @@ fn zip_special_permission_bits_are_stripped() {
     }
 }
 
+/// Zip entries compressed with Zstandard (method 93) must list and decompress (issue #1062).
+#[test]
+fn zip_with_zstd_entries() {
+    let (_tempdir, test_dir) = testdir().unwrap();
+    let zstd_zip = test_dir.join("zstd.zip");
+
+    {
+        use zip::{CompressionMethod, write::SimpleFileOptions};
+        let file = std::fs::File::create(&zstd_zip).unwrap();
+        let mut zip = zip::ZipWriter::new(file);
+        let options = SimpleFileOptions::default().compression_method(CompressionMethod::Zstd);
+        zip.start_file("test_file.txt", options).unwrap();
+        zip.write_all(b"zstd in zip").unwrap();
+        zip.finish().unwrap();
+    }
+
+    crate::utils::cargo_bin().arg("list").arg(&zstd_zip).assert().success();
+
+    let out_dir = test_dir.join("out");
+    crate::utils::cargo_bin()
+        .arg("d")
+        .arg(&zstd_zip)
+        .arg("-d")
+        .arg(&out_dir)
+        .assert()
+        .success();
+
+    assert_eq!(
+        "zstd in zip",
+        fs::read_to_string(out_dir.join("test_file.txt")).unwrap()
+    );
+}
+
 // Default mode decompression without --dir or --here is not tested elsewhere
 // These lock in the layout where output goes into a new directory named after the archive
 
