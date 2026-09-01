@@ -26,6 +26,8 @@ This file will be removed soon.
 
 ### New Features
 
+- Add PPMd support for ZIP archives.
+
 ### Improvements
 
 - Add `OUCH_PASSWORD` env var as alternative to `--password` (https://github.com/ouch-org/ouch/pull/951).
