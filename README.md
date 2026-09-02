@@ -63,12 +63,11 @@ The `-d/--dir` flag can be used to redirect decompression results to another dir
 ouch decompress summer_vacation.zip --dir pictures
 ```
 
-Archives can also be decompressed from standard input. Use `-` as the input
-path and specify the archive format with `-f/--format`, since standard input has
-no filename extension.
+Files can also be decompressed from STDIN by passing `-` as the input path and 
+providing the format with `-f/--format` (there is no path to infer the format from).
 
 ```sh
-# Decompress an archive from standard input, extracting its contents to the current directory
+# Decompress archive read from STDIN, writting contents to `ouch-output`
 cat a.tar.gz | ouch decompress - --format tar.gz
 ```
 
