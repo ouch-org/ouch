@@ -91,6 +91,15 @@ pub fn prompt_user_for_file_conflict_resolution(
             ],
         )
         .ask(),
+        QuestionAction::Decompression if path.is_dir() => ChoicePrompt::new(
+            format!("Handle file conflict for {}:", PathFmt(path)),
+            [
+                ("rename", Op::Rename, *colors::BLUE),
+                ("merge", Op::Merge, *colors::ORANGE),
+                ("skip", Op::Cancel, *colors::RED),
+            ],
+        )
+        .ask(),
         QuestionAction::Decompression => ChoicePrompt::new(
             format!("Handle file conflict for {}:", PathFmt(path)),
             [
