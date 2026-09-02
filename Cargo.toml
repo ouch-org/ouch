@@ -36,7 +36,7 @@ lzma-rust2 = "0.18.0"
 num_cpus = "1.17.0"
 rayon = "1.12.0"
 same-file = "1.0.6"
-sevenz-rust2 = { version = "0.21.0", features = ["compress", "aes256"] }
+sevenz-rust2 = { version = "0.22.0", features = ["compress", "aes256"] }
 snap = "1.1.1"
 strum = { version = "0.28.0", features = ["derive"] }
 tar = "0.4.46"
