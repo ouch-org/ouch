@@ -1223,6 +1223,32 @@ fn compress_with_rename_conflict() {
     assert!(root_path.join("archive_2.tar.gz").exists());
 }
 
+/// Compressing onto an existing directory name must fail and leave that
+/// directory and its contents intact, never delete it.
+#[test]
+fn compress_onto_existing_directory_is_refused_and_keeps_it() {
+    let (_tempdir, dir) = testdir().unwrap();
+    fs::write(dir.join("file.txt"), "data").unwrap();
+
+    let target = dir.join("backup.zip");
+    fs::create_dir(&target).unwrap();
+    fs::create_dir(target.join("photos")).unwrap();
+    fs::write(target.join("photos").join("1.jpg"), "irreplaceable").unwrap();
+
+    crate::utils::cargo_bin()
+        .args(["compress", "file.txt", "backup.zip", "--yes"])
+        .current_dir(dir)
+        .assert()
+        .failure();
+
+    assert!(target.is_dir(), "the directory target must remain a directory");
+    assert_eq!(
+        "irreplaceable",
+        fs::read_to_string(target.join("photos").join("1.jpg")).unwrap(),
+        "the directory contents must be intact"
+    );
+}
+
 #[test]
 fn decompress_with_mismatched_extension_should_use_detected_format() {
     let (_tempdir, test_dir) = testdir().unwrap();
