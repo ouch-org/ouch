@@ -1010,18 +1010,12 @@ dependencies = [
 
 [[package]]
 name = "lzma-rust2"
-version = "0.18.1"
+version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "243cb2271683c2855cad62142cbf38199db439b1b1e1ccdd5a011342894dd7cc"
+checksum = "e6effa5c575f68109664a511f378c0e170888e33a426694ee0910a673762bd47"
 dependencies = [
  "sha2",
 ]
-
-[[package]]
-name = "lzma-rust2"
-version = "0.20.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e2a88783b84d2d67ef2791778a9e76bfb68b8017aaf6c9d7d5f2626a478b16c"
 
 [[package]]
 name = "memchr"
@@ -1130,7 +1124,7 @@ dependencies = [
  "landlock",
  "libc",
  "lz4_flex",
- "lzma-rust2 0.18.1",
+ "lzma-rust2",
  "memchr",
  "num_cpus",
  "parse-display",
@@ -1499,7 +1493,7 @@ dependencies = [
  "crc32fast",
  "getrandom 0.4.3",
  "js-sys",
- "lzma-rust2 0.20.1",
+ "lzma-rust2",
  "ppmd-rust",
  "sha2",
  "wasm-bindgen",
