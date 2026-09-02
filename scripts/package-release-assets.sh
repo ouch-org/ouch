@@ -41,7 +41,7 @@ for platform in "${PLATFORMS[@]}"; do
     fi
     mv "${path}-${DEFAULT_FEATURES}" "$path" # remove the annoying suffix
 
-    cp ../{README.md,LICENSE,CHANGELOG.md} "$path"
+    cp ../{README.md,LICENSE} "$path"
     mkdir -p "$path/man"
     mkdir -p "$path/completions"
 
