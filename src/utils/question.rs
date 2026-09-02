@@ -146,6 +146,13 @@ pub fn create_file_or_prompt_on_conflict(
         FileConflitOperation::Cancel => return Ok(None),
         FileConflitOperation::Merge => path,
         FileConflitOperation::Overwrite => {
+            // Refuse an existing directory so overwrite never deletes it
+            if path.is_dir() {
+                return Err(FinalError::with_title(format!("Cannot compress to {}", PathFmt(&path)))
+                    .detail("A directory already exists at this path.")
+                    .hint("Remove it or choose a different output file name.")
+                    .into());
+            }
             utils::remove_file_or_dir(&path)?;
             path
         }
