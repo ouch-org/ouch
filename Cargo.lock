@@ -2089,6 +2089,7 @@ dependencies = [
  "time",
  "typed-path",
  "zeroize",
+ "zstd",
 ]
 
 [[package]]
