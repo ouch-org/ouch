@@ -2136,24 +2136,24 @@ fn merging_a_rar_asks_before_replacing_each_file() {
     fs::create_dir(&out).unwrap();
     fs::write(out.join("testfile.txt"), "original").unwrap();
 
-    // Skip the file that is already there.
+    // Merge into the existing directory, then skip the file that is already there.
     crate::utils::cargo_bin()
         .arg("decompress")
         .arg(&archive)
         .arg("-d")
         .arg(&out)
-        .write_stdin("s\n")
+        .write_stdin("m\ns\n")
         .assert()
         .success();
     assert_eq!("original", fs::read_to_string(out.join("testfile.txt")).unwrap());
 
-    // Answering overwrite replaces it.
+    // Merge into the existing directory, then overwrite the conflicting file.
     crate::utils::cargo_bin()
         .arg("decompress")
         .arg(&archive)
         .arg("-d")
         .arg(&out)
-        .write_stdin("o\n")
+        .write_stdin("m\no\n")
         .assert()
         .success();
     assert_eq!("Testing 123\n", fs::read_to_string(out.join("testfile.txt")).unwrap());
