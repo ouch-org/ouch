@@ -67,7 +67,7 @@ Files can also be decompressed from STDIN by passing `-` as the input path and
 providing the format with `-f/--format` (there is no path to infer the format from).
 
 ```sh
-# Decompress archive read from STDIN, writting contents to `ouch-output`
+# Decompress archive read from STDIN, writing contents to `ouch-output`
 cat a.tar.gz | ouch decompress - --format tar.gz
 ```
 
