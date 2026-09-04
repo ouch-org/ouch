@@ -1,0 +1,49 @@
+name: Security audit
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+  pull_request:
+    paths:
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+  schedule:
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  cargo-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+
+      - name: "Cargo: audit"
+        id: audit
+        continue-on-error: true
+        run: cargo audit --deny warnings --deny yanked
+
+      - name: "Cargo: update"
+        if: steps.audit.outcome == 'failure'
+        run: cargo update
+
+      - name: Open pull request
+        if: steps.audit.outcome == 'failure'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "deps: update vulnerable and yanked dependencies"
+          branch: security-audit-fix
+          delete-branch: true
+          title: "deps: update vulnerable and yanked dependencies"
+          body: Opened by the security audit workflow
+          labels: dependencies
