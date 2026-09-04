@@ -16,6 +16,7 @@ pub const SUPPORTED_EXTENSIONS: &[&str] = &[
     "zip",
     "bz",
     "bz2",
+    "bz3",
     "gz",
     "lz4",
     "xz",
@@ -404,6 +405,40 @@ mod tests {
             build_archive_file_suggestion(Path::new("linux.pkg.info.zst"), ".tar").unwrap(),
             "linux.pkg.info.tar.zst"
         );
+    }
+
+    /// `bz3` is a supported extension, so the suggestion must insert `.tar` *before* it.
+    /// Regression: `bz3` was missing from `SUPPORTED_EXTENSIONS`, so the walk skipped it and
+    /// suggested `linux.bz3.tar.gz`, which `ouch` then rejects for a misplaced archive format.
+    #[test]
+    fn builds_suggestion_for_bzip3_extension() {
+        assert_eq!(
+            build_archive_file_suggestion(Path::new("linux.bz3"), ".tar").as_deref(),
+            Some("linux.tar.bz3")
+        );
+        assert_eq!(
+            build_archive_file_suggestion(Path::new("linux.bz3.gz"), ".tar").as_deref(),
+            Some("linux.tar.bz3.gz")
+        );
+    }
+
+    /// Every non-archive extension that `slice_to_extension` accepts must be listed in
+    /// `SUPPORTED_EXTENSIONS`, otherwise the suggestion walk skips it and proposes a path
+    /// `ouch` itself rejects. This is what let `bz3` go missing.
+    /// Archive-first aliases such as `tgz` and `tbz3` live in `SUPPORTED_ALIASES` instead.
+    #[test]
+    fn every_standalone_parsable_extension_is_supported() {
+        for ext in PRETTY_SUPPORTED_EXTENSIONS.split(", ") {
+            let parsed =
+                slice_to_extension(ext.as_bytes()).unwrap_or_else(|| panic!("'{ext}' is advertised but not parsable"));
+            if parsed.compression_formats == [CompressionFormat::Tar] {
+                continue;
+            }
+            assert!(
+                SUPPORTED_EXTENSIONS.contains(&ext),
+                "'{ext}' is advertised and parsable but missing from SUPPORTED_EXTENSIONS"
+            );
+        }
     }
 
     #[test]
