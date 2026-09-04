@@ -10,7 +10,7 @@ use std::{
 use fs_err::{self as fs, PathExt};
 use same_file::Handle;
 
-use super::{question::FileConflitOperation, user_wants_to_overwrite};
+use super::{question::FileConflictOperation, user_wants_to_overwrite};
 use crate::{
     FinalError, QuestionPolicy, Result,
     error::Error,
@@ -37,13 +37,13 @@ pub fn resolve_path_conflict(
 ) -> Result<Option<PathBuf>> {
     if path.fs_err_try_exists()? {
         match user_wants_to_overwrite(path, question_policy, question_action)? {
-            FileConflitOperation::Cancel => Ok(None),
-            FileConflitOperation::Overwrite => {
+            FileConflictOperation::Cancel => Ok(None),
+            FileConflictOperation::Overwrite => {
                 remove_file_or_dir(path)?;
                 Ok(Some(path.to_path_buf()))
             }
-            FileConflitOperation::Rename => Ok(Some(find_available_filename_by_renaming(path)?)),
-            FileConflitOperation::Merge => Ok(Some(path.to_path_buf())),
+            FileConflictOperation::Rename => Ok(Some(find_available_filename_by_renaming(path)?)),
+            FileConflictOperation::Merge => Ok(Some(path.to_path_buf())),
         }
     } else {
         Ok(Some(path.to_path_buf()))
@@ -59,9 +59,9 @@ pub fn resolve_extraction_conflict(path: &Path, question_policy: QuestionPolicy)
 
     // These choices fit a single file. They are rename or overwrite or skip.
     match user_wants_to_overwrite(path, question_policy, QuestionAction::Compression)? {
-        FileConflitOperation::Cancel => Ok(None),
-        FileConflitOperation::Rename => Ok(Some(find_available_filename_by_renaming(path)?)),
-        FileConflitOperation::Overwrite | FileConflitOperation::Merge => Ok(Some(path.to_path_buf())),
+        FileConflictOperation::Cancel => Ok(None),
+        FileConflictOperation::Rename => Ok(Some(find_available_filename_by_renaming(path)?)),
+        FileConflictOperation::Overwrite | FileConflictOperation::Merge => Ok(Some(path.to_path_buf())),
     }
 }
 

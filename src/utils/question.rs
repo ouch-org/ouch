@@ -43,7 +43,7 @@ pub enum QuestionAction {
 
 #[derive(Default)]
 /// Determines which action to do when there is a file conflict
-pub enum FileConflitOperation {
+pub enum FileConflictOperation {
     #[default]
     /// Cancel the operation
     Cancel,
@@ -61,8 +61,8 @@ pub fn user_wants_to_overwrite(
     path: &Path,
     question_policy: QuestionPolicy,
     question_action: QuestionAction,
-) -> Result<FileConflitOperation> {
-    use FileConflitOperation as Op;
+) -> Result<FileConflictOperation> {
+    use FileConflictOperation as Op;
 
     match question_policy {
         QuestionPolicy::AlwaysYes => match question_action {
@@ -78,8 +78,8 @@ pub fn user_wants_to_overwrite(
 pub fn prompt_user_for_file_conflict_resolution(
     path: &Path,
     question_action: QuestionAction,
-) -> Result<FileConflitOperation> {
-    use FileConflitOperation as Op;
+) -> Result<FileConflictOperation> {
+    use FileConflictOperation as Op;
 
     match question_action {
         QuestionAction::Compression => ChoicePrompt::new(
@@ -137,15 +137,15 @@ pub fn create_file_or_prompt_on_conflict(
 
     // Question policy override prompting
     let action = match question_policy {
-        QuestionPolicy::AlwaysYes => FileConflitOperation::Overwrite,
-        QuestionPolicy::AlwaysNo => FileConflitOperation::Cancel,
+        QuestionPolicy::AlwaysYes => FileConflictOperation::Overwrite,
+        QuestionPolicy::AlwaysNo => FileConflictOperation::Cancel,
         QuestionPolicy::Ask => prompt_user_for_file_conflict_resolution(&path, question_action)?,
     };
 
     let path_to_create_file = match action {
-        FileConflitOperation::Cancel => return Ok(None),
-        FileConflitOperation::Merge => path,
-        FileConflitOperation::Overwrite => {
+        FileConflictOperation::Cancel => return Ok(None),
+        FileConflictOperation::Merge => path,
+        FileConflictOperation::Overwrite => {
             // Refuse an existing directory so overwrite never deletes it
             if path.is_dir() {
                 return Err(FinalError::with_title(format!("Cannot compress to {}", PathFmt(&path)))
@@ -156,7 +156,7 @@ pub fn create_file_or_prompt_on_conflict(
             utils::remove_file_or_dir(&path)?;
             path
         }
-        FileConflitOperation::Rename => utils::find_available_filename_by_renaming(&path)?,
+        FileConflictOperation::Rename => utils::find_available_filename_by_renaming(&path)?,
     };
 
     let file = fs::File::create(&path_to_create_file)?;
@@ -185,14 +185,14 @@ pub fn user_wants_to_continue(
     }
 }
 
-/// Choise dialog for end user with [option1/option2/...] question.
+/// Choice dialog for end user with [option1/option2/...] question.
 /// Each option is a [Choice] entity, holding a value "T" returned when that option is selected
 pub struct ChoicePrompt<'a, T: Default> {
     /// The message to be displayed before the options
     /// e.g.: "Do you want to overwrite 'FILE'?"
     pub prompt: String,
 
-    pub choises: Vec<Choice<'a, T>>,
+    pub choices: Vec<Choice<'a, T>>,
 }
 
 /// A single choice showed as a option to user in a [ChoicePrompt]
@@ -205,18 +205,18 @@ pub struct Choice<'a, T: Default> {
 
 impl<'a, T: Default> ChoicePrompt<'a, T> {
     /// Creates a new Confirmation.
-    pub fn new(prompt: impl Into<String>, choises: impl IntoIterator<Item = (&'a str, T, &'a str)>) -> Self {
+    pub fn new(prompt: impl Into<String>, choices: impl IntoIterator<Item = (&'a str, T, &'a str)>) -> Self {
         Self {
             prompt: prompt.into(),
-            choises: choises
+            choices: choices
                 .into_iter()
                 .map(|(label, value, color)| Choice { label, value, color })
                 .collect(),
         }
     }
 
-    /// Creates user message and receives a input to be compared with choises "label"
-    /// and returning the real value of the choise selected
+    /// Creates user message and receives a input to be compared with choices "label"
+    /// and returning the real value of the choice selected
     pub fn ask(mut self) -> Result<T> {
         let message = self.prompt;
 
@@ -235,18 +235,18 @@ impl<'a, T: Default> ChoicePrompt<'a, T> {
         // Ask the same question to end while no valid answers are given
         loop {
             let choice_prompt = if is_running_in_accessible_mode() {
-                self.choises
+                self.choices
                     .iter()
-                    .map(|choise| format!("{}{}{}", choise.color, choise.label, *colors::RESET))
+                    .map(|choice| format!("{}{}{}", choice.color, choice.label, *colors::RESET))
                     .collect::<Vec<_>>()
                     .join("/")
             } else {
-                let choises = self
-                    .choises
+                let choices = self
+                    .choices
                     .iter()
                     .enumerate()
-                    .map(|(index, choise)| {
-                        let mut chars = choise.label.chars();
+                    .map(|(index, choice)| {
+                        let mut chars = choice.label.chars();
                         let first = chars
                             .next()
                             .expect("dev error, should be reported, we checked this won't happen");
@@ -256,12 +256,12 @@ impl<'a, T: Default> ChoicePrompt<'a, T> {
                             first.to_string()
                         };
                         let rest: String = chars.collect();
-                        format!("{}({}){}{}", choise.color, first_formatted, rest, *colors::RESET)
+                        format!("{}({}){}{}", choice.color, first_formatted, rest, *colors::RESET)
                     })
                     .collect::<Vec<_>>()
                     .join("/");
 
-                format!("[{choises}]")
+                format!("[{choices}]")
             };
 
             eprintln!("{message} {choice_prompt}");
@@ -282,14 +282,14 @@ impl<'a, T: Default> ChoicePrompt<'a, T> {
             answer.make_ascii_lowercase();
             let answer = answer.trim();
 
-            if answer.is_empty() && !self.choises.is_empty() {
-                return Ok(self.choises.remove(0).value);
+            if answer.is_empty() && !self.choices.is_empty() {
+                return Ok(self.choices.remove(0).value);
             }
 
-            let chosen_index = self.choises.iter().position(|choise| choise.label.starts_with(answer));
+            let chosen_index = self.choices.iter().position(|choice| choice.label.starts_with(answer));
 
             if let Some(i) = chosen_index {
-                return Ok(self.choises.remove(i).value);
+                return Ok(self.choices.remove(i).value);
             }
         }
     }

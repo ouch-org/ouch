@@ -229,7 +229,7 @@ mod tests {
         assert_eq!(" 95.20 GiB", format_bytes(95200000000));
         assert_eq!("302.00 GiB", format_bytes(302000000000));
         assert_eq!("302.99 GiB", format_bytes(302990000000));
-        // Weird aproximation cases:
+        // Weird approximation cases:
         assert_eq!("999.90 GiB", format_bytes(999900000000));
         assert_eq!("  1.00 TiB", format_bytes(999990000000));
     }
