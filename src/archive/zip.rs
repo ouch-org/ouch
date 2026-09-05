@@ -11,7 +11,7 @@ use filetime_creation::{FileTime, set_file_mtime};
 use fs_err as fs;
 use is_executable::is_executable;
 use same_file::Handle;
-use time::{OffsetDateTime, PrimitiveDateTime};
+use time::{OffsetDateTime, PrimitiveDateTime, UtcOffset};
 use zip::{self, DateTime, ZipArchive, read::ZipFile};
 
 #[cfg(unix)]
@@ -341,29 +341,50 @@ fn get_last_modified_time(file: &fs::File) -> DateTime {
         .and_then(|metadata| metadata.modified())
         .ok()
         .and_then(|time| {
-            // zip stores timezone-naive DOS times, so drop the tz from OffsetDateTime
-            let odt = OffsetDateTime::from(time);
-            DateTime::try_from(PrimitiveDateTime::new(odt.date(), odt.time())).ok()
+            let datetime = OffsetDateTime::from(time);
+            let offset = UtcOffset::local_offset_at(datetime).unwrap_or(UtcOffset::UTC);
+            zip_datetime_from_offset(datetime, offset)
         })
         .unwrap_or_default()
 }
 
 fn set_last_modified_time<R: Read>(zip_file: &ZipFile<'_, R>, path: &Path) -> Result<()> {
-    // Extract modification time from zip file and convert to FileTime
     let file_time = zip_file
         .last_modified()
         .and_then(|datetime| PrimitiveDateTime::try_from(datetime).ok())
         .map(|pdt| {
-            // Zip does not support nanoseconds, so we can assume zero here
-            FileTime::from_unix_time(pdt.assume_utc().unix_timestamp(), 0)
+            let offset = local_offset_for(pdt).unwrap_or(UtcOffset::UTC);
+            file_time_from_local_datetime(pdt, offset)
         });
 
-    // Set the modification time if available
     if let Some(modification_time) = file_time {
         set_file_mtime(path, modification_time)?;
     }
 
     Ok(())
+}
+
+fn zip_datetime_from_offset(datetime: OffsetDateTime, offset: UtcOffset) -> Option<DateTime> {
+    let local = datetime.to_offset(offset);
+    DateTime::try_from(PrimitiveDateTime::new(local.date(), local.time())).ok()
+}
+
+fn local_offset_for(datetime: PrimitiveDateTime) -> Option<UtcOffset> {
+    let mut offset = UtcOffset::local_offset_at(datetime.assume_utc()).ok()?;
+
+    for _ in 0..2 {
+        let next = UtcOffset::local_offset_at(datetime.assume_offset(offset)).ok()?;
+        if next == offset {
+            break;
+        }
+        offset = next;
+    }
+
+    Some(offset)
+}
+
+fn file_time_from_local_datetime(datetime: PrimitiveDateTime, offset: UtcOffset) -> FileTime {
+    FileTime::from_unix_time(datetime.assume_offset(offset).unix_timestamp(), 0)
 }
 
 /// A zip mode without Unix file-type bits isn't a real Unix mode, so its permissions are ignored.
@@ -388,5 +409,41 @@ fn zip_non_utf8_error<'a>(path: &'a Path) -> impl Fn() -> FinalError + 'a {
     || {
         FinalError::with_title("Zip requires that all paths are valid UTF-8")
             .detail(format!("File {} has a non-UTF-8 path", PathFmt(path)))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use time::{Date, Month, Time};
+
+    use super::*;
+
+    #[test]
+    fn zip_timestamps_round_trip_with_offset() {
+        let date = Date::from_calendar_date(2026, Month::February, 7).unwrap();
+        let local = PrimitiveDateTime::new(date, Time::from_hms(10, 6, 50).unwrap());
+        let offset = UtcOffset::from_hms(-6, 0, 0).unwrap();
+        let instant = local.assume_offset(offset);
+
+        let datetime = zip_datetime_from_offset(instant, offset).unwrap();
+        assert_eq!(PrimitiveDateTime::try_from(datetime).unwrap(), local);
+
+        let file_time = file_time_from_local_datetime(local, offset);
+        assert_eq!(file_time.unix_seconds(), instant.unix_timestamp());
+    }
+
+    #[test]
+    fn zip_timestamps_round_trip_with_local_offset() {
+        let instant = Date::from_calendar_date(2026, Month::February, 7)
+            .unwrap()
+            .with_hms(12, 34, 56)
+            .unwrap()
+            .assume_utc();
+        let offset = UtcOffset::local_offset_at(instant).unwrap();
+        let datetime = zip_datetime_from_offset(instant, offset).unwrap();
+        let local = PrimitiveDateTime::try_from(datetime).unwrap();
+        let resolved_offset = local_offset_for(local).unwrap();
+        let file_time = file_time_from_local_datetime(local, resolved_offset);
+        assert_eq!(file_time.unix_seconds(), instant.unix_timestamp());
     }
 }
