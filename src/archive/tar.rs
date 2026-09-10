@@ -20,7 +20,7 @@ use crate::{
     utils::{
         self, BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, create_symlink, is_same_file_as_output,
         read_file_type, resolve_extraction_conflict, sanitize_archive_mode, set_permission_mode,
-        validate_dest_inside_root, validate_entry_path, validate_symlink_target,
+        validate_dest_inside_root, validate_entry_path, validate_symlink_target, warn_skipping_special_file,
     },
     warning,
 };
@@ -185,6 +185,20 @@ where
         for entry in iter {
             let path = entry?;
 
+            let (metadata, file_type) = {
+                if follow_symlinks {
+                    (path.metadata()?, read_file_type(canonicalize(&path)?)?)
+                } else {
+                    (path.symlink_metadata()?, read_file_type(&path)?)
+                }
+            };
+
+            // Skip special files before anything opens the path, opening a fifo blocks
+            let Some(file_type) = file_type else {
+                warn_skipping_special_file(&path);
+                continue;
+            };
+
             // Avoid compressing the output file into itself
             if let Ok(handle) = output_handle.as_ref()
                 && is_same_file_as_output(&path, handle)
@@ -194,14 +208,6 @@ where
             }
 
             info!("Compressing {}", PathFmt(&path));
-
-            let (metadata, file_type) = {
-                if follow_symlinks {
-                    (path.metadata()?, read_file_type(canonicalize(&path)?)?)
-                } else {
-                    (path.symlink_metadata()?, read_file_type(&path)?)
-                }
-            };
 
             // Treat unix hardlinks (ignore directory, since user-created directory hard links are
             // not a thing)

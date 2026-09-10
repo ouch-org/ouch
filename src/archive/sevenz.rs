@@ -19,7 +19,7 @@ use crate::{
     utils::{
         BytesFmt, FileVisibilityPolicy, PathFmt, cd_into_same_dir_as, copy_limited_decompression,
         ensure_parent_dir_exists, is_same_file_as_output, resolve_extraction_conflict, validate_dest_inside_root,
-        validate_entry_path,
+        validate_entry_path, warn_skipping_special_file,
     },
     warning,
 };
@@ -183,6 +183,16 @@ where
             let entry = entry?;
             let path = entry.path();
 
+            // use metadata instead of symlink_metadata, 7z doesn't support symlinks
+            let metadata = path.metadata()?;
+
+            // 7z stores files and directories only, and opening a fifo blocks, so leave
+            // special files out before anything opens the path
+            if !metadata.is_file() && !metadata.is_dir() {
+                warn_skipping_special_file(path);
+                continue;
+            }
+
             // Avoid compressing the output file into itself
             if let Ok(handle) = output_handle.as_ref()
                 && is_same_file_as_output(path, handle)
@@ -192,9 +202,6 @@ where
             }
 
             info!("Compressing {}", PathFmt(path));
-
-            // use metadata instead of symlink_metadata, 7z doesn't support symlinks
-            let metadata = path.metadata()?;
 
             let entry_name = path.to_str().ok_or_else(|| {
                 FinalError::with_title("7z requires that all entry names are valid UTF-8")
