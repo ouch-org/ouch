@@ -1,6 +1,6 @@
 [package]
 name = "ouch"
-version = "0.8.2"
+version = "0.8.3"
 authors = [
     "João Marcos <marcospb19@hotmail.com>",
     "Vinícius Rodrigues Miguel <vrmiguel99@gmail.com>",
