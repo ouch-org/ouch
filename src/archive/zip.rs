@@ -25,7 +25,7 @@ use crate::{
         BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, cd_into_same_dir_as,
         copy_limited_decompression, create_symlink, ensure_parent_dir_exists, get_invalid_utf8_paths,
         is_same_file_as_output, pretty_format_list_of_paths, read_file_type, resolve_extraction_conflict,
-        strip_cur_dir, validate_dest_inside_root, validate_symlink_target,
+        strip_cur_dir, validate_dest_inside_root, validate_symlink_target, warn_skipping_special_file,
     },
     warning,
 };
@@ -236,6 +236,20 @@ where
         for entry in iter {
             let path = entry?;
 
+            let (metadata, file_type) = {
+                if follow_symlinks {
+                    (path.metadata()?, read_file_type(canonicalize(&path)?)?)
+                } else {
+                    (path.symlink_metadata()?, read_file_type(&path)?)
+                }
+            };
+
+            // Skip special files before anything opens the path, opening a fifo blocks
+            let Some(file_type) = file_type else {
+                warn_skipping_special_file(&path);
+                continue;
+            };
+
             // Avoid compressing the output file into itself
             if let Ok(handle) = output_handle.as_ref()
                 && is_same_file_as_output(&path, handle)
@@ -245,14 +259,6 @@ where
             }
 
             info!("Compressing {}", PathFmt(&path));
-
-            let (metadata, file_type) = {
-                if follow_symlinks {
-                    (path.metadata()?, read_file_type(canonicalize(&path)?)?)
-                } else {
-                    (path.symlink_metadata()?, read_file_type(&path)?)
-                }
-            };
 
             #[cfg(unix)]
             let mode = metadata.permissions().mode();

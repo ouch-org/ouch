@@ -455,18 +455,28 @@ pub enum FileType {
     Symlink,
 }
 
-pub fn read_file_type(path: impl AsRef<Path>) -> Result<FileType> {
+/// Read the type of the file at `path`, without following symlinks.
+///
+/// Returns `Ok(None)` for special files (sockets, fifos, block and character devices), which
+/// archives cannot store, so callers skip them instead of failing.
+pub fn read_file_type(path: impl AsRef<Path>) -> Result<Option<FileType>> {
     use file_type_enum::FileType::*;
 
     let path = path.as_ref();
-    match file_type_enum::FileType::symlink_read_at(path)? {
-        Regular => Ok(FileType::Regular),
-        Directory => Ok(FileType::Directory),
-        Symlink => Ok(FileType::Symlink),
-        variant => Err(FinalError::with_title(format!("unsupported file type {variant}"))
-            .detail(format!("found at {}", PathFmt(path)))
-            .into()),
-    }
+    Ok(match file_type_enum::FileType::symlink_read_at(path)? {
+        Regular => Some(FileType::Regular),
+        Directory => Some(FileType::Directory),
+        Symlink => Some(FileType::Symlink),
+        _special_file => None,
+    })
+}
+
+/// Warn that a special file was left out of the archive being built.
+pub fn warn_skipping_special_file(path: &Path) {
+    crate::warning!(
+        "Skipping {}, archives cannot store special files like sockets and fifos",
+        PathFmt(path)
+    );
 }
 
 #[cfg(test)]
