@@ -422,18 +422,14 @@ mod tests {
         );
     }
 
-    /// Every non-archive extension that `slice_to_extension` accepts must be listed in
+    /// Every extension that `slice_to_extension` accepts must be listed in
     /// `SUPPORTED_EXTENSIONS`, otherwise the suggestion walk skips it and proposes a path
     /// `ouch` itself rejects. This is what let `bz3` go missing.
     /// Archive-first aliases such as `tgz` and `tbz3` live in `SUPPORTED_ALIASES` instead.
     #[test]
     fn every_standalone_parsable_extension_is_supported() {
         for ext in PRETTY_SUPPORTED_EXTENSIONS.split(", ") {
-            let parsed =
-                slice_to_extension(ext.as_bytes()).unwrap_or_else(|| panic!("'{ext}' is advertised but not parsable"));
-            if parsed.compression_formats == [CompressionFormat::Tar] {
-                continue;
-            }
+            slice_to_extension(ext.as_bytes()).unwrap_or_else(|| panic!("'{ext}' is advertised but not parsable"));
             assert!(
                 SUPPORTED_EXTENSIONS.contains(&ext),
                 "'{ext}' is advertised and parsable but missing from SUPPORTED_EXTENSIONS"
