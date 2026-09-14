@@ -89,6 +89,19 @@ def confirm_working_tree_changes() -> None:
     if not confirm("Continue with these changes present"):
         die("Release creation aborted")
 
+def confirm_release_script_changes() -> None:
+    diff = run(
+        "git", "diff", "--no-ext-diff", "--no-color", "origin/main", "--",
+        ".github", "scripts", capture=True,
+    )
+    if not diff:
+        return
+
+    print("There is a diff in .github or scripts compared to origin/main:")
+    print(diff)
+    if not confirm("Continue with these differences present"):
+        die("Release creation aborted")
+
 def remote_tags(pattern: str) -> list[str]:
     refs = run(
         "git", "ls-remote", "--tags", "origin", pattern, capture=True
@@ -154,6 +167,7 @@ def main() -> None:
     os.chdir(root)
 
     confirm_working_tree_changes()
+    confirm_release_script_changes()
     if final_tag_exists(version):
         die(f"Final release tag '{version}' already exists")
 
