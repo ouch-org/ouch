@@ -48,7 +48,7 @@ zip = { version = "8.6.0", default-features = false, features = [
     "aes-crypto",
     "zstd",
 ] }
-zstd = { version = "0.13.3", default-features = false, features = ["zstdmt"] }
+zstd = { version = "0.14.0", default-features = false, features = ["zstdmt"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 landlock = "0.4.5"
