@@ -184,6 +184,9 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
         return Ok(());
     };
 
+    // count entries not extracted so --remove only deletes after a full unpack
+    crate::utils::reset_unextracted_entries();
+
     let control_flow = match first_extension {
         Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {
             let reader = create_decoder_up_to_first_extension()?;
@@ -324,7 +327,7 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
         }
     }
 
-    if !input_is_stdin && options.remove {
+    if !input_is_stdin && options.remove && crate::utils::unextracted_entries() == 0 {
         fs::remove_file(options.input_file_path)?;
         info!("Removed input file {}", PathFmt(options.input_file_path));
     }

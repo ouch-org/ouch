@@ -53,6 +53,7 @@ where
             Some(path) => path.to_owned(),
             None => {
                 warning!("skipping entry {} with unsafe name: {}", idx, file.name());
+                crate::utils::mark_entry_unextracted();
                 continue;
             }
         };
