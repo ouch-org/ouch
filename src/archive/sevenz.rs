@@ -46,6 +46,7 @@ where
                 Ok(p) => p,
                 Err(e) => {
                     warning!("skipping unsafe 7z entry {}: {}", PathFmt(name_as_path), e);
+                    crate::utils::mark_entry_unextracted();
                     return Ok(true);
                 }
             };
@@ -53,6 +54,7 @@ where
 
             if let Err(e) = validate_dest_inside_root(output_path, &file_path) {
                 warning!("skipping 7z entry {}: {}", PathFmt(&file_path), e);
+                crate::utils::mark_entry_unextracted();
                 return Ok(true);
             }
 
