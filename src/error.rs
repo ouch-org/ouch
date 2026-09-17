@@ -29,6 +29,8 @@ pub enum Error {
     InvalidZipArchive(Cow<'static, str>),
     /// Detected from io::Error if .kind() is io::ErrorKind::PermissionDenied
     PermissionDenied { error_title: String },
+    /// Set instead of PermissionDenied when the sandbox is enforcing the policy
+    SandboxDenied { error_title: String },
     /// From zip::result::ZipError::UnsupportedArchive
     UnsupportedZipArchive(&'static str),
     /// We don't support compressing the root folder.
@@ -172,6 +174,11 @@ impl From<Error> for FinalError {
             Error::AlreadyExists { error_title } => Self::with_title(error_title).detail("File already exists"),
             Error::InvalidZipArchive(reason) => Self::with_title("Invalid zip archive").detail(reason),
             Error::PermissionDenied { error_title } => Self::with_title(error_title).detail("Permission denied"),
+            Error::SandboxDenied { error_title } => Self::with_title(error_title)
+                .detail("Permission Denied! An Access Violation was prevented by the landlock sandbox.")
+                .detail("This is most likely a bug in ouch, but could potentially indicate a prevented exploit attempt.")
+                .hint("Please report the issue at https://github.com/ouch-org/ouch/issues and include the exact command used and if possible the archive file that triggered the issue.")
+                .hint("Do not submit sensitive data."),
             Error::UnsupportedZipArchive(reason) => Self::with_title("Unsupported zip archive").detail(reason),
             Error::InvalidFormatFlag { reason, text } => {
                 Self::with_title(format!("Failed to parse `--format {}`", text))
@@ -206,6 +213,8 @@ impl From<io::Error> for Error {
 
         match err.kind() {
             io::ErrorKind::NotFound => Self::NotFound { error_title },
+            // landlock reports a refused access as EACCES
+            io::ErrorKind::PermissionDenied if crate::sandbox::is_sandboxed() => Self::SandboxDenied { error_title },
             io::ErrorKind::PermissionDenied => Self::PermissionDenied { error_title },
             io::ErrorKind::AlreadyExists => Self::AlreadyExists { error_title },
             _other => Self::IoError { reason: error_title },
@@ -257,6 +266,13 @@ impl From<unrar::error::UnrarError> for Error {
 
 impl From<sevenz_rust2::Error> for Error {
     fn from(err: sevenz_rust2::Error) -> Self {
+        // sevenz_rust2 formats its errors with Debug, so map the inner io error instead
+        if let sevenz_rust2::Error::Io(io_err, _) = &err
+            && io_err.kind() == io::ErrorKind::PermissionDenied
+        {
+            return Self::from(io::Error::new(io_err.kind(), io_err.to_string()));
+        }
+
         Self::SevenzipError {
             reason: err.to_string(),
         }
