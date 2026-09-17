@@ -20,7 +20,7 @@ use crate::{
     utils::{
         BytesFmt, LZMA_MEMLIMIT_BYTES, LimitedReader, PathFmt, copy_limited_decompression, file_size,
         io::{ReadSeek, lock_and_flush_output_stdio},
-        is_path_stdin, resolve_path_conflict, user_wants_to_continue,
+        is_path_stdin, resolve_extraction_conflict, resolve_path_conflict, user_wants_to_continue,
     },
 };
 
@@ -197,6 +197,15 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
             };
 
             let final_output_path = dir.join(file_name);
+            // ask before overwriting a file that already exists in the target folder
+            let final_output_path = if !options.output_dir_was_explicit && !options.here {
+                match resolve_extraction_conflict(&final_output_path, options.question_policy)? {
+                    Some(path) => path,
+                    None => return Ok(()),
+                }
+            } else {
+                final_output_path
+            };
             let mut writer = fs::File::create(&final_output_path)?;
             io::copy(&mut reader, &mut writer)?;
             ControlFlow::Continue(DecompressionSummary::NonArchive {
