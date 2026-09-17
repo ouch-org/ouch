@@ -1,6 +1,12 @@
 //! Per-process filesystem sandbox.
 
-use std::path::{Path, PathBuf};
+use std::{
+    io,
+    path::{Path, PathBuf},
+    sync::atomic::{AtomicBool, Ordering},
+};
+
+use crate::error::{Error, Result};
 
 #[cfg(target_os = "linux")]
 mod landlock;
@@ -66,7 +72,35 @@ impl SandboxPolicy {
 
     /// Apply the policy and return whether the sandbox is now enforced.
     /// Failures emit a warning and let the process run unrestricted.
-    pub fn apply(&self) -> bool {
+    pub fn apply(&self) -> Result<bool> {
+        // skip the check when no sandbox will be enforced, nothing can mask the error then
+        if !disabled_by_request(self.disabled) && available() {
+            self.check_declared_paths()?;
+        }
+        let enforced = self.enforce();
+        // without a granted write path landlock cannot refuse anything this run does
+        SANDBOXED.store(enforced && !self.read_write.is_empty(), Ordering::Relaxed);
+
+        Ok(enforced)
+    }
+
+    /// Fail on any declared path the filesystem already refuses, while no sandbox is active.
+    fn check_declared_paths(&self) -> Result<()> {
+        for (paths, write) in [
+            (&self.read, false),
+            (&self.read_write, true),
+            (&self.remove_in, true),
+            (&self.remove_dir_in, true),
+        ] {
+            for path in paths {
+                check_access(path, write)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn enforce(&self) -> bool {
         if disabled_by_request(self.disabled) {
             return false;
         }
@@ -81,6 +115,46 @@ impl SandboxPolicy {
             false
         }
     }
+}
+
+static SANDBOXED: AtomicBool = AtomicBool::new(false);
+
+/// True when landlock is enforcing a policy that grants write access.
+pub fn is_sandboxed() -> bool {
+    SANDBOXED.load(Ordering::Relaxed)
+}
+
+/// Test read or write access with faccessat, which opens and creates nothing.
+#[cfg(unix)]
+fn check_access(path: &Path, write: bool) -> Result<()> {
+    use std::{ffi::CString, os::unix::ffi::OsStrExt};
+
+    let (mode, verb) = if write {
+        (libc::W_OK, "write to")
+    } else {
+        (libc::R_OK, "read")
+    };
+    let Ok(c_path) = CString::new(path.as_os_str().as_bytes()) else {
+        return Ok(());
+    };
+
+    // SAFETY: c_path is a valid nul terminated string that outlives the call
+    let denied = unsafe { libc::faccessat(libc::AT_FDCWD, c_path.as_ptr(), mode, libc::AT_EACCESS) } != 0
+        && io::Error::last_os_error().kind() == io::ErrorKind::PermissionDenied;
+
+    if denied {
+        return Err(Error::PermissionDenied {
+            error_title: format!("cannot {verb} {}", crate::utils::PathFmt(path)),
+        });
+    }
+
+    Ok(())
+}
+
+/// Landlock is Linux only, so other platforms need no early check.
+#[cfg(not(unix))]
+fn check_access(_path: &Path, _write: bool) -> Result<()> {
+    Ok(())
 }
 
 /// Resolve `path` to an absolute path, falling back to its parent if the
@@ -162,7 +236,7 @@ mod tests {
     fn apply_returns_false_when_disabled() {
         let mut policy = SandboxPolicy::new();
         policy.set_disabled(true);
-        assert!(!policy.apply());
+        assert!(!policy.apply().unwrap());
     }
 
     #[test]
