@@ -41,16 +41,11 @@ fn move_into_place(root: &Path, dir: &Path, output_folder: &Path, question_polic
         let dest = output_folder.join(source.strip_prefix(root).expect("child of staging root"));
 
         if fs::symlink_metadata(&source)?.is_dir() {
-            std::fs::create_dir_all(&dest).map_err(|err| Error::Custom {
-                reason: FinalError::with_title(format!("failed to create {}", PathFmt(&dest))).detail(err.to_string()),
-            })?;
+            fs::create_dir_all(&dest)?;
             files_unpacked += move_into_place(root, &source, output_folder, question_policy)?;
         } else if let Some(target) = resolve_extraction_conflict(&dest, question_policy)? {
             let size = fs::symlink_metadata(&source)?.len();
-            std::fs::rename(&source, &target).map_err(|err| Error::Custom {
-                reason: FinalError::with_title(format!("failed to extract {}", PathFmt(&target)))
-                    .detail(err.to_string()),
-            })?;
+            fs::rename(&source, &target)?;
             info!("extracted ({}) {}", BytesFmt(size), PathFmt(&target));
             files_unpacked += 1;
         }
