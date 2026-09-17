@@ -135,13 +135,13 @@ pub fn check_for_non_archive_formats(files: &[PathBuf], formats: &[Vec<Extension
 /// Show error if archive format is not the first format in the chain.
 pub fn check_archive_formats_position(formats: &[Extension], output_path: &Path) -> Result<()> {
     if let Some(format) = formats.iter().skip(1).find(|format| format.is_archive()) {
-        let error = FinalError::with_title(format!("Cannot compress to {}", PathFmt(output_path)))
+        let error = FinalError::with_title(format!("Cannot process {}", PathFmt(output_path)))
             .detail(format!("Found the format '{format}' in an incorrect position."))
             .detail(format!(
                 "'{format}' can only be used at the start of the file extension."
             ))
             .hint(format!(
-                "If you wish to compress multiple files, start the extension with '{format}'."
+                "'{format}' is an archive format and must be at the start of the extension, for example '{format}.gz'."
             ))
             .hint(format!(
                 "Otherwise, remove the last '{}' from {}.",
