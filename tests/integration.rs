@@ -601,6 +601,58 @@ fn broken_symlink_stored_successfully_when_format_supports_it() -> Result<()> {
 
 #[cfg(unix)]
 #[test]
+fn special_files_are_skipped_when_compressing() {
+    use std::{
+        ffi::CString,
+        os::unix::{ffi::OsStrExt, net::UnixListener},
+    };
+
+    for ext in MainDirectoryExtension::iter() {
+        eprintln!("ext = {ext}");
+
+        let (_tempdir, dir) = testdir().unwrap();
+        let input = dir.join("input");
+        let output = dir.join("output");
+
+        fs::create_dir_all(&input).unwrap();
+        fs::create_dir_all(&output).unwrap();
+
+        fs::write(input.join("file.txt"), "Some content").unwrap();
+
+        // No archive format can store a socket or a fifo, and opening a fifo blocks forever
+        let _socket = UnixListener::bind(input.join("socket")).unwrap();
+        let fifo = CString::new(input.join("fifo").as_os_str().as_bytes()).unwrap();
+        assert_eq!(unsafe { libc::mkfifo(fifo.as_ptr(), 0o644) }, 0);
+
+        let archive = dir.join(format!("archive.{ext}"));
+
+        crate::utils::cargo_bin()
+            .arg("compress")
+            .arg(&input)
+            .arg(&archive)
+            .assert()
+            .success();
+
+        crate::utils::cargo_bin()
+            .arg("decompress")
+            .arg(&archive)
+            .arg("-d")
+            .arg(&output)
+            .assert()
+            .success();
+
+        let mut unpacked = fs::read_dir(output.join("input"))
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+            .collect::<Vec<_>>();
+        unpacked.sort();
+
+        assert_eq!(unpacked, ["file.txt"]);
+    }
+}
+
+#[cfg(unix)]
+#[test]
 fn broken_symlink_error_when_compressing_with_follow_symlinks() {
     for ext in MainDirectoryExtension::iter() {
         eprintln!("ext = {ext}");
