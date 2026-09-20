@@ -71,7 +71,7 @@ pub fn resolve_extraction_conflict(path: &Path, question_policy: QuestionPolicy)
         Ok(_) => {}
     }
 
-    match user_wants_to_overwrite(path, question_policy, QuestionAction::Compression)? {
+    match user_wants_to_overwrite(path, question_policy, QuestionAction::Decompression)? {
         FileConflictOperation::Cancel => Ok(None),
         FileConflictOperation::Rename => Ok(Some(find_available_filename_by_renaming(path)?)),
         FileConflictOperation::Overwrite | FileConflictOperation::Merge => {

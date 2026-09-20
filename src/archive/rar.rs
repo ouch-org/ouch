@@ -46,7 +46,7 @@ fn move_into_place(root: &Path, dir: &Path, output_folder: &Path, question_polic
             std::fs::create_dir_all(&dest).map_err(|err| Error::Custom {
                 reason: FinalError::with_title(format!("failed to create {}", PathFmt(&dest))).detail(err.to_string()),
             })?;
-            files_unpacked += move_into_place(root, &source, output_folder, question_policy)?;
+            files_unpacked += 1 + move_into_place(root, &source, output_folder, question_policy)?;
         } else if let Some(target) = resolve_extraction_conflict(&dest, question_policy)? {
             let size = fs::symlink_metadata(&source)?.len();
             std::fs::rename(&source, &target).map_err(|err| Error::Custom {
