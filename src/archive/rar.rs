@@ -13,7 +13,7 @@ use crate::{
     error::{Error, FinalError, Result},
     info,
     list::{FileInArchive, ListFileType},
-    utils::{BytesFmt, PathFmt, resolve_extraction_conflict, validate_entry_path},
+    utils::{BytesFmt, PathFmt, resolve_extraction_conflict, validate_dest_inside_root, validate_entry_path},
     warning,
 };
 
@@ -39,6 +39,8 @@ fn move_into_place(root: &Path, dir: &Path, output_folder: &Path, question_polic
     for entry in fs::read_dir(dir)? {
         let source = entry?.path();
         let dest = output_folder.join(source.strip_prefix(root).expect("child of staging root"));
+
+        validate_dest_inside_root(output_folder, &dest)?;
 
         if fs::symlink_metadata(&source)?.is_dir() {
             std::fs::create_dir_all(&dest).map_err(|err| Error::Custom {

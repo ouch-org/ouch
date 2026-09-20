@@ -35,6 +35,18 @@ pub fn resolve_path_conflict(
     question_policy: QuestionPolicy,
     question_action: QuestionAction,
 ) -> Result<Option<PathBuf>> {
+    // a symlink here would send every write behind it out of the output directory
+    if fs::symlink_metadata(path).is_ok_and(|md| md.file_type().is_symlink()) {
+        return match user_wants_to_overwrite(path, question_policy, question_action)? {
+            FileConflictOperation::Cancel => Ok(None),
+            FileConflictOperation::Rename => Ok(Some(find_available_filename_by_renaming(path)?)),
+            FileConflictOperation::Overwrite | FileConflictOperation::Merge => {
+                fs::remove_file(path)?;
+                Ok(Some(path.to_path_buf()))
+            }
+        };
+    }
+
     if path.fs_err_try_exists()? {
         match user_wants_to_overwrite(path, question_policy, question_action)? {
             FileConflictOperation::Cancel => Ok(None),

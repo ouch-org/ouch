@@ -69,7 +69,8 @@ pub fn prepare_decompress_target(
         let name = output_file_path.file_name().unwrap_or_default().to_os_string();
         let file_target = output_dir.join(&name);
         let claimed = claimed_targets.contains(&file_target);
-        let resolved = if !claimed && !file_target.fs_err_try_exists()? {
+        // symlink_metadata makes a symlink in the way a conflict, not a path to write through
+        let resolved = if !claimed && fs::symlink_metadata(&file_target).is_err() {
             file_target
         } else if let Some(p) = resolve_path_conflict(&file_target, question_policy, QuestionAction::Decompression)? {
             p
@@ -100,8 +101,10 @@ pub fn prepare_decompress_target(
     let is_cwd = target == *INITIAL_CURRENT_DIR;
     // merging several inputs into the CWD is intentional so the claimed check skips it
     let claimed_by_earlier_input = !is_cwd && claimed_targets.contains(&target);
-    let is_valid = !claimed_by_earlier_input
-        && (is_cwd || !target.fs_err_try_exists()? || (target.is_dir() && target.read_dir()?.next().is_none()));
+    let existing = fs::symlink_metadata(&target).ok();
+    // a symlink is never a valid target, writing into it would leave the output directory
+    let is_empty_dir = existing.as_ref().is_some_and(|md| md.is_dir()) && target.read_dir()?.next().is_none();
+    let is_valid = !claimed_by_earlier_input && (is_cwd || existing.is_none() || is_empty_dir);
 
     let resolved = if is_valid {
         target

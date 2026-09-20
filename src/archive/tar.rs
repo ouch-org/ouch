@@ -73,6 +73,8 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
                 let safe_relpath = validate_entry_path(&raw_path)?;
                 let full_path = output_folder.join(&safe_relpath);
 
+                validate_dest_inside_root(output_folder, &full_path)?;
+
                 let Some(dest) = resolve_extraction_conflict(&full_path, question_policy)? else {
                     continue;
                 };

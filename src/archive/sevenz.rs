@@ -38,7 +38,7 @@ where
     let mut conflict_error = None;
 
     let entry_extract_fn =
-        |entry: &ArchiveEntry, reader: &mut dyn Read, path: &PathBuf| -> Result<bool, sevenz_rust2::Error> {
+        |entry: &ArchiveEntry, reader: &mut dyn Read, _path: &PathBuf| -> Result<bool, sevenz_rust2::Error> {
             // Manually handle writing all files from 7z archive (the library defaults ignore empty files)
 
             let name_as_path = Path::new(entry.name());
@@ -58,11 +58,11 @@ where
 
             if entry.is_directory() {
                 info!("File {} extracted to {}", entry.name(), PathFmt(&file_path));
-                if !path.fs_err_try_exists()? {
-                    fs::create_dir_all(path)?;
+                if !file_path.fs_err_try_exists()? {
+                    fs::create_dir_all(&file_path)?;
                 }
             } else {
-                let dest = match resolve_extraction_conflict(path, question_policy) {
+                let dest = match resolve_extraction_conflict(&file_path, question_policy) {
                     Ok(Some(dest)) => dest,
                     Ok(None) => return Ok(true),
                     Err(err) => {
