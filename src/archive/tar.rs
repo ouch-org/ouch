@@ -50,7 +50,12 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
 
                 validate_symlink_target(&safe_relpath, &target)?;
                 validate_dest_inside_root(output_folder, &full_path)?;
-                create_symlink(&target, &full_path)?;
+
+                let Some(dest) = resolve_extraction_conflict(&full_path, question_policy)? else {
+                    continue;
+                };
+                create_symlink(&target, &dest)?;
+                written = Some(dest);
             }
             tar::EntryType::Link => {
                 let raw_link = entry.path()?.into_owned();
@@ -66,7 +71,12 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
 
                 validate_dest_inside_root(output_folder, &full_link_path)?;
                 validate_dest_inside_root(output_folder, &full_target_path)?;
-                fs::hard_link(&full_target_path, &full_link_path)?;
+
+                let Some(dest) = resolve_extraction_conflict(&full_link_path, question_policy)? else {
+                    continue;
+                };
+                fs::hard_link(&full_target_path, &dest)?;
+                written = Some(dest);
             }
             tar::EntryType::Regular | tar::EntryType::GNUSparse => {
                 let raw_path = entry.path()?.into_owned();
