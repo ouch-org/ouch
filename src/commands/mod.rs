@@ -118,7 +118,7 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                 for f in &files {
                     policy.allow_read(sandbox::canonicalize_for_sandbox(f));
                 }
-                policy.set_disabled(sandbox_disabled).apply()
+                policy.set_disabled(sandbox_disabled).apply()?
             };
 
             let level = if fast {
@@ -304,7 +304,7 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                 }
 
                 // Apply once and warn only about what a real sandbox cannot confine.
-                let enforced = policy.set_disabled(args.no_sandbox).apply();
+                let enforced = policy.set_disabled(args.no_sandbox).apply()?;
                 if enforced {
                     for target in home_targets {
                         warning!(
@@ -436,7 +436,7 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                         policy.allow_remove_dir_in(parent.to_path_buf());
                     }
                 }
-                policy.set_disabled(args.no_sandbox).apply();
+                policy.set_disabled(args.no_sandbox).apply()?;
             }
 
             let list_options = ListOptions {
