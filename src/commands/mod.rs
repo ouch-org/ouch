@@ -184,6 +184,7 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
             if let Some(format) = args.format {
                 let format = parse_format_flag(&format)?;
                 for path in files.iter() {
+                    check::check_archive_formats_position(&format, path)?;
                     let file_name = path.file_name().ok_or_else(|| Error::Custom {
                         reason: FinalError::with_title(format!("{} does not have a file name", PathFmt(path))),
                     })?;
