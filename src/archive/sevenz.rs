@@ -57,7 +57,7 @@ where
             }
 
             if entry.is_directory() {
-                info!("File {} extracted to {}", entry.name(), PathFmt(&file_path));
+                info!("Directory {} created", PathFmt(&file_path));
                 if !path.fs_err_try_exists()? {
                     fs::create_dir_all(path)?;
                 }

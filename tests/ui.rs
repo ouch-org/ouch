@@ -194,6 +194,30 @@ fn ui_test_ok_decompress_multiple_files() {
 }
 
 #[test]
+fn ui_test_ok_decompress_multiple_files_7z() {
+    let (_dropper, dir) = testdir().unwrap();
+
+    let inputs_dir = dir.join("input");
+    std::fs::create_dir(&inputs_dir).unwrap();
+
+    let output_dir = dir.join("output");
+    std::fs::create_dir(&output_dir).unwrap();
+
+    create_files_in(&inputs_dir, &["input", "input2", "input3"]);
+
+    let compress_command = format!("ouch compress {} output.7z", inputs_dir.display());
+    run_ouch(&compress_command, dir);
+
+    let decompress_command = format!("ouch decompress output.7z --dir {}", output_dir.display());
+
+    let stdout = run_ouch(&decompress_command, dir);
+
+    let mut lines: Vec<_> = stdout.lines().collect();
+    lines.sort();
+    ui!(lines.join("\n"));
+}
+
+#[test]
 fn ui_test_usage_help_flag() {
     ui!(output_to_string(ouch!("--help")));
     ui!(output_to_string(ouch!("-h")));
