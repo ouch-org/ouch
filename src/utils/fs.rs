@@ -50,6 +50,26 @@ pub fn resolve_path_conflict(
     }
 }
 
+thread_local! {
+    // entries not extracted during unpacking on this thread
+    static UNEXTRACTED_ENTRIES: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
+}
+
+/// clear the not-extracted counter before unpacking an input
+pub fn reset_unextracted_entries() {
+    UNEXTRACTED_ENTRIES.with(|count| count.set(0));
+}
+
+/// record that one entry was not extracted whether skipped or refused as unsafe
+pub fn mark_entry_unextracted() {
+    UNEXTRACTED_ENTRIES.with(|count| count.set(count.get() + 1));
+}
+
+/// entries not extracted since the last reset
+pub fn unextracted_entries() -> u64 {
+    UNEXTRACTED_ENTRIES.with(std::cell::Cell::get)
+}
+
 /// Decide where to extract a file when the path is taken. None means skip it.
 pub fn resolve_extraction_conflict(path: &Path, question_policy: QuestionPolicy) -> Result<Option<PathBuf>> {
     // Only an existing file clashes. Directories merge and other kinds fail on write.
@@ -59,7 +79,10 @@ pub fn resolve_extraction_conflict(path: &Path, question_policy: QuestionPolicy)
 
     // These choices fit a single file. They are rename or overwrite or skip.
     match user_wants_to_overwrite(path, question_policy, QuestionAction::Compression)? {
-        FileConflictOperation::Cancel => Ok(None),
+        FileConflictOperation::Cancel => {
+            mark_entry_unextracted();
+            Ok(None)
+        }
         FileConflictOperation::Rename => Ok(Some(find_available_filename_by_renaming(path)?)),
         FileConflictOperation::Overwrite | FileConflictOperation::Merge => Ok(Some(path.to_path_buf())),
     }
