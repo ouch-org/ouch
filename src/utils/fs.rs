@@ -35,6 +35,18 @@ pub fn resolve_path_conflict(
     question_policy: QuestionPolicy,
     question_action: QuestionAction,
 ) -> Result<Option<PathBuf>> {
+    // a symlink here would send every write behind it out of the output directory
+    if fs::symlink_metadata(path).is_ok_and(|md| md.file_type().is_symlink()) {
+        return match user_wants_to_overwrite(path, question_policy, question_action)? {
+            FileConflictOperation::Cancel => Ok(None),
+            FileConflictOperation::Rename => Ok(Some(find_available_filename_by_renaming(path)?)),
+            FileConflictOperation::Overwrite | FileConflictOperation::Merge => {
+                fs::remove_file(path)?;
+                Ok(Some(path.to_path_buf()))
+            }
+        };
+    }
+
     if path.fs_err_try_exists()? {
         match user_wants_to_overwrite(path, question_policy, question_action)? {
             FileConflictOperation::Cancel => Ok(None),
@@ -52,16 +64,21 @@ pub fn resolve_path_conflict(
 
 /// Decide where to extract a file when the path is taken. None means skip it.
 pub fn resolve_extraction_conflict(path: &Path, question_policy: QuestionPolicy) -> Result<Option<PathBuf>> {
-    // Only an existing file clashes. Directories merge and other kinds fail on write.
-    if !path.is_file() {
-        return Ok(Some(path.to_path_buf()));
+    // a directory is merged into, anything else in the way is a conflict
+    match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.is_dir() => return Ok(Some(path.to_path_buf())),
+        Err(_) => return Ok(Some(path.to_path_buf())),
+        Ok(_) => {}
     }
 
-    // These choices fit a single file. They are rename or overwrite or skip.
-    match user_wants_to_overwrite(path, question_policy, QuestionAction::Compression)? {
+    match user_wants_to_overwrite(path, question_policy, QuestionAction::Decompression)? {
         FileConflictOperation::Cancel => Ok(None),
         FileConflictOperation::Rename => Ok(Some(find_available_filename_by_renaming(path)?)),
-        FileConflictOperation::Overwrite | FileConflictOperation::Merge => Ok(Some(path.to_path_buf())),
+        FileConflictOperation::Overwrite | FileConflictOperation::Merge => {
+            // unlink instead of writing through it, the old entry may be a link or a pipe
+            fs::remove_file(path)?;
+            Ok(Some(path.to_path_buf()))
+        }
     }
 }
 
@@ -182,8 +199,9 @@ pub fn validate_dest_inside_root(root: &Path, dest: &Path) -> Result<()> {
     let rel = dest.strip_prefix(root).map_err(|_| {
         FinalError::with_title("refusing to write outside extraction root").detail(format!("dest: {}", PathFmt(dest)))
     })?;
+    let parent_count = rel.components().count().saturating_sub(1);
     let mut probe = root.to_path_buf();
-    for comp in rel.components() {
+    for comp in rel.components().take(parent_count) {
         probe.push(comp);
         match fs::symlink_metadata(&probe) {
             Ok(md) if md.file_type().is_symlink() => {

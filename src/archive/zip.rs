@@ -92,15 +92,10 @@ where
                 let mode = file.unix_mode();
                 let is_symlink = mode.is_some_and(|mode| mode & 0o170000 == 0o120000);
 
-                // Symlink creation fails on its own when the path is taken.
-                let mut resolved = None;
-                if !is_symlink {
-                    let Some(path) = resolve_extraction_conflict(file_path, question_policy)? else {
-                        continue;
-                    };
-                    resolved = Some(path);
-                }
-                let file_path = resolved.as_deref().unwrap_or(file_path);
+                let Some(resolved) = resolve_extraction_conflict(file_path, question_policy)? else {
+                    continue;
+                };
+                let file_path = resolved.as_path();
 
                 if is_symlink {
                     // Symlink targets are arbitrary bytes on Unix, not guaranteed UTF-8; read as bytes.
