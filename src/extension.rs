@@ -188,6 +188,20 @@ fn split_extension_at_end(name: &[u8]) -> Option<(&[u8], Extension)> {
     Some((new_name, ext))
 }
 
+/// Remove up to `max_count` trailing known extensions from a file name.
+///
+/// Used by `--format`, where the extensions in the path are not parsed, so the output name
+/// still has to be derived from the input name to avoid overwriting the input file.
+pub fn strip_known_extensions_from_name(mut name: &[u8], max_count: usize) -> &[u8] {
+    for _ in 0..max_count {
+        let Some((new_name, _)) = split_extension_at_end(name) else {
+            break;
+        };
+        name = new_name;
+    }
+    name
+}
+
 pub fn parse_format_flag(text: &str) -> Result<Vec<Extension>> {
     let extensions: Vec<Extension> = text
         .split('.')
