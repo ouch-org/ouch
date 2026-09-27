@@ -39,11 +39,12 @@ impl CliArgs {
         | Subcommand::List { archives: files, .. }) = &mut args.cmd;
         *files = absolutize_paths(files)?;
 
-        let skip_questions_positively = match (args.yes, args.no) {
-            (false, false) => QuestionPolicy::Ask,
-            (true, false) => QuestionPolicy::AlwaysYes,
-            (false, true) => QuestionPolicy::AlwaysNo,
-            (true, true) => unreachable!(),
+        let skip_questions_positively = match (args.yes, args.no, args.rename) {
+            (false, false, false) => QuestionPolicy::Ask,
+            (true, false, false) => QuestionPolicy::AlwaysYes,
+            (false, true, false) => QuestionPolicy::AlwaysNo,
+            (false, false, true) => QuestionPolicy::AlwaysRename,
+            _ => unreachable!(),
         };
 
         let (hidden, gitignore, follow_symlinks) = match &args.cmd {

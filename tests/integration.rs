@@ -366,6 +366,41 @@ fn multiple_files_with_conflict_and_choice_to_rename(
 }
 
 #[proptest(cases = 25)]
+fn multiple_files_with_conflict_and_rename_flag(
+    ext: DirectoryExtension,
+    #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
+) {
+    let (_tempdir, root_path) = testdir().unwrap();
+
+    let src_files_path = root_path.join("src_files");
+    fs::create_dir_all(&src_files_path).unwrap();
+    create_n_random_files(5, &src_files_path, &mut SmallRng::from_os_rng());
+
+    // Make destiny already filled to force a conflict
+    let dest_files_path = root_path.join("dest_files");
+    fs::create_dir_all(&dest_files_path).unwrap();
+    create_n_random_files(5, &dest_files_path, &mut SmallRng::from_os_rng());
+
+    let archive = &root_path.join(format!("archive.{}", merge_extensions(ext, &extra_extensions)));
+    ouch!("-A", "c", &src_files_path, archive);
+
+    let dest_files_path_renamed = &root_path.join("dest_files_1");
+    assert_eq!(false, dest_files_path_renamed.exists());
+
+    // The `--rename` flag answers the conflict prompt without stdin
+    crate::utils::cargo_bin()
+        .arg("--rename")
+        .arg("decompress")
+        .arg(archive)
+        .arg("-d")
+        .arg(&dest_files_path)
+        .assert()
+        .success();
+
+    assert_same_directory(src_files_path, dest_files_path_renamed.join("src_files"), false);
+}
+
+#[proptest(cases = 25)]
 fn multiple_files_with_conflict_and_choice_to_rename_with_already_a_renamed(
     ext: DirectoryExtension,
     #[any(size_range(0..1).lift())] extra_extensions: Vec<FileExtension>,
