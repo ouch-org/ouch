@@ -2252,3 +2252,87 @@ fn merging_a_rar_asks_before_replacing_each_file() {
         .success();
     assert_eq!("Testing 123\n", fs::read_to_string(out.join("testfile.txt")).unwrap());
 }
+
+#[test]
+fn rename_flag_rejects_yes_and_no() {
+    let (_tempdir, dir) = testdir().unwrap();
+    let file = dir.join("file.txt");
+    fs::write(&file, "content").unwrap();
+    let archive = dir.join("archive.tar.gz");
+    ouch!("-A", "c", &file, &archive);
+
+    // `--rename` combined with `--yes` must fail with a clear error, never panic.
+    let assert = crate::utils::cargo_bin()
+        .arg("--rename")
+        .arg("decompress")
+        .arg("--yes")
+        .arg(&archive)
+        .assert()
+        .failure();
+    let stderr = String::from_utf8_lossy(&assert.get_output().stderr).into_owned();
+    assert!(stderr.contains("Cannot combine"), "unexpected stderr: {stderr}");
+    assert!(!stderr.contains("panicked"), "must not panic: {stderr}");
+}
+
+#[test]
+fn rename_flag_moves_file_blocking_a_directory_aside() {
+    let (_tempdir, dir) = testdir().unwrap();
+
+    let clash_dir = dir.join("clash");
+    fs::create_dir_all(&clash_dir).unwrap();
+    fs::write(clash_dir.join("file.txt"), "from archive").unwrap();
+    let archive = dir.join("archive.tar.gz");
+    ouch!("-A", "c", &clash_dir, &archive);
+
+    // A plain file sits where the archived directory wants to land.
+    // `--here` runs in the work dir so the clash happens entry by entry.
+    let work = dir.join("work");
+    fs::create_dir_all(&work).unwrap();
+    fs::write(work.join("clash"), "blocker").unwrap();
+
+    crate::utils::cargo_bin()
+        .current_dir(&work)
+        .arg("--rename")
+        .arg("decompress")
+        .arg("--here")
+        .arg(&archive)
+        .assert()
+        .success();
+
+    assert!(work.join("clash").is_dir());
+    assert_eq!(
+        "from archive",
+        fs::read_to_string(work.join("clash").join("file.txt")).unwrap()
+    );
+    assert_eq!("blocker", fs::read_to_string(work.join("clash_1")).unwrap());
+}
+
+#[cfg(unix)]
+#[test]
+fn rename_flag_handles_symlink_against_file() {
+    let (_tempdir, dir) = testdir().unwrap();
+
+    let target = dir.join("target.txt");
+    fs::write(&target, "target").unwrap();
+    std::os::unix::fs::symlink(&target, dir.join("link")).unwrap();
+    let archive = dir.join("archive.tar.gz");
+    ouch!("-A", "c", dir.join("link"), &archive);
+
+    // A plain file sits where the archived symlink wants to land.
+    // `--here` runs in the work dir so the clash happens entry by entry.
+    let work = dir.join("work");
+    fs::create_dir_all(&work).unwrap();
+    fs::write(work.join("link"), "blocker").unwrap();
+
+    crate::utils::cargo_bin()
+        .current_dir(&work)
+        .arg("--rename")
+        .arg("decompress")
+        .arg("--here")
+        .arg(&archive)
+        .assert()
+        .success();
+
+    assert_eq!("blocker", fs::read_to_string(work.join("link")).unwrap());
+    assert!(fs::symlink_metadata(work.join("link_1")).unwrap().is_symlink());
+}

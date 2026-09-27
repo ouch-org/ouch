@@ -23,7 +23,8 @@ use crate::{
     list::{FileInArchive, ListFileType},
     utils::{
         BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, cd_into_same_dir_as,
-        copy_limited_decompression, create_symlink, ensure_parent_dir_exists, get_invalid_utf8_paths,
+        copy_limited_decompression, create_symlink, ensure_parent_dir_exists,
+        find_available_filename_by_renaming, get_invalid_utf8_paths,
         is_same_file_as_output, pretty_format_list_of_paths, read_file_type, resolve_extraction_conflict,
         strip_cur_dir, validate_dest_inside_root, validate_symlink_target,
     },
@@ -109,6 +110,19 @@ where
                     let target = symlink_target_from_bytes(&target_bytes);
 
                     validate_symlink_target(&relpath, &target)?;
+                    // With --rename an existing entry renames aside instead of
+                    // failing the symlink creation.
+                    let link_path;
+                    let file_path = match question_policy {
+                        QuestionPolicy::AlwaysRename => match fs::symlink_metadata(file_path) {
+                            Ok(_) => {
+                                link_path = find_available_filename_by_renaming(file_path)?;
+                                link_path.as_path()
+                            }
+                            Err(_) => file_path,
+                        },
+                        _ => file_path,
+                    };
                     info!("linking {} -> \"{}\"", PathFmt(file_path), target.display());
 
                     create_symlink(&target, file_path)?;

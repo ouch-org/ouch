@@ -176,10 +176,9 @@ pub fn user_wants_to_continue(
     match question_policy {
         QuestionPolicy::AlwaysYes => Ok(true),
         QuestionPolicy::AlwaysNo => Ok(false),
-        // `--rename` only changes conflict handling; anything else proceeds
-        // like `--yes` so scripts keep running unattended.
-        QuestionPolicy::AlwaysRename => Ok(true),
-        QuestionPolicy::Ask => {
+        // `--rename` only covers file conflicts, every other question
+        // still goes to the user.
+        QuestionPolicy::AlwaysRename | QuestionPolicy::Ask => {
             let action = match question_action {
                 QuestionAction::Compression => "compress",
                 QuestionAction::Decompression => "decompress",

@@ -53,7 +53,12 @@ pub fn resolve_path_conflict(
 /// Decide where to extract a file when the path is taken. None means skip it.
 pub fn resolve_extraction_conflict(path: &Path, question_policy: QuestionPolicy) -> Result<Option<PathBuf>> {
     // Only an existing file clashes. Directories merge and other kinds fail on write.
-    if !path.is_file() {
+    // With automatic rename though, any existing entry (symlink, dir facing a file,
+    // or the reverse) renames aside instead of failing on write later.
+    // symlink_metadata counts dangling links, is_file would miss those.
+    if fs::symlink_metadata(path).is_err()
+        || (!path.is_file() && !matches!(question_policy, QuestionPolicy::AlwaysRename))
+    {
         return Ok(Some(path.to_path_buf()));
     }
 

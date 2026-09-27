@@ -50,6 +50,15 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
 
                 validate_symlink_target(&safe_relpath, &target)?;
                 validate_dest_inside_root(output_folder, &full_path)?;
+                // With --rename an existing entry renames aside instead of
+                // failing the symlink creation.
+                let full_path = match question_policy {
+                    QuestionPolicy::AlwaysRename => match fs::symlink_metadata(&full_path) {
+                        Ok(_) => utils::find_available_filename_by_renaming(&full_path)?,
+                        Err(_) => full_path,
+                    },
+                    _ => full_path,
+                };
                 create_symlink(&target, &full_path)?;
             }
             tar::EntryType::Link => {
@@ -66,6 +75,15 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
 
                 validate_dest_inside_root(output_folder, &full_link_path)?;
                 validate_dest_inside_root(output_folder, &full_target_path)?;
+                // With --rename an existing entry renames aside instead of
+                // failing the hard link creation.
+                let full_link_path = match question_policy {
+                    QuestionPolicy::AlwaysRename => match fs::symlink_metadata(&full_link_path) {
+                        Ok(_) => utils::find_available_filename_by_renaming(&full_link_path)?,
+                        Err(_) => full_link_path,
+                    },
+                    _ => full_link_path,
+                };
                 fs::hard_link(&full_target_path, &full_link_path)?;
             }
             tar::EntryType::Regular | tar::EntryType::GNUSparse => {
@@ -87,6 +105,24 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
             tar::EntryType::Directory => {
                 let original_mode = entry.header().mode()?;
                 let is_writeable = (original_mode & 0o200) != 0;
+
+                // With --rename, a file or link sitting where this directory
+                // goes moves aside so the archive layout lands intact. The
+                // blocker keeps its content under a fresh name. An existing
+                // dir still merges like before.
+                if matches!(question_policy, QuestionPolicy::AlwaysRename) {
+                    let original_path = entry.path()?.to_path_buf();
+                    let safe_relpath = validate_entry_path(&original_path)?;
+                    let full_path = output_folder.join(&safe_relpath);
+                    validate_dest_inside_root(output_folder, &full_path)?;
+                    if let Ok(meta) = fs::symlink_metadata(&full_path)
+                        && !meta.is_dir()
+                    {
+                        let aside = utils::find_available_filename_by_renaming(&full_path)?;
+                        info!("renamed {} to {}", PathFmt(&full_path), PathFmt(&aside));
+                        fs::rename(&full_path, &aside)?;
+                    }
+                }
 
                 // this is no-op when dir already exists, errs if a file with another type is found there
                 entry.unpack_in(output_folder)?;

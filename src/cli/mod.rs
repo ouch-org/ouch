@@ -10,8 +10,9 @@ use clap::Parser;
 
 pub use self::args::{CliArgs, Subcommand};
 use crate::{
-    QuestionPolicy, Result,
+    FinalError, QuestionPolicy, Result,
     accessible::set_accessible,
+    error::Error,
     utils::{
         FileVisibilityPolicy, canonicalize, is_path_stdin, logger::set_log_display_level, threads::set_thread_count,
     },
@@ -44,7 +45,15 @@ impl CliArgs {
             (true, false, false) => QuestionPolicy::AlwaysYes,
             (false, true, false) => QuestionPolicy::AlwaysNo,
             (false, false, true) => QuestionPolicy::AlwaysRename,
-            _ => unreachable!(),
+            // Clap only catches same-level flag clashes, `--rename d --yes`
+            // slips through, so refuse it here instead of panicking.
+            _ => {
+                return Err(Error::Custom {
+                    reason: FinalError::with_title("Cannot combine --rename with --yes or --no")
+                        .detail("--rename already answers every conflict by renaming")
+                        .hint("Drop --yes/--no and keep only --rename"),
+                });
+            }
         };
 
         let (hidden, gitignore, follow_symlinks) = match &args.cmd {
