@@ -30,6 +30,8 @@ pub enum QuestionPolicy {
     AlwaysYes,
     /// Set by `--no`, will say 'N' to all overwrite questions
     AlwaysNo,
+    /// Set by `--rename`, will rename conflicting outputs without asking
+    AlwaysRename,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -70,6 +72,7 @@ pub fn user_wants_to_overwrite(
             QuestionAction::Compression => Ok(Op::Overwrite),
         },
         QuestionPolicy::AlwaysNo => Ok(Op::Cancel),
+        QuestionPolicy::AlwaysRename => Ok(Op::Rename),
         QuestionPolicy::Ask => prompt_user_for_file_conflict_resolution(path, question_action),
     }
 }
@@ -139,6 +142,7 @@ pub fn create_file_or_prompt_on_conflict(
     let action = match question_policy {
         QuestionPolicy::AlwaysYes => FileConflictOperation::Overwrite,
         QuestionPolicy::AlwaysNo => FileConflictOperation::Cancel,
+        QuestionPolicy::AlwaysRename => FileConflictOperation::Rename,
         QuestionPolicy::Ask => prompt_user_for_file_conflict_resolution(&path, question_action)?,
     };
 
@@ -172,7 +176,9 @@ pub fn user_wants_to_continue(
     match question_policy {
         QuestionPolicy::AlwaysYes => Ok(true),
         QuestionPolicy::AlwaysNo => Ok(false),
-        QuestionPolicy::Ask => {
+        // `--rename` only covers file conflicts, every other question
+        // still goes to the user.
+        QuestionPolicy::AlwaysRename | QuestionPolicy::Ask => {
             let action = match question_action {
                 QuestionAction::Compression => "compress",
                 QuestionAction::Decompression => "decompress",

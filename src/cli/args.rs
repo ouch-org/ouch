@@ -22,6 +22,10 @@ pub struct CliArgs {
     #[arg(short, long, global = true)]
     pub no: bool,
 
+    /// On conflict, rename the output instead of asking what to do
+    #[arg(long, conflicts_with_all = ["yes", "no"], global = true)]
+    pub rename: bool,
+
     /// Activate accessibility mode, reducing visual noise
     #[arg(short = 'A', long, env = "ACCESSIBLE", global = true)]
     pub accessible: bool,
@@ -166,6 +170,7 @@ mod tests {
             password: None,
             threads: None,
             no_sandbox: false,
+            rename: false,
             cmd: Subcommand::Decompress {
                 // Put a crazy value here so no test can assert it unintentionally
                 files: vec!["\x00\x11\x22".into()],
@@ -303,5 +308,25 @@ mod tests {
         assert!(CliArgs::try_parse_from(args_splitter("ouch decompress --hidden file.tar.gz")).is_err());
         assert!(CliArgs::try_parse_from(args_splitter("ouch list --gitignore file.tar.gz")).is_err());
         assert!(CliArgs::try_parse_from(args_splitter("ouch --hidden compress file file.tar.gz")).is_err());
+    }
+
+    #[test]
+    fn test_rename_flag_parsing() {
+        test!(
+            "ouch --rename decompress file.tar.gz",
+            CliArgs {
+                cmd: Subcommand::Decompress {
+                    files: to_paths(["file.tar.gz"]),
+                    output_dir: None,
+                    here: false,
+                    remove: false,
+                },
+                rename: true,
+                ..mock_cli_args()
+            }
+        );
+        // `--rename` contradicts `--yes` and `--no`
+        assert!(CliArgs::try_parse_from(args_splitter("ouch --rename --yes d file.tar.gz")).is_err());
+        assert!(CliArgs::try_parse_from(args_splitter("ouch --rename --no d file.tar.gz")).is_err());
     }
 }

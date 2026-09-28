@@ -2,6 +2,7 @@
 
 use std::{
     borrow::Cow,
+    collections::HashMap,
     env,
     io::{self, Read, Write},
     path::{Path, PathBuf},
@@ -53,7 +54,12 @@ pub fn resolve_path_conflict(
 /// Decide where to extract a file when the path is taken. None means skip it.
 pub fn resolve_extraction_conflict(path: &Path, question_policy: QuestionPolicy) -> Result<Option<PathBuf>> {
     // Only an existing file clashes. Directories merge and other kinds fail on write.
-    if !path.is_file() {
+    // With automatic rename though, any existing entry (symlink, dir facing a file,
+    // or the reverse) renames aside instead of failing on write later.
+    // symlink_metadata counts dangling links, is_file would miss those.
+    if fs::symlink_metadata(path).is_err()
+        || (!path.is_file() && !matches!(question_policy, QuestionPolicy::AlwaysRename))
+    {
         return Ok(Some(path.to_path_buf()));
     }
 
@@ -121,6 +127,32 @@ pub fn find_available_filename_by_renaming(path: &Path) -> Result<PathBuf> {
         }
     }
     unreachable!()
+}
+
+/// Follow an archive entry path through directories that were renamed aside.
+///
+/// With `--rename`, an incoming directory that collides with a non-directory
+/// on disk is extracted under a fresh name instead, so entries below it must
+/// land under the renamed directory too. `renamed_dirs` maps the entry path
+/// in the archive to its renamed location, both relative to the output dir.
+/// The longest matching prefix wins so nested renames keep working.
+pub fn remap_through_renamed_dirs(relpath: &Path, renamed_dirs: &HashMap<PathBuf, PathBuf>) -> PathBuf {
+    let mut best: Option<(&PathBuf, &PathBuf)> = None;
+    for (from, to) in renamed_dirs {
+        if relpath == from.as_path() || relpath.starts_with(from) {
+            let longer = best.is_none_or(|(prev, _)| from.components().count() > prev.components().count());
+            if longer {
+                best = Some((from, to));
+            }
+        }
+    }
+    match best {
+        Some((from, to)) => match relpath.strip_prefix(from) {
+            Ok(rest) => to.join(rest),
+            Err(_) => relpath.to_path_buf(),
+        },
+        None => relpath.to_path_buf(),
+    }
 }
 
 /// Creates a directory at the path, if there is nothing there.

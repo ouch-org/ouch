@@ -10,8 +10,9 @@ use clap::Parser;
 
 pub use self::args::{CliArgs, Subcommand};
 use crate::{
-    QuestionPolicy, Result,
+    FinalError, QuestionPolicy, Result,
     accessible::set_accessible,
+    error::Error,
     utils::{
         FileVisibilityPolicy, canonicalize, is_path_stdin, logger::set_log_display_level, threads::set_thread_count,
     },
@@ -39,11 +40,30 @@ impl CliArgs {
         | Subcommand::List { archives: files, .. }) = &mut args.cmd;
         *files = absolutize_paths(files)?;
 
-        let skip_questions_positively = match (args.yes, args.no) {
-            (false, false) => QuestionPolicy::Ask,
-            (true, false) => QuestionPolicy::AlwaysYes,
-            (false, true) => QuestionPolicy::AlwaysNo,
-            (true, true) => unreachable!(),
+        // Clap only catches flag clashes given at the same level, flags split
+        // around the subcommand (`ouch --yes d --no`) slip through, so refuse
+        // those combinations here instead of panicking.
+        if args.rename && (args.yes || args.no) {
+            return Err(Error::Custom {
+                reason: FinalError::with_title("Cannot combine --rename with --yes or --no")
+                    .detail("--rename already answers every conflict by renaming")
+                    .hint("Drop --yes/--no and keep only --rename"),
+            });
+        }
+        if args.yes && args.no {
+            return Err(Error::Custom {
+                reason: FinalError::with_title("Cannot combine --yes with --no")
+                    .detail("The two flags answer every question in opposite ways")
+                    .hint("Pass only one of --yes or --no"),
+            });
+        }
+
+        let skip_questions_positively = match (args.yes, args.no, args.rename) {
+            (false, false, false) => QuestionPolicy::Ask,
+            (true, false, false) => QuestionPolicy::AlwaysYes,
+            (false, true, false) => QuestionPolicy::AlwaysNo,
+            (false, false, true) => QuestionPolicy::AlwaysRename,
+            _ => unreachable!("flag clashes rejected above"),
         };
 
         let (hidden, gitignore, follow_symlinks) = match &args.cmd {

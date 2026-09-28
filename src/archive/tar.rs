@@ -19,8 +19,8 @@ use crate::{
     list::{FileInArchive, ListFileType},
     utils::{
         self, BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, create_symlink, is_same_file_as_output,
-        read_file_type, resolve_extraction_conflict, sanitize_archive_mode, set_permission_mode,
-        validate_dest_inside_root, validate_entry_path, validate_symlink_target,
+        read_file_type, remap_through_renamed_dirs, resolve_extraction_conflict, sanitize_archive_mode,
+        set_permission_mode, validate_dest_inside_root, validate_entry_path, validate_symlink_target,
     },
     warning,
 };
@@ -32,6 +32,9 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
 
     let mut files_unpacked = 0;
     let mut read_only_dirs_and_modes = Vec::new();
+    // With --rename, incoming directories that collide with a non-directory
+    // land under a fresh name instead, mapping archive path to renamed path.
+    let mut renamed_dirs: HashMap<PathBuf, PathBuf> = HashMap::new();
 
     for entry in archive.entries()? {
         let mut entry = entry?;
@@ -42,7 +45,7 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
         match entry.header().entry_type() {
             tar::EntryType::Symlink => {
                 let raw_path = entry.path()?.into_owned();
-                let safe_relpath = validate_entry_path(&raw_path)?;
+                let safe_relpath = remap_through_renamed_dirs(&validate_entry_path(&raw_path)?, &renamed_dirs);
                 let full_path = output_folder.join(&safe_relpath);
                 let target = entry
                     .link_name()?
@@ -50,34 +53,56 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
 
                 validate_symlink_target(&safe_relpath, &target)?;
                 validate_dest_inside_root(output_folder, &full_path)?;
+                // With --rename an existing entry renames aside instead of
+                // failing the symlink creation.
+                let full_path = match question_policy {
+                    QuestionPolicy::AlwaysRename => match fs::symlink_metadata(&full_path) {
+                        Ok(_) => utils::find_available_filename_by_renaming(&full_path)?,
+                        Err(_) => full_path,
+                    },
+                    _ => full_path,
+                };
                 create_symlink(&target, &full_path)?;
             }
             tar::EntryType::Link => {
                 let raw_link = entry.path()?.into_owned();
-                let safe_link_path = validate_entry_path(&raw_link)?;
+                let safe_link_path = remap_through_renamed_dirs(&validate_entry_path(&raw_link)?, &renamed_dirs);
                 let raw_target = entry
                     .link_name()?
                     .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Missing hardlink target"))?
                     .into_owned();
-                let safe_target = validate_entry_path(&raw_target)?;
+                let safe_target = remap_through_renamed_dirs(&validate_entry_path(&raw_target)?, &renamed_dirs);
 
                 let full_link_path = output_folder.join(&safe_link_path);
                 let full_target_path = output_folder.join(&safe_target);
 
                 validate_dest_inside_root(output_folder, &full_link_path)?;
                 validate_dest_inside_root(output_folder, &full_target_path)?;
+                // With --rename an existing entry renames aside instead of
+                // failing the hard link creation.
+                let full_link_path = match question_policy {
+                    QuestionPolicy::AlwaysRename => match fs::symlink_metadata(&full_link_path) {
+                        Ok(_) => utils::find_available_filename_by_renaming(&full_link_path)?,
+                        Err(_) => full_link_path,
+                    },
+                    _ => full_link_path,
+                };
                 fs::hard_link(&full_target_path, &full_link_path)?;
             }
             tar::EntryType::Regular | tar::EntryType::GNUSparse => {
                 let raw_path = entry.path()?.into_owned();
-                let safe_relpath = validate_entry_path(&raw_path)?;
+                let raw_relpath = validate_entry_path(&raw_path)?;
+                let safe_relpath = remap_through_renamed_dirs(&raw_relpath, &renamed_dirs);
+                // A renamed parent moved this entry, unpack_in would land it
+                // back at the original spot, so unpack at the new path.
+                let remapped = safe_relpath != raw_relpath;
                 let full_path = output_folder.join(&safe_relpath);
 
                 let Some(dest) = resolve_extraction_conflict(&full_path, question_policy)? else {
                     continue;
                 };
 
-                if dest == full_path {
+                if dest == full_path && !remapped {
                     entry.unpack_in(output_folder)?;
                 } else {
                     entry.unpack(&dest)?;
@@ -88,15 +113,42 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
                 let original_mode = entry.header().mode()?;
                 let is_writeable = (original_mode & 0o200) != 0;
 
-                // this is no-op when dir already exists, errs if a file with another type is found there
-                entry.unpack_in(output_folder)?;
+                let original_path = entry.path()?.to_path_buf();
+                let raw_relpath = validate_entry_path(&original_path)?;
+                let safe_relpath = remap_through_renamed_dirs(&raw_relpath, &renamed_dirs);
+                // A renamed parent moved this entry, unpack at the new spot.
+                let remapped = safe_relpath != raw_relpath;
+                let full_path = output_folder.join(&safe_relpath);
+                validate_dest_inside_root(output_folder, &full_path)?;
+
+                // With --rename the incoming directory moves aside when a file
+                // or link sits where it goes, the user's file stays untouched.
+                // An existing dir still merges like before.
+                if matches!(question_policy, QuestionPolicy::AlwaysRename)
+                    && let Ok(meta) = fs::symlink_metadata(&full_path)
+                    && !meta.is_dir()
+                {
+                    let aside = utils::find_available_filename_by_renaming(&full_path)?;
+                    info!("renamed {} to {}", PathFmt(&full_path), PathFmt(&aside));
+                    entry.unpack(&aside)?;
+                    let aside_relpath = aside
+                        .strip_prefix(output_folder)
+                        .map(Path::to_path_buf)
+                        .unwrap_or_else(|_| aside.clone());
+                    renamed_dirs.insert(safe_relpath.clone(), aside_relpath);
+                    written = Some(aside);
+                } else if remapped {
+                    entry.unpack(&full_path)?;
+                    written = Some(full_path);
+                } else {
+                    // this is no-op when dir already exists, errs if a file with another type is found there
+                    entry.unpack_in(output_folder)?;
+                }
 
                 if cfg!(unix) && is_writeable.not() {
                     // We unpacked a read-only directory, make it writeable so that we can
                     // create the files inside of it, by the end, restore the original mode
-                    let original_path = entry.path()?.to_path_buf();
-                    let safe_relpath = validate_entry_path(&original_path)?;
-                    let unpacked = output_folder.join(&safe_relpath);
+                    let unpacked = written.clone().unwrap_or_else(|| output_folder.join(&safe_relpath));
                     set_permission_mode(&unpacked, sanitize_archive_mode(original_mode) | 0o200)?;
 
                     // Store the absolute path because the restore loop runs without changing directory.
