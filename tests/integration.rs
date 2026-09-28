@@ -2272,20 +2272,62 @@ fn rename_flag_rejects_yes_and_no() {
     let stderr = String::from_utf8_lossy(&assert.get_output().stderr).into_owned();
     assert!(stderr.contains("Cannot combine"), "unexpected stderr: {stderr}");
     assert!(!stderr.contains("panicked"), "must not panic: {stderr}");
+
+    // Same clash with the flags split around the subcommand, clap misses
+    // those so ouch itself must refuse them.
+    let assert = crate::utils::cargo_bin()
+        .arg("--rename")
+        .arg("decompress")
+        .arg("--no")
+        .arg(&archive)
+        .assert()
+        .failure();
+    let stderr = String::from_utf8_lossy(&assert.get_output().stderr).into_owned();
+    assert!(
+        stderr.contains("Cannot combine --rename"),
+        "unexpected stderr: {stderr}"
+    );
 }
 
 #[test]
-fn rename_flag_moves_file_blocking_a_directory_aside() {
+fn yes_and_no_without_rename_reports_yes_no_clash() {
+    let (_tempdir, dir) = testdir().unwrap();
+    let file = dir.join("file.txt");
+    fs::write(&file, "content").unwrap();
+    let archive = dir.join("archive.tar.gz");
+    ouch!("-A", "c", &file, &archive);
+
+    // No `--rename` here, so the error must be about --yes/--no, and the
+    // flags split around the subcommand must not slip through either.
+    let assert = crate::utils::cargo_bin()
+        .arg("--yes")
+        .arg("decompress")
+        .arg("--no")
+        .arg(&archive)
+        .assert()
+        .failure();
+    let stderr = String::from_utf8_lossy(&assert.get_output().stderr).into_owned();
+    assert!(
+        stderr.contains("Cannot combine --yes with --no"),
+        "unexpected stderr: {stderr}"
+    );
+    assert!(!stderr.contains("--rename"), "must not mention --rename: {stderr}");
+}
+
+#[test]
+fn rename_flag_renames_incoming_directory_aside() {
     let (_tempdir, dir) = testdir().unwrap();
 
     let clash_dir = dir.join("clash");
-    fs::create_dir_all(&clash_dir).unwrap();
+    fs::create_dir_all(clash_dir.join("sub")).unwrap();
     fs::write(clash_dir.join("file.txt"), "from archive").unwrap();
+    fs::write(clash_dir.join("sub").join("nested.txt"), "nested").unwrap();
     let archive = dir.join("archive.tar.gz");
     ouch!("-A", "c", &clash_dir, &archive);
 
     // A plain file sits where the archived directory wants to land.
     // `--here` runs in the work dir so the clash happens entry by entry.
+    // The user's file stays put, the incoming directory moves aside.
     let work = dir.join("work");
     fs::create_dir_all(&work).unwrap();
     fs::write(work.join("clash"), "blocker").unwrap();
@@ -2299,12 +2341,94 @@ fn rename_flag_moves_file_blocking_a_directory_aside() {
         .assert()
         .success();
 
-    assert!(work.join("clash").is_dir());
+    assert_eq!("blocker", fs::read_to_string(work.join("clash")).unwrap());
     assert_eq!(
         "from archive",
-        fs::read_to_string(work.join("clash").join("file.txt")).unwrap()
+        fs::read_to_string(work.join("clash_1").join("file.txt")).unwrap()
     );
-    assert_eq!("blocker", fs::read_to_string(work.join("clash_1")).unwrap());
+    assert_eq!(
+        "nested",
+        fs::read_to_string(work.join("clash_1").join("sub").join("nested.txt")).unwrap()
+    );
+}
+
+#[test]
+fn rename_flag_renames_incoming_zip_directory_aside() {
+    let (_tempdir, dir) = testdir().unwrap();
+
+    let clash_dir = dir.join("clash");
+    fs::create_dir_all(&clash_dir).unwrap();
+    fs::write(clash_dir.join("file.txt"), "from archive").unwrap();
+    let archive = dir.join("archive.zip");
+    ouch!("-A", "c", &clash_dir, &archive);
+
+    // Same setup as the tar case, the user's file must stay untouched.
+    let work = dir.join("work");
+    fs::create_dir_all(&work).unwrap();
+    fs::write(work.join("clash"), "blocker").unwrap();
+
+    crate::utils::cargo_bin()
+        .current_dir(&work)
+        .arg("--rename")
+        .arg("decompress")
+        .arg("--here")
+        .arg(&archive)
+        .assert()
+        .success();
+
+    assert_eq!("blocker", fs::read_to_string(work.join("clash")).unwrap());
+    assert_eq!(
+        "from archive",
+        fs::read_to_string(work.join("clash_1").join("file.txt")).unwrap()
+    );
+}
+
+#[test]
+fn rename_flag_still_asks_non_conflict_questions() {
+    let (_tempdir, dir) = testdir().unwrap();
+    fs::write(dir.join("file.txt"), "content").unwrap();
+    let archive = dir.join("archive.gz");
+    ouch!("-A", "c", dir.join("file.txt"), &archive);
+    // Strip the extension so only sniffing the contents reveals the format,
+    // which makes ouch ask whether to go on.
+    let mystery = dir.join("mystery");
+    fs::copy(&archive, &mystery).unwrap();
+
+    // Answering yes runs the decompression like without `--rename`.
+    crate::utils::cargo_bin()
+        .current_dir(&dir)
+        .arg("--rename")
+        .arg("decompress")
+        .arg(&mystery)
+        .write_stdin("y\n")
+        .assert()
+        .success();
+    assert_eq!(
+        "content",
+        fs::read_to_string(dir.join("mystery-output").join("mystery-output")).unwrap()
+    );
+}
+
+#[test]
+fn rename_flag_non_conflict_answer_no_halts() {
+    let (_tempdir, dir) = testdir().unwrap();
+    fs::write(dir.join("file.txt"), "content").unwrap();
+    let archive = dir.join("archive.gz");
+    ouch!("-A", "c", dir.join("file.txt"), &archive);
+    let mystery = dir.join("mystery");
+    fs::copy(&archive, &mystery).unwrap();
+
+    // Answering no halts without extracting anything, `--rename` only
+    // covers file conflicts and must not answer this for the user.
+    crate::utils::cargo_bin()
+        .current_dir(&dir)
+        .arg("--rename")
+        .arg("decompress")
+        .arg(&mystery)
+        .write_stdin("n\n")
+        .assert()
+        .success();
+    assert!(!dir.join("mystery-output").exists());
 }
 
 #[cfg(unix)]

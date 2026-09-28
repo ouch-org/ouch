@@ -23,10 +23,10 @@ use crate::{
     list::{FileInArchive, ListFileType},
     utils::{
         BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, cd_into_same_dir_as,
-        copy_limited_decompression, create_symlink, ensure_parent_dir_exists,
-        find_available_filename_by_renaming, get_invalid_utf8_paths,
-        is_same_file_as_output, pretty_format_list_of_paths, read_file_type, resolve_extraction_conflict,
-        strip_cur_dir, validate_dest_inside_root, validate_symlink_target,
+        copy_limited_decompression, create_symlink, ensure_parent_dir_exists, find_available_filename_by_renaming,
+        get_invalid_utf8_paths, is_same_file_as_output, pretty_format_list_of_paths, read_file_type,
+        remap_through_renamed_dirs, resolve_extraction_conflict, strip_cur_dir, validate_dest_inside_root,
+        validate_symlink_target,
     },
     warning,
 };
@@ -44,6 +44,9 @@ where
 {
     let mut files_unpacked = 0;
     let mut archive = ZipArchive::new(reader)?;
+    // With --rename, incoming directories that collide with a non-directory
+    // land under a fresh name instead, mapping archive path to renamed path.
+    let mut renamed_dirs: std::collections::HashMap<PathBuf, PathBuf> = std::collections::HashMap::new();
 
     for idx in 0..archive.len() {
         let mut file = match password {
@@ -51,7 +54,7 @@ where
             None => archive.by_index(idx)?,
         };
         let relpath = match file.enclosed_name() {
-            Some(path) => path.to_owned(),
+            Some(path) => remap_through_renamed_dirs(&path.to_owned(), &renamed_dirs),
             None => {
                 warning!("skipping entry {} with unsafe name: {}", idx, file.name());
                 continue;
@@ -66,10 +69,26 @@ where
 
         match file.name().ends_with('/') {
             _is_dir @ true => {
-                info!("Directory {} created", PathFmt(&file_path));
-
+                // With --rename the incoming directory moves aside when a file
+                // or link sits where it goes, the user's file stays untouched.
+                // An existing dir still merges like before.
                 let mode = file.unix_mode();
                 let is_symlink = mode.is_some_and(|mode| mode & 0o170000 == 0o120000);
+                let mut file_path = file_path;
+                if matches!(question_policy, QuestionPolicy::AlwaysRename)
+                    && let Ok(meta) = fs::symlink_metadata(&file_path)
+                    && (is_symlink || !meta.is_dir())
+                {
+                    let aside = find_available_filename_by_renaming(&file_path)?;
+                    info!("renamed {} to {}", PathFmt(&file_path), PathFmt(&aside));
+                    let aside_relpath = aside
+                        .strip_prefix(output_folder)
+                        .map(Path::to_path_buf)
+                        .unwrap_or_else(|_| aside.clone());
+                    renamed_dirs.insert(relpath.clone(), aside_relpath);
+                    file_path = aside;
+                }
+                info!("Directory {} created", PathFmt(&file_path));
 
                 if is_symlink {
                     // Symlink targets are arbitrary bytes on Unix, not guaranteed UTF-8; read as bytes.
@@ -81,7 +100,7 @@ where
                     #[cfg(unix)]
                     std::os::unix::fs::symlink(&target, &file_path)?;
                     #[cfg(windows)]
-                    std::os::windows::fs::symlink_dir(&target, file_path)?;
+                    std::os::windows::fs::symlink_dir(&target, &file_path)?;
                 } else {
                     fs::create_dir_all(&file_path)?;
                 }

@@ -2,6 +2,7 @@
 
 use std::{
     borrow::Cow,
+    collections::HashMap,
     env,
     io::{self, Read, Write},
     path::{Path, PathBuf},
@@ -126,6 +127,32 @@ pub fn find_available_filename_by_renaming(path: &Path) -> Result<PathBuf> {
         }
     }
     unreachable!()
+}
+
+/// Follow an archive entry path through directories that were renamed aside.
+///
+/// With `--rename`, an incoming directory that collides with a non-directory
+/// on disk is extracted under a fresh name instead, so entries below it must
+/// land under the renamed directory too. `renamed_dirs` maps the entry path
+/// in the archive to its renamed location, both relative to the output dir.
+/// The longest matching prefix wins so nested renames keep working.
+pub fn remap_through_renamed_dirs(relpath: &Path, renamed_dirs: &HashMap<PathBuf, PathBuf>) -> PathBuf {
+    let mut best: Option<(&PathBuf, &PathBuf)> = None;
+    for (from, to) in renamed_dirs {
+        if relpath == from.as_path() || relpath.starts_with(from) {
+            let longer = best.is_none_or(|(prev, _)| from.components().count() > prev.components().count());
+            if longer {
+                best = Some((from, to));
+            }
+        }
+    }
+    match best {
+        Some((from, to)) => match relpath.strip_prefix(from) {
+            Ok(rest) => to.join(rest),
+            Err(_) => relpath.to_path_buf(),
+        },
+        None => relpath.to_path_buf(),
+    }
 }
 
 /// Creates a directory at the path, if there is nothing there.
