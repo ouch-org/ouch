@@ -109,6 +109,11 @@ pub enum Subcommand {
         /// Remove the source file after successful decompression
         #[arg(short = 'r', long)]
         remove: bool,
+
+        /// Charset used to decode entry names not marked as UTF-8 (zip only);
+        /// accepts labels such as "gbk", "big5", "shift_jis", "windows-1251" or "cp936"
+        #[arg(long, value_name = "ENCODING")]
+        encoding: Option<String>,
     },
     /// List contents of an archive
     #[command(visible_aliases = ["l", "ls"])]
@@ -127,6 +132,11 @@ pub enum Subcommand {
         /// Only list entries up to this recursion limit
         #[arg(long)]
         depth: Option<u32>,
+
+        /// Charset used to decode entry names not marked as UTF-8 (zip only);
+        /// accepts labels such as "gbk", "big5", "shift_jis", "windows-1251" or "cp936"
+        #[arg(long, value_name = "ENCODING")]
+        encoding: Option<String>,
     },
 }
 
@@ -172,6 +182,7 @@ mod tests {
                 output_dir: None,
                 here: false,
                 remove: false,
+                encoding: None,
             },
         }
     }
@@ -186,6 +197,7 @@ mod tests {
                     output_dir: None,
                     here: false,
                     remove: false,
+                    encoding: None,
                 },
                 ..mock_cli_args()
             }
@@ -198,6 +210,7 @@ mod tests {
                     output_dir: None,
                     here: false,
                     remove: false,
+                    encoding: None,
                 },
                 ..mock_cli_args()
             }
@@ -210,6 +223,20 @@ mod tests {
                     output_dir: None,
                     here: false,
                     remove: false,
+                    encoding: None,
+                },
+                ..mock_cli_args()
+            }
+        );
+        test!(
+            "ouch d archive.zip --encoding gbk",
+            CliArgs {
+                cmd: Subcommand::Decompress {
+                    files: to_paths(["archive.zip"]),
+                    output_dir: None,
+                    here: false,
+                    remove: false,
+                    encoding: Some("gbk".to_string()),
                 },
                 ..mock_cli_args()
             }

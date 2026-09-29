@@ -20,6 +20,7 @@ bstr = { version = "1.12.1", default-features = false, features = ["std"] }
 bzip2 = "0.6.1"
 bzip3 = { version = "0.12.0", features = ["bundled"], optional = true }
 clap = { version = "4.6.1", features = ["derive", "env"] }
+encoding_rs = "0.8.35"
 file_type_enum = "3.0.1"
 filetime_creation = "0.2"
 flate2 = { version = "1.1.9", default-features = false }
@@ -42,6 +43,7 @@ strum = { version = "0.28.0", features = ["derive"] }
 tar = "0.4.46"
 tempfile = "3.27.0"
 time = { version = "0.3.47", default-features = false, features = ["local-offset"] }
+typed-path = "0.12.3"
 unrar = { package = "unrar-ng", version = "0.7.6", optional = true }
 zip = { version = "8.6.0", default-features = false, features = [
     "time",
@@ -56,6 +58,7 @@ landlock = "0.4.5"
 [dev-dependencies]
 anyhow = "1.0.102"
 assert_cmd = "2.2.1"
+crc32fast = "1.5.0"
 glob = "0.3.3"
 infer = "0.22.0"
 insta = { version = "1.47.2", features = ["filters"] }

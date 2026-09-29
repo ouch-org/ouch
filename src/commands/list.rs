@@ -25,6 +25,8 @@ pub fn list_archive_contents(
     list_options: ListOptions,
     question_policy: QuestionPolicy,
     password: Option<&[u8]>,
+    // `--encoding`: charset for zip entry names not flagged as UTF-8.
+    archive_encoding: Option<&'static encoding_rs::Encoding>,
     // Pre-opened tempfile FD for multi-format RAR list under the sandbox.
     #[allow(unused_variables)] rar_spill_tempfile: Option<tempfile::NamedTempFile>,
 ) -> Result<()> {
@@ -39,7 +41,7 @@ pub fn list_archive_contents(
     // Any other Zip decompression done can take up the whole RAM and freeze ouch.
     if let &[Zip] = formats.as_slice() {
         let zip_archive = zip::ZipArchive::new(reader)?;
-        let files = crate::archive::zip::list_archive(zip_archive, password);
+        let files = crate::archive::zip::list_archive(zip_archive, password, archive_encoding);
         list::list_files(archive_path, files, list_options)?;
         return Ok(());
     }
@@ -108,7 +110,11 @@ pub fn list_archive_contents(
             copy_limited_decompression(&mut reader, &mut vec)?;
             let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
 
-            Box::new(crate::archive::zip::list_archive(zip_archive, password))
+            Box::new(crate::archive::zip::list_archive(
+                zip_archive,
+                password,
+                archive_encoding,
+            ))
         }
         #[cfg(feature = "unrar")]
         Rar => {
