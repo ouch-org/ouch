@@ -11,13 +11,14 @@ use super::warn_user_about_loading_sevenz_in_memory;
 use crate::{
     BUFFER_CAPACITY, QuestionAction, QuestionPolicy, Result, archive,
     commands::warn_user_about_loading_zip_in_memory,
+    error::FinalError,
     extension::{CompressionFormat::*, Extension, split_first_compression_format},
     info_accessible,
     utils::{
-        BytesFmt, FileVisibilityPolicy, file_size,
+        BytesFmt, FileVisibilityPolicy, PathFmt, file_size,
         io::lock_and_flush_output_stdio,
         threads::{logical_thread_count, physical_thread_count},
-        user_wants_to_continue,
+        user_wants_to_continue, windows_unsafe_name_reason,
     },
 };
 
@@ -41,6 +42,17 @@ pub fn compress_files(
     file_visibility_policy: FileVisibilityPolicy,
     level: Option<i16>,
 ) -> Result<bool> {
+    // On Windows an input named after a DOS device (NUL, COM1, ...) or
+    // containing ':' opens the device / an NTFS stream instead of the file.
+    for file in &files {
+        if let Some(reason) = windows_unsafe_name_reason(file) {
+            return Err(FinalError::with_title("Refusing to compress unsafe input path")
+                .detail(format!("input: {}", PathFmt(file)))
+                .detail(reason)
+                .into());
+        }
+    }
+
     // If the input files contain a directory, then the total size will be underestimated
     let file_writer = BufWriter::with_capacity(BUFFER_CAPACITY, output_file);
 

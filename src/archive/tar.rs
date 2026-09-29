@@ -20,7 +20,7 @@ use crate::{
     utils::{
         self, BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, create_symlink, is_same_file_as_output,
         read_file_type, resolve_extraction_conflict, sanitize_archive_mode, set_permission_mode,
-        validate_dest_inside_root, validate_entry_path, validate_symlink_target,
+        validate_dest_inside_root, validate_entry_path, validate_symlink_target, windows_unsafe_name_reason,
     },
     warning,
 };
@@ -88,14 +88,14 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
                 let original_mode = entry.header().mode()?;
                 let is_writeable = (original_mode & 0o200) != 0;
 
+                let safe_relpath = validate_entry_path(entry.path()?.as_ref())?;
+
                 // this is no-op when dir already exists, errs if a file with another type is found there
                 entry.unpack_in(output_folder)?;
 
                 if cfg!(unix) && is_writeable.not() {
                     // We unpacked a read-only directory, make it writeable so that we can
                     // create the files inside of it, by the end, restore the original mode
-                    let original_path = entry.path()?.to_path_buf();
-                    let safe_relpath = validate_entry_path(&original_path)?;
                     let unpacked = output_folder.join(&safe_relpath);
                     set_permission_mode(&unpacked, sanitize_archive_mode(original_mode) | 0o200)?;
 
@@ -184,6 +184,13 @@ where
 
         for entry in iter {
             let path = entry?;
+
+            // On Windows, opening a path that ends in a reserved DOS device
+            // name opens the device itself instead of the file; skip it.
+            if let Some(reason) = windows_unsafe_name_reason(&path) {
+                warning!("skipping {}: {}", PathFmt(&path), reason);
+                continue;
+            }
 
             // Avoid compressing the output file into itself
             if let Ok(handle) = output_handle.as_ref()

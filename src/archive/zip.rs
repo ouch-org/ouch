@@ -25,7 +25,8 @@ use crate::{
         BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, cd_into_same_dir_as,
         copy_limited_decompression, create_symlink, ensure_parent_dir_exists, get_invalid_utf8_paths,
         is_same_file_as_output, pretty_format_list_of_paths, read_file_type, resolve_extraction_conflict,
-        strip_cur_dir, validate_dest_inside_root, validate_symlink_target,
+        strip_cur_dir, validate_dest_inside_root, validate_entry_path, validate_symlink_target,
+        windows_unsafe_name_reason,
     },
     warning,
 };
@@ -53,6 +54,16 @@ where
             Some(path) => path.to_owned(),
             None => {
                 warning!("skipping entry {} with unsafe name: {}", idx, file.name());
+                continue;
+            }
+        };
+
+        // `enclosed_name` strips traversal but not Windows-only pitfalls such as
+        // reserved DOS device names (NUL, COM1, ...) or ':' (NTFS ADS separator).
+        let relpath = match validate_entry_path(&relpath) {
+            Ok(path) => path,
+            Err(err) => {
+                warning!("skipping entry {} with unsafe name {}: {}", idx, file.name(), err);
                 continue;
             }
         };
@@ -235,6 +246,13 @@ where
 
         for entry in iter {
             let path = entry?;
+
+            // On Windows, opening a path that ends in a reserved DOS device
+            // name opens the device itself instead of the file; skip it.
+            if let Some(reason) = windows_unsafe_name_reason(&path) {
+                warning!("skipping {}: {}", PathFmt(&path), reason);
+                continue;
+            }
 
             // Avoid compressing the output file into itself
             if let Ok(handle) = output_handle.as_ref()
