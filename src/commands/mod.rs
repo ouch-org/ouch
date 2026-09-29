@@ -28,6 +28,32 @@ use crate::{
     warning,
 };
 
+/// Resolve an `--encoding` label (e.g. "gbk" or "cp936") into its [`encoding_rs::Encoding`].
+///
+/// Accepts WHATWG encoding labels, plus the familiar code page names
+/// ("cp936", "windows-1252", ...) that WHATWG does not assign labels to.
+fn parse_archive_encoding(label: &str) -> Result<&'static encoding_rs::Encoding> {
+    let lowercased = label.trim().to_ascii_lowercase();
+    let encoding = encoding_rs::Encoding::for_label(lowercased.as_bytes()).or_else(|| {
+        let number = lowercased
+            .strip_prefix("cp")
+            .or_else(|| lowercased.strip_prefix("windows-"))?;
+        match number {
+            "932" => Some(encoding_rs::SHIFT_JIS),
+            "936" => Some(encoding_rs::GBK),
+            "949" => Some(encoding_rs::EUC_KR),
+            "950" => Some(encoding_rs::BIG5),
+            "65001" => Some(encoding_rs::UTF_8),
+            number => encoding_rs::Encoding::for_label(format!("windows-{number}").as_bytes()),
+        }
+    });
+    encoding.ok_or_else(|| {
+        FinalError::with_title(format!("Unknown encoding: \"{label}\""))
+            .detail("Expected a WHATWG encoding label or code page name such as \"gbk\", \"big5\", \"shift_jis\", \"windows-1251\" or \"cp936\"")
+            .into()
+    })
+}
+
 /// Warn the user that (de)compressing this .zip archive might freeze their system.
 fn warn_user_about_loading_zip_in_memory() {
     const ZIP_IN_MEMORY_LIMITATION_WARNING: &str = "\n  \
@@ -177,7 +203,9 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
             output_dir,
             here,
             remove,
+            encoding,
         } => {
+            let archive_encoding = encoding.as_deref().map(parse_archive_encoding).transpose()?;
             let mut files_output_paths: Vec<_> = vec![];
             let mut files_extensions: Vec<Vec<_>> = vec![];
 
@@ -341,6 +369,7 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                             password: args.password.as_deref().map(|str| {
                                 <[u8] as ByteSlice>::from_os_str(str).expect("convert password to bytes failed")
                             }),
+                            archive_encoding,
                             remove,
                             prepared,
                         })
@@ -363,7 +392,9 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
             tree,
             show_size,
             depth,
+            encoding,
         } => {
+            let archive_encoding = encoding.as_deref().map(parse_archive_encoding).transpose()?;
             let mut formats = vec![];
 
             if let Some(format) = args.format {
@@ -463,6 +494,7 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                     args.password
                         .as_deref()
                         .map(|str| <[u8] as ByteSlice>::from_os_str(str).expect("convert password to bytes failed")),
+                    archive_encoding,
                     spill.take(),
                 )?;
             }

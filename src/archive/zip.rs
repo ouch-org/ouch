@@ -3,16 +3,19 @@
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::{
+    borrow::Cow,
     io::{self, prelude::*},
     path::{Path, PathBuf},
 };
 
+use encoding_rs::Encoding;
 use filetime_creation::{FileTime, set_file_mtime};
 use fs_err as fs;
 use is_executable::is_executable;
 use same_file::Handle;
 use time::{OffsetDateTime, PrimitiveDateTime, UtcOffset};
-use zip::{self, DateTime, ZipArchive, read::ZipFile};
+use typed_path::{Utf8WindowsComponent, Utf8WindowsPath};
+use zip::{self, DateTime, HasZipMetadata, ZipArchive, read::ZipFile};
 
 #[cfg(unix)]
 use crate::utils::sanitize_archive_mode;
@@ -32,10 +35,14 @@ use crate::{
 
 /// Unpacks the archive given by `archive` into the folder given by `output_folder`.
 /// Assumes that output_folder is empty
+///
+/// `name_encoding` is the optional charset used to decode entry names whose UTF-8
+/// flag is unset (see `--encoding`).
 pub fn unpack_archive<R>(
     reader: R,
     output_folder: &Path,
     password: Option<&[u8]>,
+    name_encoding: Option<&'static Encoding>,
     question_policy: QuestionPolicy,
 ) -> Result<u64>
 where
@@ -49,10 +56,11 @@ where
             Some(password) => archive.by_index_decrypt(idx, password)?,
             None => archive.by_index(idx)?,
         };
-        let relpath = match file.enclosed_name() {
-            Some(path) => path.to_owned(),
+        let entry_name = decoded_entry_name(&file, name_encoding);
+        let relpath = match enclosed_name(&entry_name) {
+            Some(path) => path,
             None => {
-                warning!("skipping entry {} with unsafe name: {}", idx, file.name());
+                warning!("skipping entry {} with unsafe name: {}", idx, entry_name);
                 continue;
             }
         };
@@ -61,9 +69,9 @@ where
 
         validate_dest_inside_root(output_folder, &file_path)?;
 
-        display_zip_comment_if_exists(&file);
+        display_zip_comment_if_exists(&file, &entry_name);
 
-        match file.name().ends_with('/') {
+        match file.is_dir() {
             _is_dir @ true => {
                 info!("Directory {} created", PathFmt(&file_path));
 
@@ -149,6 +157,7 @@ where
 pub fn list_archive<R>(
     mut archive: ZipArchive<R>,
     password: Option<&[u8]>,
+    name_encoding: Option<&'static Encoding>,
 ) -> impl Iterator<Item = Result<FileInArchive>>
 where
     R: Read + Seek,
@@ -166,7 +175,10 @@ where
             Err(e) => return Err(e.into()),
         };
 
-        let path = file.enclosed_name().unwrap_or_else(|| file.mangled_name()).to_owned();
+        let path = {
+            let entry_name = decoded_entry_name(&file, name_encoding);
+            enclosed_name(&entry_name).unwrap_or_else(|| mangled_name(&entry_name))
+        };
         let size = Some(file.size());
 
         let file_type = if file.is_dir() {
@@ -319,7 +331,79 @@ fn symlink_target_from_bytes(bytes: &[u8]) -> PathBuf {
     }
 }
 
-fn display_zip_comment_if_exists<R: Read>(file: &ZipFile<'_, R>) {
+/// Decode an entry's file name.
+///
+/// Names carrying the UTF-8 flag (or fixed up through the Unicode Path extra field)
+/// are already decoded by the `zip` crate. For the rest, the raw bytes are decoded
+/// with `fallback_encoding` when one is given; otherwise they are taken as UTF-8 if
+/// they are valid UTF-8, or decoded as CP437, which is what the ZIP specification
+/// mandates when the UTF-8 flag is unset.
+fn decoded_entry_name<'a, R: Read + ?Sized>(
+    file: &'a ZipFile<'a, R>,
+    fallback_encoding: Option<&'static Encoding>,
+) -> Cow<'a, str> {
+    if file.get_metadata().is_utf8 {
+        return Cow::Borrowed(file.name());
+    }
+    let raw = file.name_raw();
+    if let Some(encoding) = fallback_encoding {
+        return encoding.decode(raw).0;
+    }
+    match std::str::from_utf8(raw) {
+        Ok(name) => Cow::Borrowed(name),
+        Err(_) => Cow::Borrowed(file.name()),
+    }
+}
+
+/// Equivalent to the `zip` crate's [`ZipFile::enclosed_name`], but evaluated on an
+/// already-decoded entry name instead of `file.name()`.
+///
+/// Returns `None` if the name contains a NUL byte or could escape the destination
+/// directory.
+fn enclosed_name(file_name: &str) -> Option<PathBuf> {
+    if file_name.contains('\0') {
+        return None;
+    }
+    let mut depth = 0usize;
+    let mut out_path = PathBuf::new();
+    for component in Utf8WindowsPath::new(file_name).components() {
+        match component {
+            Utf8WindowsComponent::Prefix(_) | Utf8WindowsComponent::RootDir => {
+                if depth > 0 {
+                    return None;
+                }
+            }
+            Utf8WindowsComponent::ParentDir => {
+                depth = depth.checked_sub(1)?;
+                out_path.pop();
+            }
+            Utf8WindowsComponent::Normal(s) => {
+                depth += 1;
+                out_path.push(s);
+            }
+            Utf8WindowsComponent::CurDir => (),
+        }
+    }
+    Some(out_path)
+}
+
+/// Equivalent to the `zip` crate's [`ZipFile::mangled_name`], but evaluated on an
+/// already-decoded entry name.
+fn mangled_name(file_name: &str) -> PathBuf {
+    let no_null_filename = match file_name.find('\0') {
+        Some(index) => &file_name[0..index],
+        None => file_name,
+    };
+    Utf8WindowsPath::new(no_null_filename)
+        .components()
+        .filter_map(|component| match component {
+            Utf8WindowsComponent::Normal(s) => Some(s),
+            _ => None,
+        })
+        .collect()
+}
+
+fn display_zip_comment_if_exists<R: Read>(file: &ZipFile<'_, R>, entry_name: &str) {
     let comment = file.comment();
     if !comment.is_empty() {
         // Zip file comments seem to be pretty rare, but if they are used,
@@ -332,7 +416,7 @@ fn display_zip_comment_if_exists<R: Read>(file: &ZipFile<'_, R>) {
         // the future, maybe asking the user if he wants to display the comment
         // (informing him of its size) would be sensible for both normal and
         // accessibility mode..
-        info_accessible!("Found comment in {}: {}", file.name(), comment);
+        info_accessible!("Found comment in {}: {}", entry_name, comment);
     }
 }
 
@@ -445,5 +529,155 @@ mod tests {
         let resolved_offset = local_offset_for(local).unwrap();
         let file_time = file_time_from_local_datetime(local, resolved_offset);
         assert_eq!(file_time.unix_seconds(), instant.unix_timestamp());
+    }
+
+    /// Build a minimal stored zip whose entry names are the exact raw bytes given.
+    /// `flags` is written to the general purpose bit flag; `0` means "not UTF-8".
+    fn build_zip(entries: &[(&[u8], &[u8], u16)]) -> Vec<u8> {
+        let mut out = Vec::new();
+        let mut central = Vec::new();
+        for &(name, data, flags) in entries {
+            let crc = crc32fast::hash(data);
+            let offset = out.len() as u32;
+
+            // Local file header
+            out.extend_from_slice(&0x0403_4b50u32.to_le_bytes());
+            out.extend_from_slice(&20u16.to_le_bytes()); // version needed
+            out.extend_from_slice(&flags.to_le_bytes());
+            out.extend_from_slice(&0u16.to_le_bytes()); // method: stored
+            out.extend_from_slice(&0u16.to_le_bytes()); // mod time
+            out.extend_from_slice(&0u16.to_le_bytes()); // mod date
+            out.extend_from_slice(&crc.to_le_bytes());
+            out.extend_from_slice(&(data.len() as u32).to_le_bytes());
+            out.extend_from_slice(&(data.len() as u32).to_le_bytes());
+            out.extend_from_slice(&(name.len() as u16).to_le_bytes());
+            out.extend_from_slice(&0u16.to_le_bytes()); // extra field length
+            out.extend_from_slice(name);
+            out.extend_from_slice(data);
+
+            // Central directory entry
+            central.extend_from_slice(&0x0201_4b50u32.to_le_bytes());
+            central.extend_from_slice(&20u16.to_le_bytes()); // version made by
+            central.extend_from_slice(&20u16.to_le_bytes()); // version needed
+            central.extend_from_slice(&flags.to_le_bytes());
+            central.extend_from_slice(&0u16.to_le_bytes()); // method: stored
+            central.extend_from_slice(&0u16.to_le_bytes()); // mod time
+            central.extend_from_slice(&0u16.to_le_bytes()); // mod date
+            central.extend_from_slice(&crc.to_le_bytes());
+            central.extend_from_slice(&(data.len() as u32).to_le_bytes());
+            central.extend_from_slice(&(data.len() as u32).to_le_bytes());
+            central.extend_from_slice(&(name.len() as u16).to_le_bytes());
+            central.extend_from_slice(&0u16.to_le_bytes()); // extra field length
+            central.extend_from_slice(&0u16.to_le_bytes()); // comment length
+            central.extend_from_slice(&0u16.to_le_bytes()); // disk number
+            central.extend_from_slice(&0u16.to_le_bytes()); // internal attributes
+            central.extend_from_slice(&0u32.to_le_bytes()); // external attributes
+            central.extend_from_slice(&offset.to_le_bytes());
+            central.extend_from_slice(name);
+        }
+
+        // End of central directory
+        let cd_offset = out.len() as u32;
+        out.extend_from_slice(&central);
+        out.extend_from_slice(&0x0605_4b50u32.to_le_bytes());
+        out.extend_from_slice(&0u16.to_le_bytes()); // disk number
+        out.extend_from_slice(&0u16.to_le_bytes()); // central dir disk
+        out.extend_from_slice(&(entries.len() as u16).to_le_bytes());
+        out.extend_from_slice(&(entries.len() as u16).to_le_bytes());
+        out.extend_from_slice(&(central.len() as u32).to_le_bytes());
+        out.extend_from_slice(&cd_offset.to_le_bytes());
+        out.extend_from_slice(&0u16.to_le_bytes()); // comment length
+        out
+    }
+
+    /// Extract `zip_bytes` into a fresh tempdir and return every extracted file name.
+    fn unpack_and_collect_names(zip_bytes: Vec<u8>, encoding: Option<&'static Encoding>) -> Vec<String> {
+        let dir = tempfile::tempdir().unwrap();
+        unpack_archive(
+            io::Cursor::new(zip_bytes),
+            dir.path(),
+            None,
+            encoding,
+            QuestionPolicy::AlwaysYes,
+        )
+        .unwrap();
+
+        fn names(dir: &Path, out: &mut Vec<String>) {
+            for entry in std::fs::read_dir(dir).unwrap() {
+                let entry = entry.unwrap();
+                if entry.file_type().unwrap().is_dir() {
+                    names(&entry.path(), out);
+                } else {
+                    out.push(entry.file_name().to_string_lossy().into_owned());
+                }
+            }
+        }
+        let mut out = Vec::new();
+        names(dir.path(), &mut out);
+        out
+    }
+
+    const UTF8_FLAG: u16 = 0x0800;
+
+    /// GBK (CP936) bytes of "这是一个测试文件.txt", as produced by `convmv -t CP936`
+    /// followed by `zip` on a system without UTF-8 filenames (issue #691).
+    fn gbk_name_bytes() -> Vec<u8> {
+        let (encoded, _, had_errors) = Encoding::for_label(b"gbk").unwrap().encode("这是一个测试文件.txt");
+        assert!(!had_errors);
+        encoded.into_owned()
+    }
+
+    #[test]
+    fn extracts_non_utf8_name_with_encoding_option() {
+        let zip_bytes = build_zip(&[(&gbk_name_bytes(), b"hello", 0)]);
+        let names = unpack_and_collect_names(zip_bytes, Encoding::for_label(b"gbk"));
+        assert_eq!(names, ["这是一个测试文件.txt"]);
+    }
+
+    #[test]
+    fn lists_non_utf8_name_with_encoding_option() {
+        let zip_bytes = build_zip(&[(&gbk_name_bytes(), b"hello", 0)]);
+        let archive = ZipArchive::new(io::Cursor::new(zip_bytes)).unwrap();
+        let paths: Vec<PathBuf> = list_archive(archive, None, Encoding::for_label(b"gbk"))
+            .map(|entry| entry.unwrap().path)
+            .collect();
+        assert_eq!(paths, [PathBuf::from("这是一个测试文件.txt")]);
+    }
+
+    #[test]
+    fn unmarked_utf8_name_is_recovered_without_encoding_option() {
+        // Some tools write UTF-8 names but forget to set the UTF-8 flag (issue #691).
+        let zip_bytes = build_zip(&[("Schwarz-weiß".as_bytes(), b"hi", 0)]);
+        let names = unpack_and_collect_names(zip_bytes, None);
+        assert_eq!(names, ["Schwarz-weiß"]);
+    }
+
+    #[test]
+    fn unmarked_non_utf8_name_defaults_to_cp437() {
+        // Without --encoding, non-UTF-8 names keep the spec-mandated CP437 decoding.
+        let zip_bytes = build_zip(&[(&gbk_name_bytes(), b"hello", 0)]);
+        let mut archive = ZipArchive::new(io::Cursor::new(zip_bytes.clone())).unwrap();
+        let cp437_name = archive.by_index(0).unwrap().name().to_owned();
+
+        let names = unpack_and_collect_names(zip_bytes, None);
+        assert_eq!(names, [cp437_name]);
+    }
+
+    #[test]
+    fn utf8_flagged_name_ignores_encoding_option() {
+        // Names flagged as UTF-8 always decode as UTF-8, per the ZIP spec.
+        let zip_bytes = build_zip(&[("Schwarz-weiß".as_bytes(), b"hi", UTF8_FLAG)]);
+        let names = unpack_and_collect_names(zip_bytes, Encoding::for_label(b"gbk"));
+        assert_eq!(names, ["Schwarz-weiß"]);
+    }
+
+    #[test]
+    fn enclosed_name_rejects_unsafe_paths() {
+        assert_eq!(enclosed_name("a/b/c.txt"), Some(PathBuf::from("a/b/c.txt")));
+        assert_eq!(enclosed_name("../evil.txt"), None);
+        assert_eq!(enclosed_name("a/../../evil.txt"), None);
+        assert_eq!(enclosed_name("evil\0.txt"), None);
+        // Backslashes count as separators, like the `zip` crate's own check.
+        assert_eq!(enclosed_name("..\\evil.txt"), None);
     }
 }
