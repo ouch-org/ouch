@@ -26,7 +26,9 @@ use crate::{
 /// # Arguments:
 /// - `files`: is the list of paths to be compressed: ["dir/file1.txt", "dir/file2.txt"]
 /// - `extensions`: is a list of compression formats for compressing, example: [Tar, Gz] (in compression order)
-/// - `output_file` is the resulting compressed file name, example: "archive.tar.gz"
+/// - `output_writer` is where the compressed data is written to, usually the
+///   output file created beforehand; pass `io::stdout()` to stream the archive
+///   to standard output (when `output_path` is "-")
 ///
 /// # Return value
 /// - Returns `Ok(true)` if compressed all files normally.
@@ -34,7 +36,7 @@ use crate::{
 pub fn compress_files(
     files: Vec<PathBuf>,
     extensions: Vec<Extension>,
-    output_file: fs::File,
+    output_writer: impl Write + Send + 'static,
     output_path: &Path,
     follow_symlinks: bool,
     question_policy: QuestionPolicy,
@@ -42,7 +44,7 @@ pub fn compress_files(
     level: Option<i16>,
 ) -> Result<bool> {
     // If the input files contain a directory, then the total size will be underestimated
-    let file_writer = BufWriter::with_capacity(BUFFER_CAPACITY, output_file);
+    let file_writer = BufWriter::with_capacity(BUFFER_CAPACITY, output_writer);
 
     let mut writer: Box<dyn Send + Write> = Box::new(file_writer);
 

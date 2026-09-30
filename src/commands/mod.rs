@@ -4,7 +4,7 @@ mod compress;
 mod decompress;
 mod list;
 
-use std::path::PathBuf;
+use std::{io, path::PathBuf};
 
 use bstr::ByteSlice;
 use decompress::{DecompressOptions, PreparedTarget, prepare_decompress_target};
@@ -101,13 +101,20 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
             )?;
             check::check_archive_formats_position(&formats, &output_path)?;
 
-            let (output_file, output_path) = match utils::create_file_or_prompt_on_conflict(
-                &output_path,
-                question_policy,
-                QuestionAction::Compression,
-            )? {
-                Some(writer) => writer,
-                None => return Ok(()),
+            // "-" streams the archive to stdout instead of creating an output
+            // file, so there is no path to create or conflict to resolve
+            let output_to_stdout = is_path_stdin(&output_path);
+            let (output_file, output_path) = if output_to_stdout {
+                (None, output_path)
+            } else {
+                match utils::create_file_or_prompt_on_conflict(
+                    &output_path,
+                    question_policy,
+                    QuestionAction::Compression,
+                )? {
+                    Some((file, path)) => (Some(file), path),
+                    None => return Ok(()),
+                }
             };
 
             // Read on inputs. The output FD is held already so no write-path grant is needed, and
@@ -129,26 +136,45 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                 level
             };
 
-            let compress_result = compress_files(
-                files,
-                formats,
-                output_file,
-                &output_path,
-                follow_symlinks,
-                question_policy,
-                file_visibility_policy,
-                level,
-            );
+            let compress_result = match output_file {
+                Some(output_file) => compress_files(
+                    files,
+                    formats,
+                    output_file,
+                    &output_path,
+                    follow_symlinks,
+                    question_policy,
+                    file_visibility_policy,
+                    level,
+                ),
+                // All diagnostics are emitted on stderr, so the archive bytes
+                // can be streamed to stdout without interleaving with logs
+                None => compress_files(
+                    files,
+                    formats,
+                    io::stdout(),
+                    &output_path,
+                    follow_symlinks,
+                    question_policy,
+                    file_visibility_policy,
+                    level,
+                ),
+            };
 
             if let Ok(true) = compress_result {
-                info_accessible!("Output file size: {}", BytesFmt(file_size(&output_path)?));
-                info_accessible!("Successfully compressed to {}", PathFmt(&output_path));
+                if output_to_stdout {
+                    info_accessible!("Successfully compressed to stdout");
+                } else {
+                    info_accessible!("Output file size: {}", BytesFmt(file_size(&output_path)?));
+                    info_accessible!("Successfully compressed to {}", PathFmt(&output_path));
+                }
             } else if let Ok(false) = compress_result {
                 // user cancelled; remove the partial output where the sandbox permits it
-                if !sandbox_active {
+                // (there is no partial file to remove when streaming to stdout)
+                if !output_to_stdout && !sandbox_active {
                     let _ = utils::remove_file_or_dir(&output_path);
                 }
-            } else if compress_result.is_err() {
+            } else if compress_result.is_err() && !output_to_stdout {
                 let deleted = !sandbox_active && utils::remove_file_or_dir(&output_path).is_ok();
                 if !deleted {
                     if sandbox_active {
