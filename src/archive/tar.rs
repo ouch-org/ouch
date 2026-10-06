@@ -4,7 +4,7 @@
 use std::os::unix::fs::MetadataExt;
 use std::{
     collections::HashMap,
-    io::{self, prelude::*},
+    io::{self, BufReader, prelude::*},
     ops::Not,
     path::{Path, PathBuf},
 };
@@ -25,9 +25,40 @@ use crate::{
     warning,
 };
 
+/// Magic bytes of common compression formats, checked against the start of a tar stream to
+/// give a clearer error when the data is still compressed (one extra layer of compression
+/// that the filename did not account for, e.g. an actual `.tar.gz.gz` misnamed `.tgz`).
+const LEFTOVER_COMPRESSION_MAGIC: &[(&[u8], &str)] = &[
+    (&[0x1f, 0x8b], "gzip"),
+    (&[0x42, 0x5a, 0x68], "bzip2"),
+    (&[0xfd, 0x37, 0x7a, 0x58, 0x5a, 0x00], "xz"),
+    (&[0x28, 0xb5, 0x2f, 0xfd], "zstd"),
+    (&[0x04, 0x22, 0x4d, 0x18], "lz4"),
+];
+
+/// If `peeked` starts with the magic bytes of a known compression format, return that
+/// format's name so the caller can explain why tar parsing is failing.
+fn detect_leftover_compression(peeked: &[u8]) -> Option<&'static str> {
+    LEFTOVER_COMPRESSION_MAGIC
+        .iter()
+        .find(|(magic, _)| peeked.starts_with(magic))
+        .map(|(_, name)| *name)
+}
+
 /// Unpacks the archive given by `archive` into the folder given by `into`.
 /// Assumes that output_folder is empty
 pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: QuestionPolicy) -> Result<u64> {
+    let mut reader = BufReader::new(reader);
+    if let Some(format) = detect_leftover_compression(reader.fill_buf()?) {
+        return Err(FinalError::with_title("Could not extract archive")
+            .detail(format!(
+                "The decompressed data is still {format}-compressed instead of being a tar archive"
+            ))
+            .detail("This usually means the file was compressed one more time than its extension suggests")
+            .hint("Rename the file to include the missing compression extension, or decompress the extra layer manually before extracting it")
+            .into());
+    }
+
     let mut archive = tar::Archive::new(reader);
 
     let mut files_unpacked = 0;

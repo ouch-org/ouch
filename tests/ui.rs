@@ -248,3 +248,25 @@ fn ui_test_err_decompress_output_file_exists() {
     // Answer "s" (skip) to the conflict prompt
     ui!(run_ouch_with_stdin("ouch decompress out.gz", dir, Some("s\n")));
 }
+
+#[test]
+fn ui_test_err_decompress_tar_with_leftover_gzip_layer() {
+    // Regression test for https://github.com/ouch-org/ouch/issues/882:
+    // a file like `archive.tar.gz.gz` that got misnamed `archive.tgz` only has its
+    // outer gzip layer stripped by the `.tgz` extension, leaving the tar parser to
+    // choke on what is still gzip-compressed data. That used to surface as a raw,
+    // confusing `tar` crate error (e.g. "numeric field did not have utf-8 text").
+    let (_dropper, dir) = testdir().unwrap();
+
+    create_files_in(dir, &["input.txt"]);
+
+    // Build `archive.tar.gz.gz`: a tar archive, gzip-compressed twice.
+    run_ouch("ouch compress input.txt archive.tar.gz", dir);
+    run_ouch("ouch compress archive.tar.gz archive.tar.gz.gz", dir);
+    std::fs::remove_file(dir.join("archive.tar.gz")).unwrap();
+
+    // Misname it as `.tgz`, so only one gzip layer gets stripped before the tar parser runs.
+    std::fs::rename(dir.join("archive.tar.gz.gz"), dir.join("archive.tgz")).unwrap();
+
+    ui!(run_ouch("ouch decompress archive.tgz", dir));
+}
