@@ -39,6 +39,8 @@ pub enum QuestionAction {
     Compression,
     /// question called from a decompression function
     Decompression,
+    /// question called from a listing function
+    Listing,
 }
 
 #[derive(Default)]
@@ -68,6 +70,7 @@ pub fn user_wants_to_overwrite(
         QuestionPolicy::AlwaysYes => match question_action {
             QuestionAction::Decompression => Ok(Op::Merge),
             QuestionAction::Compression => Ok(Op::Overwrite),
+            QuestionAction::Listing => unreachable!("Listing cannot create file conflicts"),
         },
         QuestionPolicy::AlwaysNo => Ok(Op::Cancel),
         QuestionPolicy::Ask => prompt_user_for_file_conflict_resolution(path, question_action),
@@ -110,6 +113,7 @@ pub fn prompt_user_for_file_conflict_resolution(
             ],
         )
         .ask(),
+        QuestionAction::Listing => unreachable!("Listing cannot create file conflicts"),
     }
 }
 
@@ -176,6 +180,7 @@ pub fn user_wants_to_continue(
             let action = match question_action {
                 QuestionAction::Compression => "compress",
                 QuestionAction::Decompression => "decompress",
+                QuestionAction::Listing => "list",
             };
             let path = format!("{}", PathFmt(path));
             let path = Some(&*path);

@@ -98,7 +98,7 @@ pub fn list_archive_contents(
                 let _locks = lock_and_flush_output_stdio();
 
                 warn_user_about_loading_zip_in_memory();
-                if !user_wants_to_continue(archive_path, question_policy, QuestionAction::Decompression)? {
+                if !user_wants_to_continue(archive_path, question_policy, QuestionAction::Listing)? {
                     return Ok(());
                 }
             }
@@ -138,7 +138,7 @@ pub fn list_archive_contents(
                 // Make thread own locks to keep output messages adjacent
                 let locks = lock_and_flush_output_stdio();
                 warn_user_about_loading_zip_in_memory();
-                if !user_wants_to_continue(archive_path, question_policy, QuestionAction::Decompression)? {
+                if !user_wants_to_continue(archive_path, question_policy, QuestionAction::Listing)? {
                     return Ok(());
                 }
                 drop(locks);

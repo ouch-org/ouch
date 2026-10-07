@@ -43,6 +43,7 @@ pub fn check_file_signature(
     path: &Path,
     extensions: &[Extension],
     question_policy: QuestionPolicy,
+    question_action: QuestionAction,
 ) -> Result<CheckFileSignatureControlFlow> {
     debug_assert!(path.file_name().is_some());
 
@@ -71,7 +72,7 @@ pub fn check_file_signature(
             );
 
             // TODO: change question to: "do you want to proceed regardless of that"?
-            if !user_wants_to_continue(path, question_policy, QuestionAction::Decompression)? {
+            if !user_wants_to_continue(path, question_policy, question_action)? {
                 return Ok(CheckFileSignatureControlFlow::HaltProgram);
             }
 

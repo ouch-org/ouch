@@ -196,7 +196,12 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                     let (output_path, mut extensions) = extension::separate_known_extensions_from_name(path)?;
                     let mut output_path = output_path.to_owned();
 
-                    match check::check_file_signature(path, &extensions, question_policy)? {
+                    match check::check_file_signature(
+                        path,
+                        &extensions,
+                        question_policy,
+                        QuestionAction::Decompression,
+                    )? {
                         CheckFileSignatureControlFlow::HaltProgram => return Ok(()),
                         CheckFileSignatureControlFlow::Continue => {}
                         CheckFileSignatureControlFlow::ChangeToDetectedExtension {
@@ -375,7 +380,7 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                 for path in files.iter() {
                     let mut extensions = extension::extensions_from_path(path)?;
 
-                    match check::check_file_signature(path, &extensions, question_policy)? {
+                    match check::check_file_signature(path, &extensions, question_policy, QuestionAction::Listing)? {
                         CheckFileSignatureControlFlow::HaltProgram => return Ok(()),
                         CheckFileSignatureControlFlow::Continue => {}
                         CheckFileSignatureControlFlow::ChangeToDetectedExtension { new_extension, .. } => {
