@@ -1,6 +1,7 @@
 //! SevenZip archive format compress function
 
 use std::{
+    collections::HashMap,
     io::{BufWriter, Read, Seek, Write},
     path::{Path, PathBuf},
 };
@@ -18,8 +19,8 @@ use crate::{
     list::{FileInArchive, ListFileType},
     utils::{
         BytesFmt, FileVisibilityPolicy, PathFmt, cd_into_same_dir_as, copy_limited_decompression,
-        ensure_parent_dir_exists, is_same_file_as_output, resolve_extraction_conflict, validate_dest_inside_root,
-        validate_entry_path,
+        ensure_parent_dir_exists, find_available_filename_by_renaming, is_same_file_as_output,
+        remap_through_renamed_dirs, resolve_extraction_conflict, validate_dest_inside_root, validate_entry_path,
     },
     warning,
 };
@@ -36,6 +37,9 @@ where
     let mut files_unpacked = 0;
     // The closure cannot return an ouch error so it is carried out here.
     let mut conflict_error = None;
+    // With --rename, incoming directories that collide with a non-directory
+    // land under a fresh name instead, mapping archive path to renamed path.
+    let mut renamed_dirs: HashMap<PathBuf, PathBuf> = HashMap::new();
 
     let entry_extract_fn =
         |entry: &ArchiveEntry, reader: &mut dyn Read, path: &PathBuf| -> Result<bool, sevenz_rust2::Error> {
@@ -56,10 +60,91 @@ where
                 return Ok(true);
             }
 
+            // Entries below a renamed-aside directory follow it to its new spot.
+            let mut file_path = output_path.join(remap_through_renamed_dirs(&safe_relpath, &renamed_dirs));
+            // The library hands us its own joined path, point it at the same spot.
+            let mut remapped_path;
+            let mut path: &PathBuf = match path.strip_prefix(output_path) {
+                Ok(rel) => {
+                    remapped_path = output_path.join(remap_through_renamed_dirs(rel, &renamed_dirs));
+                    &remapped_path
+                }
+                Err(_) => path,
+            };
+
+            // With --rename, a non-directory blocking an ancestor of this
+            // entry moves aside too. 7z lists files before their parent
+            // dirs, so the directory entry itself may not have run yet.
+            // The topmost blocker moves, one rename covers everything below.
+            if matches!(question_policy, QuestionPolicy::AlwaysRename) {
+                let mut blocker: Option<PathBuf> = None;
+                let mut cursor = file_path.parent();
+                while let Some(dir) = cursor {
+                    if dir == output_path {
+                        break;
+                    }
+                    match fs::symlink_metadata(dir) {
+                        Ok(meta) if meta.is_dir() => break,
+                        Ok(_) => blocker = Some(dir.to_path_buf()),
+                        Err(_) => {}
+                    }
+                    cursor = dir.parent();
+                }
+                if let Some(blocked) = blocker {
+                    let aside = match find_available_filename_by_renaming(&blocked) {
+                        Ok(aside) => aside,
+                        Err(err) => {
+                            conflict_error = Some(err);
+                            return Ok(false);
+                        }
+                    };
+                    info!("renamed {} to {}", PathFmt(&blocked), PathFmt(&aside));
+                    fs::create_dir_all(&aside)?;
+                    let blocked_relpath = blocked
+                        .strip_prefix(output_path)
+                        .map(Path::to_path_buf)
+                        .unwrap_or_else(|_| blocked.clone());
+                    let aside_relpath = aside
+                        .strip_prefix(output_path)
+                        .map(Path::to_path_buf)
+                        .unwrap_or_else(|_| aside.clone());
+                    renamed_dirs.insert(blocked_relpath, aside_relpath);
+                    file_path = output_path.join(remap_through_renamed_dirs(&safe_relpath, &renamed_dirs));
+                    remapped_path = output_path.join(remap_through_renamed_dirs(
+                        path.strip_prefix(output_path).unwrap_or(path),
+                        &renamed_dirs,
+                    ));
+                    path = &remapped_path;
+                }
+            }
+
             if entry.is_directory() {
                 info!("File {} extracted to {}", entry.name(), PathFmt(&file_path));
-                if !path.fs_err_try_exists()? {
-                    fs::create_dir_all(path)?;
+                // With --rename the incoming directory moves aside when a
+                // file or link sits where it goes, the user's file stays
+                // untouched. An existing dir still merges like before.
+                let mut file_path = file_path;
+                if matches!(question_policy, QuestionPolicy::AlwaysRename)
+                    && let Ok(meta) = fs::symlink_metadata(&file_path)
+                    && !meta.is_dir()
+                {
+                    let aside = match find_available_filename_by_renaming(&file_path) {
+                        Ok(aside) => aside,
+                        Err(err) => {
+                            conflict_error = Some(err);
+                            return Ok(false);
+                        }
+                    };
+                    info!("renamed {} to {}", PathFmt(&file_path), PathFmt(&aside));
+                    let aside_relpath = aside
+                        .strip_prefix(output_path)
+                        .map(Path::to_path_buf)
+                        .unwrap_or_else(|_| aside.clone());
+                    renamed_dirs.insert(safe_relpath.clone(), aside_relpath);
+                    file_path = aside;
+                }
+                if !file_path.fs_err_try_exists()? {
+                    fs::create_dir_all(&file_path)?;
                 }
             } else {
                 let dest = match resolve_extraction_conflict(path, question_policy) {

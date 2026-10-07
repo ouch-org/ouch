@@ -23,6 +23,9 @@ Options:
   -n, --no
           Skip [Y/n] questions, default to no
 
+      --rename
+          On conflict, rename the output instead of asking what to do
+
   -A, --accessible
           Activate accessibility mode, reducing visual noise
           
