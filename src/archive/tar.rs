@@ -18,9 +18,9 @@ use crate::{
     info,
     list::{FileInArchive, ListFileType},
     utils::{
-        self, BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, create_symlink, is_same_file_as_output,
-        read_file_type, resolve_extraction_conflict, sanitize_archive_mode, set_permission_mode,
-        validate_dest_inside_root, validate_entry_path, validate_symlink_target, windows_unsafe_name_reason,
+        self, BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, check_entry_path, create_symlink,
+        is_same_file_as_output, read_file_type, resolve_extraction_conflict, sanitize_archive_mode,
+        set_permission_mode, validate_dest_inside_root, validate_symlink_target, windows_unsafe_name_reason,
     },
     warning,
 };
@@ -33,6 +33,18 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
     let mut files_unpacked = 0;
     let mut read_only_dirs_and_modes = Vec::new();
 
+    // Unsafe entry names are skipped with a warning, like in zip and 7z,
+    // instead of aborting the extraction and leaving partial output behind.
+    let checked_entry_path = |raw_path: &Path| -> Option<PathBuf> {
+        match check_entry_path(raw_path) {
+            Ok(path) => Some(path),
+            Err(reason) => {
+                warning!("skipping unsafe tar entry {}: {}", PathFmt(raw_path), reason);
+                None
+            }
+        }
+    };
+
     for entry in archive.entries()? {
         let mut entry = entry?;
 
@@ -42,7 +54,9 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
         match entry.header().entry_type() {
             tar::EntryType::Symlink => {
                 let raw_path = entry.path()?.into_owned();
-                let safe_relpath = validate_entry_path(&raw_path)?;
+                let Some(safe_relpath) = checked_entry_path(&raw_path) else {
+                    continue;
+                };
                 let full_path = output_folder.join(&safe_relpath);
                 let target = entry
                     .link_name()?
@@ -54,12 +68,16 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
             }
             tar::EntryType::Link => {
                 let raw_link = entry.path()?.into_owned();
-                let safe_link_path = validate_entry_path(&raw_link)?;
+                let Some(safe_link_path) = checked_entry_path(&raw_link) else {
+                    continue;
+                };
                 let raw_target = entry
                     .link_name()?
                     .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Missing hardlink target"))?
                     .into_owned();
-                let safe_target = validate_entry_path(&raw_target)?;
+                let Some(safe_target) = checked_entry_path(&raw_target) else {
+                    continue;
+                };
 
                 let full_link_path = output_folder.join(&safe_link_path);
                 let full_target_path = output_folder.join(&safe_target);
@@ -70,7 +88,9 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
             }
             tar::EntryType::Regular | tar::EntryType::GNUSparse => {
                 let raw_path = entry.path()?.into_owned();
-                let safe_relpath = validate_entry_path(&raw_path)?;
+                let Some(safe_relpath) = checked_entry_path(&raw_path) else {
+                    continue;
+                };
                 let full_path = output_folder.join(&safe_relpath);
 
                 let Some(dest) = resolve_extraction_conflict(&full_path, question_policy)? else {
@@ -88,7 +108,10 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
                 let original_mode = entry.header().mode()?;
                 let is_writeable = (original_mode & 0o200) != 0;
 
-                let safe_relpath = validate_entry_path(entry.path()?.as_ref())?;
+                let raw_path = entry.path()?.into_owned();
+                let Some(safe_relpath) = checked_entry_path(&raw_path) else {
+                    continue;
+                };
 
                 // this is no-op when dir already exists, errs if a file with another type is found there
                 entry.unpack_in(output_folder)?;

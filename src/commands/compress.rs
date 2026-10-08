@@ -53,6 +53,14 @@ pub fn compress_files(
         }
     }
 
+    // Writing to such an output name hits the same devices / NTFS streams.
+    if let Some(reason) = windows_unsafe_name_reason(output_path) {
+        return Err(FinalError::with_title("Refusing to compress to unsafe output path")
+            .detail(format!("output: {}", PathFmt(output_path)))
+            .detail(reason)
+            .into());
+    }
+
     // If the input files contain a directory, then the total size will be underestimated
     let file_writer = BufWriter::with_capacity(BUFFER_CAPACITY, output_file);
 

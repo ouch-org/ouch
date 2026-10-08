@@ -207,33 +207,38 @@ fn windows_unsafe_component_reason(name: &OsStr) -> Option<String> {
     None
 }
 
+/// Check an archive entry path like [`validate_entry_path`], but return a
+/// single-line reason on failure so callers can warn and skip the entry
+/// instead of aborting the whole extraction.
+pub fn check_entry_path(path: &Path) -> std::result::Result<PathBuf, String> {
+    if let Some(reason) = windows_unsafe_name_reason(path) {
+        return Err(reason);
+    }
+    normalize_safe_path(path).ok_or_else(|| "path escapes the extraction root".to_string())
+}
+
 /// Reject ZipSlip-style entry paths; returns the lexically-normalized safe form.
 pub fn validate_entry_path(path: &Path) -> Result<PathBuf> {
-    if let Some(reason) = windows_unsafe_name_reason(path) {
-        return Err(
-            FinalError::with_title("refusing to extract archive entry with unsafe path")
-                .detail(format!("entry: {}", PathFmt(path)))
-                .detail(reason)
-                .into(),
-        );
-    }
-    normalize_safe_path(path).ok_or_else(|| {
+    check_entry_path(path).map_err(|reason| {
         FinalError::with_title("refusing to extract archive entry with unsafe path")
             .detail(format!("entry: {}", PathFmt(path)))
+            .detail(reason)
             .into()
     })
 }
 
 /// Reject symlink targets whose relative path would escape the extraction root.
 pub fn validate_symlink_target(link_relpath: &Path, target: &Path) -> Result<()> {
-    if target.is_absolute() {
-        return Ok(());
-    }
+    // The device check runs before the absolute-path exemption so a target
+    // like `C:\NUL` or `D:\dir:ads` cannot bypass it.
     if let Some(reason) = windows_unsafe_name_reason(target) {
         return Err(FinalError::with_title("refusing to create symlink with unsafe target")
             .detail(format!("link: {}  target: {}", PathFmt(link_relpath), PathFmt(target)))
             .detail(reason)
             .into());
+    }
+    if target.is_absolute() {
+        return Ok(());
     }
     let parent = link_relpath.parent().unwrap_or(Path::new(""));
     if normalize_safe_path(&parent.join(target)).is_none() {

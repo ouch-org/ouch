@@ -2217,3 +2217,88 @@ fn merging_a_rar_asks_before_replacing_each_file() {
         .success();
     assert_eq!("Testing 123\n", fs::read_to_string(out.join("testfile.txt")).unwrap());
 }
+
+/// Entries whose names are unsafe on Windows (DOS device names or a ':' NTFS
+/// ADS separator) must be skipped with a warning while the rest of the archive
+/// extracts normally — for both tar and zip.
+///
+/// Such files cannot be created on disk even for a fixture, so the archives
+/// are built by hand with the hostile entry names.
+#[cfg(windows)]
+#[test]
+fn decompress_skips_windows_unsafe_entry_names() {
+    let (_tempdir, dir) = testdir().unwrap();
+
+    let tar_archive = dir.join("archive.tar");
+    {
+        let mut builder = tar::Builder::new(std::fs::File::create(&tar_archive).unwrap());
+        for name in ["good.txt", "NUL.txt", "file:ads.txt"] {
+            let mut header = tar::Header::new_gnu();
+            header.set_size(3);
+            header.set_cksum();
+            builder.append_data(&mut header, name, &b"bad"[..]).unwrap();
+        }
+        builder.finish().unwrap();
+    }
+
+    let zip_archive = dir.join("archive.zip");
+    {
+        use zip::write::SimpleFileOptions;
+        let file = std::fs::File::create(&zip_archive).unwrap();
+        let mut zip = zip::ZipWriter::new(file);
+        for name in ["good.txt", "NUL.txt", "file:ads.txt"] {
+            zip.start_file(name, SimpleFileOptions::default()).unwrap();
+            zip.write_all(b"bad").unwrap();
+        }
+        zip.finish().unwrap();
+    }
+
+    for (archive, out) in [(tar_archive, "tar_out"), (zip_archive, "zip_out")] {
+        let out = dir.join(out);
+        let output = crate::utils::cargo_bin()
+            .arg("decompress")
+            .arg(&archive)
+            .arg("--dir")
+            .arg(&out)
+            .assert()
+            .success()
+            .get_output()
+            .clone();
+
+        // The unsafe entries were skipped with a warning, the rest extracted.
+        let stderr = output.stderr.to_str().unwrap();
+        assert!(stderr.contains("skipping"), "stderr: {stderr}");
+        assert_eq!("bad", fs::read_to_string(out.join("good.txt")).unwrap());
+        assert_eq!(1, fs::read_dir(&out).unwrap().count());
+    }
+}
+
+/// `compress` refuses Windows-unsafe names for both the inputs and the output path.
+#[cfg(windows)]
+#[test]
+fn compress_rejects_windows_unsafe_names() {
+    let (_tempdir, dir) = testdir().unwrap();
+    fs::write(dir.join("input.txt"), "contents").unwrap();
+
+    // An unsafe input path is rejected up front.
+    let output = crate::utils::cargo_bin()
+        .args(["compress", "NUL", "archive.tar"])
+        .current_dir(dir)
+        .assert()
+        .failure()
+        .get_output()
+        .clone();
+    let stderr = output.stderr.to_str().unwrap();
+    assert!(stderr.contains("unsafe input path"), "stderr: {stderr}");
+
+    // So is an unsafe output path.
+    let output = crate::utils::cargo_bin()
+        .args(["compress", "input.txt", "NUL.tar"])
+        .current_dir(dir)
+        .assert()
+        .failure()
+        .get_output()
+        .clone();
+    let stderr = output.stderr.to_str().unwrap();
+    assert!(stderr.contains("unsafe output path"), "stderr: {stderr}");
+}
