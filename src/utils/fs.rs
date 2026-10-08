@@ -3,6 +3,7 @@
 use std::{
     borrow::Cow,
     env,
+    ffi::OsStr,
     io::{self, Read, Write},
     path::{Path, PathBuf},
 };
@@ -151,17 +152,91 @@ pub fn normalize_safe_path(path: &Path) -> Option<PathBuf> {
     Some(out)
 }
 
+/// Windows reserves `CON`, `PRN`, `AUX`, `NUL`, `COM1`-`COM9` and `LPT1`-`LPT9`
+/// as DOS device names: opening such a component opens the device itself, even
+/// when it carries an extension (`NUL.txt` still resolves to `NUL`). A `:` in a
+/// name separates a file from one of its NTFS alternate data streams, so
+/// extracting `file:ads.txt` writes a hidden stream instead of a file.
+///
+/// Returns why `path` is unsafe to use on Windows, or `None` when it is fine.
+/// Always `None` on other platforms, where these are ordinary file names, so
+/// callers can use it unconditionally.
+pub fn windows_unsafe_name_reason(path: &Path) -> Option<String> {
+    // `cfg!` instead of `#[cfg]` keeps the helper compiled and unit-tested
+    // on every platform.
+    if !cfg!(windows) {
+        return None;
+    }
+    path.components().find_map(|comp| match comp {
+        std::path::Component::Normal(name) => windows_unsafe_component_reason(name),
+        _ => None,
+    })
+}
+
+/// The per-component check behind [`windows_unsafe_name_reason`].
+fn windows_unsafe_component_reason(name: &OsStr) -> Option<String> {
+    // `:` splits a name into `file:stream`. Check the raw bytes so a non-UTF-8
+    // name cannot smuggle a colon past `to_str()`.
+    if name.as_encoded_bytes().contains(&b':') {
+        return Some(format!(
+            "'{}' contains a ':', which names an NTFS alternate data stream",
+            name.to_string_lossy()
+        ));
+    }
+
+    // The reserved-name check applies to the stem before the first '.';
+    // Windows also silently strips trailing spaces, e.g. `NUL .txt`.
+    const RESERVED_DEVICE_STEMS: [&[u8]; 22] = [
+        b"CON", b"PRN", b"AUX", b"NUL", b"COM1", b"COM2", b"COM3", b"COM4", b"COM5", b"COM6", b"COM7", b"COM8",
+        b"COM9", b"LPT1", b"LPT2", b"LPT3", b"LPT4", b"LPT5", b"LPT6", b"LPT7", b"LPT8", b"LPT9",
+    ];
+    let bytes = name.as_encoded_bytes();
+    let stem_end = bytes.iter().position(|&b| b == b'.').unwrap_or(bytes.len());
+    let stem = &bytes[..stem_end];
+    let trimmed_len = stem.iter().rposition(|&b| b != b' ').map_or(0, |i| i + 1);
+    if RESERVED_DEVICE_STEMS
+        .iter()
+        .any(|reserved| stem[..trimmed_len].eq_ignore_ascii_case(reserved))
+    {
+        return Some(format!(
+            "'{}' resolves to a reserved DOS device name",
+            name.to_string_lossy()
+        ));
+    }
+
+    None
+}
+
+/// Check an archive entry path like [`validate_entry_path`], but return a
+/// single-line reason on failure so callers can warn and skip the entry
+/// instead of aborting the whole extraction.
+pub fn check_entry_path(path: &Path) -> std::result::Result<PathBuf, String> {
+    if let Some(reason) = windows_unsafe_name_reason(path) {
+        return Err(reason);
+    }
+    normalize_safe_path(path).ok_or_else(|| "path escapes the extraction root".to_string())
+}
+
 /// Reject ZipSlip-style entry paths; returns the lexically-normalized safe form.
 pub fn validate_entry_path(path: &Path) -> Result<PathBuf> {
-    normalize_safe_path(path).ok_or_else(|| {
+    check_entry_path(path).map_err(|reason| {
         FinalError::with_title("refusing to extract archive entry with unsafe path")
             .detail(format!("entry: {}", PathFmt(path)))
+            .detail(reason)
             .into()
     })
 }
 
 /// Reject symlink targets whose relative path would escape the extraction root.
 pub fn validate_symlink_target(link_relpath: &Path, target: &Path) -> Result<()> {
+    // The device check runs before the absolute-path exemption so a target
+    // like `C:\NUL` or `D:\dir:ads` cannot bypass it.
+    if let Some(reason) = windows_unsafe_name_reason(target) {
+        return Err(FinalError::with_title("refusing to create symlink with unsafe target")
+            .detail(format!("link: {}  target: {}", PathFmt(link_relpath), PathFmt(target)))
+            .detail(reason)
+            .into());
+    }
     if target.is_absolute() {
         return Ok(());
     }
@@ -514,5 +589,65 @@ mod tests {
     #[test]
     fn try_infer_format_returns_none_on_missing_file() {
         assert_eq!(try_infer_format(Path::new("/nonexistent/path/to/nothing")), None);
+    }
+
+    #[test]
+    fn windows_reserved_device_names_are_flagged() {
+        // The stem before the first '.' is compared case-insensitively.
+        for name in [
+            "NUL", "nul", "Nul.txt", "CON", "con.rs", "PRN", "aux", "COM1", "com9.log", "LPT1", "LPT9", "nul.",
+            "NUL .dat",
+        ] {
+            assert!(
+                windows_unsafe_component_reason(OsStr::new(name)).is_some(),
+                "{name} should be unsafe on Windows"
+            );
+        }
+    }
+
+    #[test]
+    fn windows_alternate_data_stream_separator_is_flagged() {
+        for name in ["file:ads.txt", "a:b:c", "x:", ":hidden"] {
+            assert!(
+                windows_unsafe_component_reason(OsStr::new(name)).is_some(),
+                "{name} should be unsafe on Windows"
+            );
+        }
+    }
+
+    #[test]
+    fn ordinary_names_are_not_flagged() {
+        // Valid Windows names, including ones that merely resemble devices.
+        for name in [
+            "null",
+            "nul2",
+            "Nulled.txt",
+            "com",
+            "lpt",
+            "con2",
+            ".nul",
+            "xNULx",
+            "file.txt",
+            "COM10",
+        ] {
+            assert!(
+                windows_unsafe_component_reason(OsStr::new(name)).is_none(),
+                "{name} should be safe on Windows"
+            );
+        }
+    }
+
+    #[test]
+    fn windows_unsafe_name_reason_scans_every_component() {
+        // Only `Component::Normal` components are inspected; path prefixes like
+        // `C:` are handled by the path normalization checks.
+        for path in ["nul.txt", "sub/NUL", "dir/file:ads.txt"] {
+            assert_eq!(
+                windows_unsafe_name_reason(Path::new(path)).is_some(),
+                cfg!(windows),
+                "{path}"
+            );
+        }
+        assert!(windows_unsafe_name_reason(Path::new("plain/name.txt")).is_none());
     }
 }

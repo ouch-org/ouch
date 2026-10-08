@@ -17,9 +17,9 @@ use crate::{
     info,
     list::{FileInArchive, ListFileType},
     utils::{
-        BytesFmt, FileVisibilityPolicy, PathFmt, cd_into_same_dir_as, copy_limited_decompression,
+        BytesFmt, FileVisibilityPolicy, PathFmt, cd_into_same_dir_as, check_entry_path, copy_limited_decompression,
         ensure_parent_dir_exists, is_same_file_as_output, resolve_extraction_conflict, validate_dest_inside_root,
-        validate_entry_path,
+        windows_unsafe_name_reason,
     },
     warning,
 };
@@ -42,10 +42,10 @@ where
             // Manually handle writing all files from 7z archive (the library defaults ignore empty files)
 
             let name_as_path = Path::new(entry.name());
-            let safe_relpath = match validate_entry_path(name_as_path) {
+            let safe_relpath = match check_entry_path(name_as_path) {
                 Ok(p) => p,
-                Err(e) => {
-                    warning!("skipping unsafe 7z entry {}: {}", PathFmt(name_as_path), e);
+                Err(reason) => {
+                    warning!("skipping unsafe 7z entry {}: {}", PathFmt(name_as_path), reason);
                     return Ok(true);
                 }
             };
@@ -182,6 +182,13 @@ where
         for entry in file_visibility_policy.build_walker(filename) {
             let entry = entry?;
             let path = entry.path();
+
+            // On Windows, opening a path that ends in a reserved DOS device
+            // name opens the device itself instead of the file; skip it.
+            if let Some(reason) = windows_unsafe_name_reason(path) {
+                warning!("skipping {}: {}", PathFmt(path), reason);
+                continue;
+            }
 
             // Avoid compressing the output file into itself
             if let Ok(handle) = output_handle.as_ref()

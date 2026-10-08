@@ -101,6 +101,15 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
             )?;
             check::check_archive_formats_position(&formats, &output_path)?;
 
+            // Refuse before the output file is created: on Windows a name like
+            // `NUL.tar` would otherwise open the device or an NTFS stream.
+            if let Some(reason) = utils::windows_unsafe_name_reason(&output_path) {
+                return Err(FinalError::with_title("Refusing to compress to unsafe output path")
+                    .detail(format!("output: {}", utils::PathFmt(&output_path)))
+                    .detail(reason)
+                    .into());
+            }
+
             let (output_file, output_path) = match utils::create_file_or_prompt_on_conflict(
                 &output_path,
                 question_policy,
