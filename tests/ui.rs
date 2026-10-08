@@ -270,3 +270,32 @@ fn ui_test_err_decompress_tar_with_leftover_gzip_layer() {
 
     ui!(run_ouch("ouch decompress archive.tgz", dir));
 }
+
+#[test]
+fn test_decompress_tar_with_entry_name_colliding_with_compression_magic() {
+    // A valid tar archive whose first entry's filename happens to start with the same bytes
+    // as a compression format's magic number (bzip2's is "BZh") must still extract correctly:
+    // the leftover-compression check that ui_test_err_decompress_tar_with_leftover_gzip_layer
+    // exercises above must only fire once tar parsing has genuinely failed, not just because
+    // the raw start of a valid tar stream happens to collide with a magic sequence.
+    let (_dropper, dir) = testdir().unwrap();
+
+    create_files_in(dir, &["BZh-notes.txt"]);
+    std::fs::write(
+        dir.join("BZh-notes.txt"),
+        b"not actually bzip2, just a filename that starts like it",
+    )
+    .unwrap();
+
+    run_ouch("ouch compress BZh-notes.txt archive.tar", dir);
+
+    std::fs::create_dir(dir.join("output")).unwrap();
+    let output = run_ouch("ouch decompress archive.tar --dir output", dir);
+    assert!(
+        !output.to_lowercase().contains("error"),
+        "extraction should succeed, got: {output}"
+    );
+
+    let extracted = std::fs::read_to_string(dir.join("output").join("BZh-notes.txt")).unwrap();
+    assert_eq!(extracted, "not actually bzip2, just a filename that starts like it");
+}

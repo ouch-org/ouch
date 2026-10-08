@@ -45,27 +45,43 @@ fn detect_leftover_compression(peeked: &[u8]) -> Option<&'static str> {
         .map(|(_, name)| *name)
 }
 
-/// Unpacks the archive given by `archive` into the folder given by `into`.
-/// Assumes that output_folder is empty
-pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: QuestionPolicy) -> Result<u64> {
-    let mut reader = BufReader::new(reader);
-    if let Some(format) = detect_leftover_compression(reader.fill_buf()?) {
-        return Err(FinalError::with_title("Could not extract archive")
+/// Wraps a tar-parsing `io::Error` with a clearer explanation when the stream starts with the
+/// magic bytes of a known compression format. Only called once tar parsing has actually failed,
+/// so a valid tar archive is never misdiagnosed just because its first entry's filename happens
+/// to start with bytes that collide with a magic sequence (e.g. a tar whose first file is named
+/// `BZh-notes.txt` starts with the same three bytes as the bzip2 magic).
+fn with_leftover_compression_hint(err: io::Error, leftover_compression_format: Option<&'static str>) -> crate::Error {
+    match leftover_compression_format {
+        Some(format) => FinalError::with_title("Could not extract archive")
             .detail(format!(
                 "The decompressed data is still {format}-compressed instead of being a tar archive"
             ))
             .detail("This usually means the file was compressed one more time than its extension suggests")
             .hint("Rename the file to include the missing compression extension, or decompress the extra layer manually before extracting it")
-            .into());
+            .into(),
+        None => err.into(),
     }
+}
+
+/// Unpacks the archive given by `archive` into the folder given by `into`.
+/// Assumes that output_folder is empty
+pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: QuestionPolicy) -> Result<u64> {
+    let mut reader = BufReader::new(reader);
+    // Peeked, but not acted on, before parsing: only used as a hint if parsing fails below, so a
+    // valid tar is never rejected just because its first bytes happen to collide with this.
+    let leftover_compression_format = detect_leftover_compression(reader.fill_buf()?);
 
     let mut archive = tar::Archive::new(reader);
 
     let mut files_unpacked = 0;
     let mut read_only_dirs_and_modes = Vec::new();
 
-    for entry in archive.entries()? {
-        let mut entry = entry?;
+    let entries = archive
+        .entries()
+        .map_err(|err| with_leftover_compression_hint(err, leftover_compression_format))?;
+
+    for entry in entries {
+        let mut entry = entry.map_err(|err| with_leftover_compression_hint(err, leftover_compression_format))?;
 
         // Set when the user renamed a file so the log can show the real path.
         let mut written = None;
