@@ -22,6 +22,7 @@ use crate::{
         io::{ReadSeek, lock_and_flush_output_stdio},
         is_path_stdin, resolve_path_conflict, user_wants_to_continue,
     },
+    warning,
 };
 
 pub struct DecompressOptions<'a> {
@@ -38,6 +39,9 @@ pub struct DecompressOptions<'a> {
     pub here: bool,
     pub question_policy: QuestionPolicy,
     pub password: Option<&'a [u8]>,
+    /// `--encoding`: charset for archive entry names not flagged as UTF-8.
+    /// Currently only used for zip archives.
+    pub archive_encoding: Option<&'static encoding_rs::Encoding>,
     pub remove: bool,
     /// Resolved target prepared upfront (before sandbox is applied).
     pub prepared: PreparedTarget,
@@ -184,6 +188,14 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
         return Ok(());
     };
 
+    // The archive format sits at the front, so --encoding only reaches zip inputs
+    if options.archive_encoding.is_some() && !matches!(first_extension, Zip) {
+        warning!(
+            "The --encoding option only applies to zip archives and is ignored for {}",
+            PathFmt(options.input_file_path)
+        );
+    }
+
     let control_flow = match first_extension {
         Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {
             let reader = create_decoder_up_to_first_extension()?;
@@ -211,11 +223,20 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
             dir,
         )?,
         Zip | SevenZip => {
-            let unpack_fn = match first_extension {
-                Zip => crate::archive::zip::unpack_archive,
-                SevenZip => crate::archive::sevenz::unpack_archive,
-                _ => unreachable!(),
-            };
+            let unpack_fn: Box<dyn FnOnce(Box<dyn ReadSeek>, &Path, Option<&[u8]>, QuestionPolicy) -> Result<u64>> =
+                match first_extension {
+                    Zip => Box::new(|reader, output_dir, password, question_policy| {
+                        crate::archive::zip::unpack_archive(
+                            reader,
+                            output_dir,
+                            password,
+                            options.archive_encoding,
+                            question_policy,
+                        )
+                    }),
+                    SevenZip => Box::new(crate::archive::sevenz::unpack_archive),
+                    _ => unreachable!(),
+                };
 
             let should_load_everything_into_memory = input_is_stdin || !extensions.is_empty();
 

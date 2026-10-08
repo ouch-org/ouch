@@ -12,9 +12,10 @@ use crate::{
     list::{self, FileInArchive, ListOptions},
     non_archive::lz4::MultiFrameLz4Decoder,
     utils::{
-        LZMA_MEMLIMIT_BYTES, LimitedReader, copy_limited_decompression, io::lock_and_flush_output_stdio,
+        LZMA_MEMLIMIT_BYTES, LimitedReader, PathFmt, copy_limited_decompression, io::lock_and_flush_output_stdio,
         user_wants_to_continue,
     },
+    warning,
 };
 
 /// File at archive_path is opened for reading, example: "archive.tar.gz"
@@ -25,6 +26,8 @@ pub fn list_archive_contents(
     list_options: ListOptions,
     question_policy: QuestionPolicy,
     password: Option<&[u8]>,
+    // `--encoding`: charset for zip entry names not flagged as UTF-8.
+    archive_encoding: Option<&'static encoding_rs::Encoding>,
     // Pre-opened tempfile FD for multi-format RAR list under the sandbox.
     #[allow(unused_variables)] rar_spill_tempfile: Option<tempfile::NamedTempFile>,
 ) -> Result<()> {
@@ -39,7 +42,7 @@ pub fn list_archive_contents(
     // Any other Zip decompression done can take up the whole RAM and freeze ouch.
     if let &[Zip] = formats.as_slice() {
         let zip_archive = zip::ZipArchive::new(reader)?;
-        let files = crate::archive::zip::list_archive(zip_archive, password);
+        let files = crate::archive::zip::list_archive(zip_archive, password, archive_encoding);
         list::list_files(archive_path, files, list_options)?;
         return Ok(());
     }
@@ -87,6 +90,13 @@ pub fn list_archive_contents(
     }
 
     let archive_format = misplaced_archive_format.unwrap_or(formats[0]);
+    if archive_encoding.is_some() && !matches!(archive_format, Zip) {
+        warning!(
+            "The --encoding option only applies to zip archives and is ignored for {}",
+            PathFmt(archive_path)
+        );
+    }
+
     let files: Box<dyn Iterator<Item = Result<FileInArchive>>> = match archive_format {
         Tar => {
             let limited = LimitedReader::new(reader);
@@ -108,7 +118,11 @@ pub fn list_archive_contents(
             copy_limited_decompression(&mut reader, &mut vec)?;
             let zip_archive = zip::ZipArchive::new(io::Cursor::new(vec))?;
 
-            Box::new(crate::archive::zip::list_archive(zip_archive, password))
+            Box::new(crate::archive::zip::list_archive(
+                zip_archive,
+                password,
+                archive_encoding,
+            ))
         }
         #[cfg(feature = "unrar")]
         Rar => {
