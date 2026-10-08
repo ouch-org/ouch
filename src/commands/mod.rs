@@ -4,7 +4,10 @@ mod compress;
 mod decompress;
 mod list;
 
-use std::{io, path::PathBuf};
+use std::{
+    io::{self, IsTerminal},
+    path::PathBuf,
+};
 
 use bstr::ByteSlice;
 use decompress::{DecompressOptions, PreparedTarget, prepare_decompress_target};
@@ -104,6 +107,16 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
             // "-" streams the archive to stdout instead of creating an output
             // file, so there is no path to create or conflict to resolve
             let output_to_stdout = is_path_stdin(&output_path);
+            // Archive bytes on a terminal would flood the screen with garbage;
+            // only allow stdout as a target when it was redirected
+            if output_to_stdout && io::stdout().is_terminal() {
+                return Err(FinalError::with_title("Cannot compress to \"-\" (stdout)")
+                    .detail("Refusing to write binary archive data to a terminal")
+                    .hint("Redirect standard output to a file or pipe it to another command:")
+                    .hint("  ouch compress <FILES>... - --format tar.gz > archive.tar.gz")
+                    .hint("Or pass an output file name instead of \"-\"")
+                    .into());
+            }
             let (output_file, output_path) = if output_to_stdout {
                 (None, output_path)
             } else {
