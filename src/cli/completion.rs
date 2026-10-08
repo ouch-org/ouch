@@ -38,7 +38,11 @@ mod tests {
             descriptions,
             [
                 Some("Files to be compressed".to_owned()),
-                Some("The resulting file. Its extensions can be used to specify the compression formats".to_owned()),
+                Some(
+                    "The resulting file, or \"-\" to write the archive to stdout (requires --format). Its extensions \
+                            can be used to specify the compression formats"
+                        .to_owned(),
+                ),
             ]
         );
     }

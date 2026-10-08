@@ -26,7 +26,9 @@ use crate::{
 /// # Arguments:
 /// - `files`: is the list of paths to be compressed: ["dir/file1.txt", "dir/file2.txt"]
 /// - `extensions`: is a list of compression formats for compressing, example: [Tar, Gz] (in compression order)
-/// - `output_file` is the resulting compressed file name, example: "archive.tar.gz"
+/// - `output_writer` is where the compressed data is written to, usually the
+///   output file created beforehand; pass `io::stdout()` to stream the archive
+///   to standard output (when `output_path` is "-")
 ///
 /// # Return value
 /// - Returns `Ok(true)` if compressed all files normally.
@@ -34,7 +36,7 @@ use crate::{
 pub fn compress_files(
     files: Vec<PathBuf>,
     extensions: Vec<Extension>,
-    output_file: fs::File,
+    output_writer: impl Write + Send + 'static,
     output_path: &Path,
     follow_symlinks: bool,
     question_policy: QuestionPolicy,
@@ -42,7 +44,7 @@ pub fn compress_files(
     level: Option<i16>,
 ) -> Result<bool> {
     // If the input files contain a directory, then the total size will be underestimated
-    let file_writer = BufWriter::with_capacity(BUFFER_CAPACITY, output_file);
+    let file_writer = BufWriter::with_capacity(BUFFER_CAPACITY, output_writer);
 
     let mut writer: Box<dyn Send + Write> = Box::new(file_writer);
 
@@ -153,7 +155,6 @@ pub fn compress_files(
                 file_visibility_policy,
                 follow_symlinks,
             )?;
-            writer.flush()?;
         }
         Zip => {
             if !formats.is_empty() {
@@ -203,5 +204,97 @@ pub fn compress_files(
         }
     }
 
+    // Push everything left in the encoder chain and the BufWriter out to the
+    // target, so a failure on the final write (like a closed pipe when
+    // streaming to stdout) is reported instead of being lost on Drop
+    writer.flush()?;
+
     Ok(true)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::{Arc, Mutex};
+
+    use super::*;
+
+    /// Writer that stores the stream in a shared buffer and can be made to
+    /// fail on `flush`, emulating a reader that closed the pipe before the
+    /// archive stream was fully written
+    struct TestSink {
+        buffer: Arc<Mutex<Vec<u8>>>,
+        fail_on_flush: bool,
+    }
+
+    impl TestSink {
+        fn new() -> (Self, Arc<Mutex<Vec<u8>>>) {
+            let buffer = Arc::new(Mutex::new(Vec::new()));
+            let sink = Self {
+                buffer: buffer.clone(),
+                fail_on_flush: false,
+            };
+            (sink, buffer)
+        }
+
+        fn failing_on_flush() -> Self {
+            Self {
+                buffer: Arc::new(Mutex::new(Vec::new())),
+                fail_on_flush: true,
+            }
+        }
+    }
+
+    impl Write for TestSink {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            self.buffer.lock().unwrap().extend_from_slice(buf);
+            Ok(buf.len())
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            if self.fail_on_flush {
+                Err(io::Error::new(io::ErrorKind::BrokenPipe, "reader went away"))
+            } else {
+                Ok(())
+            }
+        }
+    }
+
+    // A single-file format is used because archive formats like tar change
+    // the working directory, which is unsafe in parallel unit tests
+    fn compress_to(sink: TestSink) -> Result<bool> {
+        let mut input = tempfile::NamedTempFile::new().unwrap();
+        input.write_all(b"contents").unwrap();
+
+        compress_files(
+            vec![input.path().to_path_buf()],
+            vec![Extension::from_format(Bzip)],
+            sink,
+            Path::new("output.bz2"),
+            false,
+            QuestionPolicy::AlwaysYes,
+            FileVisibilityPolicy::new(),
+            None,
+        )
+    }
+
+    /// The final flush must propagate write errors, so a reader closing the
+    /// stream early (e.g. `| head`) cannot make compression report success
+    #[test]
+    fn flush_error_is_propagated() {
+        assert!(compress_to(TestSink::failing_on_flush()).is_err());
+    }
+
+    /// A healthy sink receives the whole stream, including the bytes flushed
+    /// at the end and the trailer written when the encoder chain is dropped
+    #[test]
+    fn stream_reaches_the_sink() {
+        let (sink, buffer) = TestSink::new();
+
+        assert!(compress_to(sink).unwrap());
+
+        let buffer = buffer.lock().unwrap();
+        // A bzip2 stream starts with the magic bytes "BZh"
+        assert!(buffer.starts_with(b"BZh"));
+        assert!(buffer.len() > 20);
+    }
 }

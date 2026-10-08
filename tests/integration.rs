@@ -237,6 +237,67 @@ fn single_file_stdin(
     assert_same_directory(before, after, false);
 }
 
+/// Compress files to standard output by passing "-" as the output path.
+///
+/// "-" must stream the archive bytes to stdout instead of creating a file
+/// literally named "-", and "--format" is required because the compression
+/// format cannot be detected from stdout.
+#[test]
+fn compress_to_stdout() {
+    let (_tempdir, dir) = testdir().unwrap();
+    let before = &dir.join("before");
+    fs::create_dir(before).unwrap();
+    let before_file = &before.join("file");
+    write_random_content(
+        &mut fs::File::create(before_file).unwrap(),
+        &mut SmallRng::from_os_rng(),
+    );
+
+    // Without "--format" there is no extension to detect the format from
+    let stderr = crate::utils::cargo_bin()
+        .args(["-A", "-y", "compress"])
+        .arg(before_file)
+        .arg("-")
+        .current_dir(dir)
+        .assert()
+        .failure()
+        .get_output()
+        .stderr
+        .clone();
+    assert!(
+        String::from_utf8_lossy(&stderr).contains("--format"),
+        "error should suggest the --format flag: {}",
+        String::from_utf8_lossy(&stderr)
+    );
+
+    let output = crate::utils::cargo_bin()
+        .args(["-A", "-y", "compress"])
+        .arg(before_file)
+        .args(["-", "--format", "tar"])
+        .current_dir(dir)
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+
+    // A file literally named "-" must not be created
+    assert!(!dir.join("-").exists());
+    // A tar archive with one entry holds at least two 512-byte blocks
+    assert!(output.stdout.len() >= 1024);
+
+    // Round-trip: stream the archive back through `decompress -` (stdin)
+    let after = &dir.join("after");
+    crate::utils::cargo_bin()
+        .args(["-A", "-y", "decompress", "-", "-d"])
+        .arg(after)
+        .args(["--format", "tar"])
+        .write_stdin(output.stdout)
+        .assert()
+        .success();
+
+    assert_same_directory(before, after, false);
+}
+
 /// Compress and decompress a directory with random content generated with `create_random_files`
 #[proptest(cases = 25)]
 fn multiple_files(

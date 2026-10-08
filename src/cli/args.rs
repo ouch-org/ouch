@@ -61,7 +61,8 @@ pub enum Subcommand {
         #[arg(required = true, value_hint = ValueHint::FilePath)]
         files: Vec<PathBuf>,
 
-        /// The resulting file. Its extensions can be used to specify the compression formats
+        /// The resulting file, or "-" to write the archive to stdout (requires --format).
+        /// Its extensions can be used to specify the compression formats
         #[arg(required = true, value_hint = ValueHint::FilePath)]
         output: PathBuf,
 

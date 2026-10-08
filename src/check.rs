@@ -13,8 +13,8 @@ use crate::{
     extension::{Extension, build_archive_file_suggestion},
     info_accessible,
     utils::{
-        NoQuotePathFmt, PathFmt, append_ascii_suffix_to_os_str, pretty_format_list_of_paths, try_infer_format,
-        user_wants_to_continue,
+        NoQuotePathFmt, PathFmt, append_ascii_suffix_to_os_str, is_path_stdin, pretty_format_list_of_paths,
+        try_infer_format, user_wants_to_continue,
     },
     warning,
 };
@@ -205,6 +205,15 @@ pub fn check_missing_formats_when_decompressing(files: &[PathBuf], formats: &[Ve
 /// Check if there is a first format when compressing, and returns it.
 pub fn check_first_format_when_compressing<'a>(formats: &'a [Extension], output_path: &Path) -> Result<&'a Extension> {
     formats.first().ok_or_else(|| {
+        // "-" streams to stdout, which has no extension to detect a format from
+        if is_path_stdin(output_path) {
+            return FinalError::with_title("Cannot compress to \"-\" (stdout)")
+                .detail("The compression format cannot be detected because stdout has no file extension")
+                .hint("Specify the format with the '--format' flag:")
+                .hint("  ouch compress <FILES>... - --format tar.gz")
+                .hint("  ouch compress <FILES>... - --format zip")
+                .into();
+        }
         FinalError::with_title(format!("Cannot compress to {}", PathFmt(output_path)))
             .detail("You must supply the compression format")
             .hint("Try adding supported extensions (see --help):")
