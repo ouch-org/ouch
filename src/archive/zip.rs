@@ -347,7 +347,15 @@ fn decoded_entry_name<'a, R: Read + ?Sized>(
     }
     let raw = file.name_raw();
     if let Some(encoding) = fallback_encoding {
-        return encoding.decode(raw).0;
+        let (decoded, _, had_errors) = encoding.decode(raw);
+        if had_errors {
+            warning!(
+                "Failed to decode entry name {} with {}, some characters were replaced with U+FFFD",
+                String::from_utf8_lossy(raw),
+                encoding.name()
+            );
+        }
+        return decoded;
     }
     match std::str::from_utf8(raw) {
         Ok(name) => Cow::Borrowed(name),
@@ -358,8 +366,8 @@ fn decoded_entry_name<'a, R: Read + ?Sized>(
 /// Equivalent to the `zip` crate's [`ZipFile::enclosed_name`], but evaluated on an
 /// already-decoded entry name instead of `file.name()`.
 ///
-/// Returns `None` if the name contains a NUL byte or could escape the destination
-/// directory.
+/// Returns `None` if the name contains a NUL byte, is an absolute path, or could
+/// escape the destination directory.
 fn enclosed_name(file_name: &str) -> Option<PathBuf> {
     if file_name.contains('\0') {
         return None;
@@ -368,11 +376,7 @@ fn enclosed_name(file_name: &str) -> Option<PathBuf> {
     let mut out_path = PathBuf::new();
     for component in Utf8WindowsPath::new(file_name).components() {
         match component {
-            Utf8WindowsComponent::Prefix(_) | Utf8WindowsComponent::RootDir => {
-                if depth > 0 {
-                    return None;
-                }
-            }
+            Utf8WindowsComponent::Prefix(_) | Utf8WindowsComponent::RootDir => return None,
             Utf8WindowsComponent::ParentDir => {
                 depth = depth.checked_sub(1)?;
                 out_path.pop();
@@ -679,5 +683,28 @@ mod tests {
         assert_eq!(enclosed_name("evil\0.txt"), None);
         // Backslashes count as separators, like the `zip` crate's own check.
         assert_eq!(enclosed_name("..\\evil.txt"), None);
+        // Absolute paths are rejected, not silently made relative.
+        assert_eq!(enclosed_name("/abs/evil.txt"), None);
+        assert_eq!(enclosed_name("C:/abs/evil.txt"), None);
+        assert_eq!(enclosed_name("C:\\abs\\evil.txt"), None);
+    }
+
+    /// An entry with an absolute name is skipped instead of being extracted
+    /// under the output directory.
+    #[test]
+    fn skips_entry_with_absolute_name() {
+        let zip_bytes = build_zip(&[("/abs/evil.txt".as_bytes(), b"evil", UTF8_FLAG)]);
+        let names = unpack_and_collect_names(zip_bytes, None);
+        assert!(names.is_empty());
+    }
+
+    /// A wrong `--encoding` decodes with replacement chars; the entry is still
+    /// extracted and a warning is emitted (not observable by this harness).
+    #[test]
+    fn wrong_encoding_extracts_with_replacement_chars() {
+        let zip_bytes = build_zip(&[(&gbk_name_bytes(), b"hello", 0)]);
+        let names = unpack_and_collect_names(zip_bytes, Encoding::for_label(b"utf-8"));
+        assert_eq!(names.len(), 1);
+        assert!(names[0].contains('\u{FFFD}'));
     }
 }

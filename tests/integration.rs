@@ -2217,3 +2217,30 @@ fn merging_a_rar_asks_before_replacing_each_file() {
         .success();
     assert_eq!("Testing 123\n", fs::read_to_string(out.join("testfile.txt")).unwrap());
 }
+
+// `--encoding` only applies to zip archives; on other formats the user must be warned
+#[test]
+fn decompress_encoding_flag_warns_for_non_zip_archive() {
+    let (_tempdir, dir) = testdir().unwrap();
+
+    fs::write(dir.join("file.txt"), b"hello").unwrap();
+    crate::utils::cargo_bin()
+        .current_dir(dir)
+        .args(["compress", "file.txt", "archive.tar.gz", "--yes"])
+        .assert()
+        .success();
+
+    let output = crate::utils::cargo_bin()
+        .current_dir(dir)
+        .args(["decompress", "archive.tar.gz", "--encoding", "gbk", "--yes"])
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(
+        stderr.contains("--encoding"),
+        "expected a warning that --encoding is ignored for non-zip archives"
+    );
+}

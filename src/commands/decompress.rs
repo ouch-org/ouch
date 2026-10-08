@@ -22,6 +22,7 @@ use crate::{
         io::{ReadSeek, lock_and_flush_output_stdio},
         is_path_stdin, resolve_path_conflict, user_wants_to_continue,
     },
+    warning,
 };
 
 pub struct DecompressOptions<'a> {
@@ -186,6 +187,14 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
     let PreparedTarget::Target { dir, file_name } = options.prepared else {
         return Ok(());
     };
+
+    // The archive format sits at the front, so --encoding only reaches zip inputs
+    if options.archive_encoding.is_some() && !matches!(first_extension, Zip) {
+        warning!(
+            "The --encoding option only applies to zip archives and is ignored for {}",
+            PathFmt(options.input_file_path)
+        );
+    }
 
     let control_flow = match first_extension {
         Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {

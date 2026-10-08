@@ -12,9 +12,10 @@ use crate::{
     list::{self, FileInArchive, ListOptions},
     non_archive::lz4::MultiFrameLz4Decoder,
     utils::{
-        LZMA_MEMLIMIT_BYTES, LimitedReader, copy_limited_decompression, io::lock_and_flush_output_stdio,
+        LZMA_MEMLIMIT_BYTES, LimitedReader, PathFmt, copy_limited_decompression, io::lock_and_flush_output_stdio,
         user_wants_to_continue,
     },
+    warning,
 };
 
 /// File at archive_path is opened for reading, example: "archive.tar.gz"
@@ -89,6 +90,13 @@ pub fn list_archive_contents(
     }
 
     let archive_format = misplaced_archive_format.unwrap_or(formats[0]);
+    if archive_encoding.is_some() && !matches!(archive_format, Zip) {
+        warning!(
+            "The --encoding option only applies to zip archives and is ignored for {}",
+            PathFmt(archive_path)
+        );
+    }
+
     let files: Box<dyn Iterator<Item = Result<FileInArchive>>> = match archive_format {
         Tar => {
             let limited = LimitedReader::new(reader);
