@@ -12,8 +12,8 @@ use crate::{
     list::{self, FileInArchive, ListOptions},
     non_archive::lz4::MultiFrameLz4Decoder,
     utils::{
-        LZMA_MEMLIMIT_BYTES, LimitedReader, copy_limited_decompression, io::lock_and_flush_output_stdio,
-        user_wants_to_continue,
+        LZMA_MEMLIMIT_BYTES, LimitedReader, MultiVolumeReader, copy_limited_decompression,
+        io::lock_and_flush_output_stdio, split_7z_volumes, user_wants_to_continue,
     },
 };
 
@@ -150,7 +150,13 @@ pub fn list_archive_contents(
                 Box::new(archive::sevenz::list_archive(io::Cursor::new(vec), password)?)
             } else {
                 // If it's the only format, we can read the archive directly.
-                Box::new(archive::sevenz::list_archive(fs::File::open(archive_path)?, password)?)
+                let volumes = split_7z_volumes(archive_path)?;
+                if volumes.is_empty() {
+                    Box::new(archive::sevenz::list_archive(fs::File::open(archive_path)?, password)?)
+                } else {
+                    let reader = BufReader::with_capacity(BUFFER_CAPACITY, MultiVolumeReader::open(&volumes)?);
+                    Box::new(archive::sevenz::list_archive(reader, password)?)
+                }
             }
         }
         Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {

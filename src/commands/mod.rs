@@ -193,7 +193,15 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                 }
             } else {
                 for path in files.iter() {
-                    let (output_path, mut extensions) = extension::separate_known_extensions_from_name(path)?;
+                    // The first volume archive.7z.001 is named like archive.7z when that name is valid
+                    let split_base = extension::split_7z_base(path);
+                    let (output_path, mut extensions) = match split_base
+                        .as_deref()
+                        .map(extension::separate_known_extensions_from_name)
+                    {
+                        Some(Ok(parsed)) => parsed,
+                        _ => extension::separate_known_extensions_from_name(path)?,
+                    };
                     let mut output_path = output_path.to_owned();
 
                     match check::check_file_signature(path, &extensions, question_policy)? {
@@ -261,6 +269,9 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                 for f in &files {
                     if !is_path_stdin(f) {
                         policy.allow_read(sandbox::canonicalize_for_sandbox(f));
+                    }
+                    for volume in utils::split_7z_volumes(f)? {
+                        policy.allow_read(sandbox::canonicalize_for_sandbox(&volume));
                     }
                 }
 
@@ -373,7 +384,12 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                 }
             } else {
                 for path in files.iter() {
-                    let mut extensions = extension::extensions_from_path(path)?;
+                    // The first volume archive.7z.001 is named like archive.7z when that name is valid
+                    let split_base = extension::split_7z_base(path);
+                    let mut extensions = match split_base.as_deref().map(extension::extensions_from_path) {
+                        Some(Ok(extensions)) => extensions,
+                        _ => extension::extensions_from_path(path)?,
+                    };
 
                     match check::check_file_signature(path, &extensions, question_policy)? {
                         CheckFileSignatureControlFlow::HaltProgram => return Ok(()),
@@ -424,6 +440,9 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                 let mut policy = SandboxPolicy::new();
                 for f in &files {
                     policy.allow_read(sandbox::canonicalize_for_sandbox(f));
+                    for volume in utils::split_7z_volumes(f)? {
+                        policy.allow_read(sandbox::canonicalize_for_sandbox(&volume));
+                    }
                 }
                 if let Some(spill_dir) = &rar_spill_dir {
                     let canon = sandbox::canonicalize_for_sandbox(spill_dir.path());

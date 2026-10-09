@@ -2217,3 +2217,43 @@ fn merging_a_rar_asks_before_replacing_each_file() {
         .success();
     assert_eq!("Testing 123\n", fs::read_to_string(out.join("testfile.txt")).unwrap());
 }
+
+/// A split 7z archive is listed and decompressed from its first volume and the remove option deletes only its volumes.
+#[test]
+fn split_7z_archive() {
+    let (_tempdir, dir) = testdir().unwrap();
+    fs::create_dir(dir.join("data")).unwrap();
+    fs::write(dir.join("data").join("file.txt"), "split content").unwrap();
+    ouch!("-A", "c", dir.join("data"), dir.join("archive.7z"));
+    let archive = fs::read(dir.join("archive.7z")).unwrap();
+    fs::remove_file(dir.join("archive.7z")).unwrap();
+    for name in ["archive.7z", "backup.tar.7z"] {
+        for (index, chunk) in archive.chunks(archive.len().div_ceil(3)).enumerate() {
+            fs::write(dir.join(format!("{name}.{:03}", index + 1)), chunk).unwrap();
+        }
+    }
+    // Same name pattern but after the end of the archive
+    fs::write(dir.join("archive.7z.004"), "other").unwrap();
+
+    let list = crate::utils::cargo_bin()
+        .current_dir(dir)
+        .args(["list", "archive.7z.001"])
+        .assert()
+        .success();
+    assert!(list.get_output().stdout.find(b"data/file.txt").is_some());
+
+    crate::utils::cargo_bin()
+        .current_dir(dir)
+        .args(["decompress", "archive.7z.001", "--remove"])
+        .assert()
+        .success();
+    let file = dir.join("archive").join("data").join("file.txt");
+    assert_eq!("split content", fs::read_to_string(file).unwrap());
+    assert!((1..=3).all(|number| !dir.join(format!("archive.7z.{number:03}")).exists()));
+    assert!(dir.join("archive.7z.004").exists());
+
+    // An invalid archive name still finds the format by signature
+    ouch!("-A", "d", dir.join("backup.tar.7z.001"), "-d", dir.join("backup"));
+    let file = dir.join("backup").join("data").join("file.txt");
+    assert_eq!("split content", fs::read_to_string(file).unwrap());
+}

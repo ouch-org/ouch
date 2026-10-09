@@ -1,6 +1,9 @@
 //! Our representation of all the supported compression formats.
 
-use std::{fmt, path::Path};
+use std::{
+    fmt,
+    path::{Path, PathBuf},
+};
 
 use CompressionFormat::*;
 use bstr::ByteSlice;
@@ -263,6 +266,14 @@ pub fn separate_known_extensions_from_name(path: &Path) -> Result<(&Path, Vec<Ex
 /// Extracts extensions from a path, return only the list of extension objects
 pub fn extensions_from_path(path: &Path) -> Result<Vec<Extension>> {
     separate_known_extensions_from_name(path).map(|(_, extensions)| extensions)
+}
+
+/// Returns `archive.7z` for the first volume `archive.7z.001` of a split 7z archive.
+pub fn split_7z_base(path: &Path) -> Option<PathBuf> {
+    let name = path.file_name().and_then(<[u8] as ByteSlice>::from_os_str)?;
+    let (base, number) = name.rsplit_once_str(b".")?;
+    let (_, extension) = split_extension_at_end(base)?;
+    (number == b"001" && extension.compression_formats == [SevenZip]).then(|| path.with_extension(""))
 }
 
 /// Panics if formats has an empty list of compression formats
