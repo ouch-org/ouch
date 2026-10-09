@@ -17,7 +17,7 @@ use crate::{
     utils::{
         self, colors,
         formatting::PathFmt,
-        io::{is_stdin_dev_null, lock_and_flush_output_stdio},
+        io::{is_stdin_dev_null, is_stdin_input, lock_and_flush_output_stdio},
     },
 };
 
@@ -220,6 +220,14 @@ impl<'a, T: Default> ChoicePrompt<'a, T> {
     pub fn ask(mut self) -> Result<T> {
         let message = self.prompt;
 
+        if is_stdin_input() {
+            let error = FinalError::with_title("Cannot read input to resolve file conflict")
+                .detail(format!("Tried to ask \"{message}\""))
+                .detail("Stdin carries the archive and cannot answer the prompt.")
+                .hint("Use the yes or no option to answer without a prompt.");
+            return Err(error.into());
+        }
+
         if is_stdin_dev_null()? {
             // stdin is /dev/null so the conflict prompt cannot be answered; fail instead of silently skipping
             let error = FinalError::with_title("Cannot read input to resolve file conflict")
@@ -319,6 +327,11 @@ impl<'a> Confirmation<'a> {
 
     /// Creates user message and receives a boolean input to be used on the program
     pub fn ask(&self, substitute: Option<&'a str>) -> Result<bool> {
+        // When stdin carries the archive take the default answer instead of reading one
+        if is_stdin_input() {
+            return Ok(true);
+        }
+
         let message = match (self.placeholder, substitute) {
             (None, _) => Cow::Borrowed(self.prompt),
             (Some(_), None) => unreachable!("dev error, should be reported, we checked this won't happen"),
