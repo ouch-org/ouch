@@ -1067,6 +1067,7 @@ fn sevenz_list_should_not_failed() {
         .success();
 
     assert!(res.get_output().stdout.find(b"README.md").is_some());
+    assert!(res.get_output().stderr.find(b"The format '.7z'").is_some());
 }
 
 #[test]
@@ -2137,6 +2138,38 @@ fn decompress_conflict_with_dev_null_stdin_exits_nonzero() {
         !status.success(),
         "decompress with an unresolvable conflict on /dev/null stdin must exit non-zero"
     );
+}
+
+/// Prompts must not read answers from an archive piped through stdin.
+#[test]
+fn decompress_from_stdin_never_reads_answers_from_the_archive() {
+    let (_tempdir, dir) = testdir().unwrap();
+    fs::write(dir.join("file.txt"), "new").unwrap();
+    for format in ["7z", "tar"] {
+        ouch!("-A", "c", dir.join("file.txt"), dir.join(format!("archive.{format}")));
+    }
+
+    // The memory use question takes its default answer
+    crate::utils::cargo_bin()
+        .current_dir(dir)
+        .args(["d", "-", "--format", "7z", "-d", "out"])
+        .pipe_stdin(dir.join("archive.7z"))
+        .unwrap()
+        .assert()
+        .success();
+    assert_eq!("new", fs::read_to_string(dir.join("out").join("file.txt")).unwrap());
+
+    // A file conflict fails and keeps the existing file
+    fs::write(dir.join("file.txt"), "old").unwrap();
+    let output = crate::utils::cargo_bin()
+        .current_dir(dir)
+        .args(["d", "-", "--format", "tar", "--here"])
+        .pipe_stdin(dir.join("archive.tar"))
+        .unwrap()
+        .assert()
+        .failure();
+    assert!(output.get_output().stderr.find(b"Stdin carries the archive").is_some());
+    assert_eq!("old", fs::read_to_string(dir.join("file.txt")).unwrap());
 }
 
 // Merging into a folder must ask per file instead of replacing files silently.

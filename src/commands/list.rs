@@ -7,7 +7,7 @@ use fs_err as fs;
 
 use crate::{
     BUFFER_CAPACITY, QuestionAction, QuestionPolicy, Result, archive,
-    commands::warn_user_about_loading_zip_in_memory,
+    commands::{warn_user_about_loading_sevenz_in_memory, warn_user_about_loading_zip_in_memory},
     extension::CompressionFormat::{self, *},
     list::{self, FileInArchive, ListOptions},
     non_archive::lz4::MultiFrameLz4Decoder,
@@ -137,7 +137,7 @@ pub fn list_archive_contents(
             if formats.len() > 1 {
                 // Make thread own locks to keep output messages adjacent
                 let locks = lock_and_flush_output_stdio();
-                warn_user_about_loading_zip_in_memory();
+                warn_user_about_loading_sevenz_in_memory();
                 if !user_wants_to_continue(archive_path, question_policy, QuestionAction::Decompression)? {
                     return Ok(());
                 }

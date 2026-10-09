@@ -178,6 +178,10 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
             here,
             remove,
         } => {
+            if files.iter().any(|path| is_path_stdin(path)) {
+                utils::io::set_stdin_is_input();
+            }
+
             let mut files_output_paths: Vec<_> = vec![];
             let mut files_extensions: Vec<Vec<_>> = vec![];
 
