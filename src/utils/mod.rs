@@ -8,9 +8,10 @@ pub mod io;
 pub mod logger;
 pub mod threads;
 
-pub use self::{file_visibility::*, formatting::*, fs::*, question::*, utf8::*};
+pub use self::{file_visibility::*, formatting::*, fs::*, question::*, utf8::*, volumes::*};
 mod file_visibility;
 mod formatting;
 mod fs;
 mod question;
 mod utf8;
+mod volumes;

@@ -18,9 +18,10 @@ use crate::{
     info, info_accessible,
     non_archive::lz4::MultiFrameLz4Decoder,
     utils::{
-        BytesFmt, LZMA_MEMLIMIT_BYTES, LimitedReader, PathFmt, copy_limited_decompression, file_size,
+        BytesFmt, LZMA_MEMLIMIT_BYTES, LimitedReader, MultiVolumeReader, PathFmt, copy_limited_decompression,
+        file_size,
         io::{ReadSeek, lock_and_flush_output_stdio},
-        is_path_stdin, resolve_path_conflict, user_wants_to_continue,
+        is_path_stdin, resolve_path_conflict, split_7z_volumes, user_wants_to_continue,
     },
 };
 
@@ -134,6 +135,12 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
 
     let input_is_stdin = is_path_stdin(options.input_file_path);
     let (first_extension, extensions) = split_first_compression_format(&options.formats);
+    // A split 7z archive is read and removed with all of its volumes
+    let volumes = if first_extension == SevenZip && extensions.is_empty() {
+        split_7z_volumes(options.input_file_path)?
+    } else {
+        Vec::new()
+    };
 
     // Grab previous decoder and wrap it inside of a new one
     let chain_reader_decoder = |format: &CompressionFormat, decoder: Box<dyn Read>| -> Result<Box<dyn Read>> {
@@ -244,6 +251,11 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
                 // Bomb cap: abort if the in-memory decompressed image exceeds the limit
                 copy_limited_decompression(create_decoder_up_to_first_extension()?, &mut vec)?;
                 Box::new(io::Cursor::new(vec))
+            } else if !volumes.is_empty() {
+                Box::new(BufReader::with_capacity(
+                    BUFFER_CAPACITY,
+                    MultiVolumeReader::open(&volumes)?,
+                ))
             } else {
                 Box::new(BufReader::with_capacity(
                     BUFFER_CAPACITY,
@@ -325,8 +337,15 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
     }
 
     if !input_is_stdin && options.remove {
-        fs::remove_file(options.input_file_path)?;
-        info!("Removed input file {}", PathFmt(options.input_file_path));
+        let inputs = if volumes.is_empty() {
+            vec![options.input_file_path.to_path_buf()]
+        } else {
+            volumes
+        };
+        for path in &inputs {
+            fs::remove_file(path)?;
+            info!("Removed input file {}", PathFmt(path));
+        }
     }
 
     Ok(())
