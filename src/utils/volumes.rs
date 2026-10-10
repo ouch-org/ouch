@@ -20,7 +20,8 @@ pub fn split_7z_volumes(path: &Path) -> io::Result<Vec<PathBuf>> {
             name.push(format!(".{number:03}"));
             PathBuf::from(name)
         })
-        .take_while(|volume| volume.is_file())
+        // skip a volume that is a symlink instead of following it outside the input set
+        .take_while(|volume| fs::symlink_metadata(volume).is_ok_and(|meta| meta.is_file()))
         .collect();
     if volumes.is_empty() {
         return Ok(volumes);
