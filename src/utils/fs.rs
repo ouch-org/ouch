@@ -217,6 +217,25 @@ pub fn validate_dest_inside_root(root: &Path, dest: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Return `dest` under its canonical parent and fail if that parent is outside `root`.
+pub fn canonical_dest_inside_root(root: &Path, dest: &Path) -> Result<PathBuf> {
+    let file_name = dest.file_name().ok_or_else(|| {
+        FinalError::with_title("refusing to extract entry without a final path component")
+            .detail(format!("dest: {}", PathFmt(dest)))
+    })?;
+    let parent = dest.parent().unwrap_or(root);
+    let canon_parent = canonicalize(parent)?;
+    let canon_root = canonicalize(root)?;
+    if !canon_parent.starts_with(&canon_root) {
+        return Err(
+            FinalError::with_title("refusing to traverse on-disk symlink during extraction")
+                .detail(format!("path: {}", PathFmt(&canon_parent)))
+                .into(),
+        );
+    }
+    Ok(canon_parent.join(file_name))
+}
+
 /// LZMA/XZ dictionary memory cap (256 MiB). Bounds malformed-stream allocations
 pub const LZMA_MEMLIMIT_BYTES: u32 = 256 * 1024 * 1024;
 
@@ -294,11 +313,26 @@ impl Drop for CwdGuard {
     }
 }
 
-pub fn ensure_parent_dir_exists(file_path: &Path) -> io::Result<()> {
-    if let Some(parent) = file_path.parent()
-        && !parent.fs_err_try_exists()?
-    {
-        fs::create_dir_all(parent)?;
+/// Create each missing directory from `root` down to `dir` and fail if a component is a symlink.
+pub fn create_dir_inside_root(root: &Path, dir: &Path) -> Result<()> {
+    let rel = dir.strip_prefix(root).map_err(|_| {
+        FinalError::with_title("refusing to create a directory outside extraction root")
+            .detail(format!("dir: {}", PathFmt(dir)))
+    })?;
+    let mut probe = root.to_path_buf();
+    for comp in rel.components() {
+        probe.push(comp);
+        match fs::symlink_metadata(&probe) {
+            Ok(md) if md.is_dir() => {}
+            Ok(_) => {
+                return Err(
+                    FinalError::with_title("refusing to traverse on-disk symlink during extraction")
+                        .detail(format!("path: {}", PathFmt(&probe)))
+                        .into(),
+                );
+            }
+            Err(_) => fs::create_dir(&probe)?,
+        }
     }
     Ok(())
 }

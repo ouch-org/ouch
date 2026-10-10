@@ -18,9 +18,9 @@ use crate::{
     info,
     list::{FileInArchive, ListFileType},
     utils::{
-        self, BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, create_symlink, is_same_file_as_output,
-        read_file_type, resolve_extraction_conflict, sanitize_archive_mode, set_permission_mode,
-        validate_dest_inside_root, validate_entry_path, validate_symlink_target,
+        self, BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonical_dest_inside_root, canonicalize,
+        create_symlink, is_same_file_as_output, read_file_type, resolve_extraction_conflict, sanitize_archive_mode,
+        set_permission_mode, validate_dest_inside_root, validate_entry_path, validate_symlink_target,
     },
     warning,
 };
@@ -54,6 +54,7 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
                 let Some(dest) = resolve_extraction_conflict(&full_path, question_policy)? else {
                     continue;
                 };
+                let dest = canonical_dest_inside_root(output_folder, &dest)?;
                 create_symlink(&target, &dest)?;
                 written = Some(dest);
             }
@@ -75,6 +76,7 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
                 let Some(dest) = resolve_extraction_conflict(&full_link_path, question_policy)? else {
                     continue;
                 };
+                let dest = canonical_dest_inside_root(output_folder, &dest)?;
                 fs::hard_link(&full_target_path, &dest)?;
                 written = Some(dest);
             }
@@ -89,11 +91,14 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
                     continue;
                 };
 
-                if dest == full_path {
+                let dest = if dest == full_path {
                     entry.unpack_in(output_folder)?;
+                    dest
                 } else {
+                    let dest = canonical_dest_inside_root(output_folder, &dest)?;
                     entry.unpack(&dest)?;
-                }
+                    dest
+                };
                 written = Some(dest);
             }
             tar::EntryType::Directory => {

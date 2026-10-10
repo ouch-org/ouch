@@ -200,6 +200,17 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
             };
 
             let final_output_path = dir.join(file_name);
+            #[cfg(unix)]
+            let mut writer = {
+                use fs_err::os::unix::fs::OpenOptionsExt;
+                fs::OpenOptions::new()
+                    .write(true)
+                    .create(true)
+                    .truncate(true)
+                    .custom_flags(libc::O_NOFOLLOW)
+                    .open(&final_output_path)?
+            };
+            #[cfg(not(unix))]
             let mut writer = fs::File::create(&final_output_path)?;
             io::copy(&mut reader, &mut writer)?;
             ControlFlow::Continue(DecompressionSummary::NonArchive {
