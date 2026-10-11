@@ -22,10 +22,10 @@ use crate::{
     info, info_accessible,
     list::{FileInArchive, ListFileType},
     utils::{
-        BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, cd_into_same_dir_as,
-        copy_limited_decompression, create_symlink, ensure_parent_dir_exists, get_invalid_utf8_paths,
-        is_same_file_as_output, pretty_format_list_of_paths, read_file_type, resolve_extraction_conflict,
-        strip_cur_dir, validate_dest_inside_root, validate_symlink_target,
+        BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonical_dest_inside_root, canonicalize,
+        cd_into_same_dir_as, copy_limited_decompression, create_dir_inside_root, create_symlink,
+        get_invalid_utf8_paths, is_same_file_as_output, pretty_format_list_of_paths, read_file_type,
+        resolve_extraction_conflict, validate_dest_inside_root, validate_symlink_target,
     },
     warning,
 };
@@ -77,30 +77,26 @@ where
                     let target = symlink_target_from_bytes(&target_bytes);
 
                     validate_symlink_target(&relpath, &target)?;
+                    let file_path = canonical_dest_inside_root(output_folder, &file_path)?;
                     #[cfg(unix)]
                     std::os::unix::fs::symlink(&target, &file_path)?;
                     #[cfg(windows)]
-                    std::os::windows::fs::symlink_dir(&target, file_path)?;
+                    std::os::windows::fs::symlink_dir(&target, &file_path)?;
                 } else {
-                    fs::create_dir_all(&file_path)?;
+                    create_dir_inside_root(output_folder, &file_path)?;
                 }
             }
             _is_file @ false => {
-                ensure_parent_dir_exists(&file_path)?;
-                let file_path = strip_cur_dir(file_path.as_path());
+                create_dir_inside_root(output_folder, file_path.parent().unwrap_or(output_folder))?;
 
                 let mode = file.unix_mode();
                 let is_symlink = mode.is_some_and(|mode| mode & 0o170000 == 0o120000);
 
-                // Symlink creation fails on its own when the path is taken.
-                let mut resolved = None;
-                if !is_symlink {
-                    let Some(path) = resolve_extraction_conflict(file_path, question_policy)? else {
-                        continue;
-                    };
-                    resolved = Some(path);
-                }
-                let file_path = resolved.as_deref().unwrap_or(file_path);
+                let Some(resolved) = resolve_extraction_conflict(&file_path, question_policy)? else {
+                    continue;
+                };
+                let resolved = canonical_dest_inside_root(output_folder, &resolved)?;
+                let file_path = resolved.as_path();
 
                 if is_symlink {
                     // Symlink targets are arbitrary bytes on Unix, not guaranteed UTF-8; read as bytes.
@@ -119,13 +115,12 @@ where
                         let mode = file.unix_mode().and_then(valid_unix_permissions).unwrap_or(0o644);
                         fs::OpenOptions::new()
                             .write(true)
-                            .create(true)
-                            .truncate(true)
+                            .create_new(true)
                             .mode(mode)
                             .open(file_path)?
                     };
                     #[cfg(not(unix))]
-                    let mut output_file = fs::File::create(file_path)?;
+                    let mut output_file = fs::OpenOptions::new().write(true).create_new(true).open(file_path)?;
                     {
                         copy_limited_decompression(&mut file, &mut output_file)?;
                     }
