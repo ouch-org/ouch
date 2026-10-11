@@ -324,12 +324,15 @@ pub fn create_dir_inside_root(root: &Path, dir: &Path) -> Result<()> {
         probe.push(comp);
         match fs::symlink_metadata(&probe) {
             Ok(md) if md.is_dir() => {}
-            Ok(_) => {
-                return Err(
-                    FinalError::with_title("refusing to traverse on-disk symlink during extraction")
-                        .detail(format!("path: {}", PathFmt(&probe)))
-                        .into(),
-                );
+            Ok(md) => {
+                let title = if md.file_type().is_symlink() {
+                    "refusing to traverse on-disk symlink during extraction"
+                } else {
+                    "refusing to extract into a path that is not a directory"
+                };
+                return Err(FinalError::with_title(title)
+                    .detail(format!("path: {}", PathFmt(&probe)))
+                    .into());
             }
             Err(_) => fs::create_dir(&probe)?,
         }
@@ -566,5 +569,56 @@ mod tests {
     #[test]
     fn try_infer_format_returns_none_on_missing_file() {
         assert_eq!(try_infer_format(Path::new("/nonexistent/path/to/nothing")), None);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn create_dir_inside_root_refuses_symlinked_dir() {
+        let root = tempfile::tempdir().unwrap();
+        let outside = tempfile::tempdir().unwrap();
+        std::os::unix::fs::symlink(outside.path(), root.path().join("sub")).unwrap();
+        let err = create_dir_inside_root(root.path(), &root.path().join("sub/inner")).unwrap_err();
+        assert!(err.to_string().contains("symlink"), "{err}");
+        assert!(!outside.path().join("inner").exists());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn canonical_dest_inside_root_refuses_symlinked_parent() {
+        let root = tempfile::tempdir().unwrap();
+        let outside = tempfile::tempdir().unwrap();
+        std::os::unix::fs::symlink(outside.path(), root.path().join("sub")).unwrap();
+        assert!(canonical_dest_inside_root(root.path(), &root.path().join("sub/file")).is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn resolve_extraction_conflict_unlinks_symlink_instead_of_following_it() {
+        let root = tempfile::tempdir().unwrap();
+        let outside = tempfile::tempdir().unwrap();
+        let secret = outside.path().join("secret");
+        std::fs::write(&secret, "keep").unwrap();
+        let link = root.path().join("file");
+        std::os::unix::fs::symlink(&secret, &link).unwrap();
+
+        let dest = resolve_extraction_conflict(&link, QuestionPolicy::AlwaysYes).unwrap();
+        assert_eq!(dest.as_deref(), Some(link.as_path()));
+        assert!(std::fs::symlink_metadata(&link).is_err());
+        assert_eq!(std::fs::read_to_string(&secret).unwrap(), "keep");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn resolve_path_conflict_unlinks_symlinked_dir_and_keeps_its_target() {
+        let root = tempfile::tempdir().unwrap();
+        let outside = tempfile::tempdir().unwrap();
+        std::fs::write(outside.path().join("old"), "keep").unwrap();
+        let link = root.path().join("out");
+        std::os::unix::fs::symlink(outside.path(), &link).unwrap();
+
+        let dest = resolve_path_conflict(&link, QuestionPolicy::AlwaysYes, QuestionAction::Decompression).unwrap();
+        assert_eq!(dest.as_deref(), Some(link.as_path()));
+        assert!(std::fs::symlink_metadata(&link).is_err());
+        assert_eq!(std::fs::read_to_string(outside.path().join("old")).unwrap(), "keep");
     }
 }
