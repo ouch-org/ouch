@@ -30,7 +30,6 @@ use crate::{
 /// that the filename did not account for, e.g. an actual `.tar.gz.gz` misnamed `.tgz`).
 const LEFTOVER_COMPRESSION_MAGIC: &[(&[u8], &str)] = &[
     (&[0x1f, 0x8b], "gzip"),
-    (&[0x42, 0x5a, 0x68], "bzip2"),
     (&[0xfd, 0x37, 0x7a, 0x58, 0x5a, 0x00], "xz"),
     (&[0x28, 0xb5, 0x2f, 0xfd], "zstd"),
     (&[0x04, 0x22, 0x4d, 0x18], "lz4"),
@@ -39,6 +38,15 @@ const LEFTOVER_COMPRESSION_MAGIC: &[(&[u8], &str)] = &[
 /// If `peeked` starts with the magic bytes of a known compression format, return that
 /// format's name so the caller can explain why tar parsing is failing.
 fn detect_leftover_compression(peeked: &[u8]) -> Option<&'static str> {
+    // bzip2 starts with "BZh", a level digit and the block magic. The "BZh" alone is plain ASCII
+    // that a tar header's filename field can start with, so the longer sequence is required.
+    let is_bzip2 = peeked.starts_with(b"BZh")
+        && matches!(peeked.get(3), Some(b'1'..=b'9'))
+        && peeked.get(4..10) == Some(&[0x31, 0x41, 0x59, 0x26, 0x53, 0x59][..]);
+    if is_bzip2 {
+        return Some("bzip2");
+    }
+
     LEFTOVER_COMPRESSION_MAGIC
         .iter()
         .find(|(magic, _)| peeked.starts_with(magic))
@@ -80,8 +88,10 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
         .entries()
         .map_err(|err| with_leftover_compression_hint(err, leftover_compression_format))?;
 
-    for entry in entries {
-        let mut entry = entry.map_err(|err| with_leftover_compression_hint(err, leftover_compression_format))?;
+    for (index, entry) in entries.enumerate() {
+        // Leftover compression breaks the very first header, so a later failure is a different problem.
+        let mut entry = entry
+            .map_err(|err| with_leftover_compression_hint(err, leftover_compression_format.filter(|_| index == 0)))?;
 
         // Set when the user renamed a file so the log can show the real path.
         let mut written = None;
@@ -310,4 +320,25 @@ where
     }
 
     Ok(builder.into_inner()?)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::detect_leftover_compression;
+
+    #[test]
+    fn detects_real_bzip2_stream() {
+        assert_eq!(detect_leftover_compression(b"BZh91AY&SY\x00\x00"), Some("bzip2"));
+    }
+
+    #[test]
+    fn ignores_filenames_that_start_like_bzip2() {
+        assert_eq!(detect_leftover_compression(b"BZh-notes.txt\0\0\0\0"), None);
+        assert_eq!(detect_leftover_compression(b"BZh1-report.txt\0\0"), None);
+    }
+
+    #[test]
+    fn detects_gzip_stream() {
+        assert_eq!(detect_leftover_compression(&[0x1f, 0x8b, 0x08, 0x00]), Some("gzip"));
+    }
 }
