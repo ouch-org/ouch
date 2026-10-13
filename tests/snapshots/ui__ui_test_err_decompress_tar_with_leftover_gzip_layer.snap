@@ -1,0 +1,9 @@
+---
+source: tests/ui.rs
+expression: "run_ouch(\"ouch decompress archive.tgz\", dir)"
+---
+[ERROR] Could not extract archive
+ - The decompressed data is still gzip-compressed instead of being a tar archive
+ - This usually means the file was compressed one more time than its extension suggests
+
+hint: Rename the file to include the missing compression extension, or decompress the extra layer manually before extracting it
