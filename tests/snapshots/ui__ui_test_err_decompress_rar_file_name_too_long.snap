@@ -1,0 +1,9 @@
+---
+source: tests/ui.rs
+expression: output
+---
+[ERROR] failed to extract "<LONG_NAME>"
+ - could not create the output file
+
+hint: The file name might be longer than the file system allows (usually 255 bytes)
+hint: Also check the write permissions and the free space of the destination directory

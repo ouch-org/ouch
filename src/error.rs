@@ -247,11 +247,71 @@ impl From<zip::result::ZipError> for Error {
 }
 
 #[cfg(feature = "unrar")]
+impl Error {
+    /// Turn an error reported by unrar into a readable message, with `entry` being
+    /// the archive entry that was being processed, when known.
+    pub fn from_unrar(err: unrar::error::UnrarError, entry: Option<&std::path::Path>) -> Self {
+        use unrar::error::{Code, When};
+
+        let title = match (entry, err.when) {
+            (Some(entry), _) => format!("failed to extract {}", crate::utils::PathFmt(entry)),
+            (None, When::Open) => "failed to open rar archive".to_string(),
+            (None, When::Read) => "failed to read rar archive".to_string(),
+            (None, When::Process) => "failed to extract rar archive".to_string(),
+        };
+
+        let error = FinalError::with_title(title);
+        let error = match (err.code, err.when) {
+            (Code::ECreate, _) => error
+                .detail("could not create the output file")
+                .hint("The file name might be longer than the file system allows (usually 255 bytes)")
+                .hint("Also check the write permissions and the free space of the destination directory"),
+            (Code::EWrite, _) => error
+                .detail("could not write the extracted data")
+                .hint("Check the free space and the quota of the destination disk"),
+            (Code::EClose, _) => error.detail("could not close an output file"),
+            (Code::EOpen, When::Process) => error
+                .detail("could not open the next volume of the archive")
+                .hint("Multi-volume archives need all of their parts in the same directory"),
+            (Code::EOpen, _) => error
+                .detail("could not open the archive")
+                .hint("Check that the file exists and that you are allowed to read it"),
+            (Code::ERead, _) => error
+                .detail("could not read the archive")
+                .hint("The archive might be truncated, or the disk it is stored on might be failing"),
+            (Code::BadData, When::Open) => error
+                .detail("the archive header is damaged")
+                .hint("The archive is probably corrupted or incomplete, try getting a fresh copy"),
+            (Code::BadData, When::Read) => error
+                .detail("a file header is damaged")
+                .hint("The archive is probably corrupted or incomplete, try getting a fresh copy"),
+            (Code::BadData, When::Process) => error
+                .detail("the CRC check failed, the data is damaged")
+                .hint("The archive is probably corrupted or incomplete, try getting a fresh copy"),
+            (Code::BadArchive, _) => error
+                .detail("this is not a valid RAR archive")
+                .hint("The file might be truncated, or be in another format with a .rar extension"),
+            (Code::UnknownFormat, _) => error.detail("the archive uses an unknown format or encryption method"),
+            (Code::NoMemory, _) => error.detail("not enough memory to continue"),
+            (Code::MissingPassword, _) => error
+                .detail("the archive is encrypted and no password was provided")
+                .hint("Provide it with --password"),
+            (Code::BadPassword, _) => error
+                .detail("the provided password is wrong")
+                .hint("Check the password given with --password"),
+            (Code::EReference, _) => error.detail("a reference record points to a file that could not be found"),
+            (Code::LargeDict, _) => error.detail("the archive needs a larger dictionary than this build supports"),
+            _ => error.detail(err.to_string()),
+        };
+
+        Self::Custom { reason: error }
+    }
+}
+
+#[cfg(feature = "unrar")]
 impl From<unrar::error::UnrarError> for Error {
     fn from(err: unrar::error::UnrarError) -> Self {
-        Self::Custom {
-            reason: FinalError::with_title("Unexpected error in rar archive").detail(err.to_string()),
-        }
+        Self::from_unrar(err, None)
     }
 }
 

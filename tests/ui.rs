@@ -248,3 +248,17 @@ fn ui_test_err_decompress_output_file_exists() {
     // Answer "s" (skip) to the conflict prompt
     ui!(run_ouch_with_stdin("ouch decompress out.gz", dir, Some("s\n")));
 }
+
+#[cfg(feature = "unrar")]
+#[test]
+fn ui_test_err_decompress_rar_file_name_too_long() {
+    let (_dropper, dir) = testdir().unwrap();
+
+    // RAR5 archive with a single entry named after 300 `a`, longer than the 255 bytes most file systems allow.
+    let mut archive = std::path::PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
+    archive.push("tests/data/long-filename.rar5.rar");
+    std::fs::copy(&archive, dir.join("long-filename.rar")).unwrap();
+
+    let output = run_ouch("ouch decompress long-filename.rar", dir).replace(&"a".repeat(300), "<LONG_NAME>");
+    ui!(output);
+}

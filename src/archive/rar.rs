@@ -68,10 +68,12 @@ fn extract_all(archive_path: &Path, output_folder: &Path, password: Option<&[u8]
     let archive = archive.open_for_processing()?;
 
     let mut first_err: Option<(PathBuf, i32)> = None;
+    let mut current_entry: Option<PathBuf> = None;
     let mut unsafe_path: Option<(PathBuf, String)> = None;
 
     let cb_result = archive.extract_all_with_callback(output_folder, |event| match event {
         ExtractEvent::Start { filename, .. } => {
+            current_entry = Some(filename.clone());
             if let Err(e) = validate_entry_path(&filename) {
                 warning!("refusing unsafe rar entry {}: {}", PathFmt(&filename), e);
                 unsafe_path = Some((filename, e.to_string()));
@@ -111,12 +113,13 @@ fn extract_all(archive_path: &Path, output_folder: &Path, password: Option<&[u8]
     }
 
     if let Some((path, code)) = first_err {
-        let inner = UnrarError::from(Code::from(code), When::Process).to_string();
-        return Err(Error::Custom {
-            reason: FinalError::with_title(format!("failed to extract {}", PathFmt(&path))).detail(inner),
-        });
+        return Err(Error::from_unrar(
+            UnrarError::from(Code::from(code), When::Process),
+            Some(&path),
+        ));
     }
-    let _status = cb_result?;
+    // The error raised by unrar itself doesn't say which entry it was working on.
+    let _status = cb_result.map_err(|err| Error::from_unrar(err, current_entry.as_deref()))?;
     Ok(())
 }
 
