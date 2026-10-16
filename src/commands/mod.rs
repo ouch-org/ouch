@@ -403,7 +403,7 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
 
             // all spills share one private temp dir so the sandbox can allow their cleanup
             let rar_spill_dir = if flat_formats.iter().any(|fs| needs_spill(fs)) {
-                Some(tempfile::tempdir()?)
+                Some(tempfile::Builder::new().prefix(".ouch-tmp-").tempdir()?)
             } else {
                 None
             };
@@ -413,7 +413,7 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
                     let dir = rar_spill_dir
                         .as_ref()
                         .expect("spill dir is created when any input needs a spill");
-                    Some(tempfile::Builder::new().prefix(".ouch-rar-").tempfile_in(dir.path())?)
+                    Some(tempfile::Builder::new().prefix(".ouch-tmp-").tempfile_in(dir.path())?)
                 } else {
                     None
                 };

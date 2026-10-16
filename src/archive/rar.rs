@@ -27,7 +27,7 @@ pub fn unpack_archive(
     // Rar reference records need a full extraction pass to resolve.
     fs::create_dir_all(output_folder)?;
     let staging = tempfile::Builder::new()
-        .prefix(".ouch-rar-")
+        .prefix(".ouch-tmp-")
         .tempdir_in(output_folder)?;
     extract_all(archive_path, staging.path(), password)?;
     move_into_place(staging.path(), staging.path(), output_folder, question_policy)
