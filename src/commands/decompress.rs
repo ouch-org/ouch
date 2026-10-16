@@ -260,7 +260,7 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
         Rar => {
             let unpack_fn: Box<dyn FnOnce(&Path) -> Result<u64>> = if options.formats.len() > 1 || input_is_stdin {
                 // unrar's C API needs a path; spill the decoded stream into the wrapper dir.
-                let mut temp_file = tempfile::Builder::new().prefix(".ouch-rar-").tempfile_in(&dir)?;
+                let mut temp_file = tempfile::Builder::new().prefix(".ouch-tmp-").tempfile_in(&dir)?;
                 copy_limited_decompression(create_decoder_up_to_first_extension()?, &mut temp_file)?;
                 Box::new(move |output_dir| {
                     crate::archive::rar::unpack_archive(
@@ -385,7 +385,7 @@ fn deduplicate_basename_wrapper(wrapper: &Path) -> Result<()> {
         if name == wrapper_name {
             // Stage under a random name to avoid colliding with the still-existing inner dir.
             let tmp = tempfile::Builder::new()
-                .prefix(".ouch-")
+                .prefix(".ouch-tmp-")
                 .tempfile_in(wrapper)?
                 .into_temp_path();
             fs::remove_file(&tmp)?;
