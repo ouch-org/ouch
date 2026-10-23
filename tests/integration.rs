@@ -1787,6 +1787,35 @@ fn decompress_concatenated_lz4_frames() {
     });
 }
 
+/// Files in the legacy lz4 frame format (`lz4 -l`, used for Linux kernel images) must be
+/// detected from their signature (issue #1104)
+#[test]
+fn decompress_lz4_legacy_frame_without_extension() {
+    let (_tempdir, test_dir) = testdir().unwrap();
+    let original_content = b"legacy lz4 frame content\n".repeat(64);
+
+    // A legacy frame is its magic number followed by blocks prefixed with their compressed size
+    let block = lz4_flex::block::compress(&original_content);
+    let mut legacy_frame = 0x184C2102_u32.to_le_bytes().to_vec();
+    legacy_frame.extend_from_slice(&(block.len() as u32).to_le_bytes());
+    legacy_frame.extend_from_slice(&block);
+
+    let input = test_dir.join("kernel");
+    fs::write(&input, legacy_frame).unwrap();
+
+    let output_dir = test_dir.join("output");
+    crate::utils::cargo_bin()
+        .arg("decompress")
+        .arg(&input)
+        .arg("--dir")
+        .arg(&output_dir)
+        .arg("--yes")
+        .assert()
+        .success();
+
+    assert_eq!(fs::read(output_dir.join("kernel-output")).unwrap(), original_content);
+}
+
 /// Zip entries whose stored mode lacks Unix file-type bits must fall back to default permissions.
 #[test]
 fn missing_file_type_unix_permissions() {
