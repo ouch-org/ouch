@@ -342,7 +342,9 @@ pub fn try_infer_format(path: &Path) -> Option<CompressionFormat> {
         buf.starts_with(&[0x4C, 0x5A, 0x49, 0x50])
     }
     fn is_lz4(buf: &[u8]) -> bool {
-        buf.starts_with(&[0x04, 0x22, 0x4D, 0x18])
+        // ref https://github.com/lz4/lz4/blob/dev/doc/lz4_Frame_format.md
+        // Frame magic number 0x184D2204, legacy frame (`lz4 -l`) magic number 0x184C2102
+        buf.starts_with(&[0x04, 0x22, 0x4D, 0x18]) || buf.starts_with(&[0x02, 0x21, 0x4C, 0x18])
     }
     fn is_sz(buf: &[u8]) -> bool {
         buf.starts_with(&[0xFF, 0x06, 0x00, 0x00, 0x73, 0x4E, 0x61, 0x50, 0x70, 0x59])
@@ -501,6 +503,22 @@ mod tests {
         let path = dir.path().join("a.gz");
         std::fs::write(&path, b"\x1f\x8b\x08\x00rest").unwrap();
         assert_eq!(try_infer_format(&path), Some(CompressionFormat::Gzip));
+    }
+
+    #[test]
+    fn try_infer_format_recognizes_lz4_magic() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("a.lz4");
+        std::fs::write(&path, b"\x04\x22\x4d\x18rest").unwrap();
+        assert_eq!(try_infer_format(&path), Some(CompressionFormat::Lz4));
+    }
+
+    #[test]
+    fn try_infer_format_recognizes_lz4_legacy_magic() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("a.lz4");
+        std::fs::write(&path, b"\x02\x21\x4c\x18rest").unwrap();
+        assert_eq!(try_infer_format(&path), Some(CompressionFormat::Lz4));
     }
 
     #[test]
