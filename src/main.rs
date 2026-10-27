@@ -23,6 +23,9 @@ use self::utils::{
 const BUFFER_CAPACITY: usize = 1024 * 32;
 pub const EXIT_FAILURE: i32 = libc::EXIT_FAILURE;
 
+/// Read before any thread starts because reading it briefly sets it to 0
+static UMASK: LazyLock<u32> = LazyLock::new(utils::read_umask);
+
 /// Current directory, canonicalized for consistent path comparisons across platforms
 static INITIAL_CURRENT_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
     // Bail out cleanly rather than panicking if the CWD has been deleted or is unreadable
@@ -52,5 +55,6 @@ fn run() -> Result<()> {
 }
 
 fn force_lazy_locks_to_load() {
+    LazyLock::force(&UMASK);
     LazyLock::force(&INITIAL_CURRENT_DIR);
 }

@@ -46,7 +46,18 @@ fn move_into_place(root: &Path, dir: &Path, output_folder: &Path, question_polic
             })?;
             files_unpacked += move_into_place(root, &source, output_folder, question_policy)?;
         } else if let Some(target) = resolve_extraction_conflict(&dest, question_policy)? {
-            let size = fs::symlink_metadata(&source)?.len();
+            let metadata = fs::symlink_metadata(&source)?;
+            // unrar sets the stored mode with special bits and without the umask
+            #[cfg(unix)]
+            if metadata.is_file() {
+                use std::os::unix::fs::PermissionsExt;
+
+                use crate::utils::{sanitize_archive_mode, set_permission_mode};
+
+                let mode = sanitize_archive_mode(metadata.permissions().mode()) & !*crate::UMASK;
+                set_permission_mode(&source, mode)?;
+            }
+            let size = metadata.len();
             std::fs::rename(&source, &target).map_err(|err| Error::Custom {
                 reason: FinalError::with_title(format!("failed to extract {}", PathFmt(&target)))
                     .detail(err.to_string()),

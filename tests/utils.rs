@@ -50,6 +50,20 @@ pub fn testdir() -> io::Result<(tempfile::TempDir, &'static Path)> {
     Ok((dir, Box::leak(path)))
 }
 
+/// Expected mode for `mode` under the current umask, taken from a new directory
+#[cfg(unix)]
+pub fn umasked(mode: u32, dir: &Path) -> u32 {
+    use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
+
+    let reference = dir.join(format!("umasked-{mode:o}"));
+    std::fs::DirBuilder::new()
+        .recursive(true)
+        .mode(mode)
+        .create(&reference)
+        .unwrap();
+    std::fs::metadata(&reference).unwrap().permissions().mode() & 0o777
+}
+
 /// Creates files in the specified directory.
 ///
 /// ## Example

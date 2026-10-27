@@ -254,6 +254,20 @@ impl<R: Read> Read for LimitedReader<R> {
     }
 }
 
+/// Reads the umask by setting it to 0 and restoring the old value
+#[cfg(unix)]
+pub fn read_umask() -> u32 {
+    let umask = rustix::process::umask(rustix::fs::Mode::empty());
+    rustix::process::umask(umask);
+    umask.bits() as u32
+}
+
+/// Windows has no umask
+#[cfg(not(unix))]
+pub fn read_umask() -> u32 {
+    0
+}
+
 /// Strip setuid/setgid/sticky bits from an archive-supplied mode.
 pub fn sanitize_archive_mode(mode: u32) -> u32 {
     mode & 0o0777

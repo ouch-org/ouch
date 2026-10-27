@@ -1142,6 +1142,7 @@ dependencies = [
  "rand",
  "rayon",
  "regex",
+ "rustix",
  "same-file",
  "sevenz-rust2",
  "snap",
