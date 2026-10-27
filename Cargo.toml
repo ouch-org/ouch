@@ -50,6 +50,9 @@ zip = { version = "8.6.0", default-features = false, features = [
 ] }
 zstd = { version = "0.14.0", default-features = false, features = ["zstdmt"] }
 
+[target.'cfg(unix)'.dependencies]
+rustix = { version = "1.1.4", features = ["fs", "process"] }
+
 [target.'cfg(target_os = "linux")'.dependencies]
 landlock = "0.4.5"
 

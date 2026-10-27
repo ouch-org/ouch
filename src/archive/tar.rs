@@ -13,7 +13,7 @@ use fs_err as fs;
 use same_file::Handle;
 
 use crate::{
-    QuestionPolicy, Result,
+    QuestionPolicy, Result, UMASK,
     error::FinalError,
     info,
     list::{FileInArchive, ListFileType},
@@ -29,6 +29,8 @@ use crate::{
 /// Assumes that output_folder is empty
 pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: QuestionPolicy) -> Result<u64> {
     let mut archive = tar::Archive::new(reader);
+    // Remove the umask bits from every extracted mode
+    archive.set_mask(*UMASK);
 
     let mut files_unpacked = 0;
     let mut read_only_dirs_and_modes = Vec::new();
@@ -86,7 +88,8 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
             }
             tar::EntryType::Directory => {
                 let original_mode = entry.header().mode()?;
-                let is_writeable = (original_mode & 0o200) != 0;
+                let mode = sanitize_archive_mode(original_mode) & !*UMASK;
+                let is_writeable = (mode & 0o200) != 0;
 
                 // this is no-op when dir already exists, errs if a file with another type is found there
                 entry.unpack_in(output_folder)?;
@@ -97,10 +100,10 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
                     let original_path = entry.path()?.to_path_buf();
                     let safe_relpath = validate_entry_path(&original_path)?;
                     let unpacked = output_folder.join(&safe_relpath);
-                    set_permission_mode(&unpacked, sanitize_archive_mode(original_mode) | 0o200)?;
+                    set_permission_mode(&unpacked, mode | 0o200)?;
 
                     // Store the absolute path because the restore loop runs without changing directory.
-                    read_only_dirs_and_modes.push((unpacked, sanitize_archive_mode(original_mode)));
+                    read_only_dirs_and_modes.push((unpacked, mode));
                 }
             }
             _ => continue,
