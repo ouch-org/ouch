@@ -3,6 +3,7 @@
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
 use std::{
+    cmp::Reverse,
     collections::HashMap,
     io::{self, prelude::*},
     ops::Not,
@@ -86,7 +87,7 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
             }
             tar::EntryType::Directory => {
                 let original_mode = entry.header().mode()?;
-                let is_writeable = (original_mode & 0o200) != 0;
+                let is_writeable = (original_mode & 0o300) == 0o300;
 
                 // this is no-op when dir already exists, errs if a file with another type is found there
                 entry.unpack_in(output_folder)?;
@@ -97,7 +98,7 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
                     let original_path = entry.path()?.to_path_buf();
                     let safe_relpath = validate_entry_path(&original_path)?;
                     let unpacked = output_folder.join(&safe_relpath);
-                    set_permission_mode(&unpacked, sanitize_archive_mode(original_mode) | 0o200)?;
+                    set_permission_mode(&unpacked, sanitize_archive_mode(original_mode) | 0o300)?;
 
                     // Store the absolute path because the restore loop runs without changing directory.
                     read_only_dirs_and_modes.push((unpacked, sanitize_archive_mode(original_mode)));
@@ -119,8 +120,9 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
         files_unpacked += 1;
     }
 
-    // Restore original mode for read-only dirs we made writeable
+    // Restore original modes deepest first, a parent without search would block its children
     if cfg!(unix) {
+        read_only_dirs_and_modes.sort_by_key(|(path, _)| Reverse(path.components().count()));
         for (path, mode) in &read_only_dirs_and_modes {
             set_permission_mode(path, *mode)?;
         }
