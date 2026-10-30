@@ -243,8 +243,9 @@ pub fn run(args: CliArgs, question_policy: QuestionPolicy, file_visibility_polic
             // claimed targets make duplicate basenames conflict instead of silently merging
             let mut claimed_targets = std::collections::HashSet::new();
             let mut prepared: Vec<PreparedTarget> = Vec::with_capacity(files.len());
-            for (formats, output_file_path) in files_extensions.iter().zip(&output_file_paths) {
+            for (i, (formats, output_file_path)) in files_extensions.iter().zip(&output_file_paths).enumerate() {
                 prepared.push(prepare_decompress_target(
+                    &files[i],
                     formats,
                     &output_dir,
                     output_file_path,

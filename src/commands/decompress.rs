@@ -9,7 +9,7 @@ use std::{
 use fs_err::{self as fs, PathExt};
 
 use crate::{
-    BUFFER_CAPACITY, INITIAL_CURRENT_DIR, QuestionAction, QuestionPolicy, Result,
+    BUFFER_CAPACITY, FinalError, INITIAL_CURRENT_DIR, QuestionAction, QuestionPolicy, Result,
     commands::{warn_user_about_loading_sevenz_in_memory, warn_user_about_loading_zip_in_memory},
     extension::{
         CompressionFormat::{self, *},
@@ -53,6 +53,7 @@ pub enum PreparedTarget {
 /// Resolve conflicts and create the output directory before the sandbox starts.
 /// claimed_targets holds directories already taken by earlier inputs of this run.
 pub fn prepare_decompress_target(
+    input_path: &Path,
     formats: &[Extension],
     output_dir: &Path,
     output_file_path: &Path,
@@ -64,10 +65,25 @@ pub fn prepare_decompress_target(
     let (first_extension, _) = split_first_compression_format(formats);
     let is_archive = matches!(first_extension, Tar | Zip | Rar | SevenZip);
 
+    // Resolving a conflict on the input itself would delete or truncate it before it is read
+    let reject_input_as_target = |target: &Path| -> Result<()> {
+        if same_file::is_same_file(input_path, target).unwrap_or(false) {
+            return Err(FinalError::with_title(format!(
+                "Cannot decompress {} onto itself",
+                PathFmt(input_path)
+            ))
+            .detail("The output would overwrite the input file")
+            .hint("Choose a different `--dir`, or rename the input so its name keeps the format extension")
+            .into());
+        }
+        Ok(())
+    };
+
     // For a single file in an explicit directory, resolve the conflict on the file, not the directory
     if !is_archive && (output_dir_was_explicit || here) {
         let name = output_file_path.file_name().unwrap_or_default().to_os_string();
         let file_target = output_dir.join(&name);
+        reject_input_as_target(&file_target)?;
         let claimed = claimed_targets.contains(&file_target);
         let resolved = if !claimed && !file_target.fs_err_try_exists()? {
             file_target
@@ -97,6 +113,7 @@ pub fn prepare_decompress_target(
     } else {
         output_file_path.with_extension("")
     };
+    reject_input_as_target(&target)?;
     let is_cwd = target == *INITIAL_CURRENT_DIR;
     // merging several inputs into the CWD is intentional so the claimed check skips it
     let claimed_by_earlier_input = !is_cwd && claimed_targets.contains(&target);
