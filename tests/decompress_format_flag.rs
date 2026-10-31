@@ -40,7 +40,16 @@ fn decompress_onto_input_file_is_rejected() {
 
     let output = crate::utils::cargo_bin()
         .current_dir(dir)
-        .args(["decompress", "--yes", "--remove", "--dir", ".", "--format", "gz", "data"])
+        .args([
+            "decompress",
+            "--yes",
+            "--remove",
+            "--dir",
+            ".",
+            "--format",
+            "gz",
+            "data",
+        ])
         .assert()
         .failure()
         .code(1)

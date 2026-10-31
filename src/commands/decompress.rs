@@ -68,13 +68,12 @@ pub fn prepare_decompress_target(
     // Resolving a conflict on the input itself would delete or truncate it before it is read
     let reject_input_as_target = |target: &Path| -> Result<()> {
         if same_file::is_same_file(input_path, target).unwrap_or(false) {
-            return Err(FinalError::with_title(format!(
-                "Cannot decompress {} onto itself",
-                PathFmt(input_path)
-            ))
-            .detail("The output would overwrite the input file")
-            .hint("Choose a different `--dir`, or rename the input so its name keeps the format extension")
-            .into());
+            return Err(
+                FinalError::with_title(format!("Cannot decompress {} onto itself", PathFmt(input_path)))
+                    .detail("The output would overwrite the input file")
+                    .hint("Choose a different `--dir`, or rename the input so its name keeps the format extension")
+                    .into(),
+            );
         }
         Ok(())
     };
