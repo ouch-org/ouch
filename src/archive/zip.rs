@@ -52,7 +52,8 @@ where
         let relpath = match file.enclosed_name() {
             Some(path) => path.to_owned(),
             None => {
-                warning!("skipping entry {} with unsafe name: {}", idx, file.name());
+                let name = file.name().unwrap_or_else(|_| String::from_utf8_lossy(file.name_raw()));
+                warning!("skipping entry {} with unsafe name: {}", idx, name);
                 continue;
             }
         };
@@ -63,7 +64,7 @@ where
 
         display_zip_comment_if_exists(&file);
 
-        match file.name().ends_with('/') {
+        match file.name()?.ends_with('/') {
             _is_dir @ true => {
                 info!("Directory {} created", PathFmt(&file_path));
 
@@ -166,7 +167,10 @@ where
             Err(e) => return Err(e.into()),
         };
 
-        let path = file.enclosed_name().unwrap_or_else(|| file.mangled_name()).to_owned();
+        let path = match file.enclosed_name() {
+            Some(path) => path,
+            None => file.mangled_name()?,
+        };
         let size = Some(file.size());
 
         let file_type = if file.is_dir() {
@@ -332,7 +336,8 @@ fn display_zip_comment_if_exists<R: Read>(file: &ZipFile<'_, R>) {
         // the future, maybe asking the user if he wants to display the comment
         // (informing him of its size) would be sensible for both normal and
         // accessibility mode..
-        info_accessible!("Found comment in {}: {}", file.name(), comment);
+        let name = file.name().unwrap_or_else(|_| String::from_utf8_lossy(file.name_raw()));
+        info_accessible!("Found comment in {}: {}", name, comment);
     }
 }
 
