@@ -1,0 +1,32 @@
+name: Security audit
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+  pull_request:
+    paths:
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  cargo-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+
+      - name: "Cargo: audit"
+        run: cargo audit --deny warnings --deny yanked
