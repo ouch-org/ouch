@@ -9,6 +9,7 @@ pub use logger_thread::spawn_logger_thread;
 use super::{
     colors::{GREEN, ORANGE, RESET},
     formatting::{contains_unsafe_display_char, sanitize_for_display},
+    progress::{self, ProgressCommand, ProgressState},
 };
 use crate::accessible::is_running_in_accessible_mode;
 
@@ -61,6 +62,14 @@ pub fn flush_messages() {
     logger_thread::send_flush_command_and_wait();
 }
 
+/// Sends a progress command to the logging thread, which owns the progress line.
+///
+/// The terminal is only ever written by the logging thread, so the indicator
+/// cannot interleave with log lines.
+pub(crate) fn send_progress_command(command: ProgressCommand) {
+    logger_thread::send_progress_command(command);
+}
+
 /// An `[INFO]` log to be displayed if we're not running accessibility mode.
 ///
 /// Same as `.info_accessible()`, but only displayed if accessibility mode
@@ -106,6 +115,7 @@ pub fn warning(contents: String) {
 #[derive(Debug)]
 enum LoggerCommand {
     Print(PrintMessage),
+    Progress(ProgressCommand),
     Flush { finished_barrier: Arc<Barrier> },
     FlushAndShutdown { finished_barrier: Arc<Barrier> },
 }
@@ -177,7 +187,7 @@ mod logger_thread {
     use std::{
         io::{Write, stderr},
         sync::{Arc, Barrier, mpsc::RecvTimeoutError},
-        time::Duration,
+        time::{Duration, Instant},
     };
 
     use super::*;
@@ -213,6 +223,15 @@ mod logger_thread {
             .expect("Failed to send print command");
     }
 
+    /// Progress commands are fire-and-forget: a task may outlive the logging
+    /// thread during shutdown, so failures are ignored instead of panicking.
+    pub(super) fn send_progress_command(command: ProgressCommand) {
+        if cfg!(test) {
+            spawn_logger_thread();
+        }
+        let _ = get_sender().send(LoggerCommand::Progress(command));
+    }
+
     #[track_caller]
     pub(super) fn send_flush_command_and_wait() {
         let barrier = Arc::new(Barrier::new(2));
@@ -246,15 +265,25 @@ mod logger_thread {
     }
 
     fn run_logger(log_receiver: LogReceiver) {
-        const FLUSH_TIMEOUT: Duration = Duration::from_millis(200);
+        // Wake up often enough to animate the progress line, and to flush
+        // messages that were not followed by a flush command.
+        const TICK: Duration = Duration::from_millis(100);
+        // Redrawing more often than this only burns terminal bandwidth.
+        const REDRAW_INTERVAL: Duration = Duration::from_millis(100);
 
         let mut buffer = Vec::new();
+        let mut progress = ProgressState::default();
+        // Width of the progress line currently on screen, for erasing it.
+        let mut drawn_width = 0;
+        // `None` means nothing was drawn yet, so the first line is drawn at once.
+        let mut last_redraw: Option<Instant> = None;
 
         loop {
-            let msg = match log_receiver.recv_timeout(FLUSH_TIMEOUT) {
+            let msg = match log_receiver.recv_timeout(TICK) {
                 Ok(msg) => msg,
                 Err(RecvTimeoutError::Timeout) => {
                     flush_logs_to_stderr(&mut buffer);
+                    redraw_progress_line(&progress, &mut drawn_width, &mut last_redraw, REDRAW_INTERVAL);
                     continue;
                 }
                 Err(RecvTimeoutError::Disconnected) => unreachable!("sender is static"),
@@ -262,22 +291,89 @@ mod logger_thread {
 
             match msg {
                 LoggerCommand::Print(msg) => {
-                    // Append message to buffer
+                    // While the indicator runs, per-item info lines would scroll it
+                    // off screen; `--verbose` brings them back.
+                    let hidden_by_progress =
+                        progress.is_active() && !progress::is_verbose() && msg.level == MessageLevel::Info;
+                    if hidden_by_progress {
+                        continue;
+                    }
+
+                    // Append message to buffer, erasing the line it would land on.
                     if msg.should_display() {
+                        clear_progress_line(&mut drawn_width);
                         write_message_to_buffer(&mut buffer, &msg);
                     }
                 }
+                LoggerCommand::Progress(command) => {
+                    progress.apply(command);
+                    if progress.is_active() {
+                        // Messages must land above the line, so flush before drawing it.
+                        if last_redraw.is_none_or(|last| last.elapsed() >= REDRAW_INTERVAL) {
+                            flush_logs_to_stderr(&mut buffer);
+                            redraw_progress_line(&progress, &mut drawn_width, &mut last_redraw, REDRAW_INTERVAL);
+                        }
+                    } else {
+                        clear_progress_line(&mut drawn_width);
+                    }
+                }
                 LoggerCommand::Flush { finished_barrier } => {
+                    clear_progress_line(&mut drawn_width);
                     flush_logs_to_stderr(&mut buffer);
                     finished_barrier.wait();
                 }
                 LoggerCommand::FlushAndShutdown { finished_barrier } => {
+                    clear_progress_line(&mut drawn_width);
                     flush_logs_to_stderr(&mut buffer);
                     finished_barrier.wait();
                     return;
                 }
             }
         }
+    }
+
+    /// Draw the progress line, or erase it when no task is running anymore.
+    fn redraw_progress_line(
+        progress: &ProgressState,
+        drawn_width: &mut usize,
+        last_redraw: &mut Option<Instant>,
+        redraw_interval: Duration,
+    ) {
+        if !progress.is_active() {
+            clear_progress_line(drawn_width);
+            return;
+        }
+
+        if !progress.has_work() {
+            return;
+        }
+
+        if last_redraw.is_some_and(|last| last.elapsed() < redraw_interval) {
+            return;
+        }
+        *last_redraw = Some(Instant::now());
+
+        let line = progress.render(progress::terminal_width());
+        let line_width = line.chars().count();
+        let padding = drawn_width.saturating_sub(line_width);
+
+        let mut stderr = stderr();
+        // Ignore stderr write failures (broken pipe, closed terminal) instead of panicking.
+        let _ = write!(stderr, "\r{line}{:padding$}", "", padding = padding);
+        *drawn_width = line_width;
+    }
+
+    /// Erase the progress line so a log message starts on a clean row.
+    fn clear_progress_line(drawn_width: &mut usize) {
+        if *drawn_width == 0 {
+            return;
+        }
+
+        let mut stderr = stderr();
+        // Erase with spaces instead of an ANSI escape, so this also works on consoles
+        // without escape sequence support.
+        let _ = write!(stderr, "\r{:width$}\r", "", width = *drawn_width);
+        *drawn_width = 0;
     }
 
     fn write_message_to_buffer(buffer: &mut Vec<u8>, msg: &PrintMessage) {

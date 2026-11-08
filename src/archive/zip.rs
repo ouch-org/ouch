@@ -22,10 +22,10 @@ use crate::{
     info, info_accessible,
     list::{FileInArchive, ListFileType},
     utils::{
-        BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, cd_into_same_dir_as,
+        BytesFmt, FileType, FileVisibilityPolicy, NoQuotePathFmt, PathFmt, canonicalize, cd_into_same_dir_as,
         copy_limited_decompression, create_symlink, ensure_parent_dir_exists, get_invalid_utf8_paths,
-        is_same_file_as_output, pretty_format_list_of_paths, read_file_type, resolve_extraction_conflict,
-        strip_cur_dir, validate_dest_inside_root, validate_symlink_target,
+        is_same_file_as_output, pretty_format_list_of_paths, progress::Progress, read_file_type,
+        resolve_extraction_conflict, strip_cur_dir, validate_dest_inside_root, validate_symlink_target,
     },
     warning,
 };
@@ -37,12 +37,16 @@ pub fn unpack_archive<R>(
     output_folder: &Path,
     password: Option<&[u8]>,
     question_policy: QuestionPolicy,
+    progress: &Progress,
 ) -> Result<u64>
 where
     R: Read + Seek,
 {
     let mut files_unpacked = 0;
     let mut archive = ZipArchive::new(reader)?;
+
+    // The central directory lists every entry, so this format can show a real bar.
+    progress.set_total(archive.len() as u64);
 
     for idx in 0..archive.len() {
         let mut file = match password {
@@ -136,9 +140,11 @@ where
 
                 // same reason is in _is_dir: long, often not needed text
                 info!("extracted ({}) {}", BytesFmt(file.size()), PathFmt(file_path));
+                progress.set_message(NoQuotePathFmt(file_path).to_string());
             }
         }
 
+        progress.advance(1);
         files_unpacked += 1;
     }
 
@@ -197,6 +203,7 @@ pub fn build_archive<W>(
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
     follow_symlinks: bool,
+    progress: &Progress,
 ) -> Result<W>
 where
     W: Write + Seek,
@@ -245,6 +252,7 @@ where
             }
 
             info!("Compressing {}", PathFmt(&path));
+            progress.set_message(NoQuotePathFmt(&path).to_string());
 
             let (metadata, file_type) = {
                 if follow_symlinks {
@@ -299,6 +307,8 @@ where
                     writer.add_symlink(entry_name, target_name, symlink_options)?;
                 }
             }
+
+            progress.advance(1);
         }
     }
 

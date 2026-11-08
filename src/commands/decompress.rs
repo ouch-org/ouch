@@ -20,7 +20,9 @@ use crate::{
     utils::{
         BytesFmt, LZMA_MEMLIMIT_BYTES, LimitedReader, PathFmt, copy_limited_decompression, file_size,
         io::{ReadSeek, lock_and_flush_output_stdio},
-        is_path_stdin, resolve_path_conflict, user_wants_to_continue,
+        is_path_stdin,
+        progress::{Progress, ProgressWriter, Unit},
+        resolve_path_conflict, user_wants_to_continue,
     },
 };
 
@@ -197,19 +199,23 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
             };
 
             let final_output_path = dir.join(file_name);
-            let mut writer = fs::File::create(&final_output_path)?;
+            let progress = Progress::start("Decompressing", Unit::Bytes);
+            let mut writer = ProgressWriter::new(fs::File::create(&final_output_path)?, &progress);
             io::copy(&mut reader, &mut writer)?;
             ControlFlow::Continue(DecompressionSummary::NonArchive {
                 output_path: final_output_path,
             })
         }
-        Tar => unpack_archive(
-            |output_dir| {
-                let reader = LimitedReader::new(create_decoder_up_to_first_extension()?);
-                crate::archive::tar::unpack_archive(reader, output_dir, options.question_policy)
-            },
-            dir,
-        )?,
+        Tar => {
+            let progress = Progress::start("Decompressing", Unit::Items);
+            unpack_archive(
+                |output_dir| {
+                    let reader = LimitedReader::new(create_decoder_up_to_first_extension()?);
+                    crate::archive::tar::unpack_archive(reader, output_dir, options.question_policy, &progress)
+                },
+                dir,
+            )?
+        }
         Zip | SevenZip => {
             let unpack_fn = match first_extension {
                 Zip => crate::archive::zip::unpack_archive,
@@ -251,8 +257,9 @@ pub fn decompress_file(options: DecompressOptions) -> Result<()> {
                 ))
             };
 
+            let progress = Progress::start("Decompressing", Unit::Items);
             unpack_archive(
-                |output_dir| unpack_fn(reader, output_dir, options.password, options.question_policy),
+                |output_dir| unpack_fn(reader, output_dir, options.password, options.question_policy, &progress),
                 dir,
             )?
         }

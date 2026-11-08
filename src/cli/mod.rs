@@ -13,7 +13,8 @@ use crate::{
     QuestionPolicy, Result,
     accessible::set_accessible,
     utils::{
-        FileVisibilityPolicy, canonicalize, is_path_stdin, logger::set_log_display_level, threads::set_thread_count,
+        FileVisibilityPolicy, canonicalize, is_path_stdin, logger::set_log_display_level, progress,
+        threads::set_thread_count,
     },
 };
 
@@ -28,6 +29,7 @@ impl CliArgs {
 
         set_accessible(args.accessible);
         set_log_display_level(args.quiet);
+        progress::configure(args.quiet, args.verbose);
 
         match args.threads {
             Some(0) | None => {}

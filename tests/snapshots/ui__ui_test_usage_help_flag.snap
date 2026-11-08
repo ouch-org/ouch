@@ -31,6 +31,9 @@ Options:
   -q, --quiet
           Silence output
 
+  -v, --verbose
+          Show every processed item; this disables the progress line
+
   -f, --format <FORMAT>
           Specify the format of the archive
 
