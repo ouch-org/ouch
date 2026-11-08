@@ -6,6 +6,7 @@
 pub mod colors;
 pub mod io;
 pub mod logger;
+pub mod progress;
 pub mod threads;
 
 pub use self::{file_visibility::*, formatting::*, fs::*, question::*, utf8::*};

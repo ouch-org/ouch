@@ -17,9 +17,9 @@ use crate::{
     info,
     list::{FileInArchive, ListFileType},
     utils::{
-        BytesFmt, FileVisibilityPolicy, PathFmt, cd_into_same_dir_as, copy_limited_decompression,
-        ensure_parent_dir_exists, is_same_file_as_output, resolve_extraction_conflict, validate_dest_inside_root,
-        validate_entry_path,
+        BytesFmt, FileVisibilityPolicy, NoQuotePathFmt, PathFmt, cd_into_same_dir_as, copy_limited_decompression,
+        ensure_parent_dir_exists, is_same_file_as_output, progress::Progress, resolve_extraction_conflict,
+        validate_dest_inside_root, validate_entry_path,
     },
     warning,
 };
@@ -29,6 +29,7 @@ pub fn unpack_archive<R>(
     output_path: &Path,
     password: Option<&[u8]>,
     question_policy: QuestionPolicy,
+    progress: &Progress,
 ) -> Result<u64>
 where
     R: Read + Seek,
@@ -92,6 +93,8 @@ where
             }
 
             files_unpacked += 1;
+            progress.set_message(NoQuotePathFmt(&file_path).to_string());
+            progress.advance(1);
             Ok(true) // Always proceed
         };
 
@@ -164,6 +167,7 @@ pub fn build_archive<W>(
     output_path: &Path,
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
+    progress: &Progress,
 ) -> Result<W>
 where
     W: Write + Seek,
@@ -192,6 +196,7 @@ where
             }
 
             info!("Compressing {}", PathFmt(path));
+            progress.set_message(NoQuotePathFmt(path).to_string());
 
             // use metadata instead of symlink_metadata, 7z doesn't support symlinks
             let metadata = path.metadata()?;
@@ -209,6 +214,7 @@ where
             };
 
             writer.push_archive_entry::<fs::File>(entry, entry_data)?;
+            progress.advance(1);
         }
     }
 

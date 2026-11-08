@@ -17,6 +17,7 @@ Options:
   -n, --no                   Skip [Y/n] questions, default to no
   -A, --accessible           Activate accessibility mode, reducing visual noise [env: ACCESSIBLE=]
   -q, --quiet                Silence output
+  -v, --verbose              Show every processed item; this disables the progress line
   -f, --format <FORMAT>      Specify the format of the archive
   -p, --password <PASSWORD>  Decompress or list with password [env: OUCH_PASSWORD=]
   -c, --threads <THREADS>    Concurrent working threads

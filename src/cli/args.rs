@@ -30,6 +30,10 @@ pub struct CliArgs {
     #[arg(short, long, global = true)]
     pub quiet: bool,
 
+    /// Show every processed item; this disables the progress line
+    #[arg(short, long, global = true)]
+    pub verbose: bool,
+
     /// Specify the format of the archive
     #[arg(short, long, global = true)]
     pub format: Option<String>,
@@ -161,6 +165,7 @@ mod tests {
             no: false,
             accessible: false,
             quiet: false,
+            verbose: false,
             format: None,
             // This is usually replaced in assertion tests
             password: None,

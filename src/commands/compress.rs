@@ -16,6 +16,7 @@ use crate::{
     utils::{
         BytesFmt, FileVisibilityPolicy, file_size,
         io::lock_and_flush_output_stdio,
+        progress::{Progress, ProgressReader, Unit},
         threads::{logical_thread_count, physical_thread_count},
         user_wants_to_continue,
     },
@@ -141,17 +142,22 @@ pub fn compress_files(
     match first_format {
         Gzip | Bzip | Bzip3 | Lz4 | Lzma | Xz | Lzip | Snappy | Zstd | Brotli => {
             writer = chain_writer_encoder(&first_format, writer)?;
-            let mut reader = fs::File::open(&files[0])?;
+            // The input is a single file, so the amount of work is its size.
+            let input_size = file_size(&files[0])?;
+            let progress = Progress::start_with_total("Compressing", Unit::Bytes, input_size);
+            let mut reader = ProgressReader::new(fs::File::open(&files[0])?, &progress);
             io::copy(&mut reader, &mut writer)?;
-            info_accessible!("Input file size: {}", BytesFmt(file_size(&files[0])?));
+            info_accessible!("Input file size: {}", BytesFmt(input_size));
         }
         Tar => {
+            let progress = Progress::start("Compressing", Unit::Items);
             archive::tar::build_archive(
                 &files,
                 output_path,
                 &mut writer,
                 file_visibility_policy,
                 follow_symlinks,
+                &progress,
             )?;
             writer.flush()?;
         }
@@ -168,13 +174,16 @@ pub fn compress_files(
 
             let mut vec_buffer = Cursor::new(vec![]);
 
+            let progress = Progress::start("Compressing", Unit::Items);
             archive::zip::build_archive(
                 &files,
                 output_path,
                 &mut vec_buffer,
                 file_visibility_policy,
                 follow_symlinks,
+                &progress,
             )?;
+            drop(progress);
             vec_buffer.rewind()?;
             io::copy(&mut vec_buffer, &mut writer)?;
         }
@@ -197,7 +206,9 @@ pub fn compress_files(
             }
 
             let mut vec_buffer = Cursor::new(vec![]);
-            archive::sevenz::build_archive(&files, output_path, &mut vec_buffer, file_visibility_policy)?;
+            let progress = Progress::start("Compressing", Unit::Items);
+            archive::sevenz::build_archive(&files, output_path, &mut vec_buffer, file_visibility_policy, &progress)?;
+            drop(progress);
             vec_buffer.rewind()?;
             io::copy(&mut vec_buffer, &mut writer)?;
         }

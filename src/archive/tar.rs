@@ -18,16 +18,21 @@ use crate::{
     info,
     list::{FileInArchive, ListFileType},
     utils::{
-        self, BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, create_symlink, is_same_file_as_output,
-        read_file_type, resolve_extraction_conflict, sanitize_archive_mode, set_permission_mode,
-        validate_dest_inside_root, validate_entry_path, validate_symlink_target,
+        self, BytesFmt, FileType, FileVisibilityPolicy, NoQuotePathFmt, PathFmt, canonicalize, create_symlink,
+        is_same_file_as_output, progress::Progress, read_file_type, resolve_extraction_conflict, sanitize_archive_mode,
+        set_permission_mode, validate_dest_inside_root, validate_entry_path, validate_symlink_target,
     },
     warning,
 };
 
 /// Unpacks the archive given by `archive` into the folder given by `into`.
 /// Assumes that output_folder is empty
-pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: QuestionPolicy) -> Result<u64> {
+pub fn unpack_archive(
+    reader: impl Read,
+    output_folder: &Path,
+    question_policy: QuestionPolicy,
+    progress: &Progress,
+) -> Result<u64> {
     let mut archive = tar::Archive::new(reader);
 
     let mut files_unpacked = 0;
@@ -116,6 +121,8 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
         } else {
             info!("extracted ({}) {}", BytesFmt(entry.size()), PathFmt(&unpacked_path));
         }
+        progress.set_message(NoQuotePathFmt(&unpacked_path).to_string());
+        progress.advance(1);
         files_unpacked += 1;
     }
 
@@ -164,6 +171,7 @@ pub fn build_archive<W>(
     writer: W,
     file_visibility_policy: FileVisibilityPolicy,
     follow_symlinks: bool,
+    progress: &Progress,
 ) -> Result<W>
 where
     W: Write,
@@ -194,6 +202,7 @@ where
             }
 
             info!("Compressing {}", PathFmt(&path));
+            progress.set_message(NoQuotePathFmt(&path).to_string());
 
             let (metadata, file_type) = {
                 if follow_symlinks {
@@ -223,6 +232,7 @@ where
                             FinalError::with_title("Could not create archive")
                                 .detail(format!("Error appending hard link {}: {err}", PathFmt(&path)))
                         })?;
+                        progress.advance(1);
                         continue; // skip handling this file
                     }
                     None => {
