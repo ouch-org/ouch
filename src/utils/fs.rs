@@ -348,12 +348,14 @@ pub fn try_infer_format(path: &Path) -> Option<CompressionFormat> {
         buf.starts_with(&[0xFF, 0x06, 0x00, 0x00, 0x73, 0x4E, 0x61, 0x50, 0x70, 0x59])
     }
     fn is_zst(buf: &[u8]) -> bool {
-        // Standard frame magic 0x28B52FFD, or a skippable frame magic
-        // 0x184D2A50..=0x184D2A5F (RFC 8878 section 3.1.1.3). Skippable frames
-        // may appear anywhere in a stream, including first, and the decoder
-        // skips them, so a stream starting with one is still zstd.
-        buf.starts_with(&[0x28, 0xB5, 0x2F, 0xFD])
-            || (buf.len() >= 4 && (0x50..=0x5F).contains(&buf[0]) && buf[1..=3] == [0x2A, 0x4D, 0x18])
+        // Zstd frame magic, or a skippable frame magic 0x184D2A50..=0x184D2A5F
+        // (RFC 8878 section 3.1.2) such as the one pzstd writes first.
+        // Skippable frames may appear anywhere in a stream, including first,
+        // and the decoder skips them, so a stream starting with one is
+        // usually zstd. Note this is not a guarantee: LZ4 uses the same
+        // skippable frames, so an LZ4 stream starting with one is detected
+        // as zstd here as well.
+        buf.starts_with(&[0x28, 0xB5, 0x2F, 0xFD]) || matches!(buf, [0x50..=0x5F, 0x2A, 0x4D, 0x18, ..])
     }
     fn is_rar(buf: &[u8]) -> bool {
         // ref https://www.rarlab.com/technote.htm#rarsign
