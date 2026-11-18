@@ -30,8 +30,25 @@ jobs:
 
       - name: "Cargo: clippy"
         run: |
+          sudo apt-get update && sudo apt-get install -y libseccomp-dev
           rustup toolchain install stable --profile minimal -c clippy
-          cargo +stable clippy -- -D warnings
+          cargo +stable clippy --features seccomp -- -D warnings
+
+  seccomp-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: "Cargo: test with seccomp"
+        run: |
+          sudo apt-get update && sudo apt-get install -y libseccomp-dev
+          rustup toolchain install stable --profile minimal
+          cargo +stable test --locked --profile fast --features seccomp
 
   build-and-test:
     uses: ./.github/workflows/build-artifacts-and-run-tests.yml
