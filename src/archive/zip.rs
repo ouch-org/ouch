@@ -399,7 +399,7 @@ fn unix_set_permissions<R: Read>(file_path: &Path, file: &ZipFile<'_, R>) -> Res
 
     // Apply the entry's permissions only when it carries a valid Unix mode.
     if let Some(mode) = file.unix_mode().and_then(valid_unix_permissions) {
-        fs::set_permissions(file_path, Permissions::from_mode(mode))?;
+        fs::set_permissions(file_path, Permissions::from_mode(mode & !*crate::UMASK))?;
     }
 
     Ok(())

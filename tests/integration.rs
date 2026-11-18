@@ -1848,10 +1848,10 @@ fn zip_special_permission_bits_are_stripped() {
         zip.finish().unwrap();
     }
 
-    // Set external_attributes to S_IFREG | setuid | setgid | sticky | 0o755.
+    // Set external_attributes to S_IFREG | setuid | setgid | sticky | 0o777.
     let mut bytes = std::fs::read(&suid_zip).unwrap();
     let cd = bytes.windows(4).position(|w| w == [0x50, 0x4b, 0x01, 0x02]).unwrap();
-    bytes[cd + 38..cd + 42].copy_from_slice(&((0o100000u32 | 0o7755) << 16).to_le_bytes());
+    bytes[cd + 38..cd + 42].copy_from_slice(&((0o100000u32 | 0o7777) << 16).to_le_bytes());
     std::fs::write(&suid_zip, &bytes).unwrap();
 
     let out_dir = test_dir.join("out");
@@ -1870,11 +1870,80 @@ fn zip_special_permission_bits_are_stripped() {
             .unwrap()
             .permissions()
             .mode();
-        // Permission bits are preserved.
-        assert_eq!(mode & 0o777, 0o755, "permission bits must be preserved");
+        // Permission bits are preserved minus the umask.
+        let expected = crate::utils::umasked(0o777, test_dir);
+        assert_eq!(
+            mode & 0o777,
+            expected,
+            "permission bits must be preserved minus the umask"
+        );
         // Setuid, setgid, and sticky bits are removed.
         assert_eq!(mode & 0o7000, 0, "special bits must be stripped");
     }
+}
+
+/// Tar modes lose special bits and get the umask applied
+#[cfg(unix)]
+#[test]
+fn tar_modes_are_applied_minus_the_umask() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let (_tempdir, test_dir) = testdir().unwrap();
+    let archive = test_dir.join("modes.tar");
+    let mut builder = tar::Builder::new(fs::File::create(&archive).unwrap());
+    let mut append = |path: &str, entry_type: tar::EntryType, mode: u32| {
+        let mut header = tar::Header::new_gnu();
+        header.set_entry_type(entry_type);
+        header.set_mode(mode);
+        header.set_size(0);
+        header.set_cksum();
+        builder.append_data(&mut header, path, std::io::empty()).unwrap();
+    };
+    append("dir", tar::EntryType::Directory, 0o777);
+    append("file", tar::EntryType::Regular, 0o7777);
+    // A directory the owner cannot write must still be filled
+    append("ro", tar::EntryType::Directory, 0o577);
+    append("ro/file", tar::EntryType::Regular, 0o644);
+    builder.into_inner().unwrap();
+
+    let out_dir = test_dir.join("out");
+    crate::utils::cargo_bin()
+        .arg("d")
+        .arg(&archive)
+        .arg("-d")
+        .arg(&out_dir)
+        .assert()
+        .success();
+
+    let mode = |path: &str| fs::metadata(out_dir.join(path)).unwrap().permissions().mode() & 0o7777;
+    assert_eq!(mode("dir"), crate::utils::umasked(0o777, test_dir));
+    assert_eq!(mode("file"), crate::utils::umasked(0o777, test_dir));
+    assert_eq!(mode("ro"), crate::utils::umasked(0o577, test_dir));
+    assert_eq!(mode("ro/file"), crate::utils::umasked(0o644, test_dir));
+}
+
+/// Rar modes lose special bits and get the umask applied
+#[cfg(all(unix, feature = "unrar"))]
+#[test]
+fn rar_modes_are_applied_minus_the_umask() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let (_tempdir, test_dir) = testdir().unwrap();
+    let mut archive = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
+    // Contains `setuid` with mode 4777
+    archive.push("tests/data/setuid.rar");
+
+    let out_dir = test_dir.join("out");
+    crate::utils::cargo_bin()
+        .arg("d")
+        .arg(&archive)
+        .arg("-d")
+        .arg(&out_dir)
+        .assert()
+        .success();
+
+    let mode = fs::metadata(out_dir.join("setuid")).unwrap().permissions().mode() & 0o7777;
+    assert_eq!(mode, crate::utils::umasked(0o777, test_dir));
 }
 
 /// Zip entries compressed with Zstandard (method 93) must list and decompress (issue #1062).
