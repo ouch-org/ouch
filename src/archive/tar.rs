@@ -18,9 +18,9 @@ use crate::{
     info,
     list::{FileInArchive, ListFileType},
     utils::{
-        self, BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonicalize, create_symlink, is_same_file_as_output,
-        read_file_type, resolve_extraction_conflict, sanitize_archive_mode, set_permission_mode,
-        validate_dest_inside_root, validate_entry_path, validate_symlink_target,
+        self, BytesFmt, FileType, FileVisibilityPolicy, PathFmt, canonical_dest_inside_root, canonicalize,
+        create_symlink, is_same_file_as_output, read_file_type, resolve_extraction_conflict, sanitize_archive_mode,
+        set_permission_mode, validate_dest_inside_root, validate_entry_path, validate_symlink_target,
     },
     warning,
 };
@@ -50,7 +50,13 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
 
                 validate_symlink_target(&safe_relpath, &target)?;
                 validate_dest_inside_root(output_folder, &full_path)?;
-                create_symlink(&target, &full_path)?;
+
+                let Some(dest) = resolve_extraction_conflict(&full_path, question_policy)? else {
+                    continue;
+                };
+                let dest = canonical_dest_inside_root(output_folder, &dest)?;
+                create_symlink(&target, &dest)?;
+                written = Some(dest);
             }
             tar::EntryType::Link => {
                 let raw_link = entry.path()?.into_owned();
@@ -66,22 +72,33 @@ pub fn unpack_archive(reader: impl Read, output_folder: &Path, question_policy: 
 
                 validate_dest_inside_root(output_folder, &full_link_path)?;
                 validate_dest_inside_root(output_folder, &full_target_path)?;
-                fs::hard_link(&full_target_path, &full_link_path)?;
+
+                let Some(dest) = resolve_extraction_conflict(&full_link_path, question_policy)? else {
+                    continue;
+                };
+                let dest = canonical_dest_inside_root(output_folder, &dest)?;
+                fs::hard_link(&full_target_path, &dest)?;
+                written = Some(dest);
             }
             tar::EntryType::Regular | tar::EntryType::GNUSparse => {
                 let raw_path = entry.path()?.into_owned();
                 let safe_relpath = validate_entry_path(&raw_path)?;
                 let full_path = output_folder.join(&safe_relpath);
 
+                validate_dest_inside_root(output_folder, &full_path)?;
+
                 let Some(dest) = resolve_extraction_conflict(&full_path, question_policy)? else {
                     continue;
                 };
 
-                if dest == full_path {
+                let dest = if dest == full_path {
                     entry.unpack_in(output_folder)?;
+                    dest
                 } else {
+                    let dest = canonical_dest_inside_root(output_folder, &dest)?;
                     entry.unpack(&dest)?;
-                }
+                    dest
+                };
                 written = Some(dest);
             }
             tar::EntryType::Directory => {
