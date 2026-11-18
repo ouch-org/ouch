@@ -1,9 +1,11 @@
-//! Per-process filesystem sandbox.
+//! Per-process filesystem sandbox with an optional system call filter.
 
 use std::path::{Path, PathBuf};
 
 #[cfg(target_os = "linux")]
 mod landlock;
+#[cfg(all(target_os = "linux", feature = "seccomp"))]
+mod seccomp;
 
 #[derive(Debug, Default, Clone)]
 pub struct SandboxPolicy {
@@ -64,7 +66,7 @@ impl SandboxPolicy {
         &self.remove_dir_in
     }
 
-    /// Apply the policy and return whether the sandbox is now enforced.
+    /// Apply the policy and return whether the filesystem sandbox is now enforced.
     /// Failures emit a warning and let the process run unrestricted.
     pub fn apply(&self) -> bool {
         if disabled_by_request(self.disabled) {
@@ -73,7 +75,11 @@ impl SandboxPolicy {
         // On Linux the backend warns instead of failing when Landlock is missing and keeps going
         #[cfg(target_os = "linux")]
         {
-            landlock::apply(self)
+            let enforced = landlock::apply(self);
+            // Installed after Landlock because the filter blocks its system calls
+            #[cfg(feature = "seccomp")]
+            seccomp::apply();
+            enforced
         }
         // The sandbox is Linux only so elsewhere there is nothing to enforce
         #[cfg(not(target_os = "linux"))]

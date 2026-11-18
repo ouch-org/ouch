@@ -52,6 +52,7 @@ zstd = { version = "0.14.0", default-features = false, features = ["zstdmt"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 landlock = "0.4.5"
+libseccomp = { version = "0.4.0", optional = true }
 
 [dev-dependencies]
 anyhow = "1.0.102"
@@ -82,6 +83,8 @@ clap_mangen = "0.3.0"
 default = ["unrar", "use_zlib", "use_zstd_thin", "bzip3"]
 use_zlib = ["flate2/zlib-rs", "gzp/deflate_rust", "zip/deflate-flate2-zlib-rs"]
 use_zstd_thin = ["zstd/thin"]
+# Restrict system calls in the sandbox, Linux on x86_64 and aarch64 only, needs libseccomp to build
+seccomp = ["dep:libseccomp"]
 
 # For generating binaries for releases
 [profile.release]
