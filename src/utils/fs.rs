@@ -298,10 +298,7 @@ pub fn cd_into_same_dir_as(filename: &Path) -> Result<PathBuf> {
 
 /// Check if a path refers to the same file as the output handle.
 pub fn is_same_file_as_output(path: &Path, output_handle: &Handle) -> bool {
-    if matches!(Handle::from_path(path), Ok(x) if &x == output_handle) {
-        return true;
-    }
-    false
+    matches!(Handle::from_path(path), Ok(x) if &x == output_handle)
 }
 
 /// Check if an IO error is caused by a broken symlink.
