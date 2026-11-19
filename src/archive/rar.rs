@@ -13,7 +13,10 @@ use crate::{
     error::{Error, FinalError, Result},
     info,
     list::{FileInArchive, ListFileType},
-    utils::{BytesFmt, PathFmt, resolve_extraction_conflict, validate_entry_path},
+    utils::{
+        BytesFmt, PathFmt, canonical_dest_inside_root, create_dir_inside_root, resolve_extraction_conflict,
+        validate_dest_inside_root, validate_entry_path,
+    },
     warning,
 };
 
@@ -40,12 +43,13 @@ fn move_into_place(root: &Path, dir: &Path, output_folder: &Path, question_polic
         let source = entry?.path();
         let dest = output_folder.join(source.strip_prefix(root).expect("child of staging root"));
 
+        validate_dest_inside_root(output_folder, &dest)?;
+
         if fs::symlink_metadata(&source)?.is_dir() {
-            std::fs::create_dir_all(&dest).map_err(|err| Error::Custom {
-                reason: FinalError::with_title(format!("failed to create {}", PathFmt(&dest))).detail(err.to_string()),
-            })?;
-            files_unpacked += move_into_place(root, &source, output_folder, question_policy)?;
+            create_dir_inside_root(output_folder, &dest)?;
+            files_unpacked += 1 + move_into_place(root, &source, output_folder, question_policy)?;
         } else if let Some(target) = resolve_extraction_conflict(&dest, question_policy)? {
+            let target = canonical_dest_inside_root(output_folder, &target)?;
             let size = fs::symlink_metadata(&source)?.len();
             std::fs::rename(&source, &target).map_err(|err| Error::Custom {
                 reason: FinalError::with_title(format!("failed to extract {}", PathFmt(&target)))

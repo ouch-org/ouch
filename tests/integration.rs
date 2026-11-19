@@ -2217,3 +2217,54 @@ fn merging_a_rar_asks_before_replacing_each_file() {
         .success();
     assert_eq!("Testing 123\n", fs::read_to_string(out.join("testfile.txt")).unwrap());
 }
+
+// Extraction must replace a symlink in the output folder instead of writing through it
+#[cfg(unix)]
+#[test]
+fn extraction_never_writes_through_a_symlink_in_the_output_folder() {
+    let (_tempdir, dir) = testdir().unwrap();
+    let src = dir.join("src");
+    fs::create_dir_all(src.join("sub")).unwrap();
+    fs::write(src.join("file.txt"), "archive").unwrap();
+    fs::write(src.join("sub").join("inner.txt"), "archive").unwrap();
+
+    for format in ["tar", "zip", "7z", "gz"] {
+        // a single gz file decompresses to file.txt, the archives also hold sub/inner.txt
+        let (archive, inputs): (_, &[&str]) = if format == "gz" {
+            (dir.join("file.txt.gz"), &["file.txt"])
+        } else {
+            (dir.join(format!("archive.{format}")), &["file.txt", "sub"])
+        };
+        crate::utils::cargo_bin()
+            .current_dir(&src)
+            .arg("compress")
+            .args(inputs)
+            .arg(&archive)
+            .assert()
+            .success();
+
+        let outside = dir.join(format!("outside-{format}"));
+        fs::create_dir_all(outside.join("sub")).unwrap();
+        fs::write(outside.join("secret"), "secret").unwrap();
+        let out = dir.join(format!("out-{format}"));
+        fs::create_dir(&out).unwrap();
+        std::os::unix::fs::symlink(outside.join("secret"), out.join("file.txt")).unwrap();
+        std::os::unix::fs::symlink(outside.join("sub"), out.join("sub")).unwrap();
+
+        // run without the sandbox so the checks in ouch itself are tested, a refused entry may fail the run
+        let _ = crate::utils::cargo_bin_command()
+            .args(["--no-sandbox", "--yes", "decompress"])
+            .arg(&archive)
+            .arg("--dir")
+            .arg(&out)
+            .status()
+            .unwrap();
+
+        assert_eq!(
+            "secret",
+            fs::read_to_string(outside.join("secret")).unwrap(),
+            "{format}"
+        );
+        assert_eq!(0, fs::read_dir(outside.join("sub")).unwrap().count(), "{format}");
+    }
+}

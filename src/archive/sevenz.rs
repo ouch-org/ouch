@@ -7,7 +7,6 @@ use std::{
 
 use bstr::ByteSlice;
 use fs_err as fs;
-use fs_err::PathExt;
 use same_file::Handle;
 use sevenz_rust2::ArchiveEntry;
 
@@ -17,9 +16,9 @@ use crate::{
     info,
     list::{FileInArchive, ListFileType},
     utils::{
-        BytesFmt, FileVisibilityPolicy, PathFmt, cd_into_same_dir_as, copy_limited_decompression,
-        ensure_parent_dir_exists, is_same_file_as_output, resolve_extraction_conflict, validate_dest_inside_root,
-        validate_entry_path,
+        BytesFmt, FileVisibilityPolicy, PathFmt, canonical_dest_inside_root, cd_into_same_dir_as,
+        copy_limited_decompression, create_dir_inside_root, is_same_file_as_output, resolve_extraction_conflict,
+        validate_dest_inside_root, validate_entry_path,
     },
     warning,
 };
@@ -38,7 +37,7 @@ where
     let mut conflict_error = None;
 
     let entry_extract_fn =
-        |entry: &ArchiveEntry, reader: &mut dyn Read, path: &PathBuf| -> Result<bool, sevenz_rust2::Error> {
+        |entry: &ArchiveEntry, reader: &mut dyn Read, _path: &PathBuf| -> Result<bool, sevenz_rust2::Error> {
             // Manually handle writing all files from 7z archive (the library defaults ignore empty files)
 
             let name_as_path = Path::new(entry.name());
@@ -58,11 +57,12 @@ where
 
             if entry.is_directory() {
                 info!("File {} extracted to {}", entry.name(), PathFmt(&file_path));
-                if !path.fs_err_try_exists()? {
-                    fs::create_dir_all(path)?;
+                if let Err(err) = create_dir_inside_root(output_path, &file_path) {
+                    conflict_error = Some(err);
+                    return Ok(false);
                 }
             } else {
-                let dest = match resolve_extraction_conflict(path, question_policy) {
+                let dest = match resolve_extraction_conflict(&file_path, question_policy) {
                     Ok(Some(dest)) => dest,
                     Ok(None) => return Ok(true),
                     Err(err) => {
@@ -73,9 +73,20 @@ where
 
                 info!("extracted ({}) {}", BytesFmt(entry.size()), PathFmt(&dest));
 
-                ensure_parent_dir_exists(&dest)?;
+                if let Err(err) = create_dir_inside_root(output_path, dest.parent().unwrap_or(output_path)) {
+                    conflict_error = Some(err);
+                    return Ok(false);
+                }
 
-                let file = fs::File::create(&dest)?;
+                let dest = match canonical_dest_inside_root(output_path, &dest) {
+                    Ok(dest) => dest,
+                    Err(err) => {
+                        conflict_error = Some(err);
+                        return Ok(false);
+                    }
+                };
+
+                let file = fs::OpenOptions::new().write(true).create_new(true).open(&dest)?;
                 let mut writer = BufWriter::new(file);
                 copy_limited_decompression(reader, &mut writer)?;
 
