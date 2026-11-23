@@ -247,15 +247,16 @@ dependencies = [
 
 [[package]]
 name = "bzip3"
-version = "0.12.0"
+version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9090f9972d76f35fc3cef4650614d1877ab970bc125c45fe3cad2e0213fb6e3"
+checksum = "b2bc1d3371359146fe9aaef4e4fd09119ab994a0b47c53e758031ce15a99b6fc"
 dependencies = [
  "byteorder",
  "bytesize",
  "clap",
  "libbzip3-sys",
  "rayon",
+ "static_assertions",
  "thiserror",
 ]
 
@@ -952,9 +953,9 @@ checksum = "34b357333733e8260735ba5894eb928c02ecc69c78715f01a8019e7fa7f2db4c"
 
 [[package]]
 name = "libbzip3-sys"
-version = "0.5.1+1.5.3"
+version = "0.5.2+1.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2a00fe0cfbd644674a56106ec593014b3f95e94c185fd5d4a75c397cd3b0805"
+checksum = "620e449d74f5e9c3d97f083dd6904493d161de7560a26e7e586d18ad8a5055ef"
 dependencies = [
  "bindgen",
  "cc",
@@ -1574,6 +1575,12 @@ checksum = "3763264f6b73151db08c50ff20d7d8a0b8796e021cdea7ceedad07b80155fa0e"
 dependencies = [
  "lock_api",
 ]
+
+[[package]]
+name = "static_assertions"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "strip-ansi-escapes"
