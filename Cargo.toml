@@ -43,7 +43,7 @@ tar = "0.4.46"
 tempfile = "3.27.0"
 time = { version = "0.3.47", default-features = false, features = ["local-offset"] }
 unrar = { package = "unrar-ng", version = "0.7.6", optional = true }
-zip = { version = "8.6.0", default-features = false, features = [
+zip = { version = "9.0.5", default-features = false, features = [
     "time",
     "aes-crypto",
     "zstd",
