@@ -18,7 +18,7 @@ description = "A command-line utility for easily compressing and decompressing f
 brotli = "8.0.2"
 bstr = { version = "1.12.1", default-features = false, features = ["std"] }
 bzip2 = "0.6.1"
-bzip3 = { version = "0.12.0", features = ["bundled"], optional = true }
+bzip3 = { version = "0.13.1", features = ["bundled"], optional = true }
 clap = { version = "4.6.1", features = ["derive", "env"] }
 file_type_enum = "3.0.1"
 filetime_creation = "0.2"
